@@ -1,0 +1,32 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: custom_handler.__content_not_found
+msgctxt "custom_handler.__content_not_found"
+msgid "Nothing Found"
+msgstr ""
+
+#: custom_handler.__errnomodulenameforrequest
+msgid "Could not determine HTTP module name for request"
+msgstr ""
+
+#: custom_handler.__err_app_init
+msgid "<a href=\"%s\">click here</a> if you need to initialize your webapp's structure.<br>Make sure target directory is writeable"
+msgstr ""
+
+#: custom_handler.__err_theme_modul_notfond
+msgid "Modul \"%s\" not found"
+msgstr ""
+
+#: custom_handler.__err_theme_not_exists
+msgid "file '%s' does not exist in theme '%s'"
+msgstr ""
+
+#: custom_handler.__err_theme_tag_notimplemented
+msgid "Template tag [%s] does not implemented yet."
+msgstr ""
+
+#: custom_handler.__tag_content_not_found
+msgid "Tags Content \"%s\" Not Found"
+msgstr ""
+

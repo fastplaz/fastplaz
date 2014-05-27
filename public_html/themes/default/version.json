@@ -1,0 +1,7 @@
+{ 
+	"theme" : { 
+		"name" : "Default",
+		"description" : "Default Theme for FastPlaz",
+		"version" : "0.0.1",
+	},
+}

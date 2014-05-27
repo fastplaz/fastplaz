@@ -1,0 +1,5 @@
+[session]
+active=1
+timeout=10
+start=27/05/2014 23:37:55
+last=27/05/2014 23:42:40
