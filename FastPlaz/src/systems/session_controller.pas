@@ -133,7 +133,7 @@ procedure TSessionController.SetSessionDir(AValue: string);
 begin
   if FSessionDir=AValue then Exit;
   if not DirectoryExists(AValue) then Exit;
-  FSessionDir:=AValue+'/';
+  FSessionDir:=IncludeTrailingPathDelimiter(AValue);
 end;
 
 procedure TSessionController.SetValue( variable: string; AValue: string);
