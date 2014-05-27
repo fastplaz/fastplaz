@@ -25,6 +25,7 @@ Response.Content:= ThemeUtil.View( @TagController, 'myfolder/mytemplate', true);
 **Assign variable to template**
 
 syntax:
+
 ```pascal
   ThemeUtil.AssignVar[ IndexName] := variable;
   // or
@@ -32,7 +33,8 @@ syntax:
 ```
 
 example
-```pas
+
+```pascal
   ThemeUtil.AssignVar['yourvariablename'] := News.Data;
   // or
   ThemeUtil.Assign('yourvariablename', @Data);
