@@ -1,33 +1,34 @@
-{ 
-	"systems" : { 
-		"sitename" : "FastPlaz - Default Example",
-		"baseurl" : "",
-		"admin_email" : "admin@yourdomain.com",
-		"development" : true,
-		"debug" : true,
-		"module_default" : "main" ,
-		"language_default" : "id" ,
-		"theme" : "default",
-		"error_redirect" : false,
-		"cache" : "file",
-		"temp" : "ztemp"
-	},
-	"database" : {
-		"default" : {
-			"hostname" : "localhost",
-			"driver" : "MySQL 5.0",
-			"tabletype" : "myisam",
-			"username" : "root",
-			"password" : "rootx",
-			"database_name" : "amana_fastp",
-			"prefix" : "wp",
-			"library" : "../libs/win/libmysql.dll"
-		}
-	},
-	"log" : {
-		"enabled" : true,
-		"level" : 4,
-		"destination" : "file",
-		"dir" : "ztemp\/error_log",
-	},
+{
+  "systems" : {
+    "sitename" : "FastPlaz",
+    "baseurl" : "",
+    "admin_email" : "webmaster@yourfastplazdomain.com",
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
+    "theme" : "default",
+    "error_redirect" : false,
+    "cache" : "file",
+    "temp" : "ztemp",
+    "error_url" : "\/"
+  },
+  "database" : {
+    "default" : {
+      "hostname" : "localhost",
+      "driver" : "MySQL 5.0",
+      "tabletype" : "myisam",
+      "username" : "your_username",
+      "password" : "your_password",
+      "database_name" : "your_database",
+      "prefix" : "",
+      "library" : "..\/libs\/win\/libmysql.dll"
+    }
+  },
+  "log" : {
+    "enabled" : true,
+    "level" : 4,
+    "destination" : "file",
+    "dir" : "ztemp\/error_log"
+  }
 }

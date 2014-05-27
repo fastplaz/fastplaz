@@ -43,7 +43,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="19">
+    <Units Count="20">
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -144,6 +144,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="session_controller"/>
       </Unit18>
+      <Unit19>
+        <Filename Value="src\systems\info_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="info_controller"/>
+      </Unit19>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
