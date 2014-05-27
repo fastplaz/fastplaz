@@ -37,6 +37,7 @@ type
     procedure DeleteIniFile;
     function GetIsExpired: boolean;
     function GetValue( variable: string): string;
+    procedure SetSessionDir(AValue: string);
     procedure SetValue( variable: string; AValue: string);
     procedure UpdateIniFile;
 
@@ -46,7 +47,7 @@ type
     property Values[ variable: string]: string read GetValue write SetValue; default;
     property CookieID: string read FCookieID;
     property SessionID: string read FSessionID;
-    property SessionDir: string read FSessionDir write FSessionDir;
+    property SessionDir: string read FSessionDir write SetSessionDir;
 
     property IsExpired: boolean read GetIsExpired;
 
@@ -104,7 +105,7 @@ end;
 procedure TSessionController.DeleteIniFile;
 begin
   try
-    DeleteFile(FSessionDir + '/' + FSessionID + FSessionExtension);
+    DeleteFile(FSessionDir + FSessionID + FSessionExtension);
   except
   end;
 end;
@@ -126,6 +127,13 @@ begin
   Result:='';
   if (not FSessionStarted)or(FSessionTerminated)or(FIniFile=nil) then Exit;
   Result:=FIniFile.ReadString(_SESSION_DATA,variable,'');
+end;
+
+procedure TSessionController.SetSessionDir(AValue: string);
+begin
+  if FSessionDir=AValue then Exit;
+  if not DirectoryExists(AValue) then Exit;
+  FSessionDir:=IncludeTrailingPathDelimiter(AValue);
 end;
 
 procedure TSessionController.SetValue( variable: string; AValue: string);
@@ -186,6 +194,9 @@ begin
     Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
+  if FSessionDir = '' then
+    FSessionDir := 'ztemp/sessions/';
+  FSessionDir:=IncludeTrailingPathDelimiter(FSessionDir);
   FSessionExtension := '';
   FSessionStarted := False;
   FSessionTerminated := False;
@@ -205,7 +216,7 @@ begin
   Result := False;
   if FSessionStarted then
     Exit;
-  FIniFile := CreateIniFile(FSessionDir + '/' + FSessionID + FSessionExtension);
+  FIniFile := CreateIniFile(FSessionDir + FSessionID + FSessionExtension);
   if FIniFile = nil then
     Exit;
 

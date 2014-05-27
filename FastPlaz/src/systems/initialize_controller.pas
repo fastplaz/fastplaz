@@ -93,6 +93,7 @@ begin
   CreateDirCustom('ztemp', True);
   CreateDirCustom('ztemp/cache');
   CreateDirCustom('ztemp/error_log');
+  CreateDirCustom('ztemp/session');
   CreateDirCustom('ztemp/sessions');
   CreateDirCustom('themes', True);
   CreateDirCustom('themes/default', True);
