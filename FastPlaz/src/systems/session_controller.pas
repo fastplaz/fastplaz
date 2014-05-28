@@ -5,7 +5,7 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles,
+  fpcgi, md5, IniFiles, FileUtil,
   Classes, SysUtils;
 
 const
@@ -194,6 +194,11 @@ begin
     Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
+  if FSessionDir <> '' then
+  begin
+    if not DirectoryIsWritable(FSessionDir) then
+      FSessionDir := '';
+  end;
   if FSessionDir = '' then
     FSessionDir := 'ztemp/sessions/';
   FSessionDir:=IncludeTrailingPathDelimiter(FSessionDir);
