@@ -15,6 +15,9 @@ Procedure Register;
 Procedure log( const Msg:string);
 function ucwords( const str:string):string;
 
+var
+  bCreateProject : boolean = false;
+
 implementation
 
 uses modsimple_lib, model_lib, project_lib;

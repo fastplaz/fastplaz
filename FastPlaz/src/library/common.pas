@@ -1,7 +1,7 @@
 unit common;
 
 {$mode objfpc}{$H+}
-{$include define.inc}
+{ $include define.inc}
 
 interface
 
@@ -9,7 +9,7 @@ uses
   //SynExportHTML,
   fpcgi, gettext, process, math,
   jsonConf,
-  Classes, SysUtils, custom_handler;
+  Classes, SysUtils, fastplaz_handler;
 
 const
   _APP = 'FastPlaz';

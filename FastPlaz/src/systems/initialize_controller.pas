@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson, jsonparser, jsonscanner, jsonConf,
-  Classes, SysUtils, fpcgi, HTTPDefs, custom_handler;
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
 
 type
 

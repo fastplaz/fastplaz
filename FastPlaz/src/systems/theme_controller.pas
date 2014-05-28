@@ -12,7 +12,7 @@ uses
   {$endif fpc_fullversion >= 20701}
   fpcgi, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
   RegExpr,
-  common, custom_handler, sqldb,
+  common, fastplaz_handler, sqldb,
   Classes, SysUtils;
 
 const
@@ -94,7 +94,7 @@ var
 
 implementation
 
-uses logutil_lib, language_lib, versioninfo_lib;
+uses logutil_lib, language_lib, versioninfo_lib, initialize_controller;
 
 var
   FAssignVarMap : TAssignVarMap;
@@ -461,7 +461,7 @@ function TThemeUtil.ForeachProcessor_Table(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
   html : string;
-  _template : TFPTemplate;
+  template_engine : TFPTemplate;
 begin
   if ( AssignVar[KeyName] = nil) then
   begin
@@ -472,15 +472,15 @@ begin
   while not TSQLQuery( FAssignVarMap[KeyName]^).EOF do
   begin
 
-    _template := TFPTemplate.Create;
-    _template.Template := Content;
-    _template.AllowTagParams := True;
-    _template.StartDelimiter := FStartDelimiter;
-    _template.EndDelimiter := FEndDelimiter;
-    _template.ParamValueSeparator := '=';
-    _template.OnReplaceTag := @ForeachProcessor_Table_TagController;
-    html := html + _template.GetContent;
-    FreeAndNil(_template);
+    template_engine := TFPTemplate.Create;
+    template_engine.Template := Content;
+    template_engine.AllowTagParams := True;
+    template_engine.StartDelimiter := FStartDelimiter;
+    template_engine.EndDelimiter := FEndDelimiter;
+    template_engine.ParamValueSeparator := '=';
+    template_engine.OnReplaceTag := @ForeachProcessor_Table_TagController;
+    html := html + template_engine.GetContent;
+    FreeAndNil(template_engine);
 
     TSQLQuery( FAssignVarMap[KeyName]^).Next;
   end;
@@ -623,8 +623,8 @@ end;
 function TThemeUtil.Render(TagProcessor: TReplaceTagEvent; TemplateFile: string;
   Cache: boolean): string;
 var
-  _f, _ext, module_active: string;
-  _template: TFPTemplate;
+  template_filename, _ext, module_active: string;
+  template_engine: TFPTemplate;
 begin
   if Cache then
   begin
@@ -632,6 +632,13 @@ begin
     if Result <> '' then
       Exit;
   end;
+
+  if not DirectoryExists('themes') then
+  begin
+    Result := Result + Format( __(__Err_App_Init), [Application.EnvironmentVariable['REQUEST_URI']+'/initialize/']);
+    Exit;
+  end;
+
   if TemplateFile <> '' then
   begin
     TemplateFile := StringReplace(TemplateFile, '"', '', [rfReplaceAll]);
@@ -639,42 +646,39 @@ begin
     _ext := FThemeExtension;
     if ExtractFileExt(TemplateFile) <> '' then
       _ext := '';
-    _f := 'themes/' + ThemeName + '/templates/' + TemplateFile + _ext;
+    template_filename := 'themes/' + ThemeName + '/templates/' + TemplateFile + _ext;
 
-    if not FileExists(_f) then
+    if not FileExists(template_filename) then
     begin
       Result := EchoError( __(__Err_Theme_Not_Exists), [TemplateFile, ThemeName]);
-      if TemplateFile = 'home' then
-      begin
-        Result := Result + Format( __(__Err_App_Init), [BaseURL+'/initialize/']);
-      end;
       Exit;
     end;
   end
   else
   begin
     module_active := _GetModuleName(Application.Request);
-    _f := Application.Request.QueryFields.Values['act'];
-    if _f = '' then
-      _f := 'master';
-    _f := 'themes/' + ThemeName + '/templates/modules/' + module_active +
-      '/' + _f + FThemeExtension;
-    if not FileExists(_f) then
-      _f := 'themes/' + ThemeName + '/templates/modules/' + module_active +
+    template_filename := Application.Request.QueryFields.Values['act'];
+    if template_filename = '' then
+      template_filename := 'master';
+    template_filename := 'themes/' + ThemeName + '/templates/modules/' + module_active +
+      '/' + template_filename + FThemeExtension;
+    if not FileExists(template_filename) then
+      template_filename := 'themes/' + ThemeName + '/templates/modules/' + module_active +
         '/master' + FThemeExtension;
-    if not FileExists(_f) then
-      _f := 'themes/' + ThemeName + '/templates/master' + FThemeExtension;
+    if not FileExists(template_filename) then
+      template_filename := 'themes/' + ThemeName + '/templates/master' + FThemeExtension;
   end;
 
+
   try
-    _template := TFPTemplate.Create;
-    _template.FileName := _f;
-    _template.AllowTagParams := True;
-    _template.StartDelimiter := FStartDelimiter;
-    _template.EndDelimiter := FEndDelimiter;
-    _template.ParamValueSeparator := FParamValueSeparator;
-    _template.OnReplaceTag := TagProcessor;
-    Result := _template.GetContent;
+    template_engine := TFPTemplate.Create;
+    template_engine.FileName := template_filename;
+    template_engine.AllowTagParams := True;
+    template_engine.StartDelimiter := FStartDelimiter;
+    template_engine.EndDelimiter := FEndDelimiter;
+    template_engine.ParamValueSeparator := FParamValueSeparator;
+    template_engine.OnReplaceTag := TagProcessor;
+    Result := template_engine.GetContent;
   except
     on e : Exception do
     begin
@@ -683,13 +687,13 @@ begin
   end;
   if Cache then
     SaveCache(Result);
-  FreeAndNil(_template);
+  FreeAndNil(template_engine);
 end;
 
 function TThemeUtil.RenderFromContent(TagProcessor: TReplaceTagEvent;
   Content: string; TemplateFile: string): string;
 var
-  _template: TFPTemplate;
+  template_engine: TFPTemplate;
   html: TStringList;
 begin
   html := TStringList.Create;
@@ -706,15 +710,15 @@ begin
   //-- proccess foreach
   html.Text:= ForeachProcessor( TagProcessor, html.Text);
 
-  _template := TFPTemplate.Create;
-  _template.Template := html.Text;
-  _template.AllowTagParams := True;
-  _template.StartDelimiter := FStartDelimiter;
-  _template.EndDelimiter := FEndDelimiter;
-  _template.ParamValueSeparator := '=';
-  _template.OnReplaceTag := TagProcessor;
-  Result := _template.GetContent;
-  FreeAndNil(_template);
+  template_engine := TFPTemplate.Create;
+  template_engine.Template := html.Text;
+  template_engine.AllowTagParams := True;
+  template_engine.StartDelimiter := FStartDelimiter;
+  template_engine.EndDelimiter := FEndDelimiter;
+  template_engine.ParamValueSeparator := '=';
+  template_engine.OnReplaceTag := TagProcessor;
+  Result := template_engine.GetContent;
+  FreeAndNil(template_engine);
   FreeAndNil(html);
 end;
 

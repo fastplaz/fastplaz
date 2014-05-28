@@ -200,7 +200,14 @@ begin
       FSessionDir := '';
   end;
   if FSessionDir = '' then
+  begin
     FSessionDir := 'ztemp/sessions/';
+    try
+      if not DirectoryExists(FSessionDir) then
+        ForceDirectories(FSessionDir);
+    except
+    end;
+  end;
   FSessionDir:=IncludeTrailingPathDelimiter(FSessionDir);
   FSessionExtension := '';
   FSessionStarted := False;

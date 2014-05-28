@@ -32,7 +32,7 @@ var
 
 implementation
 
-uses logutil_lib, theme_controller, database_lib, custom_handler, common,
+uses logutil_lib, theme_controller, database_lib, fastplaz_handler, common,
   users_model;
 
 {$R *.lfm}

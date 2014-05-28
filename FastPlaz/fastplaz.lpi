@@ -59,9 +59,9 @@
         <IsPartOfProject Value="True"/>
       </Unit2>
       <Unit3>
-        <Filename Value="src\library\custom_handler.pas"/>
+        <Filename Value="src\systems\fastplaz_handler.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="custom_handler"/>
+        <UnitName Value="fastplaz_handler"/>
       </Unit3>
       <Unit4>
         <Filename Value="src\library\common.pas"/>

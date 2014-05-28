@@ -6,7 +6,7 @@ unit main;
 interface
 
 uses
-  custom_handler, httpdefs, fpcgi, fpHTTP,
+  fastplaz_handler, httpdefs, fpcgi, fpHTTP,
   SysUtils, Classes;
 
 type
@@ -49,7 +49,7 @@ begin
   LanguageInit;
 
   Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController, 'home');
+  Response.Content := ThemeUtil.Render(@TagController);
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 

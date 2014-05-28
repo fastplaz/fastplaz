@@ -4,13 +4,11 @@ program fastplaz;
 {$include define.inc}
 
 uses
-  HTTPDefs,
-  fpHTTP,
   SysUtils,
   fpcgi,
   main,
   common,
-  custom_handler,
+  fastplaz_handler,
   database_lib,
   gettext,
   theme_controller,

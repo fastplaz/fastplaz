@@ -57,8 +57,8 @@ var
   MainFile: TLazProjectFile;
 begin
   Result:=inherited InitProject(AProject);
-  ProjectName := 'Contoh';
-  MainFile:=AProject.CreateProjectFile('contoh.lpr');
+  ProjectName := 'fastplaz';
+  MainFile:=AProject.CreateProjectFile('myproject.lpr');
   MainFile.IsPartOfProject:=true;
   AProject.AddFile(MainFile,false);
   AProject.MainFileID:=0;
@@ -72,15 +72,13 @@ begin
     Add('{$mode objfpc}{$H+}');
     Add('');
     Add('uses');
-    Add('  HTTPDefs, fpHTTP, SysUtils, websession, fpcgi, common, custom_handler, database_lib, gettext,');
-    Add('  theme_controller, logutil_lib, html_lib, language_lib, versioninfo_lib, routes, initialize_controller;');
+    Add('  fpcgi, sysutils, fastplaz_handler, common, main;');
     Add('');
     Add('{$R *.res}');
     Add('');
     Add('begin');
     Add('  Application.Title := Config.GetValue(_SYSTEM_SITENAME, _APP);');
-    Add('  Application.Email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,');
-    Add('    ''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''));');
+    Add('  Application.Email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''));');
     Add('  Application.DefaultModuleName := Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main'');');
     Add('  Application.ModuleVariable := Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod'');');
     Add('  Application.AllowDefaultModule := True;');
@@ -95,12 +93,12 @@ begin
     Add('end.');
 
   end;
-  AProject.MainFile.SetSourceText( source.Text);
+  AProject.MainFile.SetSourceText( source.Text, true);
   FreeAndNil(source);
 
   // package
-  AProject.AddPackageDependency('fastplaz_tools');
-  AProject.AddPackageDependency('FCL');
+  AProject.AddPackageDependency('fastplaz_runtime');
+  AProject.AddPackageDependency('LCL');
 
   // compiler options
   AProject.LazCompilerOptions.Win32GraphicApp:=false;
@@ -111,8 +109,12 @@ end;
 function TFileDescProject.CreateStartFiles(AProject: TLazProject): TModalResult;
 begin
   //Result:=inherited CreateStartFiles(AProject);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create,'','',
+  bCreateProject:=True;
+  LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create,'routes.pas','',
     [nfIsPartOfProject,nfOpenInEditor,nfCreateDefaultSrc]);
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create,'main.pas','',
+    [nfIsPartOfProject,nfOpenInEditor,nfCreateDefaultSrc]);
+  bCreateProject:=False;
   Result:= mrOK;
 end;
 
