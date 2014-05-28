@@ -49,7 +49,7 @@ begin
   LanguageInit;
 
   Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController);
+  Response.Content := ThemeUtil.Render(@TagController, 'home');
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 
