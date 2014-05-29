@@ -1,0 +1,111 @@
+object fModuleSimpleWizard: TfModuleSimpleWizard
+  Left = 908
+  Height = 247
+  Top = 287
+  Width = 407
+  BorderStyle = bsDialog
+  Caption = 'Model Simple Wizard'
+  ClientHeight = 247
+  ClientWidth = 407
+  Color = 15790320
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  Position = poDesktopCenter
+  SessionProperties = 'Top;Left'
+  LCLVersion = '1.2.2.0'
+  object pnl_Top: TPanel
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 407
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 34
+    ClientWidth = 407
+    Color = clWhite
+    ParentColor = False
+    TabOrder = 3
+    object lbl_Title: TLabel
+      Left = 6
+      Height = 25
+      Top = 4
+      Width = 192
+      Caption = 'Module Simple Wizard'
+      Font.Height = -19
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object pnl_Button: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 207
+    Width = 395
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    OKButton.OnClick = OKButtonClick
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    CancelButton.OnClick = CancelButtonClick
+    TabOrder = 2
+    ShowButtons = [pbOK, pbCancel]
+  end
+  object Label1: TLabel
+    Left = 10
+    Height = 15
+    Top = 49
+    Width = 82
+    Caption = 'Module Name :'
+    ParentColor = False
+  end
+  object edt_ModuleName: TEdit
+    Left = 94
+    Height = 23
+    Top = 46
+    Width = 302
+    OnChange = edt_ModuleNameChange
+    TabOrder = 0
+    Text = 'Sample'
+  end
+  object mem: TMemo
+    Left = 22
+    Height = 72
+    Top = 128
+    Width = 376
+    Lines.Strings = (
+      ''
+      'This is Module Generator for FastPlaz'
+    )
+    ReadOnly = True
+    TabOrder = 4
+  end
+  object Label2: TLabel
+    Left = 10
+    Height = 15
+    Top = 76
+    Width = 59
+    Caption = 'Permalink :'
+    ParentColor = False
+  end
+  object edt_Permalink: TEdit
+    Left = 94
+    Height = 23
+    Top = 74
+    Width = 302
+    OnChange = edt_PermalinkChange
+    TabOrder = 1
+    Text = 'sample'
+  end
+  object lbl_URL: TLabel
+    Left = 94
+    Height = 15
+    Top = 104
+    Width = 148
+    Caption = 'http://yourdomain/sample/'
+    ParentColor = False
+  end
+end
