@@ -8,7 +8,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="D:\garapan\FastPlaz\source\core\FastPlaz\"/>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\app\about"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -18,7 +18,7 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Files Count="15">
+    <Files Count="17">
       <Item1>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -80,6 +80,14 @@
         <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
         <UnitName Value="theme_controller"/>
       </Item15>
+      <Item16>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
+        <Type Value="LFM"/>
+      </Item16>
+      <Item17>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.pas"/>
+        <UnitName Value="about_controller"/>
+      </Item17>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>

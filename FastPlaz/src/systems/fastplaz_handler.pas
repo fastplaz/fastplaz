@@ -147,7 +147,8 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller,
+  about_controller;
 
 function _CleanVar(const variable: string): string;
 begin
@@ -191,9 +192,7 @@ begin
 
   //-- session
   if AppData.SessionDir <> '' then
-  begin
     SessionController.SessionDir:=AppData.SessionDir;
-  end;
   SessionController.StartSession;
   SessionController.IsExpired;
   //-- session - end

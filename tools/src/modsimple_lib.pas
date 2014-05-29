@@ -72,6 +72,7 @@ begin
     Add('uses info_controller, main;');
     Add('');
     Add('initialization');
+    Add('  AddRoute(''main'', TMainModule);');
     Add('  AddRoute(''info'', TInfoModule);');
     Add('');
   end;
@@ -169,15 +170,20 @@ begin
     Add('  Result:=h3(''Hello world ... FastPlaz !'');');
     Add('');
     Add('End;');
+    Add('');
+    Add('');
   end;
   Result := Result+ str.Text;
   FreeAndNil(str);
 
-  Result:=result
-    +LineEnding+'initialization'
-    +LineEnding+'  // -> http://yourdomainname/'+ResourceName
-    +LineEnding+'  // The following line should be moved to a file "routes.pas"'
-    +LineEnding+'  AddRoute('''+Permalink+''','+ModulTypeName+');'+LineEnding;
+  if not bCreateProject then
+  begin
+    Result:=result
+      +LineEnding+'initialization'
+      +LineEnding+'  // -> http://yourdomainname/'+ResourceName
+      +LineEnding+'  // The following line should be moved to a file "routes.pas"'
+      +LineEnding+'  AddRoute('''+Permalink+''','+ModulTypeName+');'+LineEnding;
+  end;
 end;
 
 

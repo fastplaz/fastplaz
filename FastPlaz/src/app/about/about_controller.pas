@@ -27,7 +27,7 @@ var
 
 implementation
 
-uses common, theme_controller;
+uses common, fastplaz_handler, theme_controller, versioninfo_lib;
 
 {$R *.lfm}
 
@@ -64,7 +64,6 @@ begin
   case tags[0] of
     '$maincontent': begin
       ContributorInfo := TStringList.Create;
-
       a('<h1>About <a href="'+_APP_URL+'">' + _APP + '</a></h1>');
       a('<p>vesion: {$version}</p>');
       a('<p>');
@@ -101,6 +100,7 @@ begin
       a('<h3>Special Thanks</h3>');
       a('<ul>');
       a('<li>Cahyo Sasongko</li>');
+      a('<li>Heru Susanto (herux)</li>');
       a('<li>Mario Ray Mahardhika (qtemplate idea)</li>');
       a('<li>Oka Prinarjaya</li>');
       a('<li>Takeda Matsuki</li>');
@@ -111,12 +111,11 @@ begin
       a('<h3>Contributor</h3>');
       a('<ul>');
       a('<li>You</li>');
-      a('<li>Heru Susanto (herux)</li>');
       a('</ul>');
       a('<h3>Special Group</h3>');
       a('<ul>');
-      a('<li><a href="#">Pascal Indonesia</a></li>');
-      a('<li><a href="#">PHP Indonesia</a></li>');
+      a('<li><a href="http://www.facebook.com/groups/Pascal.ID/">Pascal Indonesia</a></li>');
+      a('<li><a href="http://www.facebook.com/groups/35688476100/">PHP Indonesia</a></li>');
       a('</ul>');
       a('<div class="bs-callout bs-callout-warning">');
       a('Halaman ini adalah contoh sederhana pemanggilan module "<a href="'+_APP_URL+'/about/'+'">about</a>"');
@@ -136,6 +135,7 @@ begin
 end;
 
 initialization
+  AddRoute('about', TAboutModule, false);
 
 end.
 

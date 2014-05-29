@@ -55,8 +55,6 @@ type
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     function getDebugInfo( DebugType:string):string;
 
-    function GetVersionInfo():boolean;
-
     //- cache
     function getCacheFileName: string;
     function isCacheExpired: boolean;
@@ -76,6 +74,7 @@ type
     property StartDelimiter: string read FStartDelimiter write FStartDelimiter;
     property EndDelimiter: string read FEndDelimiter write FEndDelimiter;
     property BaseURL : string Read GetBaseURL;
+    function GetVersionInfo():boolean;
 
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
 

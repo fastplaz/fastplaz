@@ -5,7 +5,7 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles, FileUtil,
+  fpcgi, md5, IniFiles,
   Classes, SysUtils;
 
 const
@@ -62,6 +62,36 @@ type
   end;
 
 implementation
+
+uses logutil_lib;
+
+//uses common; --- failed jk memasukkan common ke unit ini
+
+function AppendPathDelim(const Path: string): string;
+begin
+  if (Path<>'') and not (Path[length(Path)] in AllowDirectorySeparators) then
+    Result:=Path+PathDelim
+  else
+    Result:=Path;
+end;
+
+function DirectoryIsWritable(const DirectoryName: string): boolean;
+var
+  TempFilename: String;
+  s: String;
+  fHandle: THANDLE;
+begin
+  Result:=false;
+  TempFilename:=SysUtils.GetTempFilename(AppendPathDelim(DirectoryName),'ztstperm');
+  fHandle:= FileCreate(TempFilename);
+  if (THandle(fHandle) <> feInvalidHandle) then
+  begin
+    s:='WriteTest';
+    if FileWrite(fHandle,S[1],Length(S)) > 0 then Result := True;
+    FileClose(fHandle);
+    DeleteFile(TempFilename);
+  end;
+end;
 
 { TSessionController }
 
@@ -132,8 +162,12 @@ end;
 procedure TSessionController.SetSessionDir(AValue: string);
 begin
   if FSessionDir=AValue then Exit;
-  if not DirectoryExists(AValue) then Exit;
+  //if not DirectoryExists(AValue) then Exit;
   FSessionDir:=IncludeTrailingPathDelimiter(AValue);
+  try
+    ForceDirectories(FSessionDir);
+  except
+  end;
 end;
 
 procedure TSessionController.SetValue( variable: string; AValue: string);
