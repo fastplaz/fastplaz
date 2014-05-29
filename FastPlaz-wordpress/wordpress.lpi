@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <PathDelim Value="\"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
+      <Title Value="FastPlaz for Wordpress"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+    </General>
+    <i18n>
+      <EnableI18N Value="True" LFM="False"/>
+    </i18n>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+      <AutoIncrementBuild Value="True"/>
+      <MinorVersionNr Value="1"/>
+      <RevisionNr Value="1"/>
+      <BuildNr Value="142"/>
+      <StringTable CompanyName="FastPlaz" FileDescription="FastPlaz for Wordpress" OriginalFilename="wordpress.bin" ProductName="FastPlaz for Wordpress" ProductVersion="0.1.1"/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="22">
+      <Unit0>
+        <Filename Value="wordpress.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="routes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="routes"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="main"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\core\FastPlaz\src\systems\fastplaz_handler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="fastplaz_handler"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\core\FastPlaz\src\systems\docs_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="docs_controller"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\core\FastPlaz\src\systems\error_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="error_controller"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\core\FastPlaz\src\systems\info_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="info_controller"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\core\FastPlaz\src\systems\initialize_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="initialize_controller"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\core\FastPlaz\src\systems\session_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="session_controller"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\core\FastPlaz\src\systems\theme_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="theme_controller"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\core\FastPlaz\src\library\common.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="common"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="..\core\FastPlaz\src\app\about\about_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <UnitName Value="about_controller"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="app\wordpress\model\wordpress_news_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_news_model"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="app\wordpress\model\wordpress_nggallery_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_nggallery_model"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="app\wordpress\model\wordpress_options_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_options_model"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="app\wordpress\model\wordpress_pages_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_pages_model"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="app\wordpress\model\wordpress_tags_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_tags_model"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="app\wordpress\model\wordpress_terms_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_terms_model"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="app\wordpress\wordpress_category_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_category_controller"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="app\wordpress\wordpress_news_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_news_controller"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="app\wordpress\wordpress_pages_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_pages_controller"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="app\wordpress\wordpress_tags_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="wordpress_tags_controller"/>
+      </Unit21>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value="D:\garapan\FastPlaz\home\fastplaz\public_html\wordpress.bin" ApplyConventions="False"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\core\FastPlaz\src\systems;..\core\FastPlaz\src\library;..\core\FastPlaz\src\app\about;app\wordpress\model;app\wordpress"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+      </Debugging>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <MsgFileName Value=""/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
