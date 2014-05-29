@@ -8,7 +8,7 @@ uses
   {$ifdef LCL}
   Translations,
   {$endif}
-  custom_handler, fphttp, HTTPDefs,
+  fastplaz_handler, fphttp, HTTPDefs,
   Classes, SysUtils;
 
 

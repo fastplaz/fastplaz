@@ -7,6 +7,8 @@ AddHandler cgi-script .exe
 Options +ExecCGI
 
 DirectoryIndex fastplaz.bin
+ErrorDocument 404 404.html
+ErrorDocument 500 500.html
 
 <FilesMatch ".*\.(cfg|ini)$">
     Order Allow,Deny

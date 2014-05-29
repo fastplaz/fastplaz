@@ -6,7 +6,7 @@ unit main;
 interface
 
 uses
-  custom_handler, httpdefs, fpcgi, fpHTTP,
+  fastplaz_handler, httpdefs, fpcgi, fpHTTP,
   SysUtils, Classes;
 
 type

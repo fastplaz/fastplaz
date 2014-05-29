@@ -1,7 +1,7 @@
-unit custom_handler;
+unit fastplaz_handler;
 
 {$mode objfpc}{$H+}
-{$include define.inc}
+{ $include define.inc}
 
 interface
 
@@ -18,7 +18,7 @@ resourcestring
   __ErrNoModuleNameForRequest = 'Could not determine HTTP module name for request';
 
   // theme
-  __Err_App_Init = '<a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
+  __Err_App_Init = '<h3>This is the first time using fastplaz?</h3><a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
   __Err_Theme_Not_Exists = 'file ''%s'' does not exist in theme ''%s''';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
@@ -54,6 +54,7 @@ Type
     FOnBlockController: TOnBlockController;
 
     function GetBaseURL: string;
+    function GetEnvirontment(const KeyName: String): string;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTag(const TagName: String): TTagCallback;
@@ -63,6 +64,8 @@ Type
     Constructor CreateNew(AOwner : TComponent; CreateMode : Integer); override;
     destructor Destroy; override;
     procedure LanguageInit;
+
+    property  Environtment[const KeyName: String]: string read GetEnvirontment;
 
     property  Tags[const TagName: String]: TTagCallback read GetTag write SetTag; default;
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
@@ -144,7 +147,8 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller,
+  about_controller;
 
 function _CleanVar(const variable: string): string;
 begin
@@ -188,9 +192,7 @@ begin
 
   //-- session
   if AppData.SessionDir <> '' then
-  begin
     SessionController.SessionDir:=AppData.SessionDir;
-  end;
   SessionController.StartSession;
   SessionController.IsExpired;
   //-- session - end
@@ -290,6 +292,11 @@ end;
 function TMyCustomWebModule.GetBaseURL: string;
 begin
   Result:=ThemeUtil.BaseURL;
+end;
+
+function TMyCustomWebModule.GetEnvirontment(const KeyName: String): string;
+begin
+  Result:=Application.EnvironmentVariable[KeyName];
 end;
 
 

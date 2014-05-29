@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson, jsonparser, jsonscanner, jsonConf,
-  Classes, SysUtils, fpcgi, HTTPDefs, custom_handler;
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
 
 type
 
@@ -93,7 +93,6 @@ begin
   CreateDirCustom('ztemp', True);
   CreateDirCustom('ztemp/cache');
   CreateDirCustom('ztemp/error_log');
-  CreateDirCustom('ztemp/session');
   CreateDirCustom('ztemp/sessions');
   CreateDirCustom('themes', True);
   CreateDirCustom('themes/default', True);

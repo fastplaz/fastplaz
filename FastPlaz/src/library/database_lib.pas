@@ -75,21 +75,21 @@ procedure DataBaseInit( const RedirecURL:string = '');
 
 implementation
 
-uses common, custom_handler, logutil_lib;
+uses common, fastplaz_handler, logutil_lib;
 
 var
-  _DB : TSQLConnector;
-  __Transaction : TSQLTransaction;
-  ___DBLibLoader : TSQLDBLibraryLoader;
+  DB_Connector : TSQLConnector;
+  DB_Transaction : TSQLTransaction;
+  DB_LibLoader : TSQLDBLibraryLoader;
 
 procedure DataBaseInit(const RedirecURL: string);
 begin
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
-    ___DBLibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
-    ___DBLibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
-    ___DBLibLoader.Enabled:= True;
+    DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
+    DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
+    DB_LibLoader.Enabled:= True;
     try
-      ___DBLibLoader.LoadLibrary;
+      DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
         if RedirecURL = '' then
@@ -100,17 +100,17 @@ begin
     end;
   end;
 
-  _DB.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
-  _DB.ConnectorType := Config.GetValue( _DATABASE_DRIVER, '');
-  _DB.UserName:= Config.GetValue( _DATABASE_USERNAME, 'root');
-  _DB.Password:= Config.GetValue( _DATABASE_PASSWORD, 'root');
-  _DB.DatabaseName:= Config.GetValue( _DATABASE_DATABASENAME, 'test');
+  DB_Connector.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
+  DB_Connector.ConnectorType := Config.GetValue( _DATABASE_DRIVER, '');
+  DB_Connector.UserName:= Config.GetValue( _DATABASE_USERNAME, 'root');
+  DB_Connector.Password:= Config.GetValue( _DATABASE_PASSWORD, 'root');
+  DB_Connector.DatabaseName:= Config.GetValue( _DATABASE_DATABASENAME, 'test');
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database
 
   try
-    _DB.Open;
+    DB_Connector.Open;
   except
     on E: Exception do begin
       if RedirecURL = '' then
@@ -206,7 +206,7 @@ constructor TSimpleModel.Create(const DefaultTableName: string);
 var
   i : integer;
 begin
-  FConnector := _DB;
+  FConnector := DB_Connector;
   if DefaultTableName = '' then begin
     for i:=2 to length( ToString)-1 do begin
       if (ToString[i] in ['A'..'Z']) then begin
@@ -225,7 +225,7 @@ begin
   sssss
   {$else}
   Data := TSQLQuery.Create(nil);
-  Data.DataBase := _DB;
+  Data.DataBase := DB_Connector;
   Data.AfterOpen:= @DoAfterOpen;
   Data.BeforeOpen:= @DoBeforeOpen;
   {$endif}
@@ -364,47 +364,47 @@ end;
 
 procedure TSimpleModel.StartTransaction;
 begin
-  __Transaction.StartTransaction;
+  DB_Transaction.StartTransaction;
 end;
 
 procedure TSimpleModel.ReStartTransaction;
 begin
-  if __Transaction.Active then
-    __Transaction.Active:= false;
-  __Transaction.StartTransaction;
+  if DB_Transaction.Active then
+    DB_Transaction.Active:= false;
+  DB_Transaction.StartTransaction;
 end;
 
 procedure TSimpleModel.Commit;
 begin
-  __Transaction.Commit;
+  DB_Transaction.Commit;
 end;
 
 procedure TSimpleModel.CommitRetaining;
 begin
-  __Transaction.CommitRetaining;
+  DB_Transaction.CommitRetaining;
 end;
 
 procedure TSimpleModel.Rollback;
 begin
-  __Transaction.Rollback;
+  DB_Transaction.Rollback;
 end;
 
 procedure TSimpleModel.RollbackRetaining;
 begin
-  __Transaction.RollbackRetaining;
+  DB_Transaction.RollbackRetaining;
 end;
 
 initialization
-  ___DBLibLoader := TSQLDBLibraryLoader.Create( nil);
-  __Transaction := TSQLTransaction.Create( nil);
-  _DB := TSQLConnector.Create( nil);
-  _DB.Transaction := __Transaction;
+  DB_LibLoader := TSQLDBLibraryLoader.Create( nil);
+  DB_Transaction := TSQLTransaction.Create( nil);
+  DB_Connector := TSQLConnector.Create( nil);
+  DB_Connector.Transaction := DB_Transaction;
 
 
 finalization
-  FreeAndNil( _DB);
-  FreeAndNil( __Transaction);
-  FreeAndNil( ___DBLibLoader);
+  FreeAndNil( DB_Connector);
+  FreeAndNil( DB_Transaction);
+  FreeAndNil( DB_LibLoader);
 
 end.
 

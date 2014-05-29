@@ -11,7 +11,7 @@ del /s *.ppu
 del /s *.o
 del *.compiled
 del /s /q lib\*
-rem rmdir /s /q lib\
+rmdir /s /q lib\
 rmdir /s /q backup\
 rmdir /s /q src\backup
 rmdir /s /q src\library\backup
@@ -23,5 +23,7 @@ rmdir /s /q src\app\example\module\backup
 rmdir /s /q src\app\wordpress\backup
 rmdir /s /q src\app\wordpress\model\backup
 rmdir /s /q src\app\wordpress\plugins\backup
+
+rmdir /s /q src\lib\
 
 timeout /t 3
