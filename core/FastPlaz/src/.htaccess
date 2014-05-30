@@ -1,8 +1,0 @@
-
-RewriteEngine On
-AddHandler cgi-script .cgi
-AddHandler cgi-script .bin
-AddHandler cgi-script .pas
-AddHandler cgi-script .exe
-Options +ExecCGI
-
