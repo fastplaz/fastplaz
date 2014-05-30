@@ -1,5 +1,4 @@
 @echo off
-del bin\fastplaz.bin
 del *~
 rem del *.rst
 rem del *.lrt
