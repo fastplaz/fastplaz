@@ -49,7 +49,8 @@ begin
   LanguageInit;
 
   Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController, 'home');
+  Response.Content := ThemeUtil.Render(@TagController, 'home'); // <<-- use home layout
+  //Response.Content := ThemeUtil.Render(@TagController); <<-- use master layout
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 
