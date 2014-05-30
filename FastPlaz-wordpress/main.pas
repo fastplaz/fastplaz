@@ -30,7 +30,7 @@ begin
   LanguageInit;
 
   Tags['$maincontent'] := @TagMainContentHandler; //<<-- tag $maincontent handler
-  Response.Content := ThemeUtil.Render(@TagController);
+  Response.Content := ThemeUtil.Render(@TagController, 'home');
   Handled := True;
 end;
 

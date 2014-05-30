@@ -8,6 +8,6 @@
 
 {$define wordpress}
 {$define wordpress_nggallery}
-{$define wordpress_polylang}
+{ $define wordpress_polylang}
 
 

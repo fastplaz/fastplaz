@@ -40,7 +40,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="22">
+    <Units Count="23">
       <Unit0>
         <Filename Value="wordpress.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -152,6 +152,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="wordpress_tags_controller"/>
       </Unit21>
+      <Unit22>
+        <Filename Value="define.inc"/>
+        <IsPartOfProject Value="True"/>
+      </Unit22>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -171,7 +171,11 @@ function TWPNewsWebModule.GeneratePagesMenu(ParentMenu: integer;
 var
   where,
   html, title, submenu, url, page_item_has_children: string;
+  nav_id, nav_class : string;
 begin
+  nav_id := StringReplace( Parameter.Values['id'], '"', '', [rfReplaceAll]);;
+  nav_class := StringReplace( Parameter.Values['class'], '"', '', [rfReplaceAll]);;
+  if nav_id='' then nav_id:='nav';
   with TWordpressPages.Create() do
   begin
     {$ifdef wordpress_polylang}
@@ -195,11 +199,11 @@ begin
       if Parameter.Values['type'] = 'nav' then
       begin
         if IsParent then begin
-          html := html + #13#10'<ul id="nav" class="clearfloat">';
-          html := html + #13#10'<li><a href="'+BaseURL+'" class="on">'+__('Home')+'</a></li>';
+          html := html + #13#10'<ul id="'+nav_id+'" class="'+nav_class+'">';
+          html := html + #13#10'  <li><a href="'+BaseURL+'" class="on">'+__('Home')+'</a></li>';
         end
         else begin
-          html := html + #13#10'<ul class="children">';
+          html := html + #13#10'<ul class="children sub-menu">';
         end;
       end;
       while not Data.EOF do
@@ -209,12 +213,12 @@ begin
         url := '#';
         submenu := GeneratePagesMenu(Value['ID'].AsInteger, Parameter,
           ParentBaseURL + Value['post_name'].AsString + '/', false);
-        if submenu = '' then page_item_has_children := '' else page_item_has_children := 'page_item_has_children';
+        if submenu = '' then page_item_has_children := '' else page_item_has_children := 'menu-item-has-children';
         if Parameter.Values['type'] = 'nav' then begin
           if IsParent then begin
-            html := html + #13#10'<li class="page_item '+page_item_has_children+'">';
+            html := html + #13#10'<li id="menu-item-'+Value['ID'].AsString+'" class="menu-item '+page_item_has_children+'">';
           end else begin
-            html := html + #13#10'<li class="'+page_item_has_children+'">';
+            html := html + #13#10'  <li id="menu-item-'+Value['ID'].AsString+'" class="menu-item '+page_item_has_children+'">';
           end;
         end;
         title := Value['post_title'].AsString;
