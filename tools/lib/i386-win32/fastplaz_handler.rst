@@ -1,0 +1,32 @@
+
+# hash value = 75508628
+fastplaz_handler.__errnomodulenameforrequest='Could not determine HTTP mo'+
+'dule name for request'
+
+
+# hash value = 206847205
+fastplaz_handler.__err_app_init='<h3>This is the first time using fastpla'+
+'z?</h3><a href="%s">click here</a> if you need to initialize your webapp'+
+#39's structure.<br>Make sure target directory is writeable'
+
+
+# hash value = 123955239
+fastplaz_handler.__err_theme_not_exists='file '#39'%s'#39' does not exist'+
+' in theme '#39'%s'#39
+
+# hash value = 261238846
+fastplaz_handler.__err_theme_tag_notimplemented='Template tag [%s] does n'+
+'ot implemented yet.'
+
+
+# hash value = 260374564
+fastplaz_handler.__err_theme_modul_notfond='Modul "%s" not found'
+
+
+# hash value = 203922516
+fastplaz_handler.__content_not_found='Nothing Found'
+
+
+# hash value = 250264900
+fastplaz_handler.__tag_content_not_found='Tags Content "%s" Not Found'
+
