@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <PathDelim Value="\"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
+      <Title Value="Fast Plaz"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+      <Icon Value="0"/>
+    </General>
+    <i18n>
+      <EnableI18N Value="True" LFM="False"/>
+      <OutDir Value="locale"/>
+    </i18n>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+      <AutoIncrementBuild Value="True"/>
+      <MinorVersionNr Value="1"/>
+      <RevisionNr Value="89"/>
+      <BuildNr Value="37"/>
+      <StringTable Comments="Fast Plaz" CompanyName="Fast Plaz" FileDescription="Fast Plaz - web loader" LegalCopyright="FastPlaz" ProductName="FastPlaz" ProductVersion=""/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="20">
+      <Unit0>
+        <Filename Value="fastplaz.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="fastplaz"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="main"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="define.inc"/>
+        <IsPartOfProject Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="src\systems\fastplaz_handler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="fastplaz_handler"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="src\library\common.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="common"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="src\library\database_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="database_lib"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="src\library\logutil_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="logutil_lib"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="src\systems\theme_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="theme_controller"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="src\app\example\example_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="ExampleWebModule"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+        <UnitName Value="example_controller"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="src\app\example\models\users_model.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="users_model"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="src\app\about\about_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="AboutModule"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+        <UnitName Value="about_controller"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="src\library\html_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="html_lib"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="src\library\language_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="language_lib"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="src\routes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="routes"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="src\library\versioninfo_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="versioninfo_lib"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="src\systems\initialize_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="initialize_controller"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="src\systems\error_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="error_controller"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="src\systems\docs_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="docs_controller"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="src\systems\session_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="session_controller"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="src\systems\info_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="info_controller"/>
+      </Unit19>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value="..\public_html\fastplaz.bin" ApplyConventions="False"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="src\library;src\systems;src\app\example;src\app\about;src\app\example\models;src\app\wordpress\plugins;src"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+      </Debugging>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <MsgFileName Value=""/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

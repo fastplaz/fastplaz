@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="fastplaz_tools"/>
+    <Author Value="Luri Darmawan"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <OtherUnitFiles Value="src"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Other>
+        <CompilerMessages>
+          <MsgFileName Value=""/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Tools Generator for FastPlaz
+for more information visit http://www.fastplaz.com
+"/>
+    <Version Minor="1" Release="1"/>
+    <Files Count="7">
+      <Item1>
+        <Filename Value="src\fastplaz_tools_register.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="fastplaz_tools_register"/>
+      </Item1>
+      <Item2>
+        <Filename Value="src\modsimple_lib.pas"/>
+        <UnitName Value="modsimple_lib"/>
+      </Item2>
+      <Item3>
+        <Filename Value="src\model_lib.pas"/>
+        <UnitName Value="model_lib"/>
+      </Item3>
+      <Item4>
+        <Filename Value="src\model_wzd.pas"/>
+        <UnitName Value="model_wzd"/>
+      </Item4>
+      <Item5>
+        <Filename Value="src\modsimple_wzd.pas"/>
+        <UnitName Value="modsimple_wzd"/>
+      </Item5>
+      <Item6>
+        <Filename Value="src\project_lib.pas"/>
+        <UnitName Value="project_lib"/>
+      </Item6>
+      <Item7>
+        <Filename Value="src\project_wzd.pas"/>
+        <UnitName Value="project_wzd"/>
+      </Item7>
+    </Files>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <EnableI18NForLFM Value="True"/>
+    </i18n>
+    <Type Value="RunAndDesignTime"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="IDEIntf"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="FCL"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
+  </Package>
+</CONFIG>

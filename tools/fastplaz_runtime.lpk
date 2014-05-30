@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="fastplaz_runtime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="D:\garapan\FastPlaz\source\core\FastPlaz\"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\app\about"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Other>
+        <CompilerMessages>
+          <MsgFileName Value=""/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Files Count="17">
+      <Item1>
+        <Filename Value="src\fastplaz_runtime_register.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="fastplaz_runtime_register"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\FastPlaz\src\systems\fastplaz_handler.pas"/>
+        <UnitName Value="fastplaz_handler"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\FastPlaz\define.inc"/>
+        <Type Value="Include"/>
+      </Item3>
+      <Item4>
+        <Filename Value="..\FastPlaz\src\library\common.pas"/>
+        <UnitName Value="common"/>
+      </Item4>
+      <Item5>
+        <Filename Value="..\FastPlaz\src\library\database_lib.pas"/>
+        <UnitName Value="database_lib"/>
+      </Item5>
+      <Item6>
+        <Filename Value="..\FastPlaz\src\library\html_lib.pas"/>
+        <UnitName Value="html_lib"/>
+      </Item6>
+      <Item7>
+        <Filename Value="..\FastPlaz\src\library\language_lib.pas"/>
+        <UnitName Value="language_lib"/>
+      </Item7>
+      <Item8>
+        <Filename Value="..\FastPlaz\src\library\logutil_lib.pas"/>
+        <UnitName Value="logutil_lib"/>
+      </Item8>
+      <Item9>
+        <Filename Value="..\FastPlaz\src\library\versioninfo_lib.pas"/>
+        <UnitName Value="versioninfo_lib"/>
+      </Item9>
+      <Item10>
+        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
+        <UnitName Value="docs_controller"/>
+      </Item10>
+      <Item11>
+        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
+        <UnitName Value="error_controller"/>
+      </Item11>
+      <Item12>
+        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
+        <UnitName Value="info_controller"/>
+      </Item12>
+      <Item13>
+        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
+        <UnitName Value="initialize_controller"/>
+      </Item13>
+      <Item14>
+        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
+        <UnitName Value="session_controller"/>
+      </Item14>
+      <Item15>
+        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
+        <UnitName Value="theme_controller"/>
+      </Item15>
+      <Item16>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
+        <Type Value="LFM"/>
+      </Item16>
+      <Item17>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.pas"/>
+        <UnitName Value="about_controller"/>
+      </Item17>
+    </Files>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>
