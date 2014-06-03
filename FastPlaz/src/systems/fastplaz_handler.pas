@@ -6,7 +6,7 @@ unit fastplaz_handler;
 interface
 
 uses
-  sqldb, gettext, session_controller,
+  sqldb, gettext, session_controller, module_controller,
   fpcgi, httpdefs, fpHTTP, fpWeb, webutil, custweb, dateutils,
   SysUtils, Classes;
 
@@ -138,6 +138,7 @@ var
   AppData : TMainData;
   SessionController : TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
+  ModUtil : TModUtil;
   _GET : TGET;
   _POST : TPOST;
   _SESSION : TSESSION;
@@ -502,6 +503,7 @@ initialization
   _StartTime := _GetTickCount;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
+  ModUtil := TModUtil.Create;
   _DebugInfo := TStringList.Create;
   _REQUEST := TREQUESTVAR.Create;
   _POST := TPOST.Create;
@@ -514,8 +516,9 @@ finalization
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
   FreeAndNil(_DebugInfo);
-  FreeAndNil(SessionController);
+  FreeAndNil(ModUtil);
   FreeAndNil(FastPlasAppandler);
+  FreeAndNil(SessionController);
 
 end.
 
