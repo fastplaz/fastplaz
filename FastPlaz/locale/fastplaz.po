@@ -71,3 +71,7 @@ msgctxt "fastplaz_handler.__tag_content_not_found"
 msgid "Tags Content \"%s\" Not Found"
 msgstr ""
 
+#: module_controller.__err_module_call_failed
+msgid "Failed module call \"%s\": %s"
+msgstr ""
+
