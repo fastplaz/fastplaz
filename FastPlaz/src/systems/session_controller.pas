@@ -63,7 +63,7 @@ type
 
 implementation
 
-uses logutil_lib;
+uses logutil_lib, common;
 
 //uses common; --- failed jk memasukkan common ke unit ini
 
@@ -221,11 +221,17 @@ begin
 end;
 
 constructor TSessionController.Create;
+var
+  lstr:TStrings;
 begin
   inherited Create();
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
-  FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
-    Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  FHttpCookie:= StringReplace(FHttpCookie,' ', '', [rfReplaceAll]);
+  //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
+  //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  lstr:=Explode(FHttpCookie,';');
+  FCookieID:=lstr.Values['__cfduid'];
+  FreeAndNil(lstr);
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   if FSessionDir <> '' then

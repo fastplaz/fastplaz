@@ -81,10 +81,12 @@ type
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
-    function Render(TagProcessor: TReplaceTagEvent; TemplateFile: string = '';
-      Cache: boolean = False): string;
-    function RenderFromContent(TagProcessor: TReplaceTagEvent; Content: string;
+    function Render(TagProcessorAddress: TReplaceTagEvent; TemplateFile: string = '';
+      Cache: boolean = False; SubModule:boolean =false): string;
+    function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
       TemplateFile: string = ''): string;
+
+    function TrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
   end;
 
 var
@@ -93,12 +95,14 @@ var
 
 implementation
 
-uses logutil_lib, language_lib, versioninfo_lib, initialize_controller;
+uses logutil_lib, language_lib, versioninfo_lib, html_lib,
+  initialize_controller;
 
 var
   FAssignVarMap : TAssignVarMap;
   ForeachTable_Keyname,
   ForeachTable_Itemname : string;
+  FTagAssign_Variable : TStringList;
 
 { TThemeUtil }
 
@@ -207,6 +211,9 @@ begin
     end;
     'lowercae' : begin
       Result := LowerCase( Content);
+    end;
+    'moreless' : begin
+      //Result := MoreLess(Content);
     end;
   end;
 end;
@@ -349,11 +356,13 @@ begin
     length(Application.Request.PathInfo) - 1);
   if pathinfo = '' then
     pathinfo := Application.Request.QueryString;
+  if pathinfo = '' then
+    pathinfo := 'home';
   if pathinfo[1] = '/' then
     pathinfo := copy(pathinfo, 2, length(pathinfo) - 1);
   Result := ExtractFileDir(Application.ExeName) + '/' + AppData.temp_dir +
     '/cache/' + _GetModuleName(Application.Request) + '/' + ReplaceAll(
-    pathinfo, ['?', '&', '=', '/'], ['-', '-', '-', '-']) + '.html';
+    pathinfo, ['?', '&', '=', '/'], ['-', '-', '-', '-']) + '-' + LANG + '.html';
 end;
 
 function TThemeUtil.isCacheExpired: boolean;
@@ -368,6 +377,7 @@ function TThemeUtil.LoadCache: string;
 var
   f: string;
 begin
+  Result:='';
   if AppData.cache_type = 'file' then
   begin
     f := getCacheFileName;
@@ -378,7 +388,6 @@ begin
         begin
           LoadFromFile(f);
           Result := Text;
-          die(Text);
           Free;
         end;
       except
@@ -459,7 +468,7 @@ end;
 function TThemeUtil.ForeachProcessor_Table(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
-  html : string;
+  html, tmp : string;
   template_engine : TFPTemplate;
 begin
   if ( AssignVar[KeyName] = nil) then
@@ -471,8 +480,10 @@ begin
   while not TSQLQuery( FAssignVarMap[KeyName]^).EOF do
   begin
 
+    tmp := RenderFromContent(@TagController, Content);
+
     template_engine := TFPTemplate.Create;
-    template_engine.Template := Content;
+    template_engine.Template := tmp;
     template_engine.AllowTagParams := True;
     template_engine.StartDelimiter := FStartDelimiter;
     template_engine.EndDelimiter := FEndDelimiter;
@@ -480,6 +491,8 @@ begin
     template_engine.OnReplaceTag := @ForeachProcessor_Table_TagController;
     html := html + template_engine.GetContent;
     FreeAndNil(template_engine);
+
+    html := RenderFromContent(@TagController, html);
 
     TSQLQuery( FAssignVarMap[KeyName]^).Next;
   end;
@@ -500,6 +513,25 @@ begin
     FreeAndNil( tagstring_custom);
     Exit;
   end;
+  if tagstring_custom.Values['assignto'] <> '' then
+  begin
+    FTagAssign_Variable.Values[tagstring_custom.Values['assignto']]:='s|'
+      + TSQLQuery( FAssignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+  end;
+  if tagstring_custom.Values['addassignto'] <> '' then
+  begin
+    if FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']] = '' then
+    begin
+      FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]:='s|'
+        + TSQLQuery( FAssignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    end
+    else
+    begin
+      FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]:=
+        FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]
+        + TSQLQuery( FAssignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    end;
+  end;
   if tagstring_custom.Values['dateformat'] <> '' then
   begin
     ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
@@ -518,11 +550,12 @@ begin
   FEndDelimiter := '}';
   FParamValueSeparator := '=';
   FAssignVarMap := TAssignVarMap.Create;
-
+  FTagAssign_Variable := TStringList.Create;
 end;
 
 destructor TThemeUtil.Destroy;
 begin
+  FreeAndNil(FTagAssign_Variable);
   FreeAndNil(FAssignVarMap);
   inherited Destroy;
 end;
@@ -530,7 +563,7 @@ end;
 procedure TThemeUtil.TagController(Sender: TObject; const TagString: String;
   TagParams: TStringList; out ReplaceText: String);
 var
-  tagname : string;
+  s, tagname : string;
   tagstring_custom : TStringList;
 begin
   tagstring_custom := ExplodeTags( TagString);
@@ -590,8 +623,26 @@ begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
     end;
+    'assign' : begin
+      //s| <<-- prepare for variable type
+      FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value'];
+      ReplaceText:='';
+    end;
+    'assignadd' : begin
+      s := FTagAssign_Variable.Values[ tagstring_custom.Values['var']];
+      if s = ''
+      then
+        FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value']
+      else
+        FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := s+tagstring_custom.Values['value'];
+      ReplaceText:='';
+    end;
+    'value' : begin
+      ReplaceText:=FTagAssign_Variable.Values[ tagstring_custom.Values['var']];
+      ReplaceText:=Copy(ReplaceText,3,Length(ReplaceText)-2);
+    end;
     'include' : begin
-      ReplaceText:= ThemeUtil.Render( @TagController, tagstring_custom.Values['file']);;
+      ReplaceText:= ThemeUtil.Render( @TagController, tagstring_custom.Values['file'], false, true);;
       end;
     'block' : begin
       ReplaceText:= BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
@@ -619,8 +670,8 @@ begin
   FreeAndNil( tagstring_custom);
 end;
 
-function TThemeUtil.Render(TagProcessor: TReplaceTagEvent; TemplateFile: string;
-  Cache: boolean): string;
+function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent;
+  TemplateFile: string; Cache: boolean; SubModule: boolean): string;
 var
   template_filename, _ext, module_active: string;
   template_engine: TFPTemplate;
@@ -629,7 +680,10 @@ begin
   begin
     Result := LoadCache;
     if Result <> '' then
+    begin
+      Result := Result+'<!-- '+getDebugInfo('time')+'-->';
       Exit;
+    end;
   end;
 
   if not DirectoryExists('themes') then
@@ -676,7 +730,10 @@ begin
     template_engine.StartDelimiter := FStartDelimiter;
     template_engine.EndDelimiter := FEndDelimiter;
     template_engine.ParamValueSeparator := FParamValueSeparator;
-    template_engine.OnReplaceTag := TagProcessor;
+    if TagProcessorAddress = nil then
+      template_engine.OnReplaceTag := @TagController
+    else
+      template_engine.OnReplaceTag := TagProcessorAddress;
     Result := template_engine.GetContent;
   except
     on e : Exception do
@@ -686,10 +743,14 @@ begin
   end;
   if Cache then
     SaveCache(Result);
+  if not SubModule then
+  begin
+    Result := Result + '<!-- '+getDebugInfo('time')+' -->';
+  end;
   FreeAndNil(template_engine);
 end;
 
-function TThemeUtil.RenderFromContent(TagProcessor: TReplaceTagEvent;
+function TThemeUtil.RenderFromContent(TagProcessorAddress: TReplaceTagEvent;
   Content: string; TemplateFile: string): string;
 var
   template_engine: TFPTemplate;
@@ -707,7 +768,7 @@ begin
     html.Text := Content;
 
   //-- proccess foreach
-  html.Text:= ForeachProcessor( TagProcessor, html.Text);
+  html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
 
   template_engine := TFPTemplate.Create;
   template_engine.Template := html.Text;
@@ -715,9 +776,50 @@ begin
   template_engine.StartDelimiter := FStartDelimiter;
   template_engine.EndDelimiter := FEndDelimiter;
   template_engine.ParamValueSeparator := '=';
-  template_engine.OnReplaceTag := TagProcessor;
+  if TagProcessorAddress = nil then
+    template_engine.OnReplaceTag := @TagController
+  else
+    template_engine.OnReplaceTag := TagProcessorAddress;
   Result := template_engine.GetContent;
   FreeAndNil(template_engine);
+  FreeAndNil(html);
+end;
+
+function TThemeUtil.TrimWhiteSpace(const Content: string; ForceTrim: boolean
+  ): string;
+var
+  html : TStringList;
+  i:integer;
+  skip:boolean;
+  template_engine : TFPTemplate;
+begin
+  html := TStringList.Create;
+  html.Text:=Content;
+  skip:=false;
+  for i:=html.Count-1 downto 0 do
+  begin
+    if Pos('<script',html[i])>0 then skip:=true;
+    if Pos('</script',html[i])>0 then skip:=false;
+    if (not skip) or ForceTrim then
+    begin
+      html[i]:=trim(html[i]);
+    end;
+    if html[i]='' then
+      html.Delete(i);
+  end;
+
+  // remove comment
+  template_engine := TFPTemplate.Create;
+  template_engine.Template := html.Text;
+  template_engine.AllowTagParams := True;
+  template_engine.StartDelimiter := '<!--';
+  template_engine.EndDelimiter := '-->';
+  template_engine.ParamValueSeparator := '=';
+  template_engine.OnReplaceTag := nil;
+  Result := template_engine.GetContent;
+  FreeAndNil(template_engine);
+
+  Result := Result+'<!-- '+getDebugInfo('time')+'-->';
   FreeAndNil(html);
 end;
 

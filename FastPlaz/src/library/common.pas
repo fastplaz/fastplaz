@@ -114,8 +114,8 @@ end;
 function ExplodeTags(TagString: string): TStringList;
 var
   lst : TStringList;
-  i : integer;
-  p : string;
+  i,j : integer;
+  s,p : string;
 begin
   lst := TStringList.Create;
   while Pos(' ',  TagString) <> 0 do
@@ -135,6 +135,14 @@ begin
     if pos( '=', lst[i]) = 0 then begin
       lst[i-1] := lst[i-1] + ' ' + lst[i];
       lst.Delete(i);
+    end else
+    begin
+      s := lst[i];
+      j := Pos('=',s);
+      if (s[j+1]='"') and (s[Length(s)]='"') then
+      begin
+        lst[i]:= Copy(s,1,j) +  Copy(s,j+2,Length(s)-j-2);
+      end;
     end;
   end;
 
