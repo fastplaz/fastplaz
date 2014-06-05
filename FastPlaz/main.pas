@@ -21,9 +21,6 @@ type
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
-    procedure TagController(Sender: TObject; const TagString: string;
-      TagParams: TStringList; Out ReplaceText: string);
-
 
     // Handler / Controller
     procedure DoBlockController(Sender: TObject; FunctionName: string;
@@ -48,29 +45,16 @@ begin
   //DataBaseInit;
   LanguageInit;
 
-  Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController, 'home'); // <<-- use home layout
-  //Response.Content := ThemeUtil.Render(@TagController); <<-- use master layout
-
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 
 
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - END ===
 
+  Tags['$maincontent'] := @TagMainContentHandler;
+  Response.Content := ThemeUtil.Render(nil, 'home'); // <<-- use home layout
+  //Response.Content := ThemeUtil.Render(); <<-- use master layout
   Handled := True;
-end;
-
-procedure TMainWebModule.TagController(Sender: TObject; const TagString: string;
-  TagParams: TStringList; out ReplaceText: string);
-begin
-  inherited TagController(Sender, TagString, TagParams, ReplaceText);
-
-{
-  if AppData.debug then
-    if ReplaceText = '' then
-      ReplaceText := EchoError(__Err_Theme_Tag_NotImplemented, [TagString]);
-}
 end;
 
 function TMainWebModule.TagMainContentHandler(const TagName: string;

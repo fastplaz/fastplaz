@@ -36,6 +36,19 @@ type
   TTagCallbackMap = specialize TStringHashMap<TTagCallback>; // based on qtemplate
 
 
+  { THTMLHead }
+
+  THTMLHead = class
+  private
+  public
+    JS, CSS, Meta : TStringList;
+    constructor Create;
+    destructor Destroy; override;
+    procedure AddJS( const FileName:string);
+    procedure AddCSS( const FileName:string; const Media:string='all');
+    procedure AddMeta( const Name:string; const Content:string);
+  end;
+
   { TThemeUtil }
 
   TThemeUtil = class
@@ -43,17 +56,23 @@ type
     FBaseURL : string;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
     FThemeName, FThemeExtension: string;
+    FHTMLHead : THTMLHead;
+    FTrimForce: boolean;
+    FTrimWhiteSpace: boolean;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
     function GetThemeName: string;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetThemeName(AValue: string);
+    procedure SetTrimForce(AValue: boolean);
+    procedure SetTrimWhiteSpace(AValue: boolean);
     function _GetModuleName(Arequest: TRequest): string;
 
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     function getDebugInfo( DebugType:string):string;
+    function DoTrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
 
     //- cache
     function getCacheFileName: string;
@@ -81,12 +100,16 @@ type
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
-    function Render(TagProcessorAddress: TReplaceTagEvent; TemplateFile: string = '';
+    function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
     function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
       TemplateFile: string = ''): string;
 
-    function TrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
+    property TrimWhiteSpace:boolean read FTrimWhiteSpace write SetTrimWhiteSpace;
+    property TrimForce:boolean read FTrimForce write SetTrimForce;
+    procedure AddJS( const FileName:string);
+    procedure AddCSS( const FileName:string; const Media:string='all');
+    procedure AddMeta( const Name:string; const Content:string);
   end;
 
 var
@@ -103,6 +126,41 @@ var
   ForeachTable_Keyname,
   ForeachTable_Itemname : string;
   FTagAssign_Variable : TStringList;
+
+{ THTMLHead }
+
+constructor THTMLHead.Create;
+begin
+  JS := TStringList.Create;
+  CSS := TStringList.Create;
+  Meta := TStringList.Create;
+end;
+
+destructor THTMLHead.Destroy;
+begin
+  FreeAndNil(Meta);
+  FreeAndNil(CSS);
+  FreeAndNil(JS);
+  inherited Destroy;
+end;
+
+procedure THTMLHead.AddJS(const FileName: string);
+begin
+  if FileName='' then Exit;
+  JS.Add('<script type="text/javascript" src="'+FileName+'"></script>');
+end;
+
+procedure THTMLHead.AddCSS(const FileName: string; const Media: string);
+begin
+  if FileName='' then Exit;
+  CSS.Add('<link rel="stylesheet" href="'+FileName+'" type="text/css" media="'+Media+'" />');
+end;
+
+procedure THTMLHead.AddMeta(const Name: string; const Content: string);
+begin
+  if Name='' then Exit;
+  Meta.Add('<meta name="'+Name+'" content="'+Content+'" />');
+end;
 
 { TThemeUtil }
 
@@ -156,6 +214,18 @@ end;
 procedure TThemeUtil.SetThemeName(AValue: string);
 begin
   FThemeName := AValue;
+end;
+
+procedure TThemeUtil.SetTrimForce(AValue: boolean);
+begin
+  if FTrimForce=AValue then Exit;
+  FTrimForce:=AValue;
+end;
+
+procedure TThemeUtil.SetTrimWhiteSpace(AValue: boolean);
+begin
+  if FTrimWhiteSpace=AValue then Exit;
+  FTrimWhiteSpace:=AValue;
 end;
 
 function TThemeUtil._GetModuleName(Arequest: TRequest): string;
@@ -549,12 +619,16 @@ begin
   FStartDelimiter := '{';
   FEndDelimiter := '}';
   FParamValueSeparator := '=';
+  FTrimWhiteSpace := True;
+  FTrimForce := False;
   FAssignVarMap := TAssignVarMap.Create;
   FTagAssign_Variable := TStringList.Create;
+  FHTMLHead := THTMLHead.Create;
 end;
 
 destructor TThemeUtil.Destroy;
 begin
+  FreeAndNil(FHTMLHead);
   FreeAndNil(FTagAssign_Variable);
   FreeAndNil(FAssignVarMap);
   inherited Destroy;
@@ -746,7 +820,15 @@ begin
   if not SubModule then
   begin
     Result := Result + '<!-- '+getDebugInfo('time')+' -->';
+    if FHTMLHead.JS.Count>0 then
+      Result:=StringReplace(Result,'</head>',FHTMLHead.JS.Text+'</head>',[rfReplaceAll]);
+    if FHTMLHead.CSS.Count>0 then
+      Result:=StringReplace(Result,'</head>',FHTMLHead.CSS.Text+'</head>',[rfReplaceAll]);
+    if FHTMLHead.Meta.Count>0 then
+      Result:=StringReplace(Result,'</head>',FHTMLHead.Meta.Text+'</head>',[rfReplaceAll]);
   end;
+  if FTrimWhiteSpace then
+    Result := DoTrimWhiteSpace(Result,FTrimForce);
   FreeAndNil(template_engine);
 end;
 
@@ -785,7 +867,22 @@ begin
   FreeAndNil(html);
 end;
 
-function TThemeUtil.TrimWhiteSpace(const Content: string; ForceTrim: boolean
+procedure TThemeUtil.AddJS(const FileName: string);
+begin
+  FHTMLHead.AddJS(FileName);
+end;
+
+procedure TThemeUtil.AddCSS(const FileName: string; const Media: string);
+begin
+  FHTMLHead.AddCSS(FileName,Media);
+end;
+
+procedure TThemeUtil.AddMeta(const Name: string; const Content: string);
+begin
+  FHTMLHead.AddMeta(Name,Content);
+end;
+
+function TThemeUtil.DoTrimWhiteSpace(const Content: string; ForceTrim: boolean
   ): string;
 var
   html : TStringList;
@@ -798,8 +895,8 @@ begin
   skip:=false;
   for i:=html.Count-1 downto 0 do
   begin
-    if Pos('<script',html[i])>0 then skip:=true;
-    if Pos('</script',html[i])>0 then skip:=false;
+    if Pos('</script',html[i])>0 then skip:=true;
+    if Pos('<script',html[i])>0 then skip:=false;
     if (not skip) or ForceTrim then
     begin
       html[i]:=trim(html[i]);

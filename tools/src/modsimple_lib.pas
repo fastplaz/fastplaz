@@ -145,7 +145,7 @@ begin
     Add('procedure '+ModulTypeName+'.DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('Begin');
     Add('  Tags[''$maincontent''] := @TagMainContentHandler; //<<-- tag $maincontent handler');
-    Add('  Response.Content := ThemeUtil.Render(@TagController);');
+    Add('  Response.Content := ThemeUtil.Render();');
     Add('  Handled := True;');
     Add('End;');
     Add('');
