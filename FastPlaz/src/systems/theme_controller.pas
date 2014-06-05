@@ -683,13 +683,25 @@ begin
     '$title' : begin
       ReplaceText:= AppData.sitename;
       end;
+    'title' : begin
+      ReplaceText:= AppData.sitename;
+      end;
     '$baseurl' : begin
+      ReplaceText:= BaseURL;
+      end;
+    'baseurl' : begin
       ReplaceText:= BaseURL;
       end;
     '$theme' : begin
       ReplaceText:= ThemeName;
       end;
+    'theme' : begin
+      ReplaceText:= ThemeName;
+      end;
     '$themepath' : begin
+      ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
+      end;
+    'themepath' : begin
       ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
       end;
     '$themefullpath' : begin
@@ -699,14 +711,29 @@ begin
       end;
       ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
       end;
+    'themefullpath' : begin
+      ReplaceText:= Config.GetValue( _SYSTEM_BASEURL, '');
+      if ReplaceText = '' then begin
+        ReplaceText:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
+      end;
+      ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
+      end;
     '$version' : begin
       GetVersionInfo();
       ReplaceText:= VersionInfo.FullVersion;
-    end;
+      end;
+    'version' : begin
+      GetVersionInfo();
+      ReplaceText:= VersionInfo.FullVersion;
+      end;
     '$env' : begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
-    end;
+      end;
+    'env' : begin
+      if tagstring_custom.Values['key'] <> '' then
+        ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
+      end;
     'assign' : begin
       //s| <<-- prepare for variable type
       FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value'];
