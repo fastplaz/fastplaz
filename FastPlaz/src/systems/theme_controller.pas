@@ -734,6 +734,20 @@ begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
+    'datetime' : begin
+      if tagstring_custom.Values['format'] <> '' then
+        ReplaceText := FormatDateTime(tagstring_custom.Values['format'], Now)
+      else
+        ReplaceText := FormatDateTime('dd MMM YYYY HH:nn:ss', Now);
+      end;
+    'date' : begin
+      ReplaceText := FormatDateTime('dd MMM YYYY', Now);
+      end;
+    'time' : begin
+      ReplaceText := FormatDateTime('HH:nn:ss', Now);
+      end;
+
+
     'assign' : begin
       //s| <<-- prepare for variable type
       FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value'];
@@ -763,7 +777,7 @@ begin
       end;
     'debug' : begin
       ReplaceText:= getDebugInfo( tagstring_custom.Values['type']);
-    end;
+      end;
     'gt' : begin
       ReplaceText:= __(tagstring_custom.Values['text']);
     end;
@@ -855,11 +869,9 @@ begin
       die(e.Message);
     end;
   end;
-  if Cache then
-    SaveCache(Result);
+
   if not SubModule then
   begin
-    Result := Result + '<!-- '+getDebugInfo('time')+' -->';
     if FHTMLHead.JS.Count>0 then
       Result:=StringReplace(Result,'</head>',FHTMLHead.JS.Text+'</head>',[rfReplaceAll]);
     if FHTMLHead.CSS.Count>0 then
@@ -869,6 +881,10 @@ begin
   end;
   if FTrimWhiteSpace then
     Result := DoTrimWhiteSpace(Result,FTrimForce);
+  if Cache then
+    SaveCache(Result);
+
+  Result := Result + '<!-- '+getDebugInfo('time')+' -->';
   FreeAndNil(template_engine);
 end;
 
@@ -957,7 +973,6 @@ begin
   Result := template_engine.GetContent;
   FreeAndNil(template_engine);
 
-  Result := Result+'<!-- '+getDebugInfo('time')+'-->';
   FreeAndNil(html);
 end;
 
