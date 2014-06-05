@@ -54,6 +54,7 @@ type
   TThemeUtil = class
   private
     FBaseURL : string;
+    FCacheTime: integer;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
     FThemeName, FThemeExtension: string;
     FHTMLHead : THTMLHead;
@@ -63,6 +64,7 @@ type
     function GetBaseURL: string;
     function GetThemeName: string;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
+    procedure SetCacheTime(AValue: integer);
     procedure SetThemeName(AValue: string);
     procedure SetTrimForce(AValue: boolean);
     procedure SetTrimWhiteSpace(AValue: boolean);
@@ -94,6 +96,7 @@ type
     property EndDelimiter: string read FEndDelimiter write FEndDelimiter;
     property BaseURL : string Read GetBaseURL;
     function GetVersionInfo():boolean;
+    property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
 
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
 
@@ -199,6 +202,12 @@ end;
 procedure TThemeUtil.SetAssignVar(const TagName: String; AValue: Pointer);
 begin
   FAssignVarMap[TagName] := AValue;
+end;
+
+procedure TThemeUtil.SetCacheTime(AValue: integer);
+begin
+  if FCacheTime=AValue then Exit;
+  FCacheTime:=AValue - 1;
 end;
 
 procedure TThemeUtil.Assign(const KeyName: string; const Address: pointer);
@@ -445,7 +454,7 @@ end;
 
 function TThemeUtil.isCacheExpired: boolean;
 begin
-  if HoursBetween(FileDateToDateTime(FileAge(getCacheFileName)), now) > 0 then
+  if HoursBetween(FileDateToDateTime(FileAge(getCacheFileName)), now) > FCacheTime then
     Result := True
   else
     Result := False;
@@ -633,6 +642,7 @@ begin
   FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
   FHTMLHead := THTMLHead.Create;
+  CacheTime:=1;
 end;
 
 destructor TThemeUtil.Destroy;
