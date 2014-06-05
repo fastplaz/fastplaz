@@ -100,6 +100,7 @@ type
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
+    procedure Assign(const KeyName: string; Value:string);
     function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
     function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
@@ -123,6 +124,7 @@ uses logutil_lib, language_lib, versioninfo_lib, html_lib,
 
 var
   FAssignVarMap : TAssignVarMap;
+  FAssignVarStringMap : TStringList;
   ForeachTable_Keyname,
   ForeachTable_Itemname : string;
   FTagAssign_Variable : TStringList;
@@ -209,6 +211,11 @@ begin
     on e: Exception do
       die(e.Message + ' when "assign" variable "' + KeyName + '"');
   end;
+end;
+
+procedure TThemeUtil.Assign(const KeyName: string; Value: string);
+begin
+  FAssignVarStringMap.Values[KeyName] := Value;
 end;
 
 procedure TThemeUtil.SetThemeName(AValue: string);
@@ -622,6 +629,7 @@ begin
   FTrimWhiteSpace := True;
   FTrimForce := False;
   FAssignVarMap := TAssignVarMap.Create;
+  FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
   FHTMLHead := THTMLHead.Create;
 end;
@@ -630,6 +638,7 @@ destructor TThemeUtil.Destroy;
 begin
   FreeAndNil(FHTMLHead);
   FreeAndNil(FTagAssign_Variable);
+  FreeAndNil(FAssignVarStringMap);
   FreeAndNil(FAssignVarMap);
   inherited Destroy;
 end;
@@ -739,6 +748,9 @@ begin
   {$endif fpc_fullversion >= 20701}
     ReplaceText := ___TagCallbackMap[tagname](TagString,tagstring_custom);
   end;
+
+  if FAssignVarStringMap.IndexOfName(TagString) <> -1 then
+    ReplaceText:=FAssignVarStringMap.Values[TagString];
 
   ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
   FreeAndNil( tagstring_custom);

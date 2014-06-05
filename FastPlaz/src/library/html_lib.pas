@@ -86,7 +86,7 @@ end;
 function MoreLess(const Content: string; CharacterCount: integer): string;
 begin
   Result:=Copy(Content,1,CharacterCount);
-  Result:=Copy(Result,1,RPos(' ', Result)-1) + '...';
+  Result:=Copy(Result,1,RPos(' ', Result)-1);
 end;
 
 end.
