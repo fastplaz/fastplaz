@@ -46,7 +46,7 @@ type
     destructor Destroy; override;
     procedure AddJS( const FileName:string);
     procedure AddCSS( const FileName:string; const Media:string='all');
-    procedure AddMeta( const Name:string; const Content:string);
+    procedure AddMeta( const Name:string; const Content:string; const MetaType:string = 'name');
   end;
 
   { TThemeUtil }
@@ -110,7 +110,7 @@ type
     property TrimForce:boolean read FTrimForce write SetTrimForce;
     procedure AddJS( const FileName:string);
     procedure AddCSS( const FileName:string; const Media:string='all');
-    procedure AddMeta( const Name:string; const Content:string);
+    procedure AddMeta( const Name:string; const Content:string; const MetaType:string = 'name');
   end;
 
 var
@@ -158,10 +158,11 @@ begin
   CSS.Add('<link rel="stylesheet" href="'+FileName+'" type="text/css" media="'+Media+'" />');
 end;
 
-procedure THTMLHead.AddMeta(const Name: string; const Content: string);
+procedure THTMLHead.AddMeta(const Name: string; const Content: string;
+  const MetaType: string);
 begin
   if Name='' then Exit;
-  Meta.Add('<meta name="'+Name+'" content="'+Content+'" />');
+  Meta.Add('<meta '+MetaType+'="'+Name+'" content="'+Content+'" />');
 end;
 
 { TThemeUtil }
@@ -889,9 +890,10 @@ begin
   FHTMLHead.AddCSS(FileName,Media);
 end;
 
-procedure TThemeUtil.AddMeta(const Name: string; const Content: string);
+procedure TThemeUtil.AddMeta(const Name: string; const Content: string;
+  const MetaType: string);
 begin
-  FHTMLHead.AddMeta(Name,Content);
+  FHTMLHead.AddMeta(Name,Content,MetaType);
 end;
 
 function TThemeUtil.DoTrimWhiteSpace(const Content: string; ForceTrim: boolean
