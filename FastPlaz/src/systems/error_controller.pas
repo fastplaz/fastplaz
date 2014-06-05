@@ -29,7 +29,7 @@ procedure TErrorinfoModule.DataModuleRequest(Sender: TObject;
   ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
 begin
   Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController);
+  Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
 
@@ -45,7 +45,11 @@ begin
     _SESSION['f_err'] := '';
   end;
   if s <> '' then
+  begin
+    if Environtment['HTTP_REFERER'] <> '' then
+      s := s + '<br>referer: ' + Environtment['HTTP_REFERER'];
     Result := '<hr>' +  '<div class="bs-example-bg-classes"><p class="bg-danger text-danger">'+s+'</p></div>';
+  end;
 end;
 
 constructor TErrorinfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
