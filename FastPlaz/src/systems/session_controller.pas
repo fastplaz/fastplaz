@@ -231,6 +231,8 @@ begin
   //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
   lstr:=Explode(FHttpCookie,';');
   FCookieID:=lstr.Values['__cfduid'];
+  if FCookieID = '' then
+    FCookieID := MD5Print(MD5String(FHttpCookie));
   FreeAndNil(lstr);
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];

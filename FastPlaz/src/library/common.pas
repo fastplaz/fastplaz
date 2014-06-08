@@ -25,6 +25,7 @@ const
   _SYSTEM_THEME = 'systems/theme';
   _SYSTEM_DEBUG = 'systems/debug';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
+  _SYSTEM_CACHE_TIME = 'systems/cache_time';
   _SYSTEM_TEMP_DIR = 'systems/temp';
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
 

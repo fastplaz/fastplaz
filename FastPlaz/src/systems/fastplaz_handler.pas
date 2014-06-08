@@ -29,13 +29,16 @@ resourcestring
 
 type
 
+  { TMainData }
+
   TMainData = record
     module, modtype, func: string;
     sitename,
     language,
     theme,
-    cache_type,
     temp_dir: string;
+    cache_type : string;
+    cache_time : integer;
     table_prefix: string;
     SessionID: string;
     SessionDir: string;
@@ -193,6 +196,7 @@ begin
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
   AppData.table_prefix := Config.GetValue(_DATABASE_TABLE_PREFIX, '');
   AppData.cache_type := Config.GetValue(_SYSTEM_CACHE_TYPE, 'file');
+  AppData.cache_time := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.temp_dir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
 

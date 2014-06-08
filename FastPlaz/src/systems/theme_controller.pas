@@ -642,7 +642,7 @@ begin
   FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
   FHTMLHead := THTMLHead.Create;
-  CacheTime:=1;
+  CacheTime := AppData.cache_time; // default: 3 hours
 end;
 
 destructor TThemeUtil.Destroy;
@@ -889,6 +889,7 @@ begin
     if FHTMLHead.Meta.Count>0 then
       Result:=StringReplace(Result,'</head>',FHTMLHead.Meta.Text+'</head>',[rfReplaceAll]);
   end;
+  Result := AdjustLineBreaks(Result);
   if FTrimWhiteSpace then
     Result := DoTrimWhiteSpace(Result,FTrimForce);
   if Cache then
