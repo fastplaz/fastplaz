@@ -70,7 +70,7 @@ begin
   InitializeApp;
 
   Tags['$maincontent'] := @TagMainContentHandler;
-  Response.Content := ThemeUtil.Render(@TagController);
+  Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
 

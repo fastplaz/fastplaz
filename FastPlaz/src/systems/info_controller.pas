@@ -32,9 +32,9 @@ begin
   lst := TStringList.Create;
   Application.GetEnvironmentList(lst);
 
-  die('Your Server Info:<pre>'+lst.Text);
+  die('<pre>Your Server Info:<br>'+lst.Text);
 
-  Response.Content := ThemeUtil.Render(@TagController);
+  Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
 

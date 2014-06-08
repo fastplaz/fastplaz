@@ -101,6 +101,7 @@ begin
   AProject.AddPackageDependency('LCL');
 
   // compiler options
+  AProject.LazCompilerOptions.UnitOutputDirectory:='lib\$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp:=false;
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
   Result:= mrOK;
