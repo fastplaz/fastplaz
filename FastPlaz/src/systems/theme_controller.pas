@@ -50,11 +50,19 @@ type
     procedure AddMeta( const Name:string; const Content:string; const MetaType:string = 'name');
   end;
 
+  THitType = (
+    htNone,
+    htFile,
+    htDatabase,
+    htSQLite
+  );
+
   { TThemeUtil }
 
   TThemeUtil = class
   private
     FHits : TStringList;
+    FHitType : THitType;
     FBaseURL : string;
     FCacheTime: integer;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
@@ -294,18 +302,25 @@ var
   s : string;
   i : integer;
 begin
+  if FHitType = htNone then Exit;
+
   s := ReplaceAll( URL, ['?', '&', '=', '/'], '-');
   i := 1;
-  if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
-  begin
-    FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
-    i := s2i( FHits.Values[s])+1;
-  end;
-  FHits.Values[s] := i2s(i);
-  try
-    FHits.SaveToFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
-  except
-  end;
+  case FHitType of
+    htFile : begin
+      if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
+      begin
+        FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+        i := s2i( FHits.Values[s])+1;
+      end;
+      FHits.Values[s] := i2s(i);
+      try
+        FHits.SaveToFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+      except
+      end;
+    end;// htFile
+
+  end;// case FHitType of
 end;
 
 function TThemeUtil.GetHitCount(const URL: String): integer;
@@ -313,13 +328,20 @@ var
   s : string;
 begin
   Result:=0;
-  if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
-  begin
-    if s = '' then s := Application.Request.URL;
-    s := ReplaceAll( s, ['?', '&', '=', '/'], ['-', '-', '-', '-']);
-    FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
-    Result := s2i( FHits.Values[s]);
-  end;
+  if FHitType = htNone then Exit;
+
+  case FHitType of
+    htFile : begin
+      if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
+      begin
+        if s = '' then s := Application.Request.URL;
+        s := ReplaceAll( s, ['?', '&', '=', '/'], ['-', '-', '-', '-']);
+        FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+        Result := s2i( FHits.Values[s]);
+      end;
+    end;
+  end; // case FHitType of
+
 end;
 
 
@@ -682,6 +704,7 @@ begin
   FTagAssign_Variable := TStringList.Create;
   FHTMLHead := THTMLHead.Create;
   FHits := TStringList.Create;
+  FHitType := htNone;
   CacheTime := AppData.cache_time; // default: 3 hours
 end;
 
