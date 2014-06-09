@@ -114,6 +114,7 @@ type
 
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
     property Hit[const URL: String]: integer read GetHitCount;
+    property HitType : THitType read FHitType write FHitType;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
