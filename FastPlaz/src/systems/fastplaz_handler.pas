@@ -61,6 +61,7 @@ type
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
+    function GetIsPost: boolean;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTag(const TagName: string): TTagCallback;
@@ -80,6 +81,8 @@ type
     property BaseURL: string read GetBaseURL;
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
+
+    property isPost:boolean read GetIsPost;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -319,6 +322,13 @@ end;
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
+end;
+
+function TMyCustomWebModule.GetIsPost: boolean;
+begin
+  Result := False;
+  if Application.Request.Method = 'POST' then
+    Result := True;
 end;
 
 
