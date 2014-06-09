@@ -49,9 +49,8 @@ function ExplodeTags( TagString:string): TStringList;
 function EchoError (Const Fmt : String; const Args : Array of const) : String;
 function _GetTickCount: DWord;
 
-function ReplaceAll(const Subject: String;
-  const OldPatterns, NewPatterns: array of String;
-  IgnoreCase: Boolean = false): String;
+function ReplaceAll(const Subject: String; const OldPatterns, NewPatterns: array of String; IgnoreCase: Boolean = false): String;
+function ReplaceAll(const Subject: String; const OldPatterns: array of String; NewPatterns : String; IgnoreCase: Boolean = false): String;
 
 procedure Die( const Message:string = ''); overload;
 procedure Die( const Number:integer); overload;
@@ -187,6 +186,22 @@ begin
     else
       NewPattern := '';
     Result := StringReplace(Result, OldPatterns[I], NewPattern, ReplaceFlags);
+  end;
+end;
+
+function ReplaceAll(const Subject: String; const OldPatterns: array of String;
+  NewPatterns: String; IgnoreCase: Boolean): String;
+var
+  ReplaceFlags: TReplaceFlags;
+  I: Integer;
+begin
+  ReplaceFlags := [rfReplaceAll];
+  if IgnoreCase then
+    Include(ReplaceFlags, rfIgnoreCase);
+  Result := Subject;
+  for I := Low(OldPatterns) to High(OldPatterns) do
+  begin
+    Result := StringReplace(Result, OldPatterns[I], NewPatterns, ReplaceFlags);
   end;
 end;
 

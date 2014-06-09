@@ -18,6 +18,7 @@ uses
 const
   __FOREACH_START = '{foreach([\.\$A-Za-z= ]+)}';
   __FOREACH_END = '\{/foreach[\.\$A-Za-z0-9= ]+}';
+  __HITS_FILENAME = 'hits.log';
 
 type
 
@@ -49,10 +50,19 @@ type
     procedure AddMeta( const Name:string; const Content:string; const MetaType:string = 'name');
   end;
 
+  THitType = (
+    htNone,
+    htFile,
+    htDatabase,
+    htSQLite
+  );
+
   { TThemeUtil }
 
   TThemeUtil = class
   private
+    FHits : TStringList;
+    FHitType : THitType;
     FBaseURL : string;
     FCacheTime: integer;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
@@ -62,6 +72,7 @@ type
     FTrimWhiteSpace: boolean;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
+    function GetHitCount(const URL: String): integer;
     function GetThemeName: string;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetCacheTime(AValue: integer);
@@ -69,6 +80,7 @@ type
     procedure SetTrimForce(AValue: boolean);
     procedure SetTrimWhiteSpace(AValue: boolean);
     function _GetModuleName(Arequest: TRequest): string;
+    procedure AddHit( URL:string);
 
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
@@ -101,6 +113,8 @@ type
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
 
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
+    property Hit[const URL: String]: integer read GetHitCount;
+    property HitType : THitType read FHitType write FHitType;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
@@ -283,6 +297,54 @@ begin
   end;
 
 end;
+
+procedure TThemeUtil.AddHit(URL: string);
+var
+  s : string;
+  i : integer;
+begin
+  if FHitType = htNone then Exit;
+
+  s := ReplaceAll( URL, ['?', '&', '=', '/'], '-');
+  i := 1;
+  case FHitType of
+    htFile : begin
+      if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
+      begin
+        FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+        i := s2i( FHits.Values[s])+1;
+      end;
+      FHits.Values[s] := i2s(i);
+      try
+        FHits.SaveToFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+      except
+      end;
+    end;// htFile
+
+  end;// case FHitType of
+end;
+
+function TThemeUtil.GetHitCount(const URL: String): integer;
+var
+  s : string;
+begin
+  Result:=0;
+  if FHitType = htNone then Exit;
+
+  case FHitType of
+    htFile : begin
+      if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
+      begin
+        if s = '' then s := Application.Request.URL;
+        s := ReplaceAll( s, ['?', '&', '=', '/'], ['-', '-', '-', '-']);
+        FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME);
+        Result := s2i( FHits.Values[s]);
+      end;
+    end;
+  end; // case FHitType of
+
+end;
+
 
 function TThemeUtil.FilterOutput(Content, Filter: string): string;
 begin
@@ -642,11 +704,14 @@ begin
   FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
   FHTMLHead := THTMLHead.Create;
+  FHits := TStringList.Create;
+  FHitType := htNone;
   CacheTime := AppData.cache_time; // default: 3 hours
 end;
 
 destructor TThemeUtil.Destroy;
 begin
+  FreeAndNil(FHits);
   FreeAndNil(FHTMLHead);
   FreeAndNil(FTagAssign_Variable);
   FreeAndNil(FAssignVarStringMap);
@@ -755,6 +820,9 @@ begin
       end;
     'time' : begin
       ReplaceText := FormatDateTime('HH:nn:ss', Now);
+      end;
+    'hit' : begin
+      ReplaceText:= i2s( GetHitCount(''));
       end;
 
 
@@ -888,6 +956,7 @@ begin
       Result:=StringReplace(Result,'</head>',FHTMLHead.CSS.Text+'</head>',[rfReplaceAll]);
     if FHTMLHead.Meta.Count>0 then
       Result:=StringReplace(Result,'</head>',FHTMLHead.Meta.Text+'</head>',[rfReplaceAll]);
+    AddHit( Application.Request.URL);
   end;
   Result := AdjustLineBreaks(Result);
   if FTrimWhiteSpace then

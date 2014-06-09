@@ -47,8 +47,6 @@ begin
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 
-
-
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - END ===
 
   Tags['$maincontent'] := @TagMainContentHandler;
