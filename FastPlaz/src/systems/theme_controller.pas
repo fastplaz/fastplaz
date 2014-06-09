@@ -294,7 +294,7 @@ var
   s : string;
   i : integer;
 begin
-  s := ReplaceAll( URL, ['?', '&', '=', '/'], ['-', '-', '-', '-']);
+  s := ReplaceAll( URL, ['?', '&', '=', '/'], '-');
   i := 1;
   if FileExists( IncludeTrailingPathDelimiter(AppData.temp_dir)+__HITS_FILENAME) then
   begin
