@@ -358,7 +358,7 @@ begin
     'uppercase' : begin
       Result := UpperCase( Content);
     end;
-    'lowercae' : begin
+    'lowercase' : begin
       Result := LowerCase( Content);
     end;
     'moreless' : begin
