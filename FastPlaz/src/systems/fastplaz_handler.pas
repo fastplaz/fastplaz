@@ -37,11 +37,12 @@ type
     language,
     theme,
     temp_dir: string;
-    cache_type : string;
-    cache_time : integer;
+    cache_type: string;
+    cache_time: integer;
     table_prefix: string;
     SessionID: string;
     SessionDir: string;
+    hit_storage: string;
     initialized,
     debug: boolean;
   end;
@@ -82,7 +83,7 @@ type
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
 
-    property isPost:boolean read GetIsPost;
+    property isPost: boolean read GetIsPost;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -202,6 +203,11 @@ begin
   AppData.cache_time := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.temp_dir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
+  AppData.hit_storage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+
+  if AppData.hit_storage = 'file' then ThemeUtil.HitType := htFile;
+  if AppData.hit_storage = 'database' then ThemeUtil.HitType := htDatabase;
+  if AppData.hit_storage = 'sqlite' then ThemeUtil.HitType := htSQLite;
 
   //LogUtil.registerError('auw');
   //-- process the homepage

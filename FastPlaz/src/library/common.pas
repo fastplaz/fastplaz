@@ -28,6 +28,7 @@ const
   _SYSTEM_CACHE_TIME = 'systems/cache_time';
   _SYSTEM_TEMP_DIR = 'systems/temp';
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
+  _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
 
   _DATABASE_HOSTNAME = 'database/default/hostname';
   _DATABASE_DRIVER = 'database/default/driver';
