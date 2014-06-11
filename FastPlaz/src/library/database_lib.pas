@@ -13,8 +13,8 @@ public function:
 interface
 
 uses
-  fpjson, jsonparser,
   fpcgi, fphttp, db,
+  fpjson, jsonparser,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
   sqlite3conn, pqconnection,
   Classes, SysUtils;
@@ -74,6 +74,8 @@ type
 
 procedure DataBaseInit( const RedirecURL:string = '');
 function  QueryOpen( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  QueryExec( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray):boolean;
 
 implementation
 
@@ -128,7 +130,7 @@ var
   q : TSQLQuery;
   i, j : integer;
   data : TJSONArray;
-  item : TJSONArray;
+  item : TJSONObject;
   field_name, value : string;
 begin
   Result := False;
@@ -141,19 +143,7 @@ begin
     ResultJSON.Add( 'count', q.RecordCount);
     i := 1;
     data := TJSONArray.Create();
-    while not q.EOF do
-    begin
-      item := TJSONArray.Create();
-      for j:=0 to q.FieldCount-1 do
-      begin
-        field_name:= q.FieldDefs.Items[j].Name;
-        item.Add(field_name);
-      end;
-
-      data.Add( item);
-      i:=i+1;
-      q.Next;
-    end;
+    DataToJSON( q, data);
     ResultJSON.Add( 'data', data);
     Result := True;
   except
@@ -166,6 +156,57 @@ begin
   ResultJSON.Add( 'sql', psSQL);
   {$endif}
   FreeAndNil( q);
+end;
+
+function QueryExec(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+  try
+    q.ExecSQL;
+    Result:=True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', psSQL);
+  {$endif}
+  FreeAndNil(q);
+end;
+
+function DataToJSON(Data: TSQLQuery; out ResultJSON: TJSONArray): boolean;
+var
+  item : TJSONObject;
+  field_name, value : string;
+  i,j:integer;
+begin
+  Result:=False;
+  i:=1;
+  try
+    while not Data.EOF do
+    begin
+      item := TJSONObject.Create();
+      for j:=0 to Data.FieldCount-1 do
+      begin
+        field_name:= Data.FieldDefs.Items[j].Name;
+        item.Add(field_name, Data.FieldByName(field_name).AsString);
+      end;
+      ResultJSON.Add( item);
+      i:=i+1;
+      Data.Next;
+    end;
+    Result:=True;
+  except
+    on E: Exception do begin
+      die( E.Message);
+    end;
+  end;
 end;
 
 

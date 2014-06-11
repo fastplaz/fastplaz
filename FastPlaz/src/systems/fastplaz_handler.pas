@@ -140,6 +140,8 @@ type
 
 function _CleanVar(const variable: string): string;
 procedure echo(const Message: string);
+procedure echo(const Number: integer);
+procedure echo(const Number: Double);
 procedure _Initialize(Sender: TObject = nil);
 procedure _Redirect(const URL: string);
 procedure Debug(const Message: integer; const Key: string = '');
@@ -174,7 +176,17 @@ end;
 
 procedure echo(const Message: string);
 begin
-  Application.Response.Contents.Add(Message);
+  Application.Response.Contents.Text:=trim(Application.Response.Contents.Text)+Message;
+end;
+
+procedure echo(const Number: integer);
+begin
+  echo( i2s(Number));
+end;
+
+procedure echo(const Number: Double);
+begin
+  echo(FloatToStr(Number));
 end;
 
 procedure _Initialize(Sender: TObject);
