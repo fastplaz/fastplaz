@@ -13,6 +13,7 @@ public function:
 interface
 
 uses
+  fpjson, jsonparser,
   fpcgi, fphttp, db,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
   sqlite3conn, pqconnection,
@@ -72,6 +73,7 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
+function  QueryOpen( SQL: string; out ResultJSON: TJSONObject): boolean;
 
 implementation
 
@@ -85,10 +87,10 @@ var
 procedure DataBaseInit(const RedirecURL: string);
 begin
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
-    DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
-    DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
-    DB_LibLoader.Enabled:= True;
     try
+      DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
+      DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
+      DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
@@ -119,6 +121,51 @@ begin
         _Redirect( RedirecURL);
     end;
   end;
+end;
+
+function QueryOpen(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+  i, j : integer;
+  data : TJSONArray;
+  item : TJSONArray;
+  field_name, value : string;
+begin
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+
+  try
+    q.Open;
+    ResultJSON.Add( 'count', q.RecordCount);
+    i := 1;
+    data := TJSONArray.Create();
+    while not q.EOF do
+    begin
+      item := TJSONArray.Create();
+      for j:=0 to q.FieldCount-1 do
+      begin
+        field_name:= q.FieldDefs.Items[j].Name;
+        item.Add(field_name);
+      end;
+
+      data.Add( item);
+      i:=i+1;
+      q.Next;
+    end;
+    ResultJSON.Add( 'data', data);
+    Result := True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', psSQL);
+  {$endif}
+  FreeAndNil( q);
 end;
 
 
