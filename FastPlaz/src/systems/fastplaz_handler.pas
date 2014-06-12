@@ -294,8 +294,8 @@ begin
   echo(prefix + html + suffic);
 end;
 
-procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  SkipStreaming: boolean);
+procedure AddRoute(const ModuleName: string;
+  ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean; Method: string);
 begin
   RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
 end;
