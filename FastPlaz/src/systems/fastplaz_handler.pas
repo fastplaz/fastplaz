@@ -148,7 +148,7 @@ procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
 procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  SkipStreaming: boolean = True);
+  SkipStreaming: boolean = True; Method:string='');
 
 
 var
