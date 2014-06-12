@@ -128,20 +128,17 @@ end;
 function QueryOpen(SQL: string; out ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
-  i, j : integer;
   data : TJSONArray;
-  item : TJSONObject;
-  field_name, value : string;
 begin
   Result := False;
   q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
   q.DataBase := DB_Connector;
   q.SQL.Text:= SQL;
 
   try
     q.Open;
-    ResultJSON.Add( 'count', q.RecordCount);
-    i := 1;
+    ResultJSON.Add( 'count', q.RowsAffected);
     data := TJSONArray.Create();
     DataToJSON( q, data);
     ResultJSON.Add( 'data', data);
@@ -153,7 +150,7 @@ begin
   end;
 
   {$ifdef debug}
-  ResultJSON.Add( 'sql', psSQL);
+  ResultJSON.Add( 'sql', SQL);
   {$endif}
   FreeAndNil( q);
 end;
@@ -164,10 +161,13 @@ var
 begin
   Result:=false;
   q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
   q.DataBase := DB_Connector;
   q.SQL.Text:= SQL;
   try
     q.ExecSQL;
+    DB_Connector.Transaction.Commit;
+    ResultJSON.Add( 'count', q.RowsAffected);
     Result:=True;
   except
     on E: Exception do begin
@@ -175,7 +175,7 @@ begin
     end;
   end;
   {$ifdef debug}
-  ResultJSON.Add( 'sql', psSQL);
+  ResultJSON.Add( 'sql', SQL);
   {$endif}
   FreeAndNil(q);
 end;
@@ -183,7 +183,7 @@ end;
 function DataToJSON(Data: TSQLQuery; out ResultJSON: TJSONArray): boolean;
 var
   item : TJSONObject;
-  field_name, value : string;
+  field_name : string;
   i,j:integer;
 begin
   Result:=False;
@@ -313,6 +313,7 @@ begin
   sssss
   {$else}
   Data := TSQLQuery.Create(nil);
+  Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
   Data.AfterOpen:= @DoAfterOpen;
   Data.BeforeOpen:= @DoBeforeOpen;
