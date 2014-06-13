@@ -265,7 +265,12 @@ begin
     FFieldList:=TStringList.Create;
 
     if Data.Active then Data.Close;
+
+    //TODO: create auto query, depend on databasetype
+    //Data.SQL.Text:= 'SELECT column_name FROM information_schema.columns WHERE table_name = ''' + FTableName + ''''; <<- postgresql
+
     Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
+
     Data.Open;
     FSelectField := '';
     while not Data.Eof do begin

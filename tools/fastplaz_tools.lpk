@@ -22,7 +22,7 @@
 for more information visit http://www.fastplaz.com
 "/>
     <Version Minor="1" Release="1"/>
-    <Files Count="7">
+    <Files Count="8">
       <Item1>
         <Filename Value="src\fastplaz_tools_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -52,6 +52,10 @@ for more information visit http://www.fastplaz.com
         <Filename Value="src\project_wzd.pas"/>
         <UnitName Value="project_wzd"/>
       </Item7>
+      <Item8>
+        <Filename Value="src\modsimplejson_lib.pas"/>
+        <UnitName Value="modsimplejson_lib"/>
+      </Item8>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

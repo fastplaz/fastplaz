@@ -20,7 +20,7 @@ var
 
 implementation
 
-uses modsimple_lib, model_lib, project_lib;
+uses modsimple_lib, modsimplejson_lib, model_lib, project_lib;
 
 function ucwords( const str:string):string;
 var
@@ -47,6 +47,7 @@ begin
   RegisterNewItemCategory(TNewIDEItemCategory.Create( FastPlaz));
   RegisterProjectDescriptor(TFileDescProject.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescDefaultModule.Create, FastPlaz);
+  RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescModel.Create, FastPlaz);
 end;
 
