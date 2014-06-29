@@ -461,6 +461,9 @@ begin
       _ElapsedTime:= _StopTime - _StartTime;
       Result := i2s( _ElapsedTime) + 'ms';
     end;
+    'memory' : begin
+      Result := f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) + 'MB';
+    end;
   end;
 end;
 
