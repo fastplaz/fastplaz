@@ -8,7 +8,7 @@ interface
 
 uses
   fastplaz_tools_register, modsimple_lib, model_lib, model_wzd, modsimple_wzd, 
-  project_lib, project_wzd, LazarusPackageIntf;
+  project_lib, project_wzd, modsimplejson_lib, LazarusPackageIntf;
 
 implementation
 

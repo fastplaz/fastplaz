@@ -14,6 +14,7 @@ interface
 
 uses
   fpcgi, fphttp, db,
+  fpjson, jsonparser,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
   sqlite3conn, pqconnection,
   Classes, SysUtils;
@@ -72,6 +73,9 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
+function  QueryOpen( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  QueryExec( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray):boolean;
 
 implementation
 
@@ -85,10 +89,10 @@ var
 procedure DataBaseInit(const RedirecURL: string);
 begin
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
-    DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
-    DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
-    DB_LibLoader.Enabled:= True;
     try
+      DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
+      DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
+      DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
@@ -117,6 +121,90 @@ begin
         Die( E.Message)
       else
         _Redirect( RedirecURL);
+    end;
+  end;
+end;
+
+function QueryOpen(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+  data : TJSONArray;
+begin
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+
+  try
+    q.Open;
+    ResultJSON.Add( 'count', q.RowsAffected);
+    data := TJSONArray.Create();
+    DataToJSON( q, data);
+    ResultJSON.Add( 'data', data);
+    Result := True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', SQL);
+  {$endif}
+  FreeAndNil( q);
+end;
+
+function QueryExec(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+  try
+    q.ExecSQL;
+    DB_Connector.Transaction.Commit;
+    ResultJSON.Add( 'count', q.RowsAffected);
+    Result:=True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', SQL);
+  {$endif}
+  FreeAndNil(q);
+end;
+
+function DataToJSON(Data: TSQLQuery; out ResultJSON: TJSONArray): boolean;
+var
+  item : TJSONObject;
+  field_name : string;
+  i,j:integer;
+begin
+  Result:=False;
+  i:=1;
+  try
+    while not Data.EOF do
+    begin
+      item := TJSONObject.Create();
+      for j:=0 to Data.FieldCount-1 do
+      begin
+        field_name:= Data.FieldDefs.Items[j].Name;
+        item.Add(field_name, Data.FieldByName(field_name).AsString);
+      end;
+      ResultJSON.Add( item);
+      i:=i+1;
+      Data.Next;
+    end;
+    Result:=True;
+  except
+    on E: Exception do begin
+      die( E.Message);
     end;
   end;
 end;
@@ -177,7 +265,12 @@ begin
     FFieldList:=TStringList.Create;
 
     if Data.Active then Data.Close;
+
+    //TODO: create auto query, depend on databasetype
+    //Data.SQL.Text:= 'SELECT column_name FROM information_schema.columns WHERE table_name = ''' + FTableName + ''''; <<- postgresql
+
     Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
+
     Data.Open;
     FSelectField := '';
     while not Data.Eof do begin
@@ -225,6 +318,7 @@ begin
   sssss
   {$else}
   Data := TSQLQuery.Create(nil);
+  Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
   Data.AfterOpen:= @DoAfterOpen;
   Data.BeforeOpen:= @DoBeforeOpen;

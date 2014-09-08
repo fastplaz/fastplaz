@@ -93,7 +93,11 @@ begin
     Add('end.');
 
   end;
+  {$ifdef windows}
   AProject.MainFile.SetSourceText( source.Text, true);
+  {$else}
+  AProject.MainFile.SetSourceText( source.Text);
+  {$endif}
   FreeAndNil(source);
 
   // package

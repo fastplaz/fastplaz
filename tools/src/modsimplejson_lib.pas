@@ -1,4 +1,4 @@
-unit modsimple_lib;
+unit modsimplejson_lib;
 
 {$mode objfpc}{$H+}
 
@@ -9,14 +9,14 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'FastPlaz - simple default module';
-  rs_Mod_Default_Description = 'create fastplaz simple module';
+  rs_Mod_JSON_Name = 'FastPlaz - simple json module';
+  rs_Mod_JSON_Description = 'create fastplaz simple json module';
 
 type
 
-  { TFileDescDefaultModule }
+  { TFileDescJSONModule }
 
-  TFileDescDefaultModule = class(TFileDescPascalUnit)
+  TFileDescJSONModule = class(TFileDescPascalUnit)
   private
     ModulTypeName,
     Permalink : string;
@@ -32,84 +32,39 @@ type
     procedure UpdateDefaultPascalFileExtension(const DefPasExt: string); override;
   end;
 
-  { TFileRouteDescModel }
-
-  TFileRouteDescModel = class(TFileDescPascalUnit)
-  private
-  public
-    constructor Create; override;
-    function GetInterfaceUsesSection: string; override;
-    function GetImplementationSource(const Filename, SourceName, ResourceName: string): string;override;
-  end;
-
 implementation
 
 uses fastplaz_tools_register, modsimple_wzd;
 
-{ TFileRouteDescModel }
+{ TFileDescJSONModule }
 
-constructor TFileRouteDescModel.Create;
+constructor TFileDescJSONModule.Create;
 begin
   inherited Create;
-  DefaultFilename:='routes.pas';
-  DefaultFileExt:='.pas';
-end;
-
-function TFileRouteDescModel.GetInterfaceUsesSection: string;
-begin
-  Result:=inherited GetInterfaceUsesSection;
-  Result:=Result+', fastplaz_handler';
-end;
-
-function TFileRouteDescModel.GetImplementationSource(const Filename,
-  SourceName, ResourceName: string): string;
-var
-  str : TStringList;
-begin
-  Result:=inherited GetImplementationSource(Filename, SourceName, ResourceName);
-  str := TStringList.Create;
-  with str do begin
-    Add('uses info_controller, main;');
-    Add('');
-    Add('initialization');
-    Add('  AddRoute(''main'', TMainModule);');
-    Add('  AddRoute(''info'', TInfoModule);');
-    Add('');
-  end;
-
-  Result:=str.Text;
-  FreeAndNil(str);
-end;
-
-{ TFileDescDefaultModule }
-
-constructor TFileDescDefaultModule.Create;
-begin
-  inherited Create;
-  //Name:=rs_Mod_Default_Name;
+  //Name:=rs_Mod_JSON_Name;
   DefaultFileExt:='.pas';
   VisibleInNewDialog:=true;
 end;
 
-function TFileDescDefaultModule.GetInterfaceUsesSection: string;
+function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result:=inherited GetInterfaceUsesSection;
-  Result:=Result+', fpcgi, HTTPDefs, fastplaz_handler, html_lib, database_lib';
+  Result:=Result+', fpcgi, fpjson, HTTPDefs, fastplaz_handler, database_lib';
 end;
 
-function TFileDescDefaultModule.GetLocalizedName: string;
+function TFileDescJSONModule.GetLocalizedName: string;
 begin
   Result:=inherited GetLocalizedName;
-  Result:=rs_Mod_Default_Name;
+  Result:=rs_Mod_JSON_Name;
 end;
 
-function TFileDescDefaultModule.GetLocalizedDescription: string;
+function TFileDescJSONModule.GetLocalizedDescription: string;
 begin
   Result:=inherited GetLocalizedDescription;
-  Result:=rs_Mod_Default_Description;
+  Result:=rs_Mod_JSON_Description;
 end;
 
-function TFileDescDefaultModule.GetInterfaceSource(const Filename, SourceName,
+function TFileDescJSONModule.GetInterfaceSource(const Filename, SourceName,
   ResourceName: string): string;
 var
   str : TStringList;
@@ -121,7 +76,6 @@ begin
     Add( '  '+ModulTypeName+' = class(TMyCustomWebModule)');
     Add( '    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add( '  private');
-    Add( '    function TagMainContentHandler(const TagName: string; Params: TStringList): string;');
     Add( '  public');
     Add( '    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
     Add( '    destructor Destroy; override;');
@@ -132,7 +86,7 @@ begin
   FreeAndNil(str);
 end;
 
-function TFileDescDefaultModule.GetImplementationSource(const Filename,
+function TFileDescJSONModule.GetImplementationSource(const Filename,
   SourceName, ResourceName: string): string;
 var
   str : TStringList;
@@ -140,12 +94,25 @@ begin
   Result:=Inherited GetImplementationSource(FileName,SourceName,ResourceName);
   str := TStringList.Create;
   with str do begin
-    Add('uses theme_controller, common;');
+    Add('uses common;');
     Add('');
     Add('procedure '+ModulTypeName+'.DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('var');
+    Add('  o, response_json : TJSONObject;');
     Add('Begin');
-    Add('  Tags[''$maincontent''] := @TagMainContentHandler; //<<-- tag $maincontent handler');
-    Add('  Response.Content := ThemeUtil.Render();');
+    Add('  response_json := TJSONObject.Create;');
+    Add('  o := TJSONObject.Create;');
+    Add('');
+    Add('  // example');
+    Add('  o.Add( ''msg'', ''OK'');');
+    Add('  o.Add( ''variable'', ''value'');');
+    Add('');
+    Add('  response_json.Add( ''code'', 0);');
+    Add('  response_json.Add( ''response'', o);');
+    Add('  // example - end');
+    Add('');
+    Add('  Response.Content := response_json.AsJSON;');
+    Add('  FreeAndNil( response_json);');
     Add('  Handled := True;');
     Add('End;');
     Add('');
@@ -163,13 +130,6 @@ begin
     Add('End;');
     Add('');
 
-    Add('function '+ModulTypeName+'.TagMainContentHandler(const TagName: string; Params: TStringList): string;');
-    Add('Begin');
-    Add('');
-    Add('  // your code here');
-    Add('  Result:=h3(''Hello world ... FastPlaz !'');');
-    Add('');
-    Add('End;');
     Add('');
     Add('');
   end;
@@ -187,17 +147,17 @@ begin
 end;
 
 
-function TFileDescDefaultModule.GetResourceSource(const ResourceName: string
+function TFileDescJSONModule.GetResourceSource(const ResourceName: string
   ): string;
 begin
   Result:=inherited GetResourceSource(ResourceName);
 end;
 
-function TFileDescDefaultModule.CreateSource(const Filename, SourceName,
+function TFileDescJSONModule.CreateSource(const Filename, SourceName,
   ResourceName: string): string;
 begin
-  Permalink := 'sample';
-  ModulTypeName := 'TSampleModule';
+  Permalink := 'json';
+  ModulTypeName := 'TJsonModule';
   if not bCreateProject then
   begin
     with TfModuleSimpleWizard.Create(nil) do
@@ -222,7 +182,7 @@ begin
   log( 'module "' + ModulTypeName + '" created');
 end;
 
-procedure TFileDescDefaultModule.UpdateDefaultPascalFileExtension(
+procedure TFileDescJSONModule.UpdateDefaultPascalFileExtension(
   const DefPasExt: string);
 begin
   inherited UpdateDefaultPascalFileExtension(DefPasExt);

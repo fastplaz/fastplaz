@@ -8,6 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, math,
+  fpjson, jsonparser,
   jsonConf,
   Classes, SysUtils, fastplaz_handler;
 
@@ -56,6 +57,8 @@ function ReplaceAll(const Subject: String; const OldPatterns: array of String; N
 procedure Die( const Message:string = ''); overload;
 procedure Die( const Number:integer); overload;
 procedure Die( const Message:TStringList); overload;
+
+procedure DumpJSON(J: TJSonData; DOEOLN: Boolean=false);
 
 var
   Config : TJSONConfig;
@@ -214,6 +217,50 @@ end;
 procedure Die(const Message: TStringList);
 begin
   Die( '<pre>'+Message.Text+'</pre>');
+end;
+
+procedure DumpJSON(J: TJSonData; DOEOLN: Boolean);
+var
+  I : Integer;
+begin
+  // JSONType property determines kind of value.
+  Case J.jsontype of
+    jtNull   : echo('Null');
+    jtBoolean : If J.AsBoolean then
+                  echo('True')
+                else
+                  echo('False');
+    jtNumber : {JSONNumber has extra NumberType property
+                which determines kind of value (int/float).}
+               Case TJSONNumber(J).NumberType of
+                 ntInteger : echo(J.AsInteger);
+                 ntFloat   : echo(J.AsFloat); //Write(J.AsFloat:10:2);
+               end;
+    jtString : echo('"'+J.AsString+'"');
+    jtArray  : begin
+               echo('[ ');
+               For I:=0 to J.Count-1 do
+                 begin
+                 DumpJSON(J.Items[I],False);
+                 If I<J.Count-1 then
+                   echo(', ');
+                 end;
+               echo(' ]');
+               end;
+    jtObject : begin
+               echo('{ ');
+               For I:=0 to J.Count-1 do
+                 begin
+                 echo('"'+TJSONObject(J).Names[i]+'" : '#13#10);
+                 DumpJSON(J.Items[I],False);
+                 If I<J.Count-1 then
+                   echo(',')
+                 end;
+               echo('}');
+               end;
+   end;
+   If DOEOLN then
+     echo(#13#10);
 end;
 
 procedure Die(const Message: string);
