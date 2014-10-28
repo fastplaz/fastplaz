@@ -141,14 +141,14 @@ type
 function _CleanVar(const variable: string): string;
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
-procedure echo(const Number: Double);
+procedure echo(const Number: double);
 procedure _Initialize(Sender: TObject = nil);
 procedure _Redirect(const URL: string);
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
 procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  SkipStreaming: boolean = True; Method:string='');
+  SkipStreaming: boolean = True; Method: string = '');
 
 
 var
@@ -176,15 +176,15 @@ end;
 
 procedure echo(const Message: string);
 begin
-  Application.Response.Contents.Text:=trim(Application.Response.Contents.Text)+Message;
+  Application.Response.Contents.Text := trim(Application.Response.Contents.Text) + Message;
 end;
 
 procedure echo(const Number: integer);
 begin
-  echo( i2s(Number));
+  echo(i2s(Number));
 end;
 
-procedure echo(const Number: Double);
+procedure echo(const Number: double);
 begin
   echo(FloatToStr(Number));
 end;
@@ -217,9 +217,12 @@ begin
   AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
   AppData.hit_storage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
 
-  if AppData.hit_storage = 'file' then ThemeUtil.HitType := htFile;
-  if AppData.hit_storage = 'database' then ThemeUtil.HitType := htDatabase;
-  if AppData.hit_storage = 'sqlite' then ThemeUtil.HitType := htSQLite;
+  if AppData.hit_storage = 'file' then
+    ThemeUtil.HitType := htFile;
+  if AppData.hit_storage = 'database' then
+    ThemeUtil.HitType := htDatabase;
+  if AppData.hit_storage = 'sqlite' then
+    ThemeUtil.HitType := htSQLite;
 
   //LogUtil.registerError('auw');
   //-- process the homepage
@@ -294,8 +297,8 @@ begin
   echo(prefix + html + suffic);
 end;
 
-procedure AddRoute(const ModuleName: string;
-  ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean; Method: string);
+procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
+  SkipStreaming: boolean; Method: string);
 begin
   RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
 end;
