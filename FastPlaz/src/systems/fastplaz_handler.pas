@@ -138,6 +138,15 @@ type
     function ReadDateTime(const variable: string): TDateTime;
   end;
 
+  { TRoute }
+
+  TRoute = class
+  private
+  public
+    procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
+      SkipStreaming: boolean = True; Method: string = '');
+  end;
+
 function _CleanVar(const variable: string): string;
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
@@ -156,6 +165,7 @@ var
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
   ModUtil: TModUtil;
+  Route: TRoute;
   _GET: TGET;
   _POST: TPOST;
   _SESSION: TSESSION;
@@ -298,6 +308,14 @@ end;
 
 procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
   SkipStreaming: boolean; Method: string);
+begin
+  RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
+end;
+
+{ TRoute }
+
+procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean;
+  Method: string);
 begin
   RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
 end;
@@ -572,6 +590,7 @@ initialization
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
   ModUtil := TModUtil.Create;
+  Route:= TRoute.Create;
   _DebugInfo := TStringList.Create;
   _REQUEST := TREQUESTVAR.Create;
   _POST := TPOST.Create;
@@ -584,6 +603,7 @@ finalization
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
   FreeAndNil(_DebugInfo);
+  FreeAndNil(Route);
   FreeAndNil(ModUtil);
   FreeAndNil(FastPlasAppandler);
   FreeAndNil(SessionController);
