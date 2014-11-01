@@ -38,30 +38,30 @@ implementation
 
 procedure TfModelWizard.FormCreate(Sender: TObject);
 begin
-  mem.Color:= Color;
+  mem.Color := Color;
 end;
 
 procedure TfModelWizard.CancelButtonClick(Sender: TObject);
 begin
-  ModalResult:=mrCancel;
+  ModalResult := mrCancel;
 end;
 
 procedure TfModelWizard.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
-  if ModalResult=mrOK then
+  if ModalResult = mrOk then
   begin
     if edt_ModelName.Text = '' then
     begin
-      edt_ModelName.Color:=clYellow;
+      edt_ModelName.Color := clYellow;
       edt_ModelName.SetFocus;
-      CanClose:=False;
+      CanClose := False;
     end;
   end;
 end;
 
 procedure TfModelWizard.OKButtonClick(Sender: TObject);
 begin
-  ModalResult:=mrOK;
+  ModalResult := mrOk;
 end;
 
 end.

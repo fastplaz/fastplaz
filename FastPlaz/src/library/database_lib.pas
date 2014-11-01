@@ -41,9 +41,10 @@ type
     function GetFieldValue( FieldName: String): TField;
     procedure SetFieldValue( FieldName: String; AValue: TField);
   public
+    primaryKey : string;
     Data : TSQLQuery;
     StartTime, StopTime, ElapsedTime : Cardinal;
-    constructor Create( const DefaultTableName:string='');
+    constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
     property TableName : string Read FTableName write FTableName;
     Property Value[ FieldName: String] : TField Read GetFieldValue Write SetFieldValue; default;
@@ -53,6 +54,7 @@ type
     function GetAll:boolean;
     //function Get( where, order):boolean;
 
+    function Find( const KeyIndex:integer):boolean;
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
@@ -62,6 +64,10 @@ type
     procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
 
     procedure GroupBy( const GroupField:string);
+
+    procedure New;
+    function  Save:boolean;
+    function  Update( Where:string):boolean;
 
     procedure StartTransaction;
     procedure ReStartTransaction;
@@ -295,13 +301,14 @@ begin
 
 end;
 
-constructor TSimpleModel.Create(const DefaultTableName: string);
+constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
 var
   i : integer;
 begin
+  primaryKey := pPrimaryKey;
   FConnector := DB_Connector;
   if DefaultTableName = '' then begin
-    for i:=2 to length( ToString)-1 do begin
+    for i:=2 to length( ToString) do begin
       if (ToString[i] in ['A'..'Z']) then begin
         if FTableName <> '' then
           FTableName := FTableName + '_' + LowerCase( ToString[i])
@@ -344,6 +351,15 @@ begin
   Data.SQL.Text := 'SELECT ' + FSelectField + ' FROM ' + FTableName;
   _queryOpen;
   Result := true;
+end;
+
+function TSimpleModel.Find(const KeyIndex: integer): boolean;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+
 end;
 
 function TSimpleModel.Find(const Where: array of string; const Order: string;
@@ -454,6 +470,21 @@ end;
 procedure TSimpleModel.GroupBy(const GroupField: string);
 begin
   FGroupField:= GroupField;
+end;
+
+procedure TSimpleModel.New;
+begin
+
+end;
+
+function TSimpleModel.Save: boolean;
+begin
+
+end;
+
+function TSimpleModel.Update(Where: string): boolean;
+begin
+
 end;
 
 procedure TSimpleModel.StartTransaction;

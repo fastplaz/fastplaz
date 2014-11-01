@@ -254,7 +254,6 @@ begin
     echo('<pre>' + Key + ': ' + i2s(Message) + '</pre>')
   else
     echo('<pre>' + i2s(Message) + '</pre>');
-  die('jleeeb');
 end;
 
 procedure Debug(const Message: string; const Key: string);

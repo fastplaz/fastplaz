@@ -11,40 +11,40 @@ uses
 const
   FastPlaz = 'FastPlaz';
 
-Procedure Register;
-Procedure log( const Msg:string);
-function ucwords( const str:string):string;
+procedure Register;
+procedure log(const Msg: string);
+function ucwords(const str: string): string;
 
 var
-  bCreateProject : boolean = false;
+  bCreateProject: boolean = False;
 
 implementation
 
 uses modsimple_lib, modsimplejson_lib, model_lib, project_lib;
 
-function ucwords( const str:string):string;
+function ucwords(const str: string): string;
 var
-  i : integer;
-  s : string;
+  i: integer;
+  s: string;
 begin
-  s := ' ' + lowerCase( str);
-  for i:=1 to Length(s) do
+  s := ' ' + lowerCase(str);
+  for i := 1 to Length(s) do
   begin
     if s[i] = ' ' then
-      s[i+1] := upcase(s[i+1]);
+      s[i + 1] := upcase(s[i + 1]);
   end;
-  Result := trim( s);
+  Result := trim(s);
 end;
 
 procedure log(const Msg: string);
 begin
-  IDEMessagesWindow.AddMsg('FastPlaz : '+Msg,'',0,Nil);
+  IDEMessagesWindow.AddMsg('FastPlaz : ' + Msg, '', 0, nil);
 end;
 
-Procedure Register;
+procedure Register;
 begin
   //RegisterUnit('fastplaz_tools_register', @fastplaz_tools_register.Register);
-  RegisterNewItemCategory(TNewIDEItemCategory.Create( FastPlaz));
+  RegisterNewItemCategory(TNewIDEItemCategory.Create(FastPlaz));
   RegisterProjectDescriptor(TFileDescProject.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescDefaultModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
