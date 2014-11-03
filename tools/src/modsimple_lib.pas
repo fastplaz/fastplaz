@@ -18,17 +18,20 @@ type
 
   TFileDescDefaultModule = class(TFileDescPascalUnit)
   private
-    ModulTypeName,
-    Permalink : string;
+    ModulTypeName, Permalink: string;
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
-    function GetInterfaceSource(const Filename, SourceName, ResourceName: string): string; override;
-    function GetImplementationSource(const Filename, SourceName, ResourceName: string): string;override;
+    function GetInterfaceSource(
+      const Filename, SourceName, ResourceName: string): string;
+      override;
+    function GetImplementationSource(
+      const Filename, SourceName, ResourceName: string): string; override;
     function GetResourceSource(const ResourceName: string): string; override;
-    function CreateSource(const Filename, SourceName, ResourceName: string): string; override;
+    function CreateSource(const Filename, SourceName, ResourceName: string): string;
+      override;
     procedure UpdateDefaultPascalFileExtension(const DefPasExt: string); override;
   end;
 
@@ -39,7 +42,8 @@ type
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
-    function GetImplementationSource(const Filename, SourceName, ResourceName: string): string;override;
+    function GetImplementationSource(
+      const Filename, SourceName, ResourceName: string): string; override;
   end;
 
 implementation
@@ -51,33 +55,34 @@ uses fastplaz_tools_register, modsimple_wzd;
 constructor TFileRouteDescModel.Create;
 begin
   inherited Create;
-  DefaultFilename:='routes.pas';
-  DefaultFileExt:='.pas';
+  DefaultFilename := 'routes.pas';
+  DefaultFileExt := '.pas';
 end;
 
 function TFileRouteDescModel.GetInterfaceUsesSection: string;
 begin
-  Result:=inherited GetInterfaceUsesSection;
-  Result:=Result+', fastplaz_handler';
+  Result := inherited GetInterfaceUsesSection;
+  Result := Result + ', fastplaz_handler';
 end;
 
-function TFileRouteDescModel.GetImplementationSource(const Filename,
-  SourceName, ResourceName: string): string;
+function TFileRouteDescModel.GetImplementationSource(
+  const Filename, SourceName, ResourceName: string): string;
 var
-  str : TStringList;
+  str: TStringList;
 begin
-  Result:=inherited GetImplementationSource(Filename, SourceName, ResourceName);
+  Result := inherited GetImplementationSource(Filename, SourceName, ResourceName);
   str := TStringList.Create;
-  with str do begin
+  with str do
+  begin
     Add('uses info_controller, main;');
     Add('');
     Add('initialization');
-    Add('  AddRoute(''main'', TMainModule);');
-    Add('  AddRoute(''info'', TInfoModule);');
+    Add('  Route.Add( ''main'', TMainModule);');
+    Add('  Route.Add( ''info'', TInfoModule);');
     Add('');
   end;
 
-  Result:=str.Text;
+  Result := str.Text;
   FreeAndNil(str);
 end;
 
@@ -87,114 +92,118 @@ constructor TFileDescDefaultModule.Create;
 begin
   inherited Create;
   //Name:=rs_Mod_Default_Name;
-  DefaultFileExt:='.pas';
-  VisibleInNewDialog:=true;
+  DefaultFileExt := '.pas';
+  VisibleInNewDialog := True;
 end;
 
 function TFileDescDefaultModule.GetInterfaceUsesSection: string;
 begin
-  Result:=inherited GetInterfaceUsesSection;
-  Result:=Result+', fpcgi, HTTPDefs, fastplaz_handler, html_lib, database_lib';
+  Result := inherited GetInterfaceUsesSection;
+  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, html_lib, database_lib';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;
 begin
-  Result:=inherited GetLocalizedName;
-  Result:=rs_Mod_Default_Name;
+  Result := inherited GetLocalizedName;
+  Result := rs_Mod_Default_Name;
 end;
 
 function TFileDescDefaultModule.GetLocalizedDescription: string;
 begin
-  Result:=inherited GetLocalizedDescription;
-  Result:=rs_Mod_Default_Description;
+  Result := inherited GetLocalizedDescription;
+  Result := rs_Mod_Default_Description;
 end;
 
-function TFileDescDefaultModule.GetInterfaceSource(const Filename, SourceName,
-  ResourceName: string): string;
+function TFileDescDefaultModule.GetInterfaceSource(
+  const Filename, SourceName, ResourceName: string): string;
 var
-  str : TStringList;
+  str: TStringList;
 begin
   //Result:=inherited GetInterfaceSource(Filename, SourceName, ResourceName);
   str := TStringList.Create;
-  with str do begin
-    Add( 'type');
-    Add( '  '+ModulTypeName+' = class(TMyCustomWebModule)');
-    Add( '    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
-    Add( '  private');
-    Add( '    function TagMainContentHandler(const TagName: string; Params: TStringList): string;');
-    Add( '  public');
-    Add( '    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
-    Add( '    destructor Destroy; override;');
-    Add( '  end;');
-    Add( '');
+  with str do
+  begin
+    Add('type');
+    Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
+    Add('    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('  private');
+    Add('    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
+    Add('  public');
+    Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
+    Add('    destructor Destroy; override;');
+    Add('  end;');
+    Add('');
   end;
   Result := str.Text;
   FreeAndNil(str);
 end;
 
-function TFileDescDefaultModule.GetImplementationSource(const Filename,
-  SourceName, ResourceName: string): string;
+function TFileDescDefaultModule.GetImplementationSource(
+  const Filename, SourceName, ResourceName: string): string;
 var
-  str : TStringList;
+  str: TStringList;
 begin
-  Result:=Inherited GetImplementationSource(FileName,SourceName,ResourceName);
+  Result := inherited GetImplementationSource(FileName, SourceName, ResourceName);
   str := TStringList.Create;
-  with str do begin
+  with str do
+  begin
     Add('uses theme_controller, common;');
     Add('');
-    Add('procedure '+ModulTypeName+'.DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('procedure ' + ModulTypeName +
+      '.DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('Begin');
-    Add('  Tags[''$maincontent''] := @TagMainContentHandler; //<<-- tag $maincontent handler');
+    Add('  Tags[''$maincontent''] := @Tag_MainContent_Handler; //<<-- tag $maincontent handler');
     Add('  Response.Content := ThemeUtil.Render();');
     Add('  Handled := True;');
     Add('End;');
     Add('');
 
-    Add('constructor '+ModulTypeName+'.CreateNew(AOwner: TComponent; CreateMode: integer);');
+    Add('constructor ' + ModulTypeName +
+      '.CreateNew(AOwner: TComponent; CreateMode: integer);');
     Add('Begin');
     Add('  inherited CreateNew(AOwner, CreateMode);');
     Add('  OnRequest := @DataModuleRequest;');
     Add('End;');
     Add('');
 
-    Add('destructor '+ModulTypeName+'.Destroy;');
+    Add('destructor ' + ModulTypeName + '.Destroy;');
     Add('Begin');
     Add('  inherited Destroy;');
     Add('End;');
     Add('');
 
-    Add('function '+ModulTypeName+'.TagMainContentHandler(const TagName: string; Params: TStringList): string;');
+    Add('function ' + ModulTypeName +
+      '.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
     Add('Begin');
     Add('');
     Add('  // your code here');
-    Add('  Result:=h3(''Hello world ... FastPlaz !'');');
+    Add('  Result:=h3(''Hello "'+ ucwords( ResourceName) +'" Module ... FastPlaz !'');');
     Add('');
     Add('End;');
     Add('');
     Add('');
   end;
-  Result := Result+ str.Text;
+  Result := Result + str.Text;
   FreeAndNil(str);
 
   if not bCreateProject then
   begin
-    Result:=result
-      +LineEnding+'initialization'
-      +LineEnding+'  // -> http://yourdomainname/'+ResourceName
-      +LineEnding+'  // The following line should be moved to a file "routes.pas"'
-      +LineEnding+'  AddRoute('''+Permalink+''','+ModulTypeName+');'+LineEnding+LineEnding;
+    Result := Result + LineEnding + 'initialization' + LineEnding +
+      '  // -> http://yourdomainname/' + ResourceName + LineEnding +
+      '  // The following line should be moved to a file "routes.pas"'
+      + LineEnding + '  Route.Add( ''' + Permalink + ''',' + ModulTypeName + ');' +
+      LineEnding + LineEnding;
   end;
 end;
 
 
-function TFileDescDefaultModule.GetResourceSource(const ResourceName: string
-  ): string;
+function TFileDescDefaultModule.GetResourceSource(const ResourceName: string): string;
 begin
-  Result:=inherited GetResourceSource(ResourceName);
+  Result := inherited GetResourceSource(ResourceName);
 end;
 
-function TFileDescDefaultModule.CreateSource(const Filename, SourceName,
-  ResourceName: string): string;
+function TFileDescDefaultModule.CreateSource(
+  const Filename, SourceName, ResourceName: string): string;
 begin
   Permalink := 'sample';
   ModulTypeName := 'TSampleModule';
@@ -202,24 +211,28 @@ begin
   begin
     with TfModuleSimpleWizard.Create(nil) do
     begin
-      if ShowModal = mrOK then
+      if ShowModal = mrOk then
       begin
         if edt_ModuleName.Text <> '' then
-          ModulTypeName:= 'T'+StringReplace( UcWords(edt_ModuleName.Text), ' ', '', [rfReplaceAll])+'Module';
-        Permalink:= edt_Permalink.Text;
+          ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
+            ' ', '', [rfReplaceAll]) + 'Module';
+        Permalink := edt_Permalink.Text;
         if Permalink = '' then
         begin
-          Permalink:= StringReplace( UcWords(edt_ModuleName.Text), ' ', '', [rfReplaceAll]);
+          Permalink := StringReplace(UcWords(edt_ModuleName.Text),
+            ' ', '', [rfReplaceAll]);
         end;
       end;
       Free;
     end;
-  end else begin
-    ModulTypeName:='TMainModule';
-    Permalink:='main';
+  end
+  else
+  begin
+    ModulTypeName := 'TMainModule';
+    Permalink := 'main';
   end;
-  Result:=inherited CreateSource(Filename, SourceName, Permalink);
-  log( 'module "' + ModulTypeName + '" created');
+  Result := inherited CreateSource(Filename, SourceName, Permalink);
+  log('module "' + ModulTypeName + '" created');
 end;
 
 procedure TFileDescDefaultModule.UpdateDefaultPascalFileExtension(
@@ -230,4 +243,3 @@ end;
 
 
 end.
-

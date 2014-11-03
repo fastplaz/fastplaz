@@ -882,7 +882,7 @@ end;
 function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent;
   TemplateFile: string; Cache: boolean; SubModule: boolean): string;
 var
-  template_filename, _ext, module_active: string;
+  template_filename, _ext, module_active, uri: string;
   template_engine: TFPTemplate;
 begin
   if Cache then
@@ -897,7 +897,8 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Result + Format( __(__Err_App_Init), [Application.EnvironmentVariable['REQUEST_URI']+'/initialize/']);
+    //Result := Result + Format( __(__Err_App_Init), [Application.EnvironmentVariable['REQUEST_URI']+'/initialize/']);
+    Result := Result + Format( __(__Err_App_Init), ['./initialize/']);
     Exit;
   end;
 
@@ -986,7 +987,12 @@ begin
       FEndDelimiter, Content, [rfReplaceAll]);
   end
   else
-    html.Text := Content;
+  begin
+    if trim(Content) = '' then
+      html.Text:= 'File "'+TemplateFile+'" ' + __( 'not found.')
+    else
+      html.Text := Content;
+  end;
 
   //-- proccess foreach
   html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);

@@ -46,17 +46,18 @@ implementation
 
 procedure TfModuleSimpleWizard.FormCreate(Sender: TObject);
 begin
-  mem.Color:= Color;
+  mem.Color := Color;
 end;
 
 procedure TfModuleSimpleWizard.CancelButtonClick(Sender: TObject);
 begin
-  ModalResult:=mrCancel;
+  ModalResult := mrCancel;
 end;
 
 procedure TfModuleSimpleWizard.edt_ModuleNameChange(Sender: TObject);
 begin
-  edt_Permalink.Text:= StringReplace( LowerCase(edt_ModuleName.Text), ' ', '', [rfReplaceAll]);
+  edt_Permalink.Text := StringReplace(LowerCase(edt_ModuleName.Text),
+    ' ', '', [rfReplaceAll]);
 end;
 
 procedure TfModuleSimpleWizard.edt_PermalinkChange(Sender: TObject);
@@ -66,26 +67,25 @@ begin
     lbl_URL.Caption := c_modsimple_baseurl + LowerCase(edt_Permalink.Text);
   end
   else
-    lbl_URL.Caption := c_modsimple_baseurl + lowerCase(edt_Permalink.Text)+'/';
+    lbl_URL.Caption := c_modsimple_baseurl + lowerCase(edt_Permalink.Text) + '/';
 end;
 
-procedure TfModuleSimpleWizard.FormCloseQuery(Sender: TObject;
-  var CanClose: boolean);
+procedure TfModuleSimpleWizard.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
-  if ModalResult=mrOK then
+  if ModalResult = mrOk then
   begin
     if edt_ModuleName.Text = '' then
     begin
-      edt_ModuleName.Color:=clYellow;
+      edt_ModuleName.Color := clYellow;
       edt_ModuleName.SetFocus;
-      CanClose:=False;
+      CanClose := False;
     end;
   end;
 end;
 
 procedure TfModuleSimpleWizard.OKButtonClick(Sender: TObject);
 begin
-  ModalResult:=mrOK;
+  ModalResult := mrOk;
 end;
 
 end.

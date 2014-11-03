@@ -46,6 +46,7 @@ const
 function i2s(pI: integer): string;
 function s2i(pS: string): integer;
 function f2s(n: Extended):string;
+function Implode(lst:TStringList;sep : string =';'; prefix:string=''; suffix:string=''):string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags( TagString:string): TStringList;
 function EchoError (Const Fmt : String; const Args : Array of const) : String;
@@ -53,6 +54,9 @@ function _GetTickCount: DWord;
 
 function ReplaceAll(const Subject: String; const OldPatterns, NewPatterns: array of String; IgnoreCase: Boolean = false): String;
 function ReplaceAll(const Subject: String; const OldPatterns: array of String; NewPatterns : String; IgnoreCase: Boolean = false): String;
+
+function mysql_real_escape_string(const unescaped_string : string ) : string;
+function mysql_real_escape_string(const unescaped_strings : TStringList ) : string;
 
 procedure Die( const Message:string = ''); overload;
 procedure Die( const Number:integer); overload;
@@ -93,6 +97,20 @@ begin
     //Result := Format( '%.2f', [n]);
   except
   end;
+end;
+
+function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
+var
+  i : integer;
+  s : string;
+begin
+  i:= 0;
+  for i:=0 to lst.Count-1 do
+  begin
+    s := s + sep + prefix + lst[i] + suffix;
+  end;
+  s := Copy( s, 2, Length(s)-1);
+  Result := s;
 end;
 
 function Explode(Str, Delimiter: string): TStrings;
@@ -261,6 +279,38 @@ begin
    end;
    If DOEOLN then
      echo(#13#10);
+end;
+
+function StringReplaceExt(const S : string; OldPattern, NewPattern:  array of string; Flags: TReplaceFlags):string;
+var
+ i : integer;
+begin
+   Assert(Length(OldPattern)=(Length(NewPattern)));
+   Result:=S;
+   for  i:= Low(OldPattern) to High(OldPattern) do
+    Result:=StringReplace(Result,OldPattern[i], NewPattern[i], Flags);
+end;
+
+function mysql_real_escape_string(const unescaped_string: string): string;
+begin
+  Result:=StringReplaceExt(unescaped_string,
+    ['\', #39, #34, #0, #10, #13, #26], ['\\','\'#39,'\'#34,'\0','\n','\r','\Z'] ,
+    [rfReplaceAll]
+  );
+end;
+
+function mysql_real_escape_string(const unescaped_strings: TStringList): string;
+var
+  i : integer;
+  lst : TStringList;
+begin
+  lst := TStringList.Create;
+  for i:=0 to unescaped_strings.Count-1 do
+  begin
+    lst.Add( mysql_real_escape_string(unescaped_strings[i]));
+  end;
+  Result := lst.Text;
+  FreeAndNil(lst);
 end;
 
 procedure Die(const Message: string);

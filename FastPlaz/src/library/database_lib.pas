@@ -31,6 +31,10 @@ type
     FGroupField : string;
     FSelectField : string;
     FJoinList : TStrings;
+
+    primaryKeyValue : string;
+    FGenFields : TStringList;
+    FGenValues : TStringList;
     function GetRecordCount: Longint;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
@@ -38,21 +42,24 @@ type
     procedure DoBeforeOpen(DataSet: TDataSet);
 
     function GetFieldList: TStrings;
-    function GetFieldValue( FieldName: String): TField;
-    procedure SetFieldValue( FieldName: String; AValue: TField);
+    function GetFieldValue( FieldName: String): Variant;
+    procedure SetFieldValue( FieldName: String; AValue: Variant);
   public
+    primaryKey : string;
     Data : TSQLQuery;
     StartTime, StopTime, ElapsedTime : Cardinal;
-    constructor Create( const DefaultTableName:string='');
+    constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
     property TableName : string Read FTableName write FTableName;
-    Property Value[ FieldName: String] : TField Read GetFieldValue Write SetFieldValue; default;
+    Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
 
+    function All:boolean;
     function GetAll:boolean;
     //function Get( where, order):boolean;
 
+    function Find( const KeyIndex:integer):boolean;
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
@@ -62,6 +69,11 @@ type
     procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
 
     procedure GroupBy( const GroupField:string);
+
+    procedure Clear;
+    procedure New;
+    function  Save:boolean;
+    function  Update( Where:string):boolean;
 
     procedure StartTransaction;
     procedure ReStartTransaction;
@@ -227,9 +239,11 @@ end;
 
 function TSimpleModel._queryOpen: boolean;
 begin
+  Result := False;
   try
     Data.Open;
-    Result := True;
+    if Data.RecordCount > 0 then
+      Result := True;
   except
     on E: Exception do begin
       if AppData.debug then begin
@@ -284,24 +298,32 @@ begin
 
 end;
 
-function TSimpleModel.GetFieldValue(FieldName: String): TField;
+function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
-  Result := Data.FieldByName( FieldName);
+  Result := Data.FieldByName( FieldName).AsVariant;
 end;
 
-procedure TSimpleModel.SetFieldValue( FieldName: String; AValue: TField);
+procedure TSimpleModel.SetFieldValue(FieldName: String; AValue: Variant);
 begin
-
+  if not Assigned( FGenFields) then
+  begin
+    FGenFields := TStringList.Create;
+    FGenValues := TStringList.Create;
+  end;
+  FGenFields.Add( FieldName);
+  FGenValues.Add( AValue);
 end;
 
-constructor TSimpleModel.Create(const DefaultTableName: string);
+constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
 var
   i : integer;
 begin
+  primaryKey := pPrimaryKey;
+  primaryKeyValue := '';
   FConnector := DB_Connector;
   if DefaultTableName = '' then begin
-    for i:=2 to length( ToString)-1 do begin
+    for i:=2 to length( ToString) do begin
       if (ToString[i] in ['A'..'Z']) then begin
         if FTableName <> '' then
           FTableName := FTableName + '_' + LowerCase( ToString[i])
@@ -315,8 +337,10 @@ begin
     FTableName:= DefaultTableName;
   FJoinList := TStringList.Create;
   {$ifdef zeos}
-  sssss
+  zeos unsupported
   {$else}
+  FGenFields := nil;
+  FGenValues := nil;
   Data := TSQLQuery.Create(nil);
   Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
@@ -329,9 +353,15 @@ destructor TSimpleModel.Destroy;
 begin
   if Data.Active then Data.Close;
   FreeAndNil( FJoinList);
-  if Assigned( FFieldList) then
-    FreeAndNil( FFieldList);
+  if Assigned( FFieldList) then FreeAndNil( FFieldList);
+  if Assigned( FGenFields) then FreeAndNil( FGenFields);
+  if Assigned( FGenValues) then FreeAndNil( FGenValues);
   FreeAndNil( Data);
+end;
+
+function TSimpleModel.All: boolean;
+begin
+  result := GetAll();
 end;
 
 {
@@ -346,6 +376,18 @@ begin
   Result := true;
 end;
 
+function TSimpleModel.Find(const KeyIndex: integer): boolean;
+var
+  s : string;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+  s := primaryKey + '=' + i2s( KeyIndex);
+  result := Find( [s], '');
+end;
+
 function TSimpleModel.Find(const Where: array of string; const Order: string;
   const Limit: integer; const CustomField: string): boolean;
 var
@@ -355,6 +397,8 @@ var
   _joinfield,
   _join : TStrings;
 begin
+  primaryKeyValue := '';
+  Clear;
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
@@ -404,7 +448,11 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
-  _queryOpen;
+  Result := _queryOpen;
+  if (Data.RecordCount = 1) and (primaryKey <> '') then
+  begin
+    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+  end;
 end;
 
 function TSimpleModel.FindFirst(const Where: array of string;
@@ -454,6 +502,114 @@ end;
 procedure TSimpleModel.GroupBy(const GroupField: string);
 begin
   FGroupField:= GroupField;
+end;
+
+procedure TSimpleModel.Clear;
+begin
+  New;
+end;
+
+procedure TSimpleModel.New;
+begin
+  if Assigned( FGenFields) then
+  begin
+    FGenFields.Clear;
+    FGenValues.Clear;
+  end;
+  primaryKeyValue:='';
+end;
+
+function TSimpleModel.Save: boolean;
+var
+  sSQL : TStringList;
+  i : integer;
+  s : string;
+begin
+  Result := false;
+  sSQL := TStringList.Create;
+  if Data.Active then
+  begin
+    sSQL.Add( 'UPDATE ' + TableName + ' SET ');
+    for i:=0 to FGenFields.Count-1 do
+    begin
+      s := FGenFields[i]+'=:'+FGenFields[i];
+      if i <> FGenFields.Count-1 then s:= s + ',' ;
+      sSQL.Add( s);
+    end;
+    sSQL.Add( 'WHERE ' + primaryKey + '=''' + primaryKeyValue + '''');
+    Data.Close;
+  end
+  else
+  begin //-- new data
+    //FGenValues.Text:= mysql_real_escape_string( FGenValues);
+    sSQL.Add( 'INSERT INTO '+TableName+' (');
+    s := Implode( FGenFields, ',');
+    sSQL.Add( s);
+    sSQL.Add( ') VALUES (');
+    s := Implode( FGenFields, ',', ':');
+    //s := Implode( FGenValues, ',', '''', '''');
+    sSQL.Add(s);
+    sSQL.Add( ')');
+  end;
+
+  try
+    Data.SQL.Text:= sSQL.Text;
+    for i:=0 to FGenFields.Count-1 do
+    begin
+      Data.ParamByName( FGenFields[i]).Value := FGenValues[i];
+    end;
+    Data.ExecSQL;
+    Result := True;
+  except
+    on E: Exception do begin
+      if AppData.debug then begin
+        LogUtil.add( E.Message);
+        LogUtil.add( Data.SQL.Text);
+      end;
+      die( e.Message);
+    end;
+  end;
+  FreeAndNil(sSQL);
+end;
+
+function TSimpleModel.Update(Where: string): boolean;
+var
+  sSQL : TStringList;
+  i : integer;
+  s : string;
+begin
+  Result := false;
+  sSQL := TStringList.Create;
+  if Data.Active then Data.Close;
+  sSQL.Add( 'UPDATE ' + TableName + ' SET ');
+  for i:=0 to FGenFields.Count-1 do
+  begin
+    s := FGenFields[i]+'= :'+FGenFields[i];
+    if i <> FGenFields.Count-1 then s:= s + ' , ' ;
+    sSQL.Add( s);
+  end;
+  sSQL.Add( 'WHERE ' + Where);
+
+  try
+    Data.SQL.Text:= sSQL.Text;
+    for i:=0 to FGenFields.Count-1 do
+    begin
+      Data.ParamByName( FGenFields[i]).Value := FGenValues[i];
+    end;
+    Data.ExecSQL;
+    Result := True;
+  except
+    on E: Exception do begin
+      if AppData.debug then begin
+        LogUtil.add( E.Message);
+        LogUtil.add( Data.SQL.Text);
+      end;
+      die( e.Message);
+    end;
+  end;
+
+
+  FreeAndNil(sSQL);
 end;
 
 procedure TSimpleModel.StartTransaction;

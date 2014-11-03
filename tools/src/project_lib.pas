@@ -5,7 +5,8 @@ unit project_lib;
 interface
 
 uses
-  Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf,
+  Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
+  NewItemIntf, IDEMsgIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -18,7 +19,7 @@ type
 
   TFileDescProject = class(TProjectDescriptor)
   private
-    ProjectName : string;
+    ProjectName: string;
   public
     constructor Create; override;
     function GetLocalizedName: string; override;
@@ -36,38 +37,38 @@ uses fastplaz_tools_register, modsimple_lib;
 constructor TFileDescProject.Create;
 begin
   inherited Create;
-  Name:='FFastPlazApplication';
+  Name := 'FFastPlazApplication';
 end;
 
 function TFileDescProject.GetLocalizedName: string;
 begin
   //Result:=inherited GetLocalizedName;
-  Result:=rs_Project_Name;
+  Result := rs_Project_Name;
 end;
 
 function TFileDescProject.GetLocalizedDescription: string;
 begin
   //Result:=inherited GetLocalizedDescription;
-  Result:=rs_Project_Description;
+  Result := rs_Project_Description;
 end;
 
 function TFileDescProject.InitProject(AProject: TLazProject): TModalResult;
 var
-  source: TStringList;
+  Source: TStringList;
   MainFile: TLazProjectFile;
 begin
-  Result:=inherited InitProject(AProject);
+  Result := inherited InitProject(AProject);
   ProjectName := 'fastplaz';
-  MainFile:=AProject.CreateProjectFile('myproject.lpr');
-  MainFile.IsPartOfProject:=true;
-  AProject.AddFile(MainFile,false);
-  AProject.MainFileID:=0;
+  MainFile := AProject.CreateProjectFile('myproject.lpr');
+  MainFile.IsPartOfProject := True;
+  AProject.AddFile(MainFile, False);
+  AProject.MainFileID := 0;
 
   // project source
-  source:= TStringList.Create;
-  with source do
+  Source := TStringList.Create;
+  with Source do
   begin
-    Add('program '+ProjectName+';');
+    Add('program ' + ProjectName + ';');
     Add('');
     Add('{$mode objfpc}{$H+}');
     Add('');
@@ -94,35 +95,34 @@ begin
 
   end;
   {$ifdef windows}
-  AProject.MainFile.SetSourceText( source.Text, true);
+  AProject.MainFile.SetSourceText(Source.Text, True);
   {$else}
-  AProject.MainFile.SetSourceText( source.Text);
+  AProject.MainFile.SetSourceText(Source.Text);
   {$endif}
-  FreeAndNil(source);
+  FreeAndNil(Source);
 
   // package
   AProject.AddPackageDependency('fastplaz_runtime');
   AProject.AddPackageDependency('LCL');
 
   // compiler options
-  AProject.LazCompilerOptions.UnitOutputDirectory:='lib\$(TargetCPU)-$(TargetOS)';
-  AProject.LazCompilerOptions.Win32GraphicApp:=false;
+  AProject.LazCompilerOptions.UnitOutputDirectory := 'lib\$(TargetCPU)-$(TargetOS)';
+  AProject.LazCompilerOptions.Win32GraphicApp := False;
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
-  Result:= mrOK;
+  Result := mrOk;
 end;
 
 function TFileDescProject.CreateStartFiles(AProject: TLazProject): TModalResult;
 begin
   //Result:=inherited CreateStartFiles(AProject);
-  bCreateProject:=True;
-  LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create,'routes.pas','',
-    [nfIsPartOfProject,nfOpenInEditor,nfCreateDefaultSrc]);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create,'main.pas','',
-    [nfIsPartOfProject,nfOpenInEditor,nfCreateDefaultSrc]);
-  bCreateProject:=False;
-  Result:= mrOK;
+  bCreateProject := True;
+  LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create, 'routes.pas', '',
+    [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
+    [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
+  bCreateProject := False;
+  Result := mrOk;
 end;
 
 
 end.
-
