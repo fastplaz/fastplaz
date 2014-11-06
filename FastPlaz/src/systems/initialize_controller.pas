@@ -48,9 +48,11 @@ var
   VJSONData: TJSONData = nil;
   VJSONParser: TLocalJSONParser;
 begin
-  if str='' then Exit;;
+  if str = '' then
+    Exit;
+  ;
   Result := str;
-  VJSONParser := TLocalJSONParser.Create( str);
+  VJSONParser := TLocalJSONParser.Create(str);
   try
     VJSONParser.Strict := True;
     VJSONData := VJSONParser.Parse;
@@ -146,7 +148,7 @@ begin
   ContentFile.Text := JsonBeautifier(ContentFile.Text);
   ContentFile.SaveToFile('config/config.json');
   Config := TJSONConfig.Create(nil);
-  Config.Filename:= 'config/config.json';
+  Config.Filename := 'config/config.json';
 
 
   FreeAndNil(ContentFile);
@@ -187,8 +189,6 @@ begin
 end;
 
 initialization
-  AddRoute('initialize', TInitializeModule);
+  Route.Add( 'initialize', TInitializeModule);
 
 end.
-
-

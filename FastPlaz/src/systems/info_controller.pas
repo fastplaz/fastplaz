@@ -12,7 +12,7 @@ type
   { TInfoModule }
 
   TInfoModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; 
+    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
   public
@@ -24,15 +24,15 @@ implementation
 
 uses theme_controller, common;
 
-procedure TInfoModule.DataModuleRequest(Sender: TObject; ARequest: TRequest; 
+procedure TInfoModule.DataModuleRequest(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 var
-  lst : TStringList;
+  lst: TStringList;
 begin
   lst := TStringList.Create;
   Application.GetEnvironmentList(lst);
 
-  die('<pre>Your Server Info:<br>'+lst.Text);
+  die('<pre>Your Server Info:<br>' + lst.Text);
 
   Response.Content := ThemeUtil.Render();
   Handled := True;

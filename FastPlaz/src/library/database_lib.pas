@@ -72,8 +72,8 @@ type
 
     procedure Clear;
     procedure New;
-    function  Save:boolean;
-    function  Update( Where:string):boolean;
+    function  Save( Where:string=''):boolean;
+    function  Delete( Where:string=''):boolean;
 
     procedure StartTransaction;
     procedure ReStartTransaction;
@@ -519,7 +519,7 @@ begin
   primaryKeyValue:='';
 end;
 
-function TSimpleModel.Save: boolean;
+function TSimpleModel.Save(Where: string): boolean;
 var
   sSQL : TStringList;
   i : integer;
@@ -529,6 +529,7 @@ begin
   sSQL := TStringList.Create;
   if Data.Active then
   begin
+    Data.Close;
     sSQL.Add( 'UPDATE ' + TableName + ' SET ');
     for i:=0 to FGenFields.Count-1 do
     begin
@@ -536,8 +537,15 @@ begin
       if i <> FGenFields.Count-1 then s:= s + ',' ;
       sSQL.Add( s);
     end;
-    sSQL.Add( 'WHERE ' + primaryKey + '=''' + primaryKeyValue + '''');
-    Data.Close;
+
+    if Where <> '' then
+    begin
+      sSQL.Add( 'WHERE ' + Where);
+      primaryKeyValue:='';
+    end
+    else
+      sSQL.Add( 'WHERE ' + primaryKey + '=''' + primaryKeyValue + '''');
+
   end
   else
   begin //-- new data
@@ -556,7 +564,7 @@ begin
     Data.SQL.Text:= sSQL.Text;
     for i:=0 to FGenFields.Count-1 do
     begin
-      Data.ParamByName( FGenFields[i]).Value := FGenValues[i];
+      Data.Params.ParamByName( FGenFields[i]).Value := FGenValues[i];
     end;
     Data.ExecSQL;
     Result := True;
@@ -572,7 +580,7 @@ begin
   FreeAndNil(sSQL);
 end;
 
-function TSimpleModel.Update(Where: string): boolean;
+function TSimpleModel.Delete(Where: string): boolean;
 var
   sSQL : TStringList;
   i : integer;
@@ -580,22 +588,19 @@ var
 begin
   Result := false;
   sSQL := TStringList.Create;
-  if Data.Active then Data.Close;
-  sSQL.Add( 'UPDATE ' + TableName + ' SET ');
-  for i:=0 to FGenFields.Count-1 do
-  begin
-    s := FGenFields[i]+'= :'+FGenFields[i];
-    if i <> FGenFields.Count-1 then s:= s + ' , ' ;
-    sSQL.Add( s);
-  end;
-  sSQL.Add( 'WHERE ' + Where);
+  if Data.Active then
+    Data.Close;
 
+  sSQL.Text := 'DELETE FROM ' + TableName + ' WHERE ';
+  if Where = '' then
+  begin
+    sSQL.Text:= sSQL.Text + primaryKey + '=' + primaryKeyValue;
+  end
+  else
+  begin
+    sSQL.Text:= sSQL.Text + Where;
+  end;
   try
-    Data.SQL.Text:= sSQL.Text;
-    for i:=0 to FGenFields.Count-1 do
-    begin
-      Data.ParamByName( FGenFields[i]).Value := FGenValues[i];
-    end;
     Data.ExecSQL;
     Result := True;
   except
@@ -607,8 +612,6 @@ begin
       die( e.Message);
     end;
   end;
-
-
   FreeAndNil(sSQL);
 end;
 
