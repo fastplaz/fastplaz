@@ -350,7 +350,7 @@ var
   MI : TModuleItem;
 begin
 
-  // prepare pattern-url for next release
+  // prepare pattern-url for next version
   pattern_url := Explode( PatternURL, '/');
   module_name := pattern_url[0];
 

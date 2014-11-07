@@ -24,11 +24,11 @@ type
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
-    function GetInterfaceSource(
-      const Filename, SourceName, ResourceName: string): string;
+    function GetInterfaceSource(const Filename, SourceName,
+      ResourceName: string): string;
       override;
-    function GetImplementationSource(
-      const Filename, SourceName, ResourceName: string): string; override;
+    function GetImplementationSource(const Filename, SourceName,
+      ResourceName: string): string; override;
     function GetResourceSource(const ResourceName: string): string; override;
     function CreateSource(const Filename, SourceName, ResourceName: string): string;
       override;
@@ -99,7 +99,8 @@ begin
   begin
     Add('constructor ' + ModelName + '.Create(const DefaultTableName: string = '''');');
     Add('Begin');
-    Add('  inherited Create( DefaultTableName); // table name = ' + LowerCase(TableName));
+    Add('  inherited Create( DefaultTableName); // table name = ' +
+      LowerCase(TableName));
     Add('  //inherited Create(''yourtablename''); // if use custom tablename');
     Add('End;');
     Add('');
@@ -115,8 +116,8 @@ begin
   Result := inherited GetResourceSource(ResourceName);
 end;
 
-function TFileDescModel.CreateSource(
-  const Filename, SourceName, ResourceName: string): string;
+function TFileDescModel.CreateSource(const Filename, SourceName,
+  ResourceName: string): string;
 begin
   ModelName := 'Sample';
   with TfModelWizard.Create(nil) do
