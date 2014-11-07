@@ -16,6 +16,7 @@ const
 
 resourcestring
   __ErrNoModuleNameForRequest = 'Could not determine HTTP module name for request';
+  __Err_Http_InvalidMethod = 'Invalid method request';
 
   // theme
   __Err_App_Init =
@@ -26,6 +27,15 @@ resourcestring
 
   __Content_Not_Found = 'Nothing Found';
   __Tag_Content_Not_Found = 'Tags Content "%s" Not Found';
+
+  // methode
+  ALL     = '';
+  GET     = 'GET';
+  POST    = 'POST';
+  PUT     = 'PUT';
+  HEAD    = 'HEAD';
+  OPTIONS = 'OPTIONS';
+
 
 type
 
@@ -57,20 +67,29 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
+    FMethodDefault : string;
     FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
+    function GetIsDelete: boolean;
+    function GetIsGet: boolean;
     function GetIsPost: boolean;
+    function GetIsPut: boolean;
+    function GetMethodDefault: string;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTag(const TagName: string): TTagCallback;
+    procedure SetMethodDefault(AValue: string);
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
+    ssss : string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
+    Procedure HandleRequest(ARequest : TRequest; AResponse : TResponse); override;
+
     procedure LanguageInit;
 
     property Environtment[const KeyName: string]: string read GetEnvirontment;
@@ -84,6 +103,10 @@ type
       read FOnBlockController write FOnBlockController;
 
     property isPost: boolean read GetIsPost;
+    property isGet: boolean read GetIsGet;
+    property isPut: boolean read GetIsPut;
+    property isDelete: boolean read GetIsDelete;
+    property MethodDefault: string read GetMethodDefault write SetMethodDefault;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -143,8 +166,8 @@ type
   TRoute = class
   private
   public
-    procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-      SkipStreaming: boolean = True; Method: string = '');
+    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+      Method: string = ''; SkipStreaming: boolean = True);
   end;
 
 function _CleanVar(const variable: string): string;
@@ -177,6 +200,9 @@ implementation
 
 uses common, language_lib, database_lib, logutil_lib, theme_controller,
   about_controller;
+
+var
+  MethodMap : TStringList;
 
 function _CleanVar(const variable: string): string;
 begin
@@ -314,10 +340,37 @@ end;
 
 { TRoute }
 
-procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean;
-  Method: string);
+procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
+  SkipStreaming: boolean);
+var
+  module_name,
+  s : string;
+  pattern_url : TStrings;
+  i : integer;
+  MI : TModuleItem;
 begin
-  RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
+
+  // prepare pattern-url for next version
+  pattern_url := Explode( PatternURL, '/');
+  module_name := pattern_url[0];
+
+  if not Assigned(MethodMap) then
+    MethodMap := TStringList.Create;
+  MethodMap.Values[module_name] := Method;
+
+  RegisterHTTPModule(module_name, ModuleClass, SkipStreaming);
+  i:=ModuleFactory.IndexOfModule(module_name);
+  if i <> -1 then
+  begin
+    //MI:=ModuleFactory[I];
+  end;
+
+  if ModuleFactory.FindModule( module_name) <> nil then
+  begin
+    //s := ((ModuleFactory.FindModule( ModuleName)) as TMyCustomWebModule).BaseURL;
+    //TMyCustomWebModule(ModuleFactory.FindModule( ModuleName)).MethodDefault:=Method;
+  end;
+
 end;
 
 { TSESSION }
@@ -362,11 +415,38 @@ begin
   Result := Application.EnvironmentVariable[KeyName];
 end;
 
+function TMyCustomWebModule.GetIsDelete: boolean;
+begin
+  Result := False;
+  if Application.Request.Method = 'DELETE' then
+    Result := True;
+end;
+
+function TMyCustomWebModule.GetIsGet: boolean;
+begin
+  Result := False;
+  if Application.Request.Method = GET then
+    Result := True;
+end;
+
 function TMyCustomWebModule.GetIsPost: boolean;
 begin
   Result := False;
-  if Application.Request.Method = 'POST' then
+  if Application.Request.Method = POST then
     Result := True;
+end;
+
+function TMyCustomWebModule.GetIsPut: boolean;
+begin
+  Result := False;
+  if Application.Request.Method = PUT then
+    Result := True;
+end;
+
+function TMyCustomWebModule.GetMethodDefault: string;
+begin
+  Result := FMethodDefault;
+  Result := 'abcdef';
 end;
 
 
@@ -385,6 +465,11 @@ begin
   Result := ___TagCallbackMap[TagName];
 end;
 
+procedure TMyCustomWebModule.SetMethodDefault(AValue: string);
+begin
+  FMethodDefault := AValue;
+end;
+
 procedure TMyCustomWebModule.SetTag(const TagName: string; AValue: TTagCallback);
 begin
   ___TagCallbackMap[TagName] := AValue;
@@ -393,6 +478,7 @@ end;
 constructor TMyCustomWebModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
+  FMethodDefault := '';
   FCreateSession := False;
   //_Initialize( self);
 end;
@@ -400,6 +486,27 @@ end;
 destructor TMyCustomWebModule.Destroy;
 begin
   inherited Destroy;
+end;
+
+procedure TMyCustomWebModule.HandleRequest(ARequest: TRequest; AResponse: TResponse);
+var
+  _moduleName, _methodDefault : string;
+begin
+  _moduleName := FastPlasAppandler._GetModuleName(ARequest);
+  _methodDefault := MethodMap.Values[_moduleName];
+  if _methodDefault = '' then
+  begin
+    inherited HandleRequest(ARequest, AResponse);
+  end
+  else
+  begin
+    if Application.Request.Method = _methodDefault then
+      inherited HandleRequest(ARequest, AResponse)
+    else
+    begin
+      die( __( __Err_Http_InvalidMethod));
+    end;
+  end;
 end;
 
 procedure TMyCustomWebModule.LanguageInit;
@@ -589,22 +696,24 @@ initialization
   _StartTime := _GetTickCount;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
-  ModUtil := TModUtil.Create;
   Route:= TRoute.Create;
+  ModUtil := TModUtil.Create;
   _DebugInfo := TStringList.Create;
   _REQUEST := TREQUESTVAR.Create;
   _POST := TPOST.Create;
   _GET := TGET.Create;
   _SESSION := TSESSION.Create;
+  MethodMap := TStringList.Create;
 
 finalization
+  FreeAndNil(MethodMap);
   FreeAndNil(_SESSION);
   FreeAndNil(_GET);
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
   FreeAndNil(_DebugInfo);
-  FreeAndNil(Route);
   FreeAndNil(ModUtil);
+  FreeAndNil(Route);
   FreeAndNil(FastPlasAppandler);
   FreeAndNil(SessionController);
 

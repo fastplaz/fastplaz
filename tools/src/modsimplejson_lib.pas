@@ -24,11 +24,11 @@ type
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
-    function GetInterfaceSource(
-      const Filename, SourceName, ResourceName: string): string;
+    function GetInterfaceSource(const Filename, SourceName,
+      ResourceName: string): string;
       override;
-    function GetImplementationSource(
-      const Filename, SourceName, ResourceName: string): string; override;
+    function GetImplementationSource(const Filename, SourceName,
+      ResourceName: string): string; override;
     function GetResourceSource(const ResourceName: string): string; override;
     function CreateSource(const Filename, SourceName, ResourceName: string): string;
       override;
@@ -78,7 +78,7 @@ begin
   begin
     Add('type');
     Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
-    Add('    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
     Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
@@ -101,8 +101,23 @@ begin
   begin
     Add('uses common;');
     Add('');
+
+    Add('constructor ' + ModulTypeName +
+      '.CreateNew(AOwner: TComponent; CreateMode: integer);');
+    Add('Begin');
+    Add('  inherited CreateNew(AOwner, CreateMode);');
+    Add('  OnRequest := @RequestHandler;');
+    Add('End;');
+    Add('');
+
+    Add('destructor ' + ModulTypeName + '.Destroy;');
+    Add('Begin');
+    Add('  inherited Destroy;');
+    Add('End;');
+    Add('');
+
     Add('procedure ' + ModulTypeName +
-      '.DataModuleRequest(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+      '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('var');
     Add('  o, response_json : TJSONObject;');
     Add('Begin');
@@ -123,20 +138,6 @@ begin
     Add('End;');
     Add('');
 
-    Add('constructor ' + ModulTypeName +
-      '.CreateNew(AOwner: TComponent; CreateMode: integer);');
-    Add('Begin');
-    Add('  inherited CreateNew(AOwner, CreateMode);');
-    Add('  OnRequest := @DataModuleRequest;');
-    Add('End;');
-    Add('');
-
-    Add('destructor ' + ModulTypeName + '.Destroy;');
-    Add('Begin');
-    Add('  inherited Destroy;');
-    Add('End;');
-    Add('');
-
     Add('');
     Add('');
   end;
@@ -147,9 +148,9 @@ begin
   begin
     Result := Result + LineEnding + 'initialization' + LineEnding +
       '  // -> http://yourdomainname/' + ResourceName + LineEnding +
-      '  // The following line should be moved to a file "routes.pas"'
-      + LineEnding + '  AddRoute(''' + Permalink + ''',' + ModulTypeName + ');' +
-      LineEnding + LineEnding;
+      '  // The following line should be moved to a file "routes.pas"' +
+      LineEnding + '  Route.Add(''' + Permalink + ''',' + ModulTypeName +
+      ');' + LineEnding + LineEnding;
   end;
 end;
 

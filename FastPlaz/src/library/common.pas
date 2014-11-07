@@ -8,7 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, math,
-  fpjson, jsonparser,
+  fpjson, jsonparser, custweb,
   jsonConf,
   Classes, SysUtils, fastplaz_handler;
 
@@ -27,6 +27,7 @@ const
   _SYSTEM_DEBUG = 'systems/debug';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
   _SYSTEM_CACHE_TIME = 'systems/cache_time';
+  _SYSTEM_CACHE_WRITE = 'systems/write';
   _SYSTEM_TEMP_DIR = 'systems/temp';
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
@@ -237,6 +238,15 @@ begin
   Die( '<pre>'+Message.Text+'</pre>');
 end;
 
+procedure Die(const Message: string);
+begin
+  //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
+  //raise EFPWebError.Create(Message);
+  Application.Response.Contents.Add( Message);
+  Application.Response.SendContent;
+  Application.Terminate;
+end;
+
 procedure DumpJSON(J: TJSonData; DOEOLN: Boolean);
 var
   I : Integer;
@@ -312,14 +322,6 @@ begin
   Result := lst.Text;
   FreeAndNil(lst);
 end;
-
-procedure Die(const Message: string);
-begin
-  Application.Response.Contents.Add( Message);
-  Application.Response.SendContent;
-  Application.Terminate;
-end;
-
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);

@@ -12,7 +12,7 @@ type
   { TErrorinfoModule }
 
   TErrorinfoModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; 
+    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
     function TagMainContentHandler(const TagName: string; Params: TStringList): string;
@@ -25,7 +25,7 @@ implementation
 
 uses theme_controller, common;
 
-procedure TErrorinfoModule.DataModuleRequest(Sender: TObject; 
+procedure TErrorinfoModule.DataModuleRequest(Sender: TObject;
   ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
 begin
   Tags['$maincontent'] := @TagMainContentHandler;
@@ -36,9 +36,9 @@ end;
 function TErrorinfoModule.TagMainContentHandler(const TagName: string;
   Params: TStringList): string;
 var
-  s : string;
+  s: string;
 begin
-  s := Copy(Application.Request.PathInfo,8,Length(Application.Request.PathInfo)-8);
+  s := Copy(Application.Request.PathInfo, 8, Length(Application.Request.PathInfo) - 8);
   if _SESSION['f_err'] <> '' then
   begin
     s := _SESSION['f_err'];
@@ -48,7 +48,9 @@ begin
   begin
     if Environtment['HTTP_REFERER'] <> '' then
       s := s + '<br>referer: ' + Environtment['HTTP_REFERER'];
-    Result := '<hr>' +  '<div class="bs-example-bg-classes"><p class="bg-danger text-danger">'+s+'</p></div>';
+    Result := '<hr>' +
+      '<div class="bs-example-bg-classes"><p class="bg-danger text-danger">' +
+      s + '</p></div>';
   end;
 end;
 
@@ -67,6 +69,5 @@ end;
 initialization
   // -> http://yourdomainname/error
   // is better to move line below to file "route.pas"
-  AddRoute('error', TErrorinfoModule);
+  Route.Add( 'error', TErrorinfoModule);
 end.
-

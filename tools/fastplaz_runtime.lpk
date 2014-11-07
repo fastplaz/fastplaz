@@ -18,19 +18,19 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Files Count="17">
+    <Files Count="18">
       <Item1>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item1>
       <Item2>
-        <Filename Value="..\FastPlaz\src\systems\fastplaz_handler.pas"/>
-        <UnitName Value="fastplaz_handler"/>
-      </Item2>
-      <Item3>
         <Filename Value="..\FastPlaz\define.inc"/>
         <Type Value="Include"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\FastPlaz\src\systems\fastplaz_handler.pas"/>
+        <UnitName Value="fastplaz_handler"/>
       </Item3>
       <Item4>
         <Filename Value="..\FastPlaz\src\library\common.pas"/>
@@ -81,13 +81,17 @@
         <UnitName Value="theme_controller"/>
       </Item15>
       <Item16>
-        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
-        <Type Value="LFM"/>
+        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
+        <UnitName Value="module_controller"/>
       </Item16>
       <Item17>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
+        <Type Value="LFM"/>
+      </Item17>
+      <Item18>
         <Filename Value="..\FastPlaz\src\app\about\about_controller.pas"/>
         <UnitName Value="about_controller"/>
-      </Item17>
+      </Item18>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>

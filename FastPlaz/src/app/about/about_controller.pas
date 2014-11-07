@@ -100,7 +100,6 @@ begin
       a('<h3>Special Thanks</h3>');
       a('<ul>');
       a('<li>Cahyo Sasongko</li>');
-      a('<li>Heru Susanto (herux)</li>');
       a('<li>Mario Ray Mahardhika (qtemplate idea)</li>');
       a('<li>Oka Prinarjaya</li>');
       a('<li>Takeda Matsuki</li>');
