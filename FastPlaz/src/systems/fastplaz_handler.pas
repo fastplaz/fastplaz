@@ -166,7 +166,7 @@ type
   TRoute = class
   private
   public
-    procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
+    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
       Method: string = ''; SkipStreaming: boolean = True);
   end;
 
@@ -340,32 +340,37 @@ end;
 
 { TRoute }
 
-procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
+procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
   SkipStreaming: boolean);
 var
+  module_name,
   s : string;
+  pattern_url : TStrings;
   i : integer;
   MI : TModuleItem;
 begin
+
+  // prepare pattern-url for next release
+  pattern_url := Explode( PatternURL, '/');
+  module_name := pattern_url[0];
+
   if not Assigned(MethodMap) then
     MethodMap := TStringList.Create;
-  MethodMap.Values[ModuleName] := Method;
+  MethodMap.Values[module_name] := Method;
 
-  RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
-  i:=ModuleFactory.IndexOfModule(ModuleName);
+  RegisterHTTPModule(module_name, ModuleClass, SkipStreaming);
+  i:=ModuleFactory.IndexOfModule(module_name);
   if i <> -1 then
   begin
     //MI:=ModuleFactory[I];
-    //MI.ModuleName:=;
-    //die('sss');
   end;
 
-  if ModuleFactory.FindModule( ModuleName) <> nil then
+  if ModuleFactory.FindModule( module_name) <> nil then
   begin
-    //ModuleFactory.
     //s := ((ModuleFactory.FindModule( ModuleName)) as TMyCustomWebModule).BaseURL;
     //TMyCustomWebModule(ModuleFactory.FindModule( ModuleName)).MethodDefault:=Method;
   end;
+
 end;
 
 { TSESSION }
