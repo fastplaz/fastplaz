@@ -12,10 +12,10 @@ type
   { TErrorinfoModule }
 
   TErrorinfoModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
-    function TagMainContentHandler(const TagName: string; Params: TStringList): string;
+    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
@@ -25,20 +25,32 @@ implementation
 
 uses theme_controller, common;
 
-procedure TErrorinfoModule.DataModuleRequest(Sender: TObject;
-  ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+constructor TErrorinfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
-  Tags['$maincontent'] := @TagMainContentHandler;
+  inherited CreateNew(AOwner, CreateMode);
+  OnRequest := @RequestHandler;
+end;
+
+destructor TErrorinfoModule.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TErrorinfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
+begin
+  Tags['$maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
 
-function TErrorinfoModule.TagMainContentHandler(const TagName: string;
+function TErrorinfoModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 var
   s: string;
 begin
-  s := Copy(Application.Request.PathInfo, 8, Length(Application.Request.PathInfo) - 8);
+  //s := Copy(Application.Request.PathInfo, 8, Length(Application.Request.PathInfo) - 8);
+  s := Application.Request.GetNextPathInfo;
   if _SESSION['f_err'] <> '' then
   begin
     s := _SESSION['f_err'];
@@ -54,20 +66,9 @@ begin
   end;
 end;
 
-constructor TErrorinfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
-begin
-  inherited CreateNew(AOwner, CreateMode);
-  OnRequest := @DataModuleRequest;
-end;
-
-destructor TErrorinfoModule.Destroy;
-begin
-  inherited Destroy;
-end;
-
 
 initialization
   // -> http://yourdomainname/error
   // is better to move line below to file "route.pas"
-  Route.Add( 'error', TErrorinfoModule);
+  Route.Add('error', TErrorinfoModule);
 end.

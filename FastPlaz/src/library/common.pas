@@ -7,9 +7,7 @@ interface
 
 uses
   //SynExportHTML,
-  fpcgi, gettext, process, math,
-  fpjson, jsonparser, custweb,
-  jsonConf,
+  fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
   Classes, SysUtils, fastplaz_handler;
 
 const
@@ -46,27 +44,39 @@ const
 
 function i2s(pI: integer): string;
 function s2i(pS: string): integer;
-function f2s(n: Extended):string;
-function Implode(lst:TStringList;sep : string =';'; prefix:string=''; suffix:string=''):string;
+function f2s(n: extended): string;
+function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
+  suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
-function ExplodeTags( TagString:string): TStringList;
-function EchoError (Const Fmt : String; const Args : Array of const) : String;
+function ExplodeTags(TagString: string): TStringList;
+function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
-function ReplaceAll(const Subject: String; const OldPatterns, NewPatterns: array of String; IgnoreCase: Boolean = false): String;
-function ReplaceAll(const Subject: String; const OldPatterns: array of String; NewPatterns : String; IgnoreCase: Boolean = false): String;
+function SafeText( const SourceString: string): string;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean = False): string;
 
-function mysql_real_escape_string(const unescaped_string : string ) : string;
-function mysql_real_escape_string(const unescaped_strings : TStringList ) : string;
+function AppendPathDelim(const Path: string): string;
+function DirectoryIsWritable(const DirectoryName: string): boolean;
 
-procedure Die( const Message:string = ''); overload;
-procedure Die( const Number:integer); overload;
-procedure Die( const Message:TStringList); overload;
+procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
+function HexToInt(HexStr: string): int64;
 
-procedure DumpJSON(J: TJSonData; DOEOLN: Boolean=false);
+procedure Die(const Message: string = ''); overload;
+procedure Die(const Number: integer); overload;
+procedure Die(const Message: TStringList); overload;
+
+// php like function
+function mysql_real_escape_string(const unescaped_string: string): string;
+function mysql_real_escape_string(const unescaped_strings: TStringList): string;
+function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
+function UrlDecode(const EncodedStr: string): string;
+function ucwords(const str: string): string;
 
 var
-  Config : TJSONConfig;
+  Config: TJSONConfig;
 
 implementation
 
@@ -76,7 +86,7 @@ function i2s(pI: integer): string;
 begin
   Result := '0';
   try
-  	 Result := IntToStr(pI);
+    Result := IntToStr(pI);
   except
   end;
 end;
@@ -85,16 +95,16 @@ function s2i(pS: string): integer;
 begin
   Result := 0;
   try
-    Result := StrToInt( pS);
+    Result := StrToInt(pS);
   except
   end;
 end;
 
-function f2s(n: Extended): string;
+function f2s(n: extended): string;
 begin
   Result := '0';
   try
-    Result := FloatToStr( n);
+    Result := FloatToStr(n);
     //Result := Format( '%.2f', [n]);
   except
   end;
@@ -102,15 +112,15 @@ end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
 var
-  i : integer;
-  s : string;
+  i: integer;
+  s: string;
 begin
-  i:= 0;
-  for i:=0 to lst.Count-1 do
+  i := 0;
+  for i := 0 to lst.Count - 1 do
   begin
     s := s + sep + prefix + lst[i] + suffix;
   end;
-  s := Copy( s, 2, Length(s)-1);
+  s := Copy(s, 2, Length(s) - 1);
   Result := s;
 end;
 
@@ -136,12 +146,12 @@ end;
 
 function ExplodeTags(TagString: string): TStringList;
 var
-  lst : TStringList;
-  i,j : integer;
-  s,p : string;
+  lst: TStringList;
+  i, j: integer;
+  s, p: string;
 begin
   lst := TStringList.Create;
-  while Pos(' ',  TagString) <> 0 do
+  while Pos(' ', TagString) <> 0 do
   begin
     p := '';
     for i := 1 to Pos(' ', TagString) - 1 do
@@ -154,34 +164,38 @@ begin
   if (Length(TagString) <> 0) then
     lst.Add(TagString);
 
-  for i:=lst.Count-1 downto 1 do begin
-    if pos( '=', lst[i]) = 0 then begin
-      lst[i-1] := lst[i-1] + ' ' + lst[i];
+  for i := lst.Count - 1 downto 1 do
+  begin
+    if pos('=', lst[i]) = 0 then
+    begin
+      lst[i - 1] := lst[i - 1] + ' ' + lst[i];
       lst.Delete(i);
-    end else
+    end
+    else
     begin
       s := lst[i];
-      j := Pos('=',s);
-      if (s[j+1]='"') and (s[Length(s)]='"') then
+      j := Pos('=', s);
+      if (s[j + 1] = '"') and (s[Length(s)] = '"') then
       begin
-        lst[i]:= Copy(s,1,j) +  Copy(s,j+2,Length(s)-j-2);
+        lst[i] := Copy(s, 1, j) + Copy(s, j + 2, Length(s) - j - 2);
       end;
     end;
   end;
 
   //-- check [.] delimiter
-  if Pos( '.', lst[0]) <> 0 then
+  if Pos('.', lst[0]) <> 0 then
   begin
-    lst.Insert(0, Copy( lst[0], 1, Pos( '.', lst[0])-1));
-    lst[1] := 'index='+Copy( lst[1], Pos( '.', lst[1])+1, Length(lst[1])-Pos( '.', lst[1]) );
+    lst.Insert(0, Copy(lst[0], 1, Pos('.', lst[0]) - 1));
+    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) -
+      Pos('.', lst[1]));
   end;
 
   Result := lst;
 end;
 
-function EchoError(const Fmt: String; const Args: array of const): String;
+function EchoError(const Fmt: string; const Args: array of const): string;
 begin
-  Result := '<div class="warning">'+Format( Fmt, Args)+'</div>';
+  Result := '<div class="warning">' + Format(Fmt, Args) + '</div>';
 end;
 
 
@@ -190,13 +204,25 @@ begin
   Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
 end;
 
+function SafeText(const SourceString: string): string;
+const
+  NotAllowed: array[1..24] of string =
+    (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
+    '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`'
+    );
+var
+  s: string;
+begin
+  s := ReplaceAll( SourceString, NotAllowed, '-');
+  Result := s;
+end;
 
-function ReplaceAll(const Subject: String; const OldPatterns,
-  NewPatterns: array of String; IgnoreCase: Boolean): String;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
-  NewPattern: String;
-  I: Integer;
+  NewPattern: string;
+  I: integer;
 begin
   ReplaceFlags := [rfReplaceAll];
   if IgnoreCase then
@@ -212,11 +238,11 @@ begin
   end;
 end;
 
-function ReplaceAll(const Subject: String; const OldPatterns: array of String;
-  NewPatterns: String; IgnoreCase: Boolean): String;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
-  I: Integer;
+  I: integer;
 begin
   ReplaceFlags := [rfReplaceAll];
   if IgnoreCase then
@@ -235,101 +261,219 @@ end;
 
 procedure Die(const Message: TStringList);
 begin
-  Die( '<pre>'+Message.Text+'</pre>');
+  Die('<pre>' + Message.Text + '</pre>');
 end;
 
 procedure Die(const Message: string);
 begin
   //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
   //raise EFPWebError.Create(Message);
-  Application.Response.Contents.Add( Message);
+  Application.Response.Contents.Add(Message);
   Application.Response.SendContent;
   Application.Terminate;
 end;
 
-procedure DumpJSON(J: TJSonData; DOEOLN: Boolean);
-var
-  I : Integer;
+function AppendPathDelim(const Path: string): string;
 begin
-  // JSONType property determines kind of value.
-  Case J.jsontype of
-    jtNull   : echo('Null');
-    jtBoolean : If J.AsBoolean then
-                  echo('True')
-                else
-                  echo('False');
-    jtNumber : {JSONNumber has extra NumberType property
-                which determines kind of value (int/float).}
-               Case TJSONNumber(J).NumberType of
-                 ntInteger : echo(J.AsInteger);
-                 ntFloat   : echo(J.AsFloat); //Write(J.AsFloat:10:2);
-               end;
-    jtString : echo('"'+J.AsString+'"');
-    jtArray  : begin
-               echo('[ ');
-               For I:=0 to J.Count-1 do
-                 begin
-                 DumpJSON(J.Items[I],False);
-                 If I<J.Count-1 then
-                   echo(', ');
-                 end;
-               echo(' ]');
-               end;
-    jtObject : begin
-               echo('{ ');
-               For I:=0 to J.Count-1 do
-                 begin
-                 echo('"'+TJSONObject(J).Names[i]+'" : '#13#10);
-                 DumpJSON(J.Items[I],False);
-                 If I<J.Count-1 then
-                   echo(',')
-                 end;
-               echo('}');
-               end;
-   end;
-   If DOEOLN then
-     echo(#13#10);
+  if (Path <> '') and not (Path[length(Path)] in AllowDirectorySeparators) then
+    Result := Path + PathDelim
+  else
+    Result := Path;
 end;
 
-function StringReplaceExt(const S : string; OldPattern, NewPattern:  array of string; Flags: TReplaceFlags):string;
+function DirectoryIsWritable(const DirectoryName: string): boolean;
 var
- i : integer;
+  TempFilename: string;
+  s: string;
+  fHandle: THANDLE;
 begin
-   Assert(Length(OldPattern)=(Length(NewPattern)));
-   Result:=S;
-   for  i:= Low(OldPattern) to High(OldPattern) do
-    Result:=StringReplace(Result,OldPattern[i], NewPattern[i], Flags);
+  Result := False;
+  TempFilename := SysUtils.GetTempFilename(AppendPathDelim(DirectoryName), 'ztstperm');
+  fHandle := FileCreate(TempFilename);
+  if (THandle(fHandle) <> feInvalidHandle) then
+  begin
+    s := 'WriteTest';
+    if FileWrite(fHandle, S[1], Length(S)) > 0 then
+      Result := True;
+    FileClose(fHandle);
+    DeleteFile(TempFilename);
+  end;
+end;
+
+procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
+var
+  I: integer;
+begin
+  // JSONType property determines kind of value.
+  case J.jsontype of
+    jtNull: echo('Null');
+    jtBoolean: if J.AsBoolean then
+        echo('True')
+      else
+        echo('False');
+    jtNumber: {JSONNumber has extra NumberType property
+                which determines kind of value (int/float).}
+      case TJSONNumber(J).NumberType of
+        ntInteger: echo(J.AsInteger);
+        ntFloat: echo(J.AsFloat); //Write(J.AsFloat:10:2);
+      end;
+    jtString: echo('"' + J.AsString + '"');
+    jtArray:
+    begin
+      echo('[ ');
+      for I := 0 to J.Count - 1 do
+      begin
+        DumpJSON(J.Items[I], False);
+        if I < J.Count - 1 then
+          echo(', ');
+      end;
+      echo(' ]');
+    end;
+    jtObject:
+    begin
+      echo('{ ');
+      for I := 0 to J.Count - 1 do
+      begin
+        echo('"' + TJSONObject(J).Names[i] + '" : '#13#10);
+        DumpJSON(J.Items[I], False);
+        if I < J.Count - 1 then
+          echo(',');
+      end;
+      echo('}');
+    end;
+  end;
+  if DOEOLN then
+    echo(#13#10);
+end;
+
+function HexToInt(HexStr: string): int64;
+var
+  RetVar: int64;
+  i: byte;
+begin
+  HexStr := UpperCase(HexStr);
+  if HexStr[length(HexStr)] = 'H' then
+    Delete(HexStr, length(HexStr), 1);
+  RetVar := 0;
+
+  for i := 1 to length(HexStr) do
+  begin
+    RetVar := RetVar shl 4;
+    if HexStr[i] in ['0'..'9'] then
+      RetVar := RetVar + (byte(HexStr[i]) - 48)
+    else
+    if HexStr[i] in ['A'..'F'] then
+      RetVar := RetVar + (byte(HexStr[i]) - 55)
+    else
+    begin
+      Retvar := 0;
+      break;
+    end;
+  end;
+
+  Result := RetVar;
+end;
+
+function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string;
+  Flags: TReplaceFlags): string;
+var
+  i: integer;
+begin
+  Assert(Length(OldPattern) = (Length(NewPattern)));
+  Result := S;
+  for  i := Low(OldPattern) to High(OldPattern) do
+    Result := StringReplace(Result, OldPattern[i], NewPattern[i], Flags);
 end;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 begin
-  Result:=StringReplaceExt(unescaped_string,
-    ['\', #39, #34, #0, #10, #13, #26], ['\\','\'#39,'\'#34,'\0','\n','\r','\Z'] ,
-    [rfReplaceAll]
-  );
+  Result := StringReplaceExt(unescaped_string, ['\', #39, #34, #0, #10, #13, #26],
+    ['\\', '\'#39, '\'#34, '\0', '\n', '\r', '\Z'], [rfReplaceAll]);
 end;
 
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 var
-  i : integer;
-  lst : TStringList;
+  i: integer;
+  lst: TStringList;
 begin
   lst := TStringList.Create;
-  for i:=0 to unescaped_strings.Count-1 do
+  for i := 0 to unescaped_strings.Count - 1 do
   begin
-    lst.Add( mysql_real_escape_string(unescaped_strings[i]));
+    lst.Add(mysql_real_escape_string(unescaped_strings[i]));
   end;
   Result := lst.Text;
   FreeAndNil(lst);
 end;
 
+function UrlEncode(const DecodedStr: string; Pluses: boolean): string;
+var
+  I: integer;
+begin
+  Result := '';
+  if Length(DecodedStr) > 0 then
+    for I := 1 to Length(DecodedStr) do
+    begin
+      if not (DecodedStr[I] in ['0'..'9', 'a'..'z', 'A'..'Z', ' ']) then
+        Result := Result + '%' + IntToHex(Ord(DecodedStr[I]), 2)
+      else if not (DecodedStr[I] = ' ') then
+        Result := Result + DecodedStr[I]
+      else
+      begin
+        if not Pluses then
+          Result := Result + '%20'
+        else
+          Result := Result + '+';
+      end;
+    end;
+end;
+
+function UrlDecode(const EncodedStr: string): string;
+var
+  I: integer;
+begin
+  Result := '';
+  if Length(EncodedStr) > 0 then
+  begin
+    I := 1;
+    while I <= Length(EncodedStr) do
+    begin
+      if EncodedStr[I] = '%' then
+      begin
+        Result := Result + Chr(
+          HexToInt(EncodedStr[I + 1] + EncodedStr[I + 2]));
+        I := Succ(Succ(I));
+      end
+
+      else if EncodedStr[I] = '+' then
+        Result := Result + ' '
+      else
+        Result := Result + EncodedStr[I];
+
+      I := Succ(I);
+    end;
+  end;
+end;
+
+function ucwords(const str: string): string;
+var
+  i: integer;
+  s: string;
+begin
+  s := ' ' + lowerCase(str);
+  for i := 1 to Length(s) do
+  begin
+    if s[i] = ' ' then
+      s[i + 1] := upcase(s[i + 1]);
+  end;
+  Result := trim(s);
+end;
+
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
   Config := TJSONConfig.Create(nil);
-  Config.Filename:= 'config/config.json';
+  Config.Filename := 'config/config.json';
 
 finalization
-  FreeAndNil( Config);
+  FreeAndNil(Config);
 
 end.
-

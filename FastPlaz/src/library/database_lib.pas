@@ -55,11 +55,14 @@ type
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
 
+    function ParamByName(Const AParamName : String) : TParam;
+
     function All:boolean;
     function GetAll:boolean;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
+    function Find( const KeyIndex:String):boolean;
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
@@ -111,7 +114,7 @@ begin
         if RedirecURL = '' then
           Die( E.Message)
         else
-          _Redirect( RedirecURL);
+          Redirect( RedirecURL);
       end;
     end;
   end;
@@ -132,7 +135,7 @@ begin
       if RedirecURL = '' then
         Die( E.Message)
       else
-        _Redirect( RedirecURL);
+        Redirect( RedirecURL);
     end;
   end;
 end;
@@ -335,6 +338,8 @@ begin
     end;
   end else
     FTableName:= DefaultTableName;
+  FTableName:= AppData.tablePrefix+FTableName;
+
   FJoinList := TStringList.Create;
   {$ifdef zeos}
   zeos unsupported
@@ -357,6 +362,11 @@ begin
   if Assigned( FGenFields) then FreeAndNil( FGenFields);
   if Assigned( FGenValues) then FreeAndNil( FGenValues);
   FreeAndNil( Data);
+end;
+
+function TSimpleModel.ParamByName(const AParamName: String): TParam;
+begin
+  Result := Data.ParamByName( AParamName);
 end;
 
 function TSimpleModel.All: boolean;
@@ -385,6 +395,18 @@ begin
     Die( 'primayKey not defined');
   end;
   s := primaryKey + '=' + i2s( KeyIndex);
+  result := Find( [s], '');
+end;
+
+function TSimpleModel.Find(const KeyIndex: String): boolean;
+var
+  s : string;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+  s := primaryKey + '=''' + KeyIndex + '''';
   result := Find( [s], '');
 end;
 

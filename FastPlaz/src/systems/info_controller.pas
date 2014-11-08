@@ -12,7 +12,7 @@ type
   { TInfoModule }
 
   TInfoModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
   public
@@ -24,7 +24,19 @@ implementation
 
 uses theme_controller, common;
 
-procedure TInfoModule.DataModuleRequest(Sender: TObject; ARequest: TRequest;
+constructor TInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
+begin
+  inherited CreateNew(AOwner, CreateMode);
+  CreateSession := True;
+  OnRequest := @RequestHandler;
+end;
+
+destructor TInfoModule.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TInfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 var
   lst: TStringList;
@@ -36,18 +48,6 @@ begin
 
   Response.Content := ThemeUtil.Render();
   Handled := True;
-end;
-
-constructor TInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
-begin
-  inherited CreateNew(AOwner, CreateMode);
-  CreateSession := True;
-  OnRequest := @DataModuleRequest;
-end;
-
-destructor TInfoModule.Destroy;
-begin
-  inherited Destroy;
 end;
 
 initialization

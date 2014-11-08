@@ -134,7 +134,7 @@ begin
 end;
 
 initialization
-  AddRoute('about', TAboutModule, false);
+  Route.Add('about', TAboutModule, ALL, false);
 
 end.
 
