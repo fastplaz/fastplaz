@@ -119,7 +119,7 @@ begin
   bCreateProject := True;
   LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'src/main.pas', '',
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   bCreateProject := False;
   Result := mrOk;

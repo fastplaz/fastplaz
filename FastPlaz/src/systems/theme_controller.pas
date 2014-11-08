@@ -868,7 +868,7 @@ begin
   if not DirectoryExists('themes') then
   begin
     //Result := Result + Format( __(__Err_App_Init), [Application.EnvironmentVariable['REQUEST_URI']+'/initialize/']);
-    Result := Result + Format( __(__Err_App_Init), [BaseURL+'/initialize/']);
+    Result := Result + Format( __(__Err_App_Init), [FastPlasAppandler.URI+'/initialize/']);
     Exit;
   end;
 

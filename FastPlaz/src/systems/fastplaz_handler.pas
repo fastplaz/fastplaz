@@ -602,7 +602,7 @@ end;
 
 function TFastPlasAppandler.GetURI: string;
 begin
-  Result := ThemeUtil.BaseURL + Application.Request.PathInfo;
+  Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
 end;
 
 function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
