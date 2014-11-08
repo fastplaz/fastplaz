@@ -58,13 +58,14 @@ var
 
 begin
   // fcl-web only: use direct call to ThemeUtil.TagController
-  ThemeUtil.TagController( Sender,TagString, TagParams, ReplaceText);
+  ThemeUtil.TagController(Sender, TagString, TagParams, ReplaceText);
 
   tags := ExplodeTags(TagString);
   case tags[0] of
-    '$maincontent': begin
+    '$maincontent':
+    begin
       ContributorInfo := TStringList.Create;
-      a('<h1>About <a href="'+_APP_URL+'">' + _APP + '</a></h1>');
+      a('<h1>About <a href="' + _APP_URL + '">' + _APP + '</a></h1>');
       a('<p>vesion: {$version}</p>');
       a('<p>');
       a('<a href="http://www.fastplaz.com">Fastplaz</a> adalah satu satu web framework dengan menggunakan bahasa <a href="http://www.freepascal.org/" target="_blank">free pascal</a>.');
@@ -117,7 +118,8 @@ begin
       a('<li><a href="http://www.facebook.com/groups/35688476100/">PHP Indonesia</a></li>');
       a('</ul>');
       a('<div class="bs-callout bs-callout-warning">');
-      a('Halaman ini adalah contoh sederhana pemanggilan module "<a href="'+_APP_URL+'/about/'+'">about</a>"');
+      a('Halaman ini adalah contoh sederhana pemanggilan module "<a href="' +
+        _APP_URL + '/about/' + '">about</a>"');
       a('<br>Lihat file "controller file: src/app/about/about_controller.pas"');
       a('</div>');
 
@@ -127,14 +129,13 @@ begin
       a('layout theme   : themes/{$theme}/templates/master.html');
       a('</code></pre></div>');
 
-      ReplaceText:= ThemeUtil.RenderFromContent( @TagController, ContributorInfo.Text);
+      ReplaceText := ThemeUtil.RenderFromContent(@TagController, ContributorInfo.Text);
       FreeAndNil(ContributorInfo);
     end; //-- $maincontent - end
   end;
 end;
 
 initialization
-  Route.Add('about', TAboutModule, ALL, false);
+  Route.Add('about', TAboutModule, ALL, False);
 
 end.
-

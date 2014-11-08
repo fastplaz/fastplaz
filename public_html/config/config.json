@@ -18,9 +18,9 @@
       "hostname" : "localhost",
       "driver" : "MySQL 5.0",
       "tabletype" : "myisam",
-      "username" : "your_username",
-      "password" : "your_password",
-      "database_name" : "your_database",
+      "username" : "root",
+      "password" : "root",
+      "database_name" : "mysql",
       "prefix" : "",
       "library" : "..\/libs\/win\/libmysql.dll"
     }

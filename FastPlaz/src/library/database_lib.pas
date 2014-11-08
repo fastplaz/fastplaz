@@ -35,6 +35,7 @@ type
     primaryKeyValue : string;
     FGenFields : TStringList;
     FGenValues : TStringList;
+    function GetEOF: boolean;
     function GetRecordCount: Longint;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
@@ -54,6 +55,7 @@ type
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
+    property EOF: boolean read GetEOF;
 
     function ParamByName(Const AParamName : String) : TParam;
 
@@ -78,6 +80,7 @@ type
     function  Save( Where:string=''):boolean;
     function  Delete( Where:string=''):boolean;
 
+    procedure Next;
     procedure StartTransaction;
     procedure ReStartTransaction;
     procedure Commit;
@@ -238,6 +241,11 @@ begin
   Result := 0;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
+end;
+
+function TSimpleModel.GetEOF: boolean;
+begin
+  Result := Data.EOF;
 end;
 
 function TSimpleModel._queryOpen: boolean;
@@ -635,6 +643,11 @@ begin
     end;
   end;
   FreeAndNil(sSQL);
+end;
+
+procedure TSimpleModel.Next;
+begin
+  Data.Next;
 end;
 
 procedure TSimpleModel.StartTransaction;
