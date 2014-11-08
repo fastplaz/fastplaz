@@ -18,11 +18,12 @@ type
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
   public
-    dir, filename, fullname: string;
+    Dir, FileName, FullName: string;
     constructor Create;
     destructor Destroy; override;
-    procedure registerError(psMessage: string; psHttpCode: integer = 0; psURL: string = '');
-    procedure add(const message: string);
+    procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
+      URL: string = '');
+    procedure Add(const message: string);
   end;
 
 var
@@ -54,14 +55,14 @@ end;
 
 constructor TLogUtil.Create;
 begin
-  dir := Config.GetValue('log/dir', 'ztemp/error_log');
+  Dir := Config.GetValue('log/dir', 'ztemp/error_log');
   try
-    if not DirectoryExists(dir) then
-      ForceDirectories(dir);
+    if not DirectoryExists(Dir) then
+      ForceDirectories(Dir);
   except
   end;
-  filename := 'app.log';
-  fullname := dir + '/' + filename;
+  FileName := 'app.log';
+  FullName := dir + '/' + FileName;
 end;
 
 destructor TLogUtil.Destroy;
@@ -69,8 +70,7 @@ begin
 
 end;
 
-procedure TLogUtil.registerError(psMessage: string; psHttpCode: integer;
-  psURL: string);
+procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer; URL: string);
 begin
   AssignFile(log_file, fullname);
   { $I+}
@@ -78,14 +78,14 @@ begin
     //Rewrite(log_file);
     Append(log_file);
     WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) +
-      ' | ' + psMessage + ' | ' + i2s(psHttpCode) + ' | ' + psURL
+      ' | ' + MessageString + ' | ' + i2s(psHttpCode) + ' | ' + URL
       );
     CloseFile(log_file);
   except
   end;
 end;
 
-procedure TLogUtil.add(const message: string);
+procedure TLogUtil.Add(const message: string);
 begin
   AssignFile(log_file, fullname);
   { $I+}

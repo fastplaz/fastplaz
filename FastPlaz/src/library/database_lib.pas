@@ -35,6 +35,7 @@ type
     primaryKeyValue : string;
     FGenFields : TStringList;
     FGenValues : TStringList;
+    function GetEOF: boolean;
     function GetRecordCount: Longint;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
@@ -54,12 +55,16 @@ type
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
+    property EOF: boolean read GetEOF;
+
+    function ParamByName(Const AParamName : String) : TParam;
 
     function All:boolean;
     function GetAll:boolean;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
+    function Find( const KeyIndex:String):boolean;
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
@@ -75,6 +80,7 @@ type
     function  Save( Where:string=''):boolean;
     function  Delete( Where:string=''):boolean;
 
+    procedure Next;
     procedure StartTransaction;
     procedure ReStartTransaction;
     procedure Commit;
@@ -111,7 +117,7 @@ begin
         if RedirecURL = '' then
           Die( E.Message)
         else
-          _Redirect( RedirecURL);
+          Redirect( RedirecURL);
       end;
     end;
   end;
@@ -132,7 +138,7 @@ begin
       if RedirecURL = '' then
         Die( E.Message)
       else
-        _Redirect( RedirecURL);
+        Redirect( RedirecURL);
     end;
   end;
 end;
@@ -237,6 +243,11 @@ begin
   Result := Data.RecordCount;
 end;
 
+function TSimpleModel.GetEOF: boolean;
+begin
+  Result := Data.EOF;
+end;
+
 function TSimpleModel._queryOpen: boolean;
 begin
   Result := False;
@@ -335,6 +346,8 @@ begin
     end;
   end else
     FTableName:= DefaultTableName;
+  FTableName:= AppData.tablePrefix+FTableName;
+
   FJoinList := TStringList.Create;
   {$ifdef zeos}
   zeos unsupported
@@ -357,6 +370,11 @@ begin
   if Assigned( FGenFields) then FreeAndNil( FGenFields);
   if Assigned( FGenValues) then FreeAndNil( FGenValues);
   FreeAndNil( Data);
+end;
+
+function TSimpleModel.ParamByName(const AParamName: String): TParam;
+begin
+  Result := Data.ParamByName( AParamName);
 end;
 
 function TSimpleModel.All: boolean;
@@ -385,6 +403,18 @@ begin
     Die( 'primayKey not defined');
   end;
   s := primaryKey + '=' + i2s( KeyIndex);
+  result := Find( [s], '');
+end;
+
+function TSimpleModel.Find(const KeyIndex: String): boolean;
+var
+  s : string;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+  s := primaryKey + '=''' + KeyIndex + '''';
   result := Find( [s], '');
 end;
 
@@ -613,6 +643,11 @@ begin
     end;
   end;
   FreeAndNil(sSQL);
+end;
+
+procedure TSimpleModel.Next;
+begin
+  Data.Next;
 end;
 
 procedure TSimpleModel.StartTransaction;

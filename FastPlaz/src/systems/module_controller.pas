@@ -12,7 +12,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  __err_module_call_failed = 'Failed module call "%s": %s';
+  __err_module_call_failed = 'Failed call module "%s": %s';
 
 type
 
@@ -86,7 +86,7 @@ begin
 end;
 
 // example
-//   PluginCall( 'modulename', 'about');
+//   Call( 'modulename', 'about', ['a=b','c=d']);
 function TModUtil.Call(const ModuleName, FunctionName: string;
   Parameter: array of string): TModuleCallResult;
 var

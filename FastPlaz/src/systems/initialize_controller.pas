@@ -26,14 +26,14 @@ type
   { TInitializeModule }
 
   TInitializeModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
     htaccess, ContentFile: TStringList;
     function InitializeApp: boolean;
     function CreateDirCustom(const NewDir: string;
       CreateHtaccess: boolean = False): boolean;
-    function TagMainContentHandler(const TagName: string; Params: TStringList): string;
+    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
@@ -63,15 +63,27 @@ begin
   FreeAndNil(VJSONParser);
 end;
 
-procedure TInitializeModule.DataModuleRequest(Sender: TObject;
+constructor TInitializeModule.CreateNew(AOwner: TComponent; CreateMode: integer);
+begin
+  inherited CreateNew(AOwner, CreateMode);
+  CreateSession := True;
+  OnRequest := @RequestHandler;
+end;
+
+destructor TInitializeModule.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TInitializeModule.RequestHandler(Sender: TObject;
   ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
 begin
   if FileExists('config/config.json') then
-    _Redirect(BaseURL);
+    Redirect(BaseURL);
 
   InitializeApp;
 
-  Tags['$maincontent'] := @TagMainContentHandler;
+  Tags['$maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
@@ -170,25 +182,14 @@ begin
   end;
 end;
 
-function TInitializeModule.TagMainContentHandler(const TagName: string;
+function TInitializeModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
   Result := '<h1>FastPlaz</h1>App structures have been successfully generated !!!';
 end;
 
-constructor TInitializeModule.CreateNew(AOwner: TComponent; CreateMode: integer);
-begin
-  inherited CreateNew(AOwner, CreateMode);
-  CreateSession := True;
-  OnRequest := @DataModuleRequest;
-end;
-
-destructor TInitializeModule.Destroy;
-begin
-  inherited Destroy;
-end;
 
 initialization
-  Route.Add( 'initialize', TInitializeModule);
+  Route.Add('initialize', TInitializeModule);
 
 end.

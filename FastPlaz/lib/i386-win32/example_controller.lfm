@@ -1,0 +1,29 @@
+object ExampleWebModule: TExampleWebModule
+  OldCreateOrder = False
+  Actions = <  
+    item
+      Name = 'one'
+      Default = False
+      OnRequest = oneRequest
+      Template.AllowTagParams = False
+    end  
+    item
+      Name = 'two'
+      Default = False
+      OnRequest = twoRequest
+      Template.AllowTagParams = False
+    end  
+    item
+      Name = 'db'
+      Default = False
+      OnRequest = dbRequest
+      Template.AllowTagParams = False
+    end>
+  ActionVar = 'act'
+  OnRequest = DataModuleRequest
+  CreateSession = False
+  Height = 150
+  HorizontalOffset = 1164
+  VerticalOffset = 295
+  Width = 150
+end

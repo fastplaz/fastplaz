@@ -24,16 +24,17 @@ resourcestring
   __Err_Theme_Not_Exists = 'file ''%s'' does not exist in theme ''%s''';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
+  __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
 
   __Content_Not_Found = 'Nothing Found';
   __Tag_Content_Not_Found = 'Tags Content "%s" Not Found';
 
   // methode
-  ALL     = '';
-  GET     = 'GET';
-  POST    = 'POST';
-  PUT     = 'PUT';
-  HEAD    = 'HEAD';
+  ALL = '';
+  GET = 'GET';
+  POST = 'POST';
+  PUT = 'PUT';
+  HEAD = 'HEAD';
   OPTIONS = 'OPTIONS';
 
 
@@ -46,13 +47,14 @@ type
     sitename,
     language,
     theme,
-    temp_dir: string;
-    cache_type: string;
-    cache_time: integer;
-    table_prefix: string;
+    tempDir: string;
+    cacheType: string;
+    cacheWrite: boolean;
+    cacheTime: integer;
+    tablePrefix: string;
     SessionID: string;
     SessionDir: string;
-    hit_storage: string;
+    hitStorage: string;
     initialized,
     debug: boolean;
   end;
@@ -67,7 +69,6 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
-    FMethodDefault : string;
     FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
@@ -77,21 +78,20 @@ type
     function GetIsGet: boolean;
     function GetIsPost: boolean;
     function GetIsPut: boolean;
-    function GetMethodDefault: string;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTag(const TagName: string): TTagCallback;
-    procedure SetMethodDefault(AValue: string);
+    function GetURI: string;
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
-    ssss : string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
-    Procedure HandleRequest(ARequest : TRequest; AResponse : TResponse); override;
+    procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
 
     procedure LanguageInit;
 
+    property URI:string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
 
     property Tags[const TagName: string]: TTagCallback read GetTag write SetTag;
@@ -106,19 +106,20 @@ type
     property isGet: boolean read GetIsGet;
     property isPut: boolean read GetIsPut;
     property isDelete: boolean read GetIsDelete;
-    property MethodDefault: string read GetMethodDefault write SetMethodDefault;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
     property SessionID: string read GetSessionID;
   end;
 
-  { TLazCMSAppandler }
+  { TFastPlasAppandler }
 
   TFastPlasAppandler = class(TComponent)
   private
+    function GetURI: string;
   public
-    function _GetModuleName(Arequest: TRequest): string;
+    property URI:string read GetURI;
+    function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
   end;
@@ -135,8 +136,8 @@ type
 
   TPOST = class
   private
-    function GetValue(const variable: string): string;
-    procedure SetValue(const variable: string; AValue: string);
+    function GetValue(const Variable: string): string;
+    procedure SetValue(const Variable: string; AValue: string);
   public
     property Values[variable: string]: string read GetValue write SetValue; default;
   end;
@@ -170,18 +171,17 @@ type
       Method: string = ''; SkipStreaming: boolean = True);
   end;
 
-function _CleanVar(const variable: string): string;
-procedure echo(const Message: string);
-procedure echo(const Number: integer);
-procedure echo(const Number: double);
-procedure _Initialize(Sender: TObject = nil);
-procedure _Redirect(const URL: string);
+procedure InitializeFastPlaz(Sender: TObject = nil);
+procedure Redirect(const URL: string);
+
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
-procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  SkipStreaming: boolean = True; Method: string = '');
 
+// php like function
+procedure echo(const Message: string);
+procedure echo(const Number: integer);
+procedure echo(const Number: double);
 
 var
   AppData: TMainData;
@@ -194,7 +194,7 @@ var
   _SESSION: TSESSION;
   _REQUEST: TREQUESTVAR;
   _DebugInfo: TStringList;
-  _StartTime, _StopTime, _ElapsedTime: cardinal;
+  StartTime, StopTime, ElapsedTime: cardinal;
 
 implementation
 
@@ -202,17 +202,17 @@ uses common, language_lib, database_lib, logutil_lib, theme_controller,
   about_controller;
 
 var
-  MethodMap : TStringList;
+  MethodMap: TStringList;
 
-function _CleanVar(const variable: string): string;
+function _CleanVar(const Value: string): string;
 begin
-  // code for secure variable
-  Result := variable;
+  Result := mysql_real_escape_string(Value);
 end;
 
 procedure echo(const Message: string);
 begin
-  Application.Response.Contents.Text := trim(Application.Response.Contents.Text) + Message;
+  Application.Response.Contents.Text :=
+    trim(Application.Response.Contents.Text) + Message;
 end;
 
 procedure echo(const Number: integer);
@@ -225,7 +225,7 @@ begin
   echo(FloatToStr(Number));
 end;
 
-procedure _Initialize(Sender: TObject);
+procedure InitializeFastPlaz(Sender: TObject);
 begin
   if AppData.initialized then
     Exit;
@@ -246,18 +246,20 @@ begin
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
-  AppData.table_prefix := Config.GetValue(_DATABASE_TABLE_PREFIX, '');
-  AppData.cache_type := Config.GetValue(_SYSTEM_CACHE_TYPE, 'file');
-  AppData.cache_time := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
-  AppData.temp_dir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
-  AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
-  AppData.hit_storage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+  AppData.tablePrefix := Config.GetValue(_DATABASE_TABLE_PREFIX, '');
+  AppData.cacheType := Config.GetValue(_SYSTEM_CACHE_TYPE, 'file');
+  AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
-  if AppData.hit_storage = 'file' then
+  AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
+  AppData.tempDir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
+  AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
+  AppData.hitStorage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+
+  if AppData.hitStorage = 'file' then
     ThemeUtil.HitType := htFile;
-  if AppData.hit_storage = 'database' then
+  if AppData.hitStorage = 'database' then
     ThemeUtil.HitType := htDatabase;
-  if AppData.hit_storage = 'sqlite' then
+  if AppData.hitStorage = 'sqlite' then
     ThemeUtil.HitType := htSQLite;
 
   //LogUtil.registerError('auw');
@@ -278,7 +280,7 @@ begin
 
 end;
 
-procedure _Redirect(const URL: string);
+procedure Redirect(const URL: string);
 begin
   Application.Response.SendRedirect(URL);
   Application.Response.SendResponse;
@@ -332,40 +334,34 @@ begin
   echo(prefix + html + suffic);
 end;
 
-procedure AddRoute(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  SkipStreaming: boolean; Method: string);
-begin
-  RegisterHTTPModule(ModuleName, ModuleClass, SkipStreaming);
-end;
-
 { TRoute }
 
-procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
-  SkipStreaming: boolean);
+procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+  Method: string; SkipStreaming: boolean);
 var
-  module_name,
-  s : string;
-  pattern_url : TStrings;
-  i : integer;
-  MI : TModuleItem;
+  moduleName, s: string;
+  pattern_url: TStrings;
+  i: integer;
+  MI: TModuleItem;
 begin
 
   // prepare pattern-url for next version
-  pattern_url := Explode( PatternURL, '/');
-  module_name := pattern_url[0];
+  pattern_url := Explode(PatternURL, '/');
+  moduleName := pattern_url[0];
 
   if not Assigned(MethodMap) then
     MethodMap := TStringList.Create;
-  MethodMap.Values[module_name] := Method;
+  MethodMap.Values[moduleName] := Method;
 
-  RegisterHTTPModule(module_name, ModuleClass, SkipStreaming);
-  i:=ModuleFactory.IndexOfModule(module_name);
+  RegisterHTTPModule(moduleName, ModuleClass, SkipStreaming);
+
+  i := ModuleFactory.IndexOfModule(moduleName);
   if i <> -1 then
   begin
     //MI:=ModuleFactory[I];
   end;
 
-  if ModuleFactory.FindModule( module_name) <> nil then
+  if ModuleFactory.FindModule(moduleName) <> nil then
   begin
     //s := ((ModuleFactory.FindModule( ModuleName)) as TMyCustomWebModule).BaseURL;
     //TMyCustomWebModule(ModuleFactory.FindModule( ModuleName)).MethodDefault:=Method;
@@ -443,13 +439,6 @@ begin
     Result := True;
 end;
 
-function TMyCustomWebModule.GetMethodDefault: string;
-begin
-  Result := FMethodDefault;
-  Result := 'abcdef';
-end;
-
-
 function TMyCustomWebModule.GetSession: TSessionController;
 begin
   Result := SessionController;
@@ -465,9 +454,9 @@ begin
   Result := ___TagCallbackMap[TagName];
 end;
 
-procedure TMyCustomWebModule.SetMethodDefault(AValue: string);
+function TMyCustomWebModule.GetURI: string;
 begin
-  FMethodDefault := AValue;
+  Result := FastPlasAppandler.URI;
 end;
 
 procedure TMyCustomWebModule.SetTag(const TagName: string; AValue: TTagCallback);
@@ -478,7 +467,6 @@ end;
 constructor TMyCustomWebModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
-  FMethodDefault := '';
   FCreateSession := False;
   //_Initialize( self);
 end;
@@ -490,21 +478,21 @@ end;
 
 procedure TMyCustomWebModule.HandleRequest(ARequest: TRequest; AResponse: TResponse);
 var
-  _moduleName, _methodDefault : string;
+  moduleName, methodDefault: string;
 begin
-  _moduleName := FastPlasAppandler._GetModuleName(ARequest);
-  _methodDefault := MethodMap.Values[_moduleName];
-  if _methodDefault = '' then
+  moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
+  methodDefault := MethodMap.Values[moduleName];
+  if methodDefault = '' then
   begin
     inherited HandleRequest(ARequest, AResponse);
   end
   else
   begin
-    if Application.Request.Method = _methodDefault then
+    if Application.Request.Method = methodDefault then
       inherited HandleRequest(ARequest, AResponse)
     else
     begin
-      die( __( __Err_Http_InvalidMethod));
+      die(__(__Err_Http_InvalidMethod));
     end;
   end;
 end;
@@ -552,47 +540,47 @@ end;
 
 { TPOST }
 
-function TPOST.GetValue(const variable: string): string;
+function TPOST.GetValue(const Variable: string): string;
 var
   _l: TStringList;
-  _s, _type: string;
+  s, postType: string;
 begin
+  Result := '';
   if Application.Request.Method <> 'POST' then
     Exit;
-  _s := '';
+  s := '';
   _l := TStringList.Create;
   _l.Delimiter := ';';
   _l.StrictDelimiter := True;
   _l.DelimitedText := Application.Request.ContentType;
-  ;
-  _type := _l[0];
+  postType := _l[0];
   FreeAndNil(_l);
-  if _type = 'text/plain' then
+  if postType = 'text/plain' then
   begin
     Result := Application.Request.Content;
     Exit;
   end;
-  if Application.Request.ContentFields.IndexOfName(variable) = -1 then
+  if Application.Request.ContentFields.IndexOfName(Variable) = -1 then
   begin
     Result := '';
     Exit;
   end;
-  case _type of
+  case postType of
     'multipart/form-data':
     begin
-      _s := Application.Request.ContentFields.Values[variable];
+      s := Application.Request.ContentFields.Values[Variable];
     end;
     'application/x-www-form-urlencoded':
     begin
-      _s := Application.Request.ContentFields.Values[variable];
+      s := Application.Request.ContentFields.Values[Variable];
     end;
   end;
-  Result := _CleanVar(_s);
+  Result := _CleanVar(s);
 end;
 
-procedure TPOST.SetValue(const variable: string; AValue: string);
+procedure TPOST.SetValue(const Variable: string; AValue: string);
 begin
-  Application.Request.ContentFields.Values[variable] := AValue;
+  Application.Request.ContentFields.Values[Variable] := AValue;
 end;
 
 { TGET }
@@ -612,7 +600,12 @@ end;
 
 { TLazCMSAppandler }
 
-function TFastPlasAppandler._GetModuleName(Arequest: TRequest): string;
+function TFastPlasAppandler.GetURI: string;
+begin
+  Result := ThemeUtil.BaseURL + Application.Request.PathInfo;
+end;
+
+function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
 
   function GetDefaultModuleName: string;
   begin
@@ -661,8 +654,8 @@ var
   //  mi : TModuleItem;
   //  mc : TCustomHTTPModuleClass;
 begin
-  _Initialize(Sender);
-  s := _GetModuleName(ARequest);
+  InitializeFastPlaz(Sender);
+  s := GetActiveModuleName(ARequest);
   if ModuleFactory.FindModule(S) = nil then
   begin
     //_Redirect( '/?url='+ copy( ARequest.PathInfo, 2, Length(ARequest.PathInfo)-1) + '&' + ARequest.QueryString );
@@ -693,10 +686,10 @@ begin
 end;
 
 initialization
-  _StartTime := _GetTickCount;
+  StartTime := _GetTickCount;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
-  Route:= TRoute.Create;
+  Route := TRoute.Create;
   ModUtil := TModUtil.Create;
   _DebugInfo := TStringList.Create;
   _REQUEST := TREQUESTVAR.Create;

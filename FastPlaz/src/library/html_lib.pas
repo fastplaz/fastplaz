@@ -12,7 +12,7 @@ function H1(Content: string; StyleClass: string = ''): string;
 function H2(Content: string; StyleClass: string = ''): string;
 function H3(Content: string; StyleClass: string = ''): string;
 function Span(Content: string; StyleClass: string = ''): string;
-function Block(Content: string; StyleClass: string = ''): string;
+function Block(Content: string; StyleClass: string = ''; BlockID:string=''): string;
 
 function StripTags( const Content:string):string;
 function StripTagsCustom( const Content:string; const TagStart:string; const TagEnd:string):string;
@@ -52,12 +52,16 @@ begin
     Result := '<span class="' + StyleClass + '">' + Content + '</span>';
 end;
 
-function Block(Content: string; StyleClass: string): string;
+function Block(Content: string; StyleClass: string; BlockID: string): string;
+var
+  s : string;
 begin
+  if BlockID <> '' then
+    s := ' id="'+BlockID+'" ';
   if StyleClass = '' then
-    Result := '<div>' + Content + '</div>'
+    Result := '<div'+s+'>' + Content + '</div>'
   else
-    Result := '<div class="' + StyleClass + '">' + Content + '</div>';
+    Result := '<div '+s+' class="' + StyleClass + '">' + Content + '</div>';
 end;
 
 function StripTags(const Content: string): string;

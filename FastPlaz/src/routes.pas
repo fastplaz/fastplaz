@@ -13,9 +13,9 @@ implementation
 uses about_controller, example_controller, docs_controller, info_controller;
 
 initialization
-  AddRoute('example', TExampleWebModule, false);
-  AddRoute('docs', TDocsModule);
-  AddRoute('info', TInfoModule);
+  Route.Add('example', TExampleWebModule, '', False);
+  Route.Add('docs', TDocsModule);
+  Route.Add('info', TInfoModule);
 
 end.
 

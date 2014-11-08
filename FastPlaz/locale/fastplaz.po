@@ -36,6 +36,26 @@ msgctxt "custom_handler.__tag_content_not_found"
 msgid "Tags Content \"%s\" Not Found"
 msgstr ""
 
+#: fastplaz_handler.get
+msgid "GET"
+msgstr ""
+
+#: fastplaz_handler.head
+msgid "HEAD"
+msgstr ""
+
+#: fastplaz_handler.options
+msgid "OPTIONS"
+msgstr ""
+
+#: fastplaz_handler.post
+msgid "POST"
+msgstr ""
+
+#: fastplaz_handler.put
+msgid "PUT"
+msgstr ""
+
 #: fastplaz_handler.__content_not_found
 msgctxt "fastplaz_handler.__content_not_found"
 msgid "Nothing Found"
@@ -49,6 +69,14 @@ msgstr ""
 #: fastplaz_handler.__err_app_init
 msgctxt "fastplaz_handler.__err_app_init"
 msgid "<h3>This is the first time using fastplaz?</h3><a href=\"%s\">click here</a> if you need to initialize your webapp's structure.<br>Make sure target directory is writeable"
+msgstr ""
+
+#: fastplaz_handler.__err_http_invalidmethod
+msgid "Invalid method request"
+msgstr ""
+
+#: fastplaz_handler.__err_theme_foreachnotimplemented
+msgid "foreach array still not implemented"
 msgstr ""
 
 #: fastplaz_handler.__err_theme_modul_notfond
@@ -72,6 +100,6 @@ msgid "Tags Content \"%s\" Not Found"
 msgstr ""
 
 #: module_controller.__err_module_call_failed
-msgid "Failed module call \"%s\": %s"
+msgid "Failed call module \"%s\": %s"
 msgstr ""
 

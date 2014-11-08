@@ -106,8 +106,9 @@ begin
   AProject.AddPackageDependency('LCL');
 
   // compiler options
-  AProject.LazCompilerOptions.UnitOutputDirectory := 'lib\$(TargetCPU)-$(TargetOS)';
+  AProject.LazCompilerOptions.UnitOutputDirectory := 'lib'+DirectorySeparator+'$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
+  AProject.LazCompilerOptions.TargetFilename:='.'+DirectorySeparator;
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
   Result := mrOk;
 end;
@@ -118,7 +119,7 @@ begin
   bCreateProject := True;
   LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'src/main.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   bCreateProject := False;
   Result := mrOk;

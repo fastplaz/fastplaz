@@ -87,6 +87,6 @@ begin
 end;
 
 initialization
-  AddRoute('main', TMainWebModule);
+  Route.Add('main', TMainWebModule);
 
 end.
