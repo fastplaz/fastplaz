@@ -89,6 +89,8 @@ begin
 end;
 
 function TInitializeModule.InitializeApp: boolean;
+var
+  s : string;
 begin
   htaccess := TStringList.Create;
   with htaccess do
@@ -153,6 +155,7 @@ begin
   Config.SetValue(_DATABASE_PASSWORD, 'your_password');
   Config.SetValue(_DATABASE_DATABASENAME, 'your_database');
   Config.SetValue(_DATABASE_TABLE_PREFIX, '');
+  Config.SetValue(_DATABASE_LIBRARY, '../libs/win/libmysql.dll');
 
   // beautifier json
   FreeAndNil(Config);
@@ -162,6 +165,33 @@ begin
   Config := TJSONConfig.Create(nil);
   Config.Filename := 'config/config.json';
 
+  // root .htaccess
+  s := Application.EnvironmentVariable['SCRIPT_NAME'];
+  s := ExtractFileName(s);
+  with TStringList.Create do
+  begin
+    Add( 'RewriteEngine On');
+    Add( 'AddHandler cgi-script .cgi');
+    Add( 'AddHandler cgi-script .bin');
+    Add( 'AddHandler cgi-script .pas');
+    Add( 'AddHandler cgi-script .exe');
+    Add( 'Options +ExecCGI');
+    Add( '');
+    Add( 'DirectoryIndex '+s);
+    Add( '');
+    Add( 'RewriteCond %{REQUEST_FILENAME} -d [OR]');
+    Add( 'RewriteCond %{REQUEST_FILENAME} -f [OR]');
+    Add( 'RewriteCond %{REQUEST_FILENAME} -l');
+    Add( 'RewriteRule ^(.*)$ - [NC,L]');
+    Add( '#RewriteRule ^(.*)$ 404.php [QSA,L]');
+    Add( 'RewriteRule ^(.*)$ '+s+'/$1 [QSA,L]');
+    Add( '');
+    try
+      SaveToFile('.htaccess');
+    except
+    end;
+    Free;
+  end;
 
   FreeAndNil(ContentFile);
   FreeAndNil(htaccess);

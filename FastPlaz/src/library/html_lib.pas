@@ -11,6 +11,7 @@ uses
 function H1(Content: string; StyleClass: string = ''): string;
 function H2(Content: string; StyleClass: string = ''): string;
 function H3(Content: string; StyleClass: string = ''): string;
+function li(Content: string; StyleClass: string = ''): string;
 function Span(Content: string; StyleClass: string = ''): string;
 function Block(Content: string; StyleClass: string = ''; BlockID:string=''): string;
 
@@ -42,6 +43,14 @@ begin
     Result := '<H3>' + Content + '</H3>'
   else
     Result := '<H3 class="' + StyleClass + '">' + Content + '</H3>';
+end;
+
+function li(Content: string; StyleClass: string): string;
+begin
+  if StyleClass = '' then
+    Result := '<li>' + Content + '</li>'
+  else
+    Result := '<li class="' + StyleClass + '">' + Content + '</li>';
 end;
 
 function Span(Content: string; StyleClass: string): string;

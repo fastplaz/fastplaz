@@ -85,6 +85,7 @@ type
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
+    coba: string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -122,6 +123,8 @@ type
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
+    function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
+    procedure AddLog( Message:string);
   end;
 
   TGET = class
@@ -336,13 +339,16 @@ end;
 
 { TRoute }
 
+// SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
 procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
   Method: string; SkipStreaming: boolean);
 var
   moduleName, s: string;
   pattern_url: TStrings;
   i: integer;
-  MI: TModuleItem;
+  mi: TModuleItem;
+  mc : TCustomHTTPModuleClass;
+  m  : TCustomHTTPModule;
 begin
 
   // prepare pattern-url for next version
@@ -355,16 +361,17 @@ begin
 
   RegisterHTTPModule(moduleName, ModuleClass, SkipStreaming);
 
+  //mi := ModuleFactory.FindModule( moduleName);
   i := ModuleFactory.IndexOfModule(moduleName);
   if i <> -1 then
   begin
-    //MI:=ModuleFactory[I];
-  end;
-
-  if ModuleFactory.FindModule(moduleName) <> nil then
-  begin
-    //s := ((ModuleFactory.FindModule( ModuleName)) as TMyCustomWebModule).BaseURL;
-    //TMyCustomWebModule(ModuleFactory.FindModule( ModuleName)).MethodDefault:=Method;
+    mi:=ModuleFactory[I];
+    mc := mi.ModuleClass;
+    m:=FastPlasAppandler.FindModule(mc);
+    if m <> nil then
+    begin
+      //--
+    end;
   end;
 
 end;
@@ -492,7 +499,7 @@ begin
       inherited HandleRequest(ARequest, AResponse)
     else
     begin
-      die(__(__Err_Http_InvalidMethod));
+      die( __(__Err_Http_InvalidMethod));
     end;
   end;
 end;
@@ -602,7 +609,7 @@ end;
 
 function TFastPlasAppandler.GetURI: string;
 begin
-  Result := ThemeUtil.BaseURL + Application.Request.PathInfo;
+  Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
 end;
 
 function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
@@ -683,6 +690,26 @@ begin
   begin
   end;
 
+end;
+
+function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
+Var
+  i : Integer;
+begin
+  i:=Application.ComponentCount-1;
+  While (i>=0) and (Not ((Application.Components[i] is ModuleClass) and (TCustomHTTPModule(Application.Components[i]).Kind<>wkOneShot))) do
+    Dec(i);
+  if (i>=0) then
+    Result:=Application.Components[i] as TCustomHTTPModule
+  else
+    Result:=Nil;
+end;
+
+procedure TFastPlasAppandler.AddLog(Message: string);
+begin
+  if LogUtil = nil then
+    LogUtil := TLogUtil.Create;
+  LogUtil.Add( Message);
 end;
 
 initialization

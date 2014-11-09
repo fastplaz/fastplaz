@@ -192,7 +192,7 @@ begin
     Result := Result + LineEnding + 'initialization' + LineEnding +
       '  // -> http://yourdomainname/' + ResourceName + LineEnding +
       '  // The following line should be moved to a file "routes.pas"' +
-      LineEnding + '  Route.Add( ''' + Permalink + ''',' + ModulTypeName +
+      LineEnding + '  Route.Add(''' + Permalink + ''',' + ModulTypeName +
       ');' + LineEnding + LineEnding;
   end;
 end;
