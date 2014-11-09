@@ -14,10 +14,10 @@ type
   { TMainWebModule }
 
   TMainWebModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest;
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
-    function TagMainContentHandler(const TagName: string; Params: TStringList): string;
+    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
@@ -29,8 +29,6 @@ type
 
 var
   MainWebModule: TMainWebModule;
-  mc: TCustomHTTPModuleClass;
-
 
 implementation
 
@@ -39,23 +37,23 @@ uses
 
 { TMainWebModule }
 
-procedure TMainWebModule.DataModuleRequest(Sender: TObject; ARequest: TRequest;
+procedure TMainWebModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
-  //DataBaseInit;
+  //DataBaseInit;  //<<-- if you need database connection
   LanguageInit;
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - START ===
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - END ===
 
-  Tags['$maincontent'] := @TagMainContentHandler;
+  Tags['$maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render(nil, 'home'); // <<-- use home layout
   //Response.Content := ThemeUtil.Render(); <<-- use master layout
   Handled := True;
 end;
 
-function TMainWebModule.TagMainContentHandler(const TagName: string;
+function TMainWebModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
   Result := 'this is home page';
@@ -77,7 +75,7 @@ constructor TMainWebModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
   //CreateSession := True;
-  OnRequest := @DataModuleRequest;
+  OnRequest := @RequestHandler;
   OnBlockController := @DoBlockController;
 end;
 

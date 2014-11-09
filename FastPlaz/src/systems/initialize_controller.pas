@@ -155,6 +155,7 @@ begin
   Config.SetValue(_DATABASE_PASSWORD, 'your_password');
   Config.SetValue(_DATABASE_DATABASENAME, 'your_database');
   Config.SetValue(_DATABASE_TABLE_PREFIX, '');
+  Config.SetValue(_DATABASE_LIBRARY, '../libs/win/libmysql.dll');
 
   // beautifier json
   FreeAndNil(Config);

@@ -84,8 +84,7 @@ type
 
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
-    function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
-    function getDebugInfo( DebugType:string):string;
+    function GetDebugInfo( DebugType:string):string;
     function DoTrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
 
     //- cache
@@ -355,7 +354,7 @@ begin
   end;
   //i := ModuleFactory.IndexOfModule( ModuleName);
   mc := mi.ModuleClass;
-  m:=FindModule(mc);
+  m:=FastPlasAppandler.FindModule(mc);
   if m = nil then begin
     m:=mc.CreateNew(nil);
   end else begin
@@ -394,21 +393,7 @@ begin
   end;
 end;
 
-function TThemeUtil.FindModule(ModuleClass: TCustomHTTPModuleClass
-  ): TCustomHTTPModule;
-Var
-  i : Integer;
-begin
-  i:=Application.ComponentCount-1;
-  While (i>=0) and (Not ((Application.Components[i] is ModuleClass) and (TCustomHTTPModule(Application.Components[i]).Kind<>wkOneShot))) do
-    Dec(i);
-  if (i>=0) then
-    Result:=Application.Components[i] as TCustomHTTPModule
-  else
-    Result:=Nil;
-end;
-
-function TThemeUtil.getDebugInfo(DebugType: string): string;
+function TThemeUtil.GetDebugInfo(DebugType: string): string;
 var
   i:integer;
   lst : TStrings;
