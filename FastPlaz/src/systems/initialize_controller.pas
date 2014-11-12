@@ -75,8 +75,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TInitializeModule.RequestHandler(Sender: TObject;
-  ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
 begin
   if FileExists('config/config.json') then
     Redirect(BaseURL);
@@ -90,7 +90,7 @@ end;
 
 function TInitializeModule.InitializeApp: boolean;
 var
-  s : string;
+  s: string;
 begin
   htaccess := TStringList.Create;
   with htaccess do
@@ -146,6 +146,7 @@ begin
     GetEnvironmentVariable('SERVER_NAME'));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
+  Config.SetValue(_SYSTEM_THEME_ENABLE, True);
   Config.SetValue(_SYSTEM_THEME, 'default');
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
 
@@ -170,22 +171,22 @@ begin
   s := ExtractFileName(s);
   with TStringList.Create do
   begin
-    Add( 'RewriteEngine On');
-    Add( 'AddHandler cgi-script .cgi');
-    Add( 'AddHandler cgi-script .bin');
-    Add( 'AddHandler cgi-script .pas');
-    Add( 'AddHandler cgi-script .exe');
-    Add( 'Options +ExecCGI');
-    Add( '');
-    Add( 'DirectoryIndex '+s);
-    Add( '');
-    Add( 'RewriteCond %{REQUEST_FILENAME} -d [OR]');
-    Add( 'RewriteCond %{REQUEST_FILENAME} -f [OR]');
-    Add( 'RewriteCond %{REQUEST_FILENAME} -l');
-    Add( 'RewriteRule ^(.*)$ - [NC,L]');
-    Add( '#RewriteRule ^(.*)$ 404.php [QSA,L]');
-    Add( 'RewriteRule ^(.*)$ '+s+'/$1 [QSA,L]');
-    Add( '');
+    Add('RewriteEngine On');
+    Add('AddHandler cgi-script .cgi');
+    Add('AddHandler cgi-script .bin');
+    Add('AddHandler cgi-script .pas');
+    Add('AddHandler cgi-script .exe');
+    Add('Options +ExecCGI');
+    Add('');
+    Add('DirectoryIndex ' + s);
+    Add('');
+    Add('RewriteCond %{REQUEST_FILENAME} -d [OR]');
+    Add('RewriteCond %{REQUEST_FILENAME} -f [OR]');
+    Add('RewriteCond %{REQUEST_FILENAME} -l');
+    Add('RewriteRule ^(.*)$ - [NC,L]');
+    Add('#RewriteRule ^(.*)$ 404.php [QSA,L]');
+    Add('RewriteRule ^(.*)$ ' + s + '/$1 [QSA,L]');
+    Add('');
     try
       SaveToFile('.htaccess');
     except

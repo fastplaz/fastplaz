@@ -20,6 +20,8 @@ const
   __FOREACH_END = '\{/foreach[\.\$A-Za-z0-9= ]+}';
   __HITS_FILENAME = 'hits.log';
 
+  __ERR_THEME_NOT_ENABLED = 'Using Theme''s features, but it is not enabled';
+
 type
 
   // based on qtemplate
@@ -232,7 +234,9 @@ begin
     //x := TSQLQuery( assignVarMap[KeyName]^).SQL.Text);
   except
     on e: Exception do
-      die(e.Message + ' when "assign" variable "' + KeyName + '"');
+    begin
+      FastPlasAppandler.DieRaise(e.Message + ' when "assign" variable "' + KeyName + '"',[]);
+    end;
   end;
 end;
 
@@ -549,13 +553,13 @@ begin
       ForeachTable_Itemname := parameter.Values['item'];
       case parameter.Values['type'] of
         '' : begin
-          die( 'field "type" is not define in "foreach ' + Match[1] + '"');
+          FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
         end;
         'table' : begin
           html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], Match[2]);
         end;
         'array' : begin
-          die( __( __Err_Theme_ForeachNotImplemented));
+          FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
         end;
       end;
 
@@ -665,10 +669,14 @@ begin
   FHits := TStringList.Create;
   FHitType := htNone;
   CacheTime := AppData.cacheTime; // default: 3 hours
+  HTMLUtil := THTMLUtil.Create;
+  ___TagCallbackMap := TTagCallbackMap.Create;
 end;
 
 destructor TThemeUtil.Destroy;
 begin
+  FreeAndNil(___TagCallbackMap);
+  FreeAndNil(HTMLUtil);
   FreeAndNil(FHits);
   FreeAndNil(FHTMLHead);
   FreeAndNil(FTagAssign_Variable);
@@ -840,6 +848,11 @@ var
   template_filename, _ext, module_active, uri: string;
   templateEngine: TFPTemplate;
 begin
+  if (not AppData.theme_enable) and (not Assigned(ThemeUtil)) then
+  begin
+    FastPlasAppandler.DieRaise(__( __ERR_THEME_NOT_ENABLED),[]);
+  end;
+
   if Cache then
   begin
     Result := LoadCache;
@@ -903,7 +916,7 @@ begin
   except
     on e : Exception do
     begin
-      die(e.Message);
+      FastPlasAppandler.DieRaise(e.Message,[]);
     end;
   end;
 
@@ -1021,11 +1034,9 @@ begin
 end;
 
 initialization
-  ___TagCallbackMap := TTagCallbackMap.Create;
-  ThemeUtil := TThemeUtil.Create;
+  //___TagCallbackMap := TTagCallbackMap.Create;
 
 finalization
-  FreeAndNil(ThemeUtil);
-  FreeAndNil(___TagCallbackMap);
+  //FreeAndNil(___TagCallbackMap);
 
 end.

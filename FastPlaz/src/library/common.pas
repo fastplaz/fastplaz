@@ -21,6 +21,7 @@ const
   _SYSTEM_ERROR_URL = 'systems/error_url';
   _SYSTEM_ERROR_REDIRECT = 'systems/error_redirect';
   _SYSTEM_LANGUAGE_DEFAULT = 'systems/language_default';
+  _SYSTEM_THEME_ENABLE = 'systems/theme_enable';
   _SYSTEM_THEME = 'systems/theme';
   _SYSTEM_DEBUG = 'systems/debug';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
@@ -41,6 +42,10 @@ const
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
+type
+  TVarAndValue = array[0..1] of string;
+  TStringArray = array of string;
+
 
 function i2s(pI: integer): string;
 function s2i(pS: string): integer;
@@ -52,7 +57,7 @@ function ExplodeTags(TagString: string): TStringList;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
-function SafeText( const SourceString: string): string;
+function SafeText(const SourceString: string): string;
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
@@ -213,7 +218,7 @@ const
 var
   s: string;
 begin
-  s := ReplaceAll( SourceString, NotAllowed, '-');
+  s := ReplaceAll(SourceString, NotAllowed, '-');
   Result := s;
 end;
 
