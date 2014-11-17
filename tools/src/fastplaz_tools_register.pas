@@ -18,7 +18,10 @@ function ucwords(const str: string): string;
 
 var
   bCreateProject: boolean = False;
+  bExpert: boolean = False;
   FastPlazRuntimeDirectory : string;
+  ModulTypeName, Permalink: string;
+  ModelName, TableName: string;
 
 implementation
 

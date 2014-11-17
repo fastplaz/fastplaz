@@ -7,8 +7,8 @@ unit fastplaz_tools;
 interface
 
 uses
-  fastplaz_tools_register, modsimple_lib, model_lib, model_wzd, modsimple_wzd, project_lib, project_wzd, 
-  modsimplejson_lib, menu_experts, about_fastplaz, webstructure_lib, webstructure_wzd, LazarusPackageIntf;
+  fastplaz_tools_register, modsimple_lib, modsimplejson_lib, model_lib, model_wzd, modsimple_wzd, project_lib, 
+  project_wzd, menu_experts, about_fastplaz, webstructure_lib, webstructure_wzd, LazarusPackageIntf;
 
 implementation
 

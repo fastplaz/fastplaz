@@ -124,6 +124,7 @@ begin
   FastPlazRuntimeDirectory := Pkg.DirectoryExpanded;
 
   bCreateProject := True;
+  bExpert := False;
   LazarusIDE.DoNewEditorFile(TFileRouteDescModule.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',

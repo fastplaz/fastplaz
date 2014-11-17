@@ -18,7 +18,6 @@ type
 
   TFileDescModel = class(TFileDescPascalUnit)
   private
-    ModelName, TableName: string;
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
@@ -129,22 +128,25 @@ end;
 function TFileDescModel.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
-  ModelName := 'Sample';
-  with TfModelWizard.Create(nil) do
-  begin
-    if ShowModal = mrOk then
+  if not bExpert then
+  begin;
+    ModelName := 'Sample';
+    with TfModelWizard.Create(nil) do
     begin
-      if edt_ModelName.Text <> '' then
-        ModelName := edt_ModelName.Text;
+      if ShowModal = mrOk then
+      begin
+        if edt_ModelName.Text <> '' then
+          ModelName := edt_ModelName.Text;
+      end;
+      Free;
     end;
-    Free;
   end;
   DefaultFilename := LowerCase(ModelName) + '_model.pas';
   DefaultFileExt := '.pas';
   DefaultSourceName := LowerCase(ModelName) + '_model';
 
   TableName := StringReplace(LowerCase(ModelName), ' ', '_', [rfReplaceAll]);
-  ModelName := 'T' + StringReplace(UcWords(ModelName), ' ', '', [rfReplaceAll]);
+  ModelName := 'T' + StringReplace(UcWords(ModelName), ' ', '', [rfReplaceAll]) + 'Model';
   Result := inherited CreateSource(LowerCase(ModelName) + '_model.pas',
     SourceName, ModelName);
   log('model "' + ModelName + '" created');
