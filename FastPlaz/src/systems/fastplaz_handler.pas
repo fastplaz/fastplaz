@@ -45,6 +45,7 @@ type
   TMainData = record
     module, modtype, func: string;
     sitename,
+    slogan,
     language,
     tempDir: string;
     theme_enable: boolean;
@@ -70,6 +71,7 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
+    FisJSON,
     FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
@@ -86,7 +88,6 @@ type
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
-    coba: string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -251,6 +252,7 @@ begin
   end;
 
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
+  //AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
@@ -488,6 +490,7 @@ constructor TMyCustomWebModule.CreateNew(AOwner: TComponent; CreateMode: integer
 begin
   inherited CreateNew(AOwner, CreateMode);
   FCreateSession := False;
+  FisJSON := False;
   //_Initialize( self);
 end;
 

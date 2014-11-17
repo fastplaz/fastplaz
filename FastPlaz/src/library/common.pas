@@ -12,8 +12,10 @@ uses
 
 const
   _APP = 'FastPlaz';
+  _APP_SLOGAN = 'Fast Pascal Framework for Web Development';
   _APP_URL = 'http://www.fastplaz.com';
   _SYSTEM_SITENAME = 'systems/sitename';
+  _SYSTEM_SLOGAN = 'systems/slogan';
   _SYSTEM_BASEURL = 'systems/baseurl';
   _SYSTEM_WEBMASTER_EMAIL = 'systems/admin_email';
   _SYSTEM_MODULE_DEFAULT = 'systems/module_default';
@@ -43,7 +45,6 @@ const
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
 type
-  TVarAndValue = array[0..1] of string;
   TStringArray = array of string;
 
 
@@ -68,6 +69,8 @@ function DirectoryIsWritable(const DirectoryName: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function HexToInt(HexStr: string): int64;
+
+function RandomString(PLen: Integer; PrefixString:string = ''): string;
 
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
@@ -267,6 +270,19 @@ end;
 procedure Die(const Message: TStringList);
 begin
   Die('<pre>' + Message.Text + '</pre>');
+end;
+
+function RandomString(PLen: Integer; PrefixString: string): string;
+var
+   str: string;
+begin
+   Randomize;
+   //string with all possible chars
+   str    := PrefixString+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+   Result := '';
+   repeat
+     Result := Result + str[Random(Length(str)) + 1];
+   until (Length(Result) = PLen)
 end;
 
 procedure Die(const Message: string);

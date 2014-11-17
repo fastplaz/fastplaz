@@ -24,7 +24,7 @@
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
       <RevisionNr Value="89"/>
-      <BuildNr Value="37"/>
+      <BuildNr Value="38"/>
       <StringTable Comments="Fast Plaz" CompanyName="Fast Plaz" FileDescription="Fast Plaz - web loader" LegalCopyright="FastPlaz" ProductName="FastPlaz" ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">

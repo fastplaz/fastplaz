@@ -10,7 +10,7 @@ uses
   {$else fpc_fullversion >= 20701}
     fgl,
   {$endif fpc_fullversion >= 20701}
-  fpcgi, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
+  fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
   RegExpr,
   common, fastplaz_handler, sqldb,
   Classes, SysUtils;
@@ -68,6 +68,7 @@ type
     FBaseURL : string;
     FCacheTime: integer;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
+    FIsJSON: boolean;
     FThemeName, FThemeExtension: string;
     FHTMLHead : THTMLHead;
     FTrimForce: boolean;
@@ -79,6 +80,7 @@ type
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetCacheTime(AValue: integer);
+    procedure SetIsJSON(AValue: boolean);
     procedure SetThemeName(AValue: string);
     procedure SetTrimForce(AValue: boolean);
     procedure SetTrimWhiteSpace(AValue: boolean);
@@ -108,6 +110,7 @@ type
     property StartDelimiter: string read FStartDelimiter write FStartDelimiter;
     property EndDelimiter: string read FEndDelimiter write FEndDelimiter;
     property BaseURL : string Read GetBaseURL;
+    property IsJSON:boolean read FIsJSON write SetIsJSON;
     function GetVersionInfo():boolean;
     property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
 
@@ -223,6 +226,12 @@ procedure TThemeUtil.SetCacheTime(AValue: integer);
 begin
   if FCacheTime=AValue then Exit;
   FCacheTime:=AValue - 1;
+end;
+
+procedure TThemeUtil.SetIsJSON(AValue: boolean);
+begin
+  if FIsJSON=AValue then Exit;
+  FIsJSON:=AValue;
 end;
 
 procedure TThemeUtil.Assign(const KeyName: string; const Address: pointer);
@@ -662,6 +671,7 @@ begin
   FParamValueSeparator := '=';
   FTrimWhiteSpace := True;
   FTrimForce := False;
+  FIsJSON := False;
   assignVarMap := TAssignVarMap.Create;
   FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
@@ -726,6 +736,12 @@ begin
       end;
     'title' : begin
       ReplaceText:= AppData.sitename;
+      end;
+    '$slogan' : begin
+      ReplaceText:= AppData.slogan;
+      end;
+    'slogan' : begin
+      ReplaceText:= AppData.slogan;
       end;
     '$baseurl' : begin
       ReplaceText:= BaseURL;
@@ -847,6 +863,7 @@ function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent;
 var
   template_filename, _ext, module_active, uri: string;
   templateEngine: TFPTemplate;
+  o, response_json : TJSONObject;
 begin
   if (not AppData.theme_enable) and (not Assigned(ThemeUtil)) then
   begin
@@ -937,6 +954,15 @@ begin
     SaveCache(Result);
 
   Result := Result + '<!-- '+getDebugInfo('time')+' -->';
+
+  if FIsJSON then
+  begin
+    response_json := TJSONObject.Create;
+    response_json.Add( 'code', 0);
+    response_json.Add( 'data', Result);
+    Result := response_json.AsJSON;
+    FreeAndNil( response_json);
+  end;
   FreeAndNil(templateEngine);
 end;
 

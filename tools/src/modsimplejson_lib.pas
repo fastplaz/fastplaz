@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_JSON_Name = 'FastPlaz - simple json module';
+  rs_Mod_JSON_Name = 'simple json module';
   rs_Mod_JSON_Description = 'create fastplaz simple json module';
 
 type

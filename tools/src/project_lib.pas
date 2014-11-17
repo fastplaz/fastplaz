@@ -6,7 +6,7 @@ interface
 
 uses
   Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
-  NewItemIntf, IDEMsgIntf,
+  NewItemIntf, IDEMsgIntf, PackageIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -106,21 +106,37 @@ begin
   AProject.AddPackageDependency('LCL');
 
   // compiler options
-  AProject.LazCompilerOptions.UnitOutputDirectory := 'lib'+DirectorySeparator+'$(TargetCPU)-$(TargetOS)';
+  AProject.LazCompilerOptions.UnitOutputDirectory :=
+    'lib' + DirectorySeparator + '$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
-  AProject.LazCompilerOptions.TargetFilename:='.'+DirectorySeparator;
+  AProject.LazCompilerOptions.TargetFilename := '.' + DirectorySeparator;
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
   Result := mrOk;
 end;
 
 function TFileDescProject.CreateStartFiles(AProject: TLazProject): TModalResult;
+var
+  Pkg: TIDEPackage;
+  filename: string;
 begin
   //Result:=inherited CreateStartFiles(AProject);
+  Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_runtime');
+  FastPlazRuntimeDirectory := Pkg.DirectoryExpanded;
+
   bCreateProject := True;
-  LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create, 'routes.pas', '',
+  LazarusIDE.DoNewEditorFile(TFileRouteDescModule.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
+
+  // open readme file
+  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator +
+    'docs' + DirectorySeparator + 'README-new project.txt';
+  if FileExists(filename) then
+  begin
+    LazarusIDE.DoOpenEditorFile(filename,-1,-1,[ofAddToRecent])
+  end;
+
   bCreateProject := False;
   Result := mrOk;
 end;

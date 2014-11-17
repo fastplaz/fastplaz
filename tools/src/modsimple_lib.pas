@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'FastPlaz - simple default module';
+  rs_Mod_Default_Name = 'simple default module';
   rs_Mod_Default_Description = 'create fastplaz simple module';
 
 type
@@ -24,6 +24,7 @@ type
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
+    function GetUnitDirectives: string; virtual;
     function GetInterfaceSource(const Filename, SourceName,
       ResourceName: string): string;
       override;
@@ -35,9 +36,9 @@ type
     procedure UpdateDefaultPascalFileExtension(const DefPasExt: string); override;
   end;
 
-  { TFileRouteDescModel }
+  { TFileRouteDescModule }
 
-  TFileRouteDescModel = class(TFileDescPascalUnit)
+  TFileRouteDescModule = class(TFileDescPascalUnit)
   private
   public
     constructor Create; override;
@@ -50,22 +51,22 @@ implementation
 
 uses fastplaz_tools_register, modsimple_wzd;
 
-{ TFileRouteDescModel }
+{ TFileRouteDescModule }
 
-constructor TFileRouteDescModel.Create;
+constructor TFileRouteDescModule.Create;
 begin
   inherited Create;
   DefaultFilename := 'routes.pas';
   DefaultFileExt := '.pas';
 end;
 
-function TFileRouteDescModel.GetInterfaceUsesSection: string;
+function TFileRouteDescModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
   Result := Result + ', fastplaz_handler';
 end;
 
-function TFileRouteDescModel.GetImplementationSource(
+function TFileRouteDescModule.GetImplementationSource(
   const Filename, SourceName, ResourceName: string): string;
 var
   str: TStringList;
@@ -112,6 +113,13 @@ function TFileDescDefaultModule.GetLocalizedDescription: string;
 begin
   Result := inherited GetLocalizedDescription;
   Result := rs_Mod_Default_Description;
+end;
+
+function TFileDescDefaultModule.GetUnitDirectives: string;
+begin
+  Result:='{$mode objfpc}{$H+}';
+  if Owner is TLazProject then
+    Result:=CompilerOptionsToUnitDirectives(TLazProject(Owner).LazCompilerOptions);
 end;
 
 function TFileDescDefaultModule.GetInterfaceSource(

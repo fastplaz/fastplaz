@@ -1,13 +1,13 @@
 object Form1: TForm1
-  Left = 282
+  Left = 224
   Height = 248
-  Top = 187
+  Top = 454
   Width = 496
   Caption = 'Form1'
   ClientHeight = 248
   ClientWidth = 496
-  Position = poDesktopCenter
-  LCLVersion = '1.2.2.0'
+  Position = poScreenCenter
+  LCLVersion = '1.2.6.0'
   object pnl_Top: TPanel
     Left = 0
     Height = 34

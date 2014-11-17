@@ -1,6 +1,7 @@
 {
   "systems" : {
     "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
     "baseurl" : "",
     "admin_email" : "webmaster@yourfastplazdomain.com",
     "development" : true,
