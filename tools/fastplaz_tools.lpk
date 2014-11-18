@@ -38,32 +38,32 @@ for more information visit http://www.fastplaz.com
         <UnitName Value="modsimple_lib"/>
       </Item2>
       <Item3>
-        <Filename Value="src\modsimplejson_lib.pas"/>
-        <UnitName Value="modsimplejson_lib"/>
-      </Item3>
-      <Item4>
-        <Filename Value="src\model_lib.pas"/>
-        <UnitName Value="model_lib"/>
-      </Item4>
-      <Item5>
-        <Filename Value="src\model_wzd.pas"/>
-        <UnitName Value="model_wzd"/>
-      </Item5>
-      <Item6>
         <Filename Value="src\modsimple_wzd.pas"/>
         <UnitName Value="modsimple_wzd"/>
+      </Item3>
+      <Item4>
+        <Filename Value="src\modsimplejson_lib.pas"/>
+        <UnitName Value="modsimplejson_lib"/>
+      </Item4>
+      <Item5>
+        <Filename Value="src\model_lib.pas"/>
+        <UnitName Value="model_lib"/>
+      </Item5>
+      <Item6>
+        <Filename Value="src\model_wzd.pas"/>
+        <UnitName Value="model_wzd"/>
       </Item6>
       <Item7>
-        <Filename Value="src\project_lib.pas"/>
-        <UnitName Value="project_lib"/>
-      </Item7>
-      <Item8>
-        <Filename Value="src\project_wzd.pas"/>
-        <UnitName Value="project_wzd"/>
-      </Item8>
-      <Item9>
         <Filename Value="src\menu_experts.pas"/>
         <UnitName Value="menu_experts"/>
+      </Item7>
+      <Item8>
+        <Filename Value="src\project_lib.pas"/>
+        <UnitName Value="project_lib"/>
+      </Item8>
+      <Item9>
+        <Filename Value="src\project_wzd.pas"/>
+        <UnitName Value="project_wzd"/>
       </Item9>
       <Item10>
         <Filename Value="src\about_fastplaz.lfm"/>

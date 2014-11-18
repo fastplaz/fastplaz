@@ -34,7 +34,7 @@ implementation
 
 {$R *.lfm}
 
-uses webstructure_lib;
+uses webstructure_lib, fastplaz_tools_register;
 
 { TfWebStructure }
 
@@ -54,10 +54,12 @@ begin
 
   with TWebStructure.Create do
   begin
-    Result := GenerateStructure( TargetDirectory);
-
+    Result := GenerateStructure( TargetDirectory, ExtractFileName(LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename));
     Free;
   end;
+  ShowMessage('Create structure Done.');
+  log('web structure: ' + TargetDirectory);
+  Result := True;
 end;
 
 procedure TfWebStructure.CancelButtonClick(Sender: TObject);

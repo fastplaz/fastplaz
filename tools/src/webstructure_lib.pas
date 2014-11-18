@@ -19,11 +19,11 @@ type
 
   TWebStructure = class
   private
+    function ScanDirAndCopy(SourceDirectory, TargetDirectory: string): boolean;
   public
     constructor Create;
     destructor Destroy; override;
-    function GenerateStructure(TargetDirectory: string): boolean;
-    function ScanDirAndCopy(SourceDirectory, TargetDirectory: string): boolean;
+    function GenerateStructure(TargetDirectory: string; DefaultBinaryFile:string = ''): boolean;
   end;
 
 implementation
@@ -41,16 +41,18 @@ begin
   inherited Destroy;
 end;
 
-function TWebStructure.GenerateStructure(TargetDirectory: string): boolean;
+function TWebStructure.GenerateStructure(TargetDirectory: string; DefaultBinaryFile: string): boolean;
 var
   Pkg: TIDEPackage;
   fastplaz_package_dir, s: string;
 begin
+  TargetDirectory := IncludeTrailingPathDelimiter(TargetDirectory);
   if not ForceDirectoriesUTF8(TargetDirectory) then
   begin
     ShowMessage(CSS_WEBSTRUCTURE_FAILED);
     exit;
   end;
+
   Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
   fastplaz_package_dir := Pkg.DirectoryExpanded;
   ScanDirAndCopy(fastplaz_package_dir + DirectorySeparator + 'templates' +
@@ -58,10 +60,12 @@ begin
     TargetDirectory);
 
   // root .htaccess
-  s := LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename;
-  s := ExtractFileName(s);
+  //s := LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename;
+  s := ExtractFileName(TargetDirectory);
   if s = '' then
     s := 'your_binary_file';
+  if DefaultBinaryFile <> '' then
+    s := DefaultBinaryFile;
   with TStringList.Create do
   begin
     LoadFromFile(fastplaz_package_dir + 'templates'+DirectorySeparator+'.htaccess');
@@ -73,8 +77,6 @@ begin
     Free;
   end;
 
-  ShowMessage('Create structure Done.');
-  log('web structure: ' + TargetDirectory);
   Result := False;
 end;
 

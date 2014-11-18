@@ -6,7 +6,7 @@ interface
 
 uses
   Controls, Dialogs,
-  LazIDEIntf, MenuIntf, IDECommands,
+  LazIDEIntf, MenuIntf, IDECommands, ProjectIntf,
   Classes, SysUtils;
 
 const
@@ -21,8 +21,13 @@ procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 
 implementation
 
-uses fastplaz_tools_register, about_fastplaz, webstructure_wzd,
+uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, project_lib,
   modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd;
+
+procedure NewAppGenerator_Proc(ASender: TObject);
+begin
+  // prepare for next features
+end;
 
 procedure SimpleModuleGenerator_Proc(ASender: TObject);
 begin
@@ -136,6 +141,13 @@ var
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
+
+  // prepare for next features
+  {
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_AppCreator',
+    rs_Project_Name, nil, @NewAppGenerator_Proc, nil);
+  CreateIDEMenuSeparator(oMenuExpert);
+  }
 
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_ModuleCreator',
     rs_Mod_Default_Name, nil, @SimpleModuleGenerator_Proc, nil);
