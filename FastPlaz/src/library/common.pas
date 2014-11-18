@@ -12,8 +12,10 @@ uses
 
 const
   _APP = 'FastPlaz';
+  _APP_SLOGAN = 'Fast Pascal Framework for Web Development';
   _APP_URL = 'http://www.fastplaz.com';
   _SYSTEM_SITENAME = 'systems/sitename';
+  _SYSTEM_SLOGAN = 'systems/slogan';
   _SYSTEM_BASEURL = 'systems/baseurl';
   _SYSTEM_WEBMASTER_EMAIL = 'systems/admin_email';
   _SYSTEM_MODULE_DEFAULT = 'systems/module_default';
@@ -21,6 +23,7 @@ const
   _SYSTEM_ERROR_URL = 'systems/error_url';
   _SYSTEM_ERROR_REDIRECT = 'systems/error_redirect';
   _SYSTEM_LANGUAGE_DEFAULT = 'systems/language_default';
+  _SYSTEM_THEME_ENABLE = 'systems/theme_enable';
   _SYSTEM_THEME = 'systems/theme';
   _SYSTEM_DEBUG = 'systems/debug';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
@@ -41,6 +44,9 @@ const
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
+type
+  TStringArray = array of string;
+
 
 function i2s(pI: integer): string;
 function s2i(pS: string): integer;
@@ -52,7 +58,7 @@ function ExplodeTags(TagString: string): TStringList;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
-function SafeText( const SourceString: string): string;
+function SafeText(const SourceString: string): string;
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
@@ -63,6 +69,8 @@ function DirectoryIsWritable(const DirectoryName: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function HexToInt(HexStr: string): int64;
+
+function RandomString(PLen: Integer; PrefixString:string = ''): string;
 
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
@@ -213,7 +221,7 @@ const
 var
   s: string;
 begin
-  s := ReplaceAll( SourceString, NotAllowed, '-');
+  s := ReplaceAll(SourceString, NotAllowed, '-');
   Result := s;
 end;
 
@@ -262,6 +270,19 @@ end;
 procedure Die(const Message: TStringList);
 begin
   Die('<pre>' + Message.Text + '</pre>');
+end;
+
+function RandomString(PLen: Integer; PrefixString: string): string;
+var
+   str: string;
+begin
+   Randomize;
+   //string with all possible chars
+   str    := PrefixString+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+   Result := '';
+   repeat
+     Result := Result + str[Random(Length(str)) + 1];
+   until (Length(Result) = PLen)
 end;
 
 procedure Die(const Message: string);

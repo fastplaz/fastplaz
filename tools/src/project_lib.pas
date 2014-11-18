@@ -6,7 +6,7 @@ interface
 
 uses
   Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
-  NewItemIntf, IDEMsgIntf,
+  NewItemIntf, IDEMsgIntf, PackageIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -15,9 +15,9 @@ resourcestring
 
 type
 
-  { TFileDescProject }
+  { TProjectFastPlazDescriptor }
 
-  TFileDescProject = class(TProjectDescriptor)
+  TProjectFastPlazDescriptor = class(TProjectDescriptor)
   private
     ProjectName: string;
   public
@@ -30,36 +30,63 @@ type
 
 implementation
 
-uses fastplaz_tools_register, modsimple_lib;
+uses fastplaz_tools_register, modsimple_lib, project_wzd, webstructure_lib;
 
-{ TFileDescProject }
+{ TProjectFastPlazDescriptor }
 
-constructor TFileDescProject.Create;
+constructor TProjectFastPlazDescriptor.Create;
 begin
   inherited Create;
   Name := 'FFastPlazApplication';
 end;
 
-function TFileDescProject.GetLocalizedName: string;
+function TProjectFastPlazDescriptor.GetLocalizedName: string;
 begin
   //Result:=inherited GetLocalizedName;
   Result := rs_Project_Name;
 end;
 
-function TFileDescProject.GetLocalizedDescription: string;
+function TProjectFastPlazDescriptor.GetLocalizedDescription: string;
 begin
   //Result:=inherited GetLocalizedDescription;
   Result := rs_Project_Description;
 end;
 
-function TFileDescProject.InitProject(AProject: TLazProject): TModalResult;
+function TProjectFastPlazDescriptor.InitProject(AProject: TLazProject): TModalResult;
 var
   Source: TStringList;
   MainFile: TLazProjectFile;
+  projectTitle, targetExecutable: string;
+  isCreateStructure: boolean;
 begin
-  Result := inherited InitProject(AProject);
   ProjectName := 'fastplaz';
-  MainFile := AProject.CreateProjectFile('myproject.lpr');
+  targetExecutable := '.' + DirectorySeparator;
+
+  with TfProjectWizard.Create(nil) do
+  begin
+    edt_WebRootDir.Text := GetUserDir;
+    if ShowModal <> mrOk then
+    begin
+      Result := mrNo;
+      Free;
+      Exit;
+    end;
+    projectTitle := ucwords(edt_ProjectName.Text);
+    ProjectName := LowerCase(edt_ProjectName.Text);
+    ProjectName := StringReplace(ProjectName, ' ', '', [rfReplaceAll]);
+    ProjectName := StringReplace(ProjectName, '.', '', [rfReplaceAll]);
+    if edt_WebRootDir.Text <> '' then
+    begin
+      if edt_WebRootDir.Text <> GetUserDir then
+        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) +
+          ProjectName + _APP_EXTENSION;
+    end;
+    isCreateStructure := cbx_GenerateStructure.Checked;
+    Free;
+  end;
+
+  Result := inherited InitProject(AProject);
+  MainFile := AProject.CreateProjectFile(ProjectName + '.lpr');
   MainFile.IsPartOfProject := True;
   AProject.AddFile(MainFile, False);
   AProject.MainFileID := 0;
@@ -106,21 +133,53 @@ begin
   AProject.AddPackageDependency('LCL');
 
   // compiler options
-  AProject.LazCompilerOptions.UnitOutputDirectory := 'lib'+DirectorySeparator+'$(TargetCPU)-$(TargetOS)';
+  AProject.Title := projectTitle;
+  AProject.LazCompilerOptions.UnitOutputDirectory :=
+    'lib' + DirectorySeparator + '$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
-  AProject.LazCompilerOptions.TargetFilename:='.'+DirectorySeparator;
+  AProject.LazCompilerOptions.TargetFilename := targetExecutable;
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
+
+  // web dir structure
+  if isCreateStructure then
+  begin
+    with TWebStructure.Create do
+    begin
+      GenerateStructure(ExtractFilePath(targetExecutable), ProjectName + _APP_EXTENSION);
+      Free;
+    end;
+
+  end;
+
   Result := mrOk;
 end;
 
-function TFileDescProject.CreateStartFiles(AProject: TLazProject): TModalResult;
+function TProjectFastPlazDescriptor.CreateStartFiles(AProject: TLazProject):
+TModalResult;
+
+var
+  Pkg: TIDEPackage;
+  filename: string;
 begin
   //Result:=inherited CreateStartFiles(AProject);
+  Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_runtime');
+  FastPlazRuntimeDirectory := Pkg.DirectoryExpanded;
+
   bCreateProject := True;
-  LazarusIDE.DoNewEditorFile(TFileRouteDescModel.Create, 'routes.pas', '',
+  bExpert := False;
+  LazarusIDE.DoNewEditorFile(TFileRouteDescModule.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
+
+  // open readme file
+  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator +
+    'docs' + DirectorySeparator + 'README-new project.txt';
+  if FileExists(filename) then
+  begin
+    LazarusIDE.DoOpenEditorFile(filename, -1, -1, [ofAddToRecent]);
+  end;
+
   bCreateProject := False;
   Result := mrOk;
 end;

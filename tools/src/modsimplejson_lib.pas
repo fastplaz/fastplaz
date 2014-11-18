@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_JSON_Name = 'FastPlaz - simple json module';
+  rs_Mod_JSON_Name = 'JSON module';
   rs_Mod_JSON_Description = 'create fastplaz simple json module';
 
 type
@@ -18,7 +18,6 @@ type
 
   TFileDescJSONModule = class(TFileDescPascalUnit)
   private
-    ModulTypeName, Permalink: string;
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
@@ -163,31 +162,35 @@ end;
 function TFileDescJSONModule.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
-  Permalink := 'json';
-  ModulTypeName := 'TJsonModule';
-  if not bCreateProject then
-  begin
-    with TfModuleSimpleWizard.Create(nil) do
+  if not bExpert then
+  begin;
+    Permalink := 'json';
+    ModulTypeName := 'TJsonModule';
+    if not bCreateProject then
     begin
-      if ShowModal = mrOk then
+      with TfModuleSimpleWizard.Create(nil) do
       begin
-        if edt_ModuleName.Text <> '' then
-          ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-            ' ', '', [rfReplaceAll]) + 'Module';
-        Permalink := edt_Permalink.Text;
-        if Permalink = '' then
+        if ShowModal = mrOk then
         begin
-          Permalink := StringReplace(UcWords(edt_ModuleName.Text),
-            ' ', '', [rfReplaceAll]);
+          if edt_ModuleName.Text <> '' then
+            ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
+              ' ', '', [rfReplaceAll]) + 'Module';
+          Permalink := edt_Permalink.Text;
+          if Permalink = '' then
+          begin
+            Permalink := StringReplace(UcWords(edt_ModuleName.Text),
+              ' ', '', [rfReplaceAll]);
+          end;
         end;
+        Free;
       end;
-      Free;
+    end
+    else
+    begin
+      ModulTypeName := 'TMainModule';
+      Permalink := 'main';
     end;
-  end
-  else
-  begin
-    ModulTypeName := 'TMainModule';
-    Permalink := 'main';
+
   end;
   Result := inherited CreateSource(Filename, SourceName, Permalink);
   log('module "' + ModulTypeName + '" created');

@@ -45,9 +45,11 @@ type
   TMainData = record
     module, modtype, func: string;
     sitename,
+    slogan,
     language,
-    theme,
     tempDir: string;
+    theme_enable: boolean;
+    theme: string;
     cacheType: string;
     cacheWrite: boolean;
     cacheTime: integer;
@@ -69,6 +71,7 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
+    FisJSON,
     FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
@@ -85,14 +88,13 @@ type
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
-    coba: string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
 
     procedure LanguageInit;
 
-    property URI:string read GetURI;
+    property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
 
     property Tags[const TagName: string]: TTagCallback read GetTag write SetTag;
@@ -119,12 +121,16 @@ type
   private
     function GetURI: string;
   public
-    property URI:string read GetURI;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
+    property URI: string read GetURI;
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
-    procedure AddLog( Message:string);
+    procedure AddLog(Message: string);
+    procedure DieRaise(const Fmt: string; const Args: array of const);
   end;
 
   TGET = class
@@ -246,7 +252,9 @@ begin
   end;
 
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
+  //AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
+  AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
   AppData.tablePrefix := Config.GetValue(_DATABASE_TABLE_PREFIX, '');
@@ -264,6 +272,11 @@ begin
     ThemeUtil.HitType := htDatabase;
   if AppData.hitStorage = 'sqlite' then
     ThemeUtil.HitType := htSQLite;
+
+  if AppData.theme_enable then
+  begin
+    ThemeUtil := TThemeUtil.Create;
+  end;
 
   //LogUtil.registerError('auw');
   //-- process the homepage
@@ -347,8 +360,8 @@ var
   pattern_url: TStrings;
   i: integer;
   mi: TModuleItem;
-  mc : TCustomHTTPModuleClass;
-  m  : TCustomHTTPModule;
+  mc: TCustomHTTPModuleClass;
+  m: TCustomHTTPModule;
 begin
 
   // prepare pattern-url for next version
@@ -365,9 +378,9 @@ begin
   i := ModuleFactory.IndexOfModule(moduleName);
   if i <> -1 then
   begin
-    mi:=ModuleFactory[I];
+    mi := ModuleFactory[I];
     mc := mi.ModuleClass;
-    m:=FastPlasAppandler.FindModule(mc);
+    m := FastPlasAppandler.FindModule(mc);
     if m <> nil then
     begin
       //--
@@ -458,7 +471,8 @@ end;
 
 function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
 begin
-  Result := ___TagCallbackMap[TagName];
+  if AppData.theme_enable then
+    Result := ___TagCallbackMap[TagName];
 end;
 
 function TMyCustomWebModule.GetURI: string;
@@ -468,13 +482,15 @@ end;
 
 procedure TMyCustomWebModule.SetTag(const TagName: string; AValue: TTagCallback);
 begin
-  ___TagCallbackMap[TagName] := AValue;
+  if AppData.theme_enable then
+    ___TagCallbackMap[TagName] := AValue;
 end;
 
 constructor TMyCustomWebModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
   FCreateSession := False;
+  FisJSON := False;
   //_Initialize( self);
 end;
 
@@ -499,7 +515,7 @@ begin
       inherited HandleRequest(ARequest, AResponse)
     else
     begin
-      die( __(__Err_Http_InvalidMethod));
+      FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
   end;
 end;
@@ -612,6 +628,21 @@ begin
   Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
 end;
 
+constructor TFastPlasAppandler.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+end;
+
+destructor TFastPlasAppandler.Destroy;
+begin
+  if AppData.theme_enable then
+  begin
+    FreeAndNil(ThemeUtil);
+    ;
+  end;
+  inherited Destroy;
+end;
+
 function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
 
   function GetDefaultModuleName: string;
@@ -692,24 +723,31 @@ begin
 
 end;
 
-function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
-Var
-  i : Integer;
+function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
+TCustomHTTPModule;
+var
+  i: integer;
 begin
-  i:=Application.ComponentCount-1;
-  While (i>=0) and (Not ((Application.Components[i] is ModuleClass) and (TCustomHTTPModule(Application.Components[i]).Kind<>wkOneShot))) do
+  i := Application.ComponentCount - 1;
+  while (i >= 0) and (not ((Application.Components[i] is ModuleClass) and
+      (TCustomHTTPModule(Application.Components[i]).Kind <> wkOneShot))) do
     Dec(i);
-  if (i>=0) then
-    Result:=Application.Components[i] as TCustomHTTPModule
+  if (i >= 0) then
+    Result := Application.Components[i] as TCustomHTTPModule
   else
-    Result:=Nil;
+    Result := nil;
 end;
 
 procedure TFastPlasAppandler.AddLog(Message: string);
 begin
   if LogUtil = nil then
     LogUtil := TLogUtil.Create;
-  LogUtil.Add( Message);
+  LogUtil.Add(Message);
+end;
+
+procedure TFastPlasAppandler.DieRaise(const Fmt: string; const Args: array of const);
+begin
+  Die('<div class="warning">' + Format(Fmt, Args) + '</div>');
 end;
 
 initialization

@@ -9,8 +9,8 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'FastPlaz - simple default module';
-  rs_Mod_Default_Description = 'create fastplaz simple module';
+  rs_Mod_Default_Name = 'Simple default Module';
+  rs_Mod_Default_Description = 'Create FastPlaz simple module';
 
 type
 
@@ -18,12 +18,12 @@ type
 
   TFileDescDefaultModule = class(TFileDescPascalUnit)
   private
-    ModulTypeName, Permalink: string;
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
+    function GetUnitDirectives: string; virtual;
     function GetInterfaceSource(const Filename, SourceName,
       ResourceName: string): string;
       override;
@@ -35,9 +35,9 @@ type
     procedure UpdateDefaultPascalFileExtension(const DefPasExt: string); override;
   end;
 
-  { TFileRouteDescModel }
+  { TFileRouteDescModule }
 
-  TFileRouteDescModel = class(TFileDescPascalUnit)
+  TFileRouteDescModule = class(TFileDescPascalUnit)
   private
   public
     constructor Create; override;
@@ -50,22 +50,22 @@ implementation
 
 uses fastplaz_tools_register, modsimple_wzd;
 
-{ TFileRouteDescModel }
+{ TFileRouteDescModule }
 
-constructor TFileRouteDescModel.Create;
+constructor TFileRouteDescModule.Create;
 begin
   inherited Create;
   DefaultFilename := 'routes.pas';
   DefaultFileExt := '.pas';
 end;
 
-function TFileRouteDescModel.GetInterfaceUsesSection: string;
+function TFileRouteDescModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
   Result := Result + ', fastplaz_handler';
 end;
 
-function TFileRouteDescModel.GetImplementationSource(
+function TFileRouteDescModule.GetImplementationSource(
   const Filename, SourceName, ResourceName: string): string;
 var
   str: TStringList;
@@ -112,6 +112,13 @@ function TFileDescDefaultModule.GetLocalizedDescription: string;
 begin
   Result := inherited GetLocalizedDescription;
   Result := rs_Mod_Default_Description;
+end;
+
+function TFileDescDefaultModule.GetUnitDirectives: string;
+begin
+  Result:='{$mode objfpc}{$H+}';
+  if Owner is TLazProject then
+    Result:=CompilerOptionsToUnitDirectives(TLazProject(Owner).LazCompilerOptions);
 end;
 
 function TFileDescDefaultModule.GetInterfaceSource(
@@ -206,31 +213,34 @@ end;
 function TFileDescDefaultModule.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
-  Permalink := 'sample';
-  ModulTypeName := 'TSampleModule';
-  if not bCreateProject then
-  begin
-    with TfModuleSimpleWizard.Create(nil) do
+  if not bExpert then
+  begin;
+    Permalink := 'sample';
+    ModulTypeName := 'TSampleModule';
+    if not bCreateProject then
     begin
-      if ShowModal = mrOk then
+      with TfModuleSimpleWizard.Create(nil) do
       begin
-        if edt_ModuleName.Text <> '' then
-          ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-            ' ', '', [rfReplaceAll]) + 'Module';
-        Permalink := edt_Permalink.Text;
-        if Permalink = '' then
+        if ShowModal = mrOk then
         begin
-          Permalink := StringReplace(UcWords(edt_ModuleName.Text),
-            ' ', '', [rfReplaceAll]);
+          if edt_ModuleName.Text <> '' then
+            ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
+              ' ', '', [rfReplaceAll]) + 'Module';
+          Permalink := edt_Permalink.Text;
+          if Permalink = '' then
+          begin
+            Permalink := StringReplace(UcWords(edt_ModuleName.Text),
+              ' ', '', [rfReplaceAll]);
+          end;
         end;
+        Free;
       end;
-      Free;
+    end
+    else
+    begin
+      ModulTypeName := 'TMainModule';
+      Permalink := 'main';
     end;
-  end
-  else
-  begin
-    ModulTypeName := 'TMainModule';
-    Permalink := 'main';
   end;
   Result := inherited CreateSource(Filename, SourceName, Permalink);
   log('module "' + ModulTypeName + '" created');

@@ -10,9 +10,9 @@ object fModelWizard: TfModelWizard
   Color = 15790320
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   SessionProperties = 'Top;Left'
-  LCLVersion = '1.2.2.0'
+  LCLVersion = '1.2.6.0'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
@@ -52,7 +52,7 @@ object fModelWizard: TfModelWizard
     CancelButton.DefaultCaption = True
     CancelButton.OnClick = CancelButtonClick
     TabOrder = 1
-    ShowButtons = [pbOK, pbCancel]
+    ShowButtons = [pbOK]
   end
   object Label1: TLabel
     Left = 10

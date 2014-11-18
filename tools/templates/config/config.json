@@ -1,0 +1,23 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
+    "admin_email" : "webmaster@coba.com",
+    "error_url" : "\/",
+    "error_redirect" : false,
+    "theme_enable" : true,
+    "theme" : "default",
+    "temp" : "ztemp"
+  },
+  "database" : {
+    "default" : {
+      "driver" : "MySQL 5.0",
+      "hostname" : "localhost",
+      "username" : "your_username",
+      "password" : "your_password",
+      "database_name" : "your_database",
+      "prefix" : "",
+      "library" : "..\/libs\/win\/libmysql.dll"
+    }
+  }
+}
