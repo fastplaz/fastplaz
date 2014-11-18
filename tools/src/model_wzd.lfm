@@ -52,7 +52,7 @@ object fModelWizard: TfModelWizard
     CancelButton.DefaultCaption = True
     CancelButton.OnClick = CancelButtonClick
     TabOrder = 1
-    ShowButtons = [pbOK, pbCancel]
+    ShowButtons = [pbOK]
   end
   object Label1: TLabel
     Left = 10

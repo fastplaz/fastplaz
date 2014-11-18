@@ -52,7 +52,7 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     CancelButton.DefaultCaption = True
     CancelButton.OnClick = CancelButtonClick
     TabOrder = 2
-    ShowButtons = [pbOK, pbCancel]
+    ShowButtons = [pbOK]
   end
   object Label1: TLabel
     Left = 10
