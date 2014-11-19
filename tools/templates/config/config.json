@@ -2,12 +2,18 @@
   "systems" : {
     "sitename" : "FastPlaz",
     "slogan" : "Fast Pascal Framework for Web Development",
+    "baseurl" : "",
     "admin_email" : "webmaster@coba.com",
-    "error_url" : "\/",
-    "error_redirect" : false,
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
     "theme_enable" : true,
     "theme" : "default",
-    "temp" : "ztemp"
+    "cache" : "file",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "error_redirect" : false
   },
   "database" : {
     "default" : {

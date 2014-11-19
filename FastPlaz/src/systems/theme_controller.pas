@@ -209,10 +209,7 @@ end;
 function TThemeUtil.GetBaseURL: string;
 begin
   if FBaseURL = '' then begin
-    FBaseURL:= Config.GetValue( _SYSTEM_BASEURL, '');
-    if FBaseURL = '' then begin
-      FBaseURL:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-    end;
+    FBaseURL:= AppData.baseUrl;
   end;
   Result := FBaseURL;
 end;
@@ -762,17 +759,11 @@ begin
       ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
       end;
     '$themefullpath' : begin
-      ReplaceText:= Config.GetValue( _SYSTEM_BASEURL, '');
-      if ReplaceText = '' then begin
-        ReplaceText:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-      end;
+      ReplaceText := BaseURL;
       ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
       end;
     'themefullpath' : begin
-      ReplaceText:= Config.GetValue( _SYSTEM_BASEURL, '');
-      if ReplaceText = '' then begin
-        ReplaceText:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-      end;
+      ReplaceText := BaseURL;
       ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
       end;
     '$version' : begin

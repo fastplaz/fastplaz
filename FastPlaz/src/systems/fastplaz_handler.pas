@@ -46,6 +46,7 @@ type
     module, modtype, func: string;
     sitename,
     slogan,
+    baseUrl,
     language,
     tempDir: string;
     theme_enable: boolean;
@@ -71,8 +72,7 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
-    FisJSON,
-    FCreateSession: boolean;
+    FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
     function GetBaseURL: string;
@@ -253,6 +253,7 @@ begin
 
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
   //AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
+  AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
@@ -265,6 +266,12 @@ begin
   AppData.tempDir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
   AppData.hitStorage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+
+  if AppData.baseUrl = '' then
+  begin
+    AppData.baseUrl := 'http://' + GetEnvironmentVariable('SERVER_NAME') +
+      ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
+  end;
 
   if AppData.hitStorage = 'file' then
     ThemeUtil.HitType := htFile;

@@ -8,16 +8,17 @@
     "debug" : true,
     "module_default" : "main",
     "language_default" : "id",
+    "theme_enable" : true,
     "theme" : "default",
-    "error_redirect" : false,
     "cache" : "file",
     "temp" : "ztemp",
-    "error_url" : "\/"
+    "error_url" : "\/",
+    "error_redirect" : false
   },
   "database" : {
     "default" : {
-      "hostname" : "localhost",
       "driver" : "MySQL 5.0",
+      "hostname" : "localhost",
       "tabletype" : "myisam",
       "username" : "root",
       "password" : "root",
