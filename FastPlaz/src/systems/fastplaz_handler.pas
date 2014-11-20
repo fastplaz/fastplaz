@@ -119,16 +119,21 @@ type
 
   TFastPlasAppandler = class(TComponent)
   private
+    FIsDisplayError: boolean;
     function GetURI: string;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property URI: string read GetURI;
+    property isDisplayError: boolean read FIsDisplayError write FIsDisplayError;
+
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
-    Procedure ExceptionHandler(Sender : TObject; E : Exception);
+    procedure ExceptionHandler(Sender: TObject; E: Exception);
+    function Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -184,6 +189,7 @@ type
 procedure InitializeFastPlaz(Sender: TObject = nil);
 procedure Redirect(const URL: string);
 
+procedure DisplayError(const Message: string);
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
@@ -308,6 +314,26 @@ procedure Redirect(const URL: string);
 begin
   Application.Response.SendRedirect(URL);
   Application.Response.SendResponse;
+end;
+
+
+procedure DisplayError(const Message: string);
+var
+  s : string;
+begin
+  FastPlasAppandler.isDisplayError:= TRUE;
+  if not AppData.theme_enable then
+  begin
+    die( Message);
+  end;
+
+  //buat format untuk error message
+  s := '<div ' + Message + '</div>';
+
+  Application.Response.Contents.Text := ThemeUtil.Render();;
+  Application.Response.Contents.Text := ReplaceAll( Application.Response.Contents.Text, ['{$maincontent}'], s);
+  Application.Response.SendContent;
+  Application.Terminate;
 end;
 
 procedure Debug(const Message: integer; const Key: string);
@@ -639,6 +665,7 @@ end;
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FIsDisplayError := False;
 end;
 
 destructor TFastPlasAppandler.Destroy;
@@ -733,8 +760,13 @@ end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
-  die( e.Message);
+  die(e.Message);
 
+end;
+
+function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+begin
+  Result := 'yeeee';
 end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):

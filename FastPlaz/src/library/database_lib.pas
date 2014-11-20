@@ -109,11 +109,19 @@ var
   DB_LibLoader : TSQLDBLibraryLoader;
 
 procedure DataBaseInit(const RedirecURL: string);
+var
+  s : string;
 begin
+  //s := ExpandFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
+  // currentdirectory mesti dipindah
+  s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
+  SetCurrentDir( ExtractFilePath( s));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
+
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
     try
       DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
-      DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
+      DB_LibLoader.LibraryName:= s;
       DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
@@ -125,6 +133,8 @@ begin
       end;
     end;
   end;
+  // balikin currentdirectory
+  SetCurrentDir(ExtractFilePath(Application.ExeName));
 
   DB_Connector.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
   DB_Connector.ConnectorType := Config.GetValue( _DATABASE_DRIVER, '');
@@ -140,7 +150,7 @@ begin
   except
     on E: Exception do begin
       if RedirecURL = '' then
-        Die( E.Message)
+        DisplayError( 'Database Error'+E.Message)
       else
         Redirect( RedirecURL);
     end;
@@ -328,19 +338,18 @@ var
   s : string;
 begin
   If Assigned(FFieldList) then begin
-
+    Result:=FFieldList;
   end else begin
+    Result := Nil;
     FFieldList:=TStringList.Create;
     if Data.Active then Data.Close;
 
     //TODO: create auto query, depend on databasetype
     s := lowercase(DB_Connector.ConnectorType);
     if (Pos('mysql', s) > 0) then Result := getFieldList_mysql;
-    if (Pos('sqlite', s) > 0) then Result := getFieldList_sqlite;
+    if (Pos('sqlite3', s) > 0) then Result := getFieldList_sqlite;
     if (Pos('postgre', s) > 0) then Result := getFieldList_postgresql;
-
   end;
-  Result:=FFieldList;
 end;
 
 function TSimpleModel.GetFieldValue(FieldName: String): Variant;
