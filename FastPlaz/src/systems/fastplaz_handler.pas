@@ -128,6 +128,7 @@ type
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
+    Procedure ExceptionHandler(Sender : TObject; E : Exception);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -727,6 +728,12 @@ begin
   else
   begin
   end;
+
+end;
+
+procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
+begin
+  die( e.Message);
 
 end;
 

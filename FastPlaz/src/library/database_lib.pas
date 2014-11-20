@@ -42,6 +42,10 @@ type
     procedure DoAfterOpen(DataSet: TDataSet);
     procedure DoBeforeOpen(DataSet: TDataSet);
 
+    function getFieldList_mysql: TStrings;
+    function getFieldList_sqlite: TStrings;
+    function getFieldList_postgresql: TStrings;
+
     function GetFieldList: TStrings;
     function GetFieldValue( FieldName: String): Variant;
     procedure SetFieldValue( FieldName: String; AValue: Variant);
@@ -282,31 +286,61 @@ begin
   StartTime:= _GetTickCount;
 end;
 
+function TSimpleModel.getFieldList_mysql: TStrings;
+begin
+  Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('Field').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('Field').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
+end;
+
+function TSimpleModel.getFieldList_sqlite: TStrings;
+begin
+  Data.SQL.Text:= 'PRAGMA table_info('+FTableName+');';
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('name').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('name').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
+end;
+
+function TSimpleModel.getFieldList_postgresql: TStrings;
+begin
+  //Data.SQL.Text:= 'SELECT column_name FROM information_schema.columns WHERE table_name = ''' + FTableName + ''''; <<- postgresql
+
+  die('postgresql unsupported');
+end;
+
 function TSimpleModel.GetFieldList: TStrings;
+var
+  s : string;
 begin
   If Assigned(FFieldList) then begin
 
   end else begin
     FFieldList:=TStringList.Create;
-
     if Data.Active then Data.Close;
 
     //TODO: create auto query, depend on databasetype
-    //Data.SQL.Text:= 'SELECT column_name FROM information_schema.columns WHERE table_name = ''' + FTableName + ''''; <<- postgresql
+    s := lowercase(DB_Connector.ConnectorType);
+    if (Pos('mysql', s) > 0) then Result := getFieldList_mysql;
+    if (Pos('sqlite', s) > 0) then Result := getFieldList_sqlite;
+    if (Pos('postgre', s) > 0) then Result := getFieldList_postgresql;
 
-    Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
-
-    Data.Open;
-    FSelectField := '';
-    while not Data.Eof do begin
-      FFieldList.Add( FTableName + '.' +Data.FieldByName('Field').AsString);
-      FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('Field').AsString;
-      Data.Next;
-    end;
-    FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
   end;
   Result:=FFieldList;
-
 end;
 
 function TSimpleModel.GetFieldValue(FieldName: String): Variant;
@@ -333,9 +367,12 @@ begin
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   FConnector := DB_Connector;
-  if DefaultTableName = '' then begin
-    for i:=2 to length( ToString) do begin
-      if (ToString[i] in ['A'..'Z']) then begin
+  if DefaultTableName = '' then
+  begin
+    for i:=2 to length( ToString) do
+    begin
+      if (ToString[i] in ['A'..'Z']) then
+      begin
         if FTableName <> '' then
           FTableName := FTableName + '_' + LowerCase( ToString[i])
         else
@@ -344,13 +381,15 @@ begin
       else
         FTableName := FTableName + ToString[i];
     end;
+    FTableName:= copy( FTableName, 1, Length(FTableName)-6) + 's';
   end else
     FTableName:= DefaultTableName;
   FTableName:= AppData.tablePrefix+FTableName;
 
+
   FJoinList := TStringList.Create;
   {$ifdef zeos}
-  zeos unsupported
+  still not supported
   {$else}
   FGenFields := nil;
   FGenValues := nil;
