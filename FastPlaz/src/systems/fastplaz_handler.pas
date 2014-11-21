@@ -328,7 +328,7 @@ begin
   end;
 
   //buat format untuk error message
-  s := '<div ' + Message + '</div>';
+  s := '<div class="box error">' + Message + '</div>';
 
   Application.Response.Contents.Text := ThemeUtil.Render();;
   Application.Response.Contents.Text := ReplaceAll( Application.Response.Contents.Text, ['{$maincontent}'], s);

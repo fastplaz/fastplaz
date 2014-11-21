@@ -13,13 +13,15 @@ public function:
 interface
 
 uses
-  fpcgi, fphttp, db,
-  fpjson, jsonparser,
+  fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
   sqlite3conn, pqconnection,
-  Classes, SysUtils;
+  variants, Classes, SysUtils;
 
 type
+
+  generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
+  TFieldValueMap = specialize TStringHashMap<variant>;
 
   { TSimpleModel }
 
@@ -34,7 +36,6 @@ type
 
     primaryKeyValue : string;
     FGenFields : TStringList;
-    FGenValues : TStringList;
     function GetEOF: boolean;
     function GetRecordCount: Longint;
     procedure _queryPrepare;
@@ -50,6 +51,7 @@ type
     function GetFieldValue( FieldName: String): Variant;
     procedure SetFieldValue( FieldName: String; AValue: Variant);
   public
+    FieldValueMap : TFieldValueMap;
     primaryKey : string;
     Data : TSQLQuery;
     StartTime, StopTime, ElapsedTime : Cardinal;
@@ -81,7 +83,7 @@ type
 
     procedure Clear;
     procedure New;
-    function  Save( Where:string=''):boolean;
+    function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string=''):boolean;
 
     procedure Next;
@@ -127,7 +129,7 @@ begin
     except
       on E: Exception do begin
         if RedirecURL = '' then
-          Die( E.Message)
+          Die( 'Database Init: Load Library, '+E.Message)
         else
           Redirect( RedirecURL);
       end;
@@ -150,7 +152,9 @@ begin
   except
     on E: Exception do begin
       if RedirecURL = '' then
+      begin
         DisplayError( 'Database Error'+E.Message)
+      end
       else
         Redirect( RedirecURL);
     end;
@@ -266,6 +270,7 @@ function TSimpleModel._queryOpen: boolean;
 begin
   Result := False;
   try
+    if Data.Active then Data.Close;
     Data.Open;
     if Data.RecordCount > 0 then
       Result := True;
@@ -328,9 +333,17 @@ end;
 
 function TSimpleModel.getFieldList_postgresql: TStrings;
 begin
-  //Data.SQL.Text:= 'SELECT column_name FROM information_schema.columns WHERE table_name = ''' + FTableName + ''''; <<- postgresql
-
-  die('postgresql unsupported');
+  Data.SQL.Text:= 'SELECT column_name as name FROM information_schema.columns WHERE table_name = ''' + FTableName + '''';
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('name').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('name').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
 end;
 
 function TSimpleModel.GetFieldList: TStrings;
@@ -363,10 +376,11 @@ begin
   if not Assigned( FGenFields) then
   begin
     FGenFields := TStringList.Create;
-    FGenValues := TStringList.Create;
+    FGenFields := TStringList.Create;
+    FieldValueMap := TFieldValueMap.Create;
   end;
+  FieldValueMap[FieldName] := AValue;
   FGenFields.Add( FieldName);
-  FGenValues.Add( AValue);
 end;
 
 constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
@@ -401,7 +415,7 @@ begin
   still not supported
   {$else}
   FGenFields := nil;
-  FGenValues := nil;
+  FieldValueMap := nil;
   Data := TSQLQuery.Create(nil);
   Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
@@ -416,7 +430,7 @@ begin
   FreeAndNil( FJoinList);
   if Assigned( FFieldList) then FreeAndNil( FFieldList);
   if Assigned( FGenFields) then FreeAndNil( FGenFields);
-  if Assigned( FGenValues) then FreeAndNil( FGenValues);
+  if Assigned( FieldValueMap) then FreeAndNil( FieldValueMap);
   FreeAndNil( Data);
 end;
 
@@ -475,8 +489,8 @@ var
   _joinfield,
   _join : TStrings;
 begin
-  primaryKeyValue := '';
   Clear;
+  primaryKeyValue := '';
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
@@ -527,10 +541,12 @@ begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
   Result := _queryOpen;
+  while not Data.EOF do begin Next; end;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
     primaryKeyValue := Data.FieldByName( primaryKey).AsString;
   end;
+  Data.First;
 end;
 
 function TSimpleModel.FindFirst(const Where: array of string;
@@ -589,21 +605,19 @@ end;
 
 procedure TSimpleModel.New;
 begin
-  if Assigned( FGenFields) then
-  begin
-    FGenFields.Clear;
-    FGenValues.Clear;
-  end;
+  if Assigned( FGenFields) then FGenFields.Clear;
+  if Assigned( FieldValueMap) then FieldValueMap.Clear;
   primaryKeyValue:='';
 end;
 
-function TSimpleModel.Save(Where: string): boolean;
+function TSimpleModel.Save(Where: string; AutoCommit: boolean): boolean;
 var
   sSQL : TStringList;
   i : integer;
   s : string;
 begin
   Result := false;
+  if ((Data.Active) and (primaryKeyValue='')) then Exit;
   sSQL := TStringList.Create;
   if Data.Active then
   begin
@@ -638,13 +652,16 @@ begin
     sSQL.Add( ')');
   end;
 
+  die( sSQL.Text);
   try
     Data.SQL.Text:= sSQL.Text;
-    for i:=0 to FGenFields.Count-1 do
+    for i:=0 to FieldValueMap.Count-1 do
     begin
-      Data.Params.ParamByName( FGenFields[i]).Value := FGenValues[i];
+      s := FieldValueMap.Keys[i];
+      Data.Params.ParamByName( FGenFields[i]).Value := FieldValueMap[s];
     end;
     Data.ExecSQL;
+    if AutoCommit then Commit;
     Result := True;
   except
     on E: Exception do begin
@@ -652,7 +669,7 @@ begin
         LogUtil.add( E.Message);
         LogUtil.add( Data.SQL.Text);
       end;
-      die( e.Message);
+      DisplayError( e.Message);
     end;
   end;
   FreeAndNil(sSQL);
