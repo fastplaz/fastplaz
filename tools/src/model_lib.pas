@@ -109,7 +109,7 @@ begin
     Add('constructor ' + ModelName + '.Create(const DefaultTableName: string = '''');');
     Add('Begin');
     Add('  inherited Create( DefaultTableName); // table name = ' +
-      LowerCase(TableName));
+      LowerCase(TableName) + 's') ;
     Add('  //inherited Create(''yourtablename''); // if use custom tablename');
     Add('End;');
     Add('');
