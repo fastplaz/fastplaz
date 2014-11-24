@@ -1,0 +1,75 @@
+<H3>Configuration</H3>
+
+<p>Secara umum, fastplaz membebaskan pengguna untuk membuat cara konfigurasi sendiri.
+<br />Tetapi untuk semakin memudahkan pengguna, <a href="http://www.fastplaz.com">FlastPlaz</a> telah menyediakan fasilitas pengkonfigurasian.
+<br />File konfigurasi berformat json dan berada di direktori/file :
+<pre>config/config.json</pre>
+
+Contoh konfigurasinya adalah sebagai berikutxx:</p>
+
+<div class="highlight"><pre>
+<code class="bash">
+{
+  "systems" : {
+    "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
+    "baseurl" : "",
+    "admin_email" : "webmaster@coba.com",
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
+    "theme_enable" : true,
+    "theme" : "default",
+    "cache" : "file",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "error_redirect" : false
+  },
+  "database" : {
+    "default" : {
+      "driver" : "MySQL 5.0",
+      "hostname" : "localhost",
+      "username" : "root",
+      "password" : "root",
+      "database_name" : "namadatabase",
+      "database_namex" : "thisisdatabase",
+      "prefi" : "",
+      "library" : "..\/libs\/win\/libmysql.dll"
+    }
+  }
+}
+</code></pre></div>
+
+<p>folder utama yang digunakan adalah folder <B>themes</B> dan <B>ztemp.</B>
+<br />Folder <B>themes</B> digunakan untuk menempatkan theme-theme anda. Sedangkan file layout html-nya sendiri ditempatkan di folder '<B>templates</B>', untuk css maupun javascriptnya boleh ditempatkan di folder 'templates' atau di luarnya.
+<br />Mengapa namanya 'ztemp', bukan 'temp' ? yaahh... sekedar agar selalui dibawah jika disort-by-alphabet :).
+</p>
+<p><br />Folder <B>config</B> digunakan untuk menyimpan file configurasi config.json, sementara ini diwajibkan diletakkan di folder ini.
+<br />Folder <B>files</B> masih merupakan opsional, mungkin suatu saat developer bisa menggunakan folder ini untuk menyimpan file, misal gallery foto dan sebagainya.
+</p>
+<p>
+Beberapa aplikasi akan mungkin mempunyai beberapa module yang masing-masing memiliki page-layout-nya sendiri. Dan dengan adanya folder <B>modules</B>, hal tersebut sangat dimungkinkan.
+<br /><b>Sebagai contoh adalah halaman ini sendiri</b>. Halaman ini merupakan bagian dari module '<b>docs</b>', dan masing sub halamannya mengambil file-file template dari folder '<B>modules/docs/*</B>'.
+<div class="bs-callout bs-callout-warning">Silahkan lihat catatan di bagian kanan bawah halaman ini</div>
+</p>
+
+<H3>Pascal Directory Structure</H3>
+<p>Dan struktur direktori dari code pascal yang direkomendasikan dari fastplaz sendiri adalah seperti berikut</p>
+<div class="highlight"><pre>
+<code class="bash">fastplaz
++-- src
+    |-- app
+    |   |-- your_app_1
+    |   |   +-- models
+    |   +-- your_app_2
+    |-- library
+    +-- systems
+</code></pre></div>
+
+
+<div class="highlight pull-right"><pre>
+<code class="bash">controller file: src/systems/docs_controller.pas
+html template  : module/docs/structure.html
+layout theme   : themes/[$theme]/templates/master.html
+</code></pre></div>
