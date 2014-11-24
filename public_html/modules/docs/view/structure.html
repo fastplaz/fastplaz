@@ -1,0 +1,59 @@
+<H3>Web Directory Structure</H3>
+
+<p>Berikut adalah struktur direktori minimal yang direkomendasikan oleh <a href="http://www.fastplaz.com">FlastPlaz</a>.
+<br />Struktur boleh diubah sesuai dengan yang diperlukan oleh developer, selama memahami maksud dan tujuan perubahan tersebut.
+</p>
+<div class="highlight"><pre>
+<code class="bash">public_html
+|-- config
+|-- files
+|-- locale
+|-- modules
+|   |-- your_module_1
+|   +-- your_module_2
+|-- plugins
+|-- themes
+|   |-- default
+|   |   +-- templates
+|   |-- other_theme_1
+|   |   +-- templates
+|   +-- other_theme_2
+|       +-- templates
++-- ztemp
+&nbsp;   |-- cache
+&nbsp;   |-- error_log
+&nbsp;   +-- sessions
+</code></pre></div>
+
+<p>folder utama yang digunakan adalah folder <B>themes</B> dan <B>ztemp.</B>
+<br />Folder <B>themes</B> digunakan untuk menempatkan theme-theme anda. Sedangkan file layout html-nya sendiri ditempatkan di folder '<B>templates</B>', untuk css maupun javascriptnya boleh ditempatkan di folder 'templates' atau di luarnya.
+<br />Mengapa namanya 'ztemp', bukan 'temp' ? yaahh... sekedar agar selalui dibawah jika disort-by-alphabet :).
+</p>
+<p><br />Folder <B>config</B> digunakan untuk menyimpan file configurasi config.json, sementara ini diwajibkan diletakkan di folder ini.
+<br />Folder <B>files</B> masih merupakan opsional, mungkin suatu saat developer bisa menggunakan folder ini untuk menyimpan file, misal gallery foto dan sebagainya.
+</p>
+<p>
+Beberapa aplikasi akan mungkin mempunyai beberapa module yang masing-masing memiliki page-layout-nya sendiri. Dan dengan adanya folder <B>modules</B>, hal tersebut sangat dimungkinkan.
+<br /><b>Sebagai contoh adalah halaman ini sendiri</b>. Halaman ini merupakan bagian dari module '<b>docs</b>', dan masing sub halamannya mengambil file-file template dari folder '<B>modules/docs/*</B>'.
+<div class="bs-callout bs-callout-warning">Silahkan lihat catatan di bagian kanan bawah halaman ini</div>
+</p>
+
+<H3>Pascal Directory Structure</H3>
+<p>Dan struktur direktori dari code pascal yang direkomendasikan dari fastplaz sendiri adalah seperti berikut</p>
+<div class="highlight"><pre>
+<code class="bash">fastplaz
++-- src
+    |-- app
+    |   |-- your_app_1
+    |   |   +-- models
+    |   +-- your_app_2
+    |-- library
+    +-- systems
+</code></pre></div>
+
+
+<div class="highlight pull-right"><pre>
+<code class="bash">controller file: src/systems/docs_controller.pas
+html template  : module/docs/structure.html
+layout theme   : themes/{$theme}/templates/master.html
+</code></pre></div>

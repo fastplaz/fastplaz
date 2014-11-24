@@ -51,6 +51,7 @@ type
 function i2s(pI: integer): string;
 function s2i(pS: string): integer;
 function f2s(n: extended): string;
+function s2f(pS: string): extended;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -118,12 +119,22 @@ begin
   end;
 end;
 
+function s2f(pS: string): extended;
+begin
+  Result := 0;
+  try
+    Result := StrToFloat( pS);
+  except
+  end;
+end;
+
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
 var
   i: integer;
   s: string;
 begin
   i := 0;
+  s := '';
   for i := 0 to lst.Count - 1 do
   begin
     s := s + sep + prefix + lst[i] + suffix;

@@ -183,7 +183,6 @@ end;
 function THTMLUtil.getCsrfTokenHtml: string;
 var
   key: string;
-  token: string;
 begin
   key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormID);
   Result := #13'<input type="hidden" name="csrftoken" value="' + key +

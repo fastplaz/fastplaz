@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'Simple default Module';
+  rs_Mod_Default_Name = 'Module Generator - Simple';
   rs_Mod_Default_Description = 'Create FastPlaz simple module';
 
 type

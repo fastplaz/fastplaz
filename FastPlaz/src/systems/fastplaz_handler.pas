@@ -46,6 +46,7 @@ type
     module, modtype, func: string;
     sitename,
     slogan,
+    baseUrl,
     language,
     tempDir: string;
     theme_enable: boolean;
@@ -71,8 +72,7 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
-    FisJSON,
-    FCreateSession: boolean;
+    FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
 
     function GetBaseURL: string;
@@ -119,15 +119,21 @@ type
 
   TFastPlasAppandler = class(TComponent)
   private
+    FIsDisplayError: boolean;
     function GetURI: string;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property URI: string read GetURI;
+    property isDisplayError: boolean read FIsDisplayError write FIsDisplayError;
+
     function GetActiveModuleName(Arequest: TRequest): string;
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
+    procedure ExceptionHandler(Sender: TObject; E: Exception);
+    function Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -183,6 +189,7 @@ type
 procedure InitializeFastPlaz(Sender: TObject = nil);
 procedure Redirect(const URL: string);
 
+procedure DisplayError(const Message: string);
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
@@ -253,6 +260,7 @@ begin
 
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
   //AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
+  AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
@@ -265,6 +273,12 @@ begin
   AppData.tempDir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
   AppData.hitStorage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+
+  if AppData.baseUrl = '' then
+  begin
+    AppData.baseUrl := 'http://' + GetEnvironmentVariable('SERVER_NAME') +
+      ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
+  end;
 
   if AppData.hitStorage = 'file' then
     ThemeUtil.HitType := htFile;
@@ -300,6 +314,26 @@ procedure Redirect(const URL: string);
 begin
   Application.Response.SendRedirect(URL);
   Application.Response.SendResponse;
+end;
+
+
+procedure DisplayError(const Message: string);
+var
+  s : string;
+begin
+  FastPlasAppandler.isDisplayError:= TRUE;
+  if not AppData.theme_enable then
+  begin
+    die( Message);
+  end;
+
+  //buat format untuk error message
+  s := '<div class="box error">' + Message + '</div>';
+
+  Application.Response.Contents.Text := ThemeUtil.Render();;
+  Application.Response.Contents.Text := ReplaceAll( Application.Response.Contents.Text, ['{$maincontent}'], s);
+  Application.Response.SendContent;
+  Application.Terminate;
 end;
 
 procedure Debug(const Message: integer; const Key: string);
@@ -631,6 +665,7 @@ end;
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FIsDisplayError := False;
 end;
 
 destructor TFastPlasAppandler.Destroy;
@@ -721,6 +756,17 @@ begin
   begin
   end;
 
+end;
+
+procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
+begin
+  die(e.Message);
+
+end;
+
+function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+begin
+  Result := 'yeeee';
 end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):

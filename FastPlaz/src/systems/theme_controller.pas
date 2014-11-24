@@ -11,13 +11,21 @@ uses
     fgl,
   {$endif fpc_fullversion >= 20701}
   fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
-  RegExpr,
-  common, fastplaz_handler, sqldb,
+  RegExpr, sqldb,
+  common, fastplaz_handler, database_lib,
   Classes, SysUtils;
 
 const
-  __FOREACH_START = '{foreach([\.\$A-Za-z= ]+)}';
-  __FOREACH_END = '\{/foreach[\.\$A-Za-z0-9= ]+}';
+  // if use { ... }
+  //__FOREACH_START = '{foreach([\.\$A-Za-z= ]+)}';
+  //__FOREACH_END = '\{/foreach[\.\$A-Za-z0-9= ]+}';
+
+  __FOREACH_START = '\[foreach([\.\$A-Za-z0-9=_ ]+)\]';
+  __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
+
+  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ ]+)\]';
+  __CONDITIONAL_IF_END = '\[/if\]';
+
   __HITS_FILENAME = 'hits.log';
 
   __ERR_THEME_NOT_ENABLED = 'Using Theme''s features, but it is not enabled';
@@ -73,6 +81,8 @@ type
     FHTMLHead : THTMLHead;
     FTrimForce: boolean;
     FTrimWhiteSpace: boolean;
+    isRendering,
+    isRenderingModule : boolean;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
     function GetHitCount(const URL: String): integer;
@@ -97,12 +107,17 @@ type
     function LoadCache: string;
     procedure SaveCache(Content: string);
 
+    //-- [if ] processor
+    function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
+
+
     //-- foreach
     function ForeachProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
     function ForeachProcessor_Table( TagProcessor: TReplaceTagEvent; KeyName, Content: string):string;
     procedure ForeachProcessor_Table_TagController(Sender: TObject; const TagString: string;
       TagParams: TStringList; Out ReplaceText: string);
   public
+    isCleanTag : boolean;
     constructor Create;
     destructor Destroy; override;
     property ThemeName: string read GetThemeName write SetThemeName;
@@ -115,6 +130,7 @@ type
     property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
 
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
+    procedure TagCleaner(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
 
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
     property Hit[const URL: String]: integer read GetHitCount;
@@ -122,6 +138,7 @@ type
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
+    procedure Assign(const KeyName: string; Value:TSimpleModel);
     function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
     function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
@@ -209,10 +226,7 @@ end;
 function TThemeUtil.GetBaseURL: string;
 begin
   if FBaseURL = '' then begin
-    FBaseURL:= Config.GetValue( _SYSTEM_BASEURL, '');
-    if FBaseURL = '' then begin
-      FBaseURL:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-    end;
+    FBaseURL:= AppData.baseUrl;
   end;
   Result := FBaseURL;
 end;
@@ -252,6 +266,18 @@ end;
 procedure TThemeUtil.Assign(const KeyName: string; Value: string);
 begin
   FAssignVarStringMap.Values[KeyName] := Value;
+end;
+
+procedure TThemeUtil.Assign(const KeyName: string; Value: TSimpleModel);
+var
+  s : string;
+  i : integer;
+begin
+  for i:=0 to Value.Data.Fields.Count-1 do
+  begin
+    s := KeyName + '.' + Value.Data.Fields[i].FieldName;
+    FAssignVarStringMap.Values[s] := Value.Data.Fields[i].Value;
+  end;
 end;
 
 procedure TThemeUtil.SetThemeName(AValue: string);
@@ -308,6 +334,7 @@ var
   s : string;
 begin
   Result:=0;
+  s := '';
   if FHitType = htNone then Exit;
 
   case FHitType of
@@ -545,6 +572,21 @@ begin
   end;//- if AppData.cache_type = 'file' then
 end;
 
+function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
+begin
+  Result := Content;
+  with TRegExpr.Create do
+  begin
+    Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
+    if Exec( Content) then
+    begin
+      //Result := 'ada';
+    end;
+
+    Free;
+  end;
+end;
+
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
 var
@@ -666,12 +708,15 @@ end;
 constructor TThemeUtil.Create;
 begin
   FThemeExtension := '.html';
-  FStartDelimiter := '{';
-  FEndDelimiter := '}';
+  FStartDelimiter := '[';
+  FEndDelimiter := ']';
   FParamValueSeparator := '=';
   FTrimWhiteSpace := True;
   FTrimForce := False;
   FIsJSON := False;
+  isRendering := False;
+  isRenderingModule:= False;
+  isCleanTag:= False;
   assignVarMap := TAssignVarMap.Create;
   FAssignVarStringMap := TStringList.Create;
   FTagAssign_Variable := TStringList.Create;
@@ -723,11 +768,17 @@ begin
       ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
       FreeAndNil(tagstring_custom);
       Exit;
+    end
+    else
+    begin
+      ReplaceText:= '';
     end;
   end;
   // check from AssignVar - end
 
-  ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
+  // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
+   ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
+  //ReplaceText := '';
   if tagstring_custom.Count = 0 then Begin ReplaceText:= '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
@@ -762,17 +813,11 @@ begin
       ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
       end;
     '$themefullpath' : begin
-      ReplaceText:= Config.GetValue( _SYSTEM_BASEURL, '');
-      if ReplaceText = '' then begin
-        ReplaceText:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-      end;
+      ReplaceText := BaseURL;
       ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
       end;
     'themefullpath' : begin
-      ReplaceText:= Config.GetValue( _SYSTEM_BASEURL, '');
-      if ReplaceText = '' then begin
-        ReplaceText:= 'http://'+GetEnvironmentVariable('SERVER_NAME');
-      end;
+      ReplaceText := BaseURL;
       ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
       end;
     '$version' : begin
@@ -852,18 +897,29 @@ begin
   end;
 
   if FAssignVarStringMap.IndexOfName(TagString) <> -1 then
+  begin
     ReplaceText:=FAssignVarStringMap.Values[TagString];
+  end;
 
   ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
+
   FreeAndNil( tagstring_custom);
+end;
+
+procedure TThemeUtil.TagCleaner(Sender: TObject; const TagString: String; TagParams: TStringList; out
+  ReplaceText: String);
+begin
+  if Length(TagString) < 3 then Exit;
+  if TagString[1] = '$' then Exit;
+  ReplaceText:= StartDelimiter + TagString + EndDelimiter;
 end;
 
 function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent;
   TemplateFile: string; Cache: boolean; SubModule: boolean): string;
 var
-  template_filename, _ext, module_active, uri: string;
+  template_filename, _ext, module_active: string;
   templateEngine: TFPTemplate;
-  o, response_json : TJSONObject;
+  response_json : TJSONObject;
 begin
   if (not AppData.theme_enable) and (not Assigned(ThemeUtil)) then
   begin
@@ -930,6 +986,11 @@ begin
     else
       templateEngine.OnReplaceTag := TagProcessorAddress;
     Result := templateEngine.GetContent;
+
+    // clean tag
+    if isCleanTag then
+      Result := RenderFromContent( @TagCleaner, Result);
+
   except
     on e : Exception do
     begin
@@ -972,6 +1033,7 @@ var
   templateEngine: TFPTemplate;
   html: TStringList;
 begin
+  isRenderingModule:= True;
   html := TStringList.Create;
   //TemplateFile := 'themes/' + ThemeName + '/templates/' + TemplateFile;
   if FileExists(TemplateFile) then
@@ -987,6 +1049,9 @@ begin
     else
       html.Text := Content;
   end;
+
+  //-- proccess conditional if
+  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   //-- proccess foreach
   html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
@@ -1004,6 +1069,7 @@ begin
   Result := templateEngine.GetContent;
   FreeAndNil(templateEngine);
   FreeAndNil(html);
+  isRenderingModule:= False;
 end;
 
 procedure TThemeUtil.AddJS(const FileName: string);
