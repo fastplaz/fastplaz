@@ -84,7 +84,7 @@ type
     procedure Clear;
     procedure New;
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
-    function  Delete( Where:string=''):boolean;
+    function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
 
     procedure Next;
     procedure StartTransaction;
@@ -256,7 +256,7 @@ end;
 
 function TSimpleModel.GetRecordCount: Longint;
 begin
-  Result := 0;
+  Result := -1;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
 end;
@@ -540,13 +540,14 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
+  Data.UniDirectional:=False;
   Result := _queryOpen;
-  while not Data.EOF do begin Next; end;
+  Data.Last;
+  Data.First;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
     primaryKeyValue := Data.FieldByName( primaryKey).AsString;
   end;
-  Data.First;
 end;
 
 function TSimpleModel.FindFirst(const Where: array of string;
@@ -619,9 +620,9 @@ begin
   Result := false;
   if ((Data.Active) and (primaryKeyValue='')) then Exit;
   sSQL := TStringList.Create;
-  if Data.Active then
+  if Data.Active then Data.Close;
+  if Where <> '' then
   begin
-    Data.Close;
     sSQL.Add( 'UPDATE ' + TableName + ' SET ');
     for i:=0 to FGenFields.Count-1 do
     begin
@@ -641,7 +642,6 @@ begin
   end
   else
   begin //-- new data
-    //FGenValues.Text:= mysql_real_escape_string( FGenValues);
     sSQL.Add( 'INSERT INTO '+TableName+' (');
     s := Implode( FGenFields, ',');
     sSQL.Add( s);
@@ -652,7 +652,6 @@ begin
     sSQL.Add( ')');
   end;
 
-  die( sSQL.Text);
   try
     Data.SQL.Text:= sSQL.Text;
     for i:=0 to FieldValueMap.Count-1 do
@@ -675,28 +674,30 @@ begin
   FreeAndNil(sSQL);
 end;
 
-function TSimpleModel.Delete(Where: string): boolean;
+function TSimpleModel.Delete(Where: string; AutoCommit: boolean): boolean;
 var
-  sSQL : TStringList;
-  i : integer;
   s : string;
 begin
   Result := false;
-  sSQL := TStringList.Create;
+  if ((Where='') and (Data.Active)) then
+  begin
+    if RecordCount <> 1 then exit;
+  end;
   if Data.Active then
     Data.Close;
-
-  sSQL.Text := 'DELETE FROM ' + TableName + ' WHERE ';
+  s := 'DELETE FROM ' + TableName + ' WHERE ';
   if Where = '' then
   begin
-    sSQL.Text:= sSQL.Text + primaryKey + '=' + primaryKeyValue;
+    s:= s + primaryKey + '=' + primaryKeyValue;
   end
   else
   begin
-    sSQL.Text:= sSQL.Text + Where;
+    s := s + Where;
   end;
   try
+    Data.SQL.Text:= s;
     Data.ExecSQL;
+    if AutoCommit then Commit;
     Result := True;
   except
     on E: Exception do begin
@@ -704,10 +705,9 @@ begin
         LogUtil.add( E.Message);
         LogUtil.add( Data.SQL.Text);
       end;
-      die( e.Message);
+      DisplayError( 'DB:' + e.Message);
     end;
   end;
-  FreeAndNil(sSQL);
 end;
 
 procedure TSimpleModel.Next;
@@ -760,4 +760,18 @@ finalization
   FreeAndNil( DB_LibLoader);
 
 end.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -66,7 +66,7 @@ begin
     begin
       ContributorInfo := TStringList.Create;
       a('<h1>About <a href="' + _APP_URL + '">' + _APP + '</a></h1>');
-      a('<p>vesion: {$version}</p>');
+      a('<p>example vesion: [$version]</p>');
       a('<p>');
       a('<a href="http://www.fastplaz.com">Fastplaz</a> adalah satu satu web framework dengan menggunakan bahasa <a href="http://www.freepascal.org/" target="_blank">free pascal</a>.');
       a('<br>Dibuat sedemikian rupa sehingga requirement server yang diperlukan pun sederhana dan minimal,');

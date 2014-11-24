@@ -126,10 +126,10 @@ begin
     Add('<html>');
     Add('<head>');
     Add('  <title>FastPlaz - Generated Templates</title>');
-    Add('  <link rel="stylesheet" id="fastplaz-style-css"  href="{$themefullpath}/style/style.css" type="text/css" media="all" />');
+    Add('  <link rel="stylesheet" id="fastplaz-style-css"  href="[$themefullpath]/style/style.css" type="text/css" media="all" />');
     Add('</head>');
     Add('<body>');
-    Add('{$maincontent}');
+    Add('[$maincontent]');
     Add('</body>');
     Add('</html>');
     try
