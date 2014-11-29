@@ -41,7 +41,7 @@ type
 
 implementation
 
-uses theme_controller, common;
+uses theme_controller, common, config_lib;
 
 function JsonBeautifier(const str: string): string;
 var
@@ -164,7 +164,7 @@ begin
   ContentFile.LoadFromFile('config/config.json');
   ContentFile.Text := JsonBeautifier(ContentFile.Text);
   ContentFile.SaveToFile('config/config.json');
-  Config := TJSONConfig.Create(nil);
+  Config := TMyConfig.Create(nil);
   Config.Filename := 'config/config.json';
 
   // root .htaccess

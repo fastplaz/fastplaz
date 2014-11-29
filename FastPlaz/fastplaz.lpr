@@ -17,7 +17,7 @@ uses
   logutil_lib,
   html_lib, language_lib, versioninfo_lib, routes, initialize_controller,
   error_controller, docs_controller, session_controller, info_controller,
-module_controller;
+module_controller, config_lib;
 
 {$R *.res}
 

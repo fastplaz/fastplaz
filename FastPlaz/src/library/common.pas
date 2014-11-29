@@ -8,7 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
-  Classes, SysUtils, fastplaz_handler;
+  Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
   _APP = 'FastPlaz';
@@ -85,7 +85,7 @@ function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
 
 var
-  Config: TJSONConfig;
+  Config: TMyConfig;
 
 implementation
 
@@ -502,7 +502,7 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
-  Config := TJSONConfig.Create(nil);
+  Config := TMyConfig.Create(nil);
   Config.Filename := 'config/config.json';
 
 finalization

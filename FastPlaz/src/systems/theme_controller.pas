@@ -88,6 +88,7 @@ type
     function GetHitCount(const URL: String): integer;
     function GetThemeName: string;
     function GetActiveModuleName(Arequest: TRequest): string;
+    function getVarValue(const VariableName: string): variant;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetCacheTime(AValue: integer);
     procedure SetIsJSON(AValue: boolean);
@@ -135,6 +136,7 @@ type
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
     property Hit[const URL: String]: integer read GetHitCount;
     property HitType : THitType read FHitType write FHitType;
+    property VarValue[const VariableName: string]: variant read getVarValue;
 
     procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
@@ -300,6 +302,19 @@ end;
 function TThemeUtil.GetActiveModuleName(Arequest: TRequest): string;
 begin
   Result := FastPlasAppandler.GetActiveModuleName( Arequest);
+end;
+
+function TThemeUtil.getVarValue(const VariableName: string): variant;
+var
+  varname : string;
+  vartmp : TStrings;
+begin
+  vartmp := Explode( VariableName, '.');
+  varname := vartmp[0];
+  //die( varname);
+
+
+  FreeAndNil( vartmp);
 end;
 
 procedure TThemeUtil.AddHit(const URL: string);
@@ -573,6 +588,11 @@ begin
 end;
 
 function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
+var
+  parameter : TStrings;
+  condition,
+  html : string;
+  value1, value2 : variant;
 begin
   Result := Content;
   with TRegExpr.Create do
@@ -580,6 +600,20 @@ begin
     Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     if Exec( Content) then
     begin
+      parameter := Explode( Match[1], ' ');
+      if (parameter.Count <> 4) then
+      begin
+        FreeAndNil( parameter);
+        Exit;
+      end;
+      value1 := VarValue[ parameter[1]];
+      value2 := VarValue[ parameter[3]];
+      condition := parameter[2];
+
+      die( ForeachTable_Itemname);
+      //die( parameter[3]);
+
+      //die( condition);
       //Result := 'ada';
     end;
 
@@ -613,6 +647,12 @@ begin
           FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
         end;
       end;
+
+      //-- proccess conditional if
+      html := ConditionalIfProcessor( TagProcessor, html);
+
+      ForeachTable_Keyname := '';
+      ForeachTable_Itemname := '';
 
       html := StringReplace( Content, Match[0], html, [rfReplaceAll]);
 
@@ -1051,7 +1091,7 @@ begin
   end;
 
   //-- proccess conditional if
-  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
+  //html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   //-- proccess foreach
   html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
