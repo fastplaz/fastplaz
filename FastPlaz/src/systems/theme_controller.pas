@@ -309,10 +309,12 @@ var
   varname : string;
   vartmp : TStrings;
 begin
+  //TryStrToInt
   vartmp := Explode( VariableName, '.');
   varname := vartmp[0];
-  //die( varname);
+  die( varname);
 
+  pr( vartmp.Text);
 
   FreeAndNil( vartmp);
 end;
@@ -610,6 +612,8 @@ begin
       value2 := VarValue[ parameter[3]];
       condition := parameter[2];
 
+      pr( value1);
+      pr( value2);
       die( ForeachTable_Itemname);
       //die( parameter[3]);
 

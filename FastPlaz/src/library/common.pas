@@ -49,9 +49,9 @@ type
 
 
 function i2s(pI: integer): string;
-function s2i(pS: string): integer;
+function s2i(s: string): integer;
 function f2s(n: extended): string;
-function s2f(pS: string): extended;
+function s2f(s: string): extended;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -100,13 +100,10 @@ begin
   end;
 end;
 
-function s2i(pS: string): integer;
+function s2i(s: string): integer;
 begin
   Result := 0;
-  try
-    Result := StrToInt(pS);
-  except
-  end;
+  TryStrToInt(s,Result);
 end;
 
 function f2s(n: extended): string;
@@ -119,13 +116,10 @@ begin
   end;
 end;
 
-function s2f(pS: string): extended;
+function s2f(s: string): extended;
 begin
   Result := 0;
-  try
-    Result := StrToFloat( pS);
-  except
-  end;
+  TryStrToFloat(s,Result);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
