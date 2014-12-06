@@ -309,7 +309,6 @@ var
   varname : string;
   vartmp : TStrings;
 begin
-  //TryStrToInt
   vartmp := Explode( VariableName, '.');
   varname := vartmp[0];
   die( varname);
