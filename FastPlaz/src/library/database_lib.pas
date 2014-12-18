@@ -117,8 +117,16 @@ begin
   //s := ExpandFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
   // currentdirectory mesti dipindah
   s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
-  SetCurrentDir( ExtractFilePath( s));
+  if not SetCurrentDir( ExtractFilePath( s)) then
+  begin
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+  end;
   s := GetCurrentDir + DirectorySeparator + ExtractFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
+  if not FileExists( s) then
+  begin
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+  end;
+
 
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
     try
@@ -150,10 +158,11 @@ begin
   try
     DB_Connector.Open;
   except
-    on E: Exception do begin
+    on E: Exception do
+    begin
       if RedirecURL = '' then
       begin
-        DisplayError( 'Database Error'+E.Message)
+        DisplayError( 'Database Error '+E.Message)
       end
       else
         Redirect( RedirecURL);

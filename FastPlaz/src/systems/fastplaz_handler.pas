@@ -198,6 +198,7 @@ procedure Debug(const Sender: TObject; const Key: string = '');
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
 procedure echo(const Number: double);
+procedure pr( const Message: variant);
 
 var
   AppData: TMainData;
@@ -239,6 +240,14 @@ end;
 procedure echo(const Number: double);
 begin
   echo(FloatToStr(Number));
+end;
+
+procedure pr(const Message: variant);
+begin
+  echo( #13'<pre>');
+  echo( #13'');
+  echo( String(Message));
+  echo( #13'</pre>');
 end;
 
 procedure InitializeFastPlaz(Sender: TObject);
@@ -331,7 +340,9 @@ begin
   s := '<div class="box error">' + Message + '</div>';
 
   Application.Response.Contents.Text := ThemeUtil.Render();;
-  Application.Response.Contents.Text := ReplaceAll( Application.Response.Contents.Text, ['{$maincontent}'], s);
+  Application.Response.Contents.Text := ReplaceAll(
+    Application.Response.Contents.Text, [ ThemeUtil.StartDelimiter+'$maincontent'+ThemeUtil.EndDelimiter], s
+    );
   Application.Response.SendContent;
   Application.Terminate;
 end;

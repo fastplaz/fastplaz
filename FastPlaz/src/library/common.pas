@@ -8,7 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
-  Classes, SysUtils, fastplaz_handler;
+  Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
   _APP = 'FastPlaz';
@@ -44,14 +44,18 @@ const
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
+  OK = 'OK';
+
+  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library not exist (%s).';
+
 type
   TStringArray = array of string;
 
 
 function i2s(pI: integer): string;
-function s2i(pS: string): integer;
+function s2i(s: string): integer;
 function f2s(n: extended): string;
-function s2f(pS: string): extended;
+function s2f(s: string): extended;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -85,7 +89,7 @@ function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
 
 var
-  Config: TJSONConfig;
+  Config: TMyConfig;
 
 implementation
 
@@ -100,13 +104,10 @@ begin
   end;
 end;
 
-function s2i(pS: string): integer;
+function s2i(s: string): integer;
 begin
   Result := 0;
-  try
-    Result := StrToInt(pS);
-  except
-  end;
+  TryStrToInt(s,Result);
 end;
 
 function f2s(n: extended): string;
@@ -119,13 +120,10 @@ begin
   end;
 end;
 
-function s2f(pS: string): extended;
+function s2f(s: string): extended;
 begin
   Result := 0;
-  try
-    Result := StrToFloat( pS);
-  except
-  end;
+  TryStrToFloat(s,Result);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -502,7 +500,7 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
-  Config := TJSONConfig.Create(nil);
+  Config := TMyConfig.Create(nil);
   Config.Filename := 'config/config.json';
 
 finalization

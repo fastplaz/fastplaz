@@ -43,7 +43,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="21">
+    <Units Count="23">
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -154,6 +154,16 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="module_controller"/>
       </Unit20>
+      <Unit21>
+        <Filename Value="src\library\config_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="config_lib"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="src\library\mailer_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="mailer_lib"/>
+      </Unit22>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
