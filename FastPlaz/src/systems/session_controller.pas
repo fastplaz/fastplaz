@@ -254,7 +254,7 @@ begin
     end;
   end;
   FSessionDir := IncludeTrailingPathDelimiter(FSessionDir);
-  FSessionExtension := '';
+  FSessionExtension := '.ses';
   FSessionStarted := False;
   FSessionTerminated := False;
   FCached := False;

@@ -46,6 +46,8 @@ const
 
   OK = 'OK';
 
+  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library not exist (%s).';
+
 type
   TStringArray = array of string;
 
