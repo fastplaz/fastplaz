@@ -24,6 +24,7 @@ const
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
   __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ ]+)\]';
+  __CONDITIONAL_IF_VALUE = '([\.\$A-Za-z0-9=_ ]+)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
   __CONDITIONAL_IF_END = '\[/if\]';
 
   __HITS_FILENAME = 'hits.log';
@@ -110,6 +111,7 @@ type
 
     //-- [if ] processor
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
+    function conditionIsEqual( Value1, Value2: variant): boolean;
 
 
     //-- foreach
@@ -306,14 +308,44 @@ end;
 
 function TThemeUtil.getVarValue(const VariableName: string): variant;
 var
+  fieldname,
+  tmpvalue,
   varname : string;
   vartmp : TStrings;
+  i : integer;
+  f : double;
 begin
   vartmp := Explode( VariableName, '.');
-  varname := vartmp[0];
-  die( varname);
+  varname := trim(vartmp[0]);
+  tmpvalue := '';
+  if varname = '' then
+  begin
+    Result := 'variable '+varname+' not found.';
+    exit;
+  end;
 
-  pr( vartmp.Text);
+  // is var1 numeric ?
+  try
+    f := StrToFloat( varname);
+    Result := f;
+    Exit;
+  except
+  end;
+
+  // check from foreach-storage first
+  try
+    if assignVarMap[ ForeachTable_Keyname] <> nil then
+    begin
+      fieldname:= vartmp[1];
+      tmpvalue := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(fieldname).AsString;
+      Result := tmpvalue;
+    end;
+  except
+    on e: Exception do
+    begin
+      die( 'getVarValue: ' + e.Message);
+    end;
+  end;
 
   FreeAndNil( vartmp);
 end;
@@ -592,36 +624,57 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
 var
   parameter : TStrings;
   condition,
+  s,
   html : string;
   value1, value2 : variant;
 begin
+  s := '';
   Result := Content;
   with TRegExpr.Create do
   begin
-    Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
+    //Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
+    // \[if([\.\$A-Za-z_0-9=\ ]+)\]([a-z]+)(\[else\])?([a-z]+)\[/if\]
+    Expression := Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     if Exec( Content) then
     begin
       parameter := Explode( Match[1], ' ');
-      if (parameter.Count <> 4) then
+      if (parameter.Count < 4) then
       begin
         FreeAndNil( parameter);
         Exit;
       end;
+
       value1 := VarValue[ parameter[1]];
       value2 := VarValue[ parameter[3]];
       condition := parameter[2];
 
-      pr( value1);
-      pr( value2);
-      die( ForeachTable_Itemname);
-      //die( parameter[3]);
+      if condition = '=' then condition := 'eq';
+      case condition of
+        'eq':
+          begin
+            if conditionIsEqual( value1, value2) then
+              s := Match[2]
+            else
+              s := Match[4];
+            Result := StringReplace( Content, Match[0], s, [rfReplaceAll]);
+          end;
 
-      //die( condition);
-      //Result := 'ada';
+        // development: lt, gt
+
+      end;
+      //die( Content);
+
     end;
 
     Free;
   end;
+end;
+
+function TThemeUtil.conditionIsEqual(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 = Value2 then
+    Result := True;
 end;
 
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
@@ -652,7 +705,7 @@ begin
       end;
 
       //-- proccess conditional if
-      html := ConditionalIfProcessor( TagProcessor, html);
+      //html := ConditionalIfProcessor( TagProcessor, html);
 
       ForeachTable_Keyname := '';
       ForeachTable_Itemname := '';
@@ -699,6 +752,9 @@ begin
 
     html := RenderFromContent(@TagController, html);
 
+    //-- proccess conditional if
+    html := ConditionalIfProcessor( TagProcessor, html);
+
     TSQLQuery( assignVarMap[KeyName]^).Next;
   end;
   Result := html;
@@ -744,7 +800,9 @@ begin
     );
   end
   else
+  begin
     ReplaceText:= TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+  end;
   FreeAndNil( tagstring_custom);
 end;
 

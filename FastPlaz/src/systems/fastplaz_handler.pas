@@ -340,7 +340,9 @@ begin
   s := '<div class="box error">' + Message + '</div>';
 
   Application.Response.Contents.Text := ThemeUtil.Render();;
-  Application.Response.Contents.Text := ReplaceAll( Application.Response.Contents.Text, ['{$maincontent}'], s);
+  Application.Response.Contents.Text := ReplaceAll(
+    Application.Response.Contents.Text, [ ThemeUtil.StartDelimiter+'$maincontent'+ThemeUtil.EndDelimiter], s
+    );
   Application.Response.SendContent;
   Application.Terminate;
 end;

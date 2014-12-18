@@ -44,6 +44,8 @@ const
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
+  OK = 'OK';
+
 type
   TStringArray = array of string;
 

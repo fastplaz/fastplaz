@@ -150,10 +150,11 @@ begin
   try
     DB_Connector.Open;
   except
-    on E: Exception do begin
+    on E: Exception do
+    begin
       if RedirecURL = '' then
       begin
-        DisplayError( 'Database Error'+E.Message)
+        DisplayError( 'Database Error '+E.Message)
       end
       else
         Redirect( RedirecURL);
