@@ -170,10 +170,10 @@ type
 
   TSESSION = class
   private
-    function GetValue(variable: string): string;
-    procedure SetValue(variable: string; AValue: string);
+    function GetValue(variable: string): variant;
+    procedure SetValue(variable: string; AValue: variant);
   public
-    property Values[variable: string]: string read GetValue write SetValue; default;
+    property Values[variable: string]: variant read GetValue write SetValue; default;
     function ReadDateTime(const variable: string): TDateTime;
   end;
 
@@ -436,12 +436,12 @@ end;
 
 { TSESSION }
 
-function TSESSION.GetValue(variable: string): string;
+function TSESSION.GetValue(variable: string): variant;
 begin
   Result := SessionController[variable];
 end;
 
-procedure TSESSION.SetValue(variable: string; AValue: string);
+procedure TSESSION.SetValue(variable: string; AValue: variant);
 begin
   SessionController[variable] := AValue;
 end;

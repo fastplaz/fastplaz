@@ -136,8 +136,14 @@ end;
 procedure TSessionController.DeleteIniFile;
 begin
   try
-    DeleteFile(FSessionDir + FSessionID + FSessionExtension);
+    if DeleteFile(FSessionDir + FSessionID + FSessionExtension) then
+    begin
+      FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
+    end;
   except
+    on e: Exception do
+    begin
+    end;
   end;
 end;
 
@@ -307,6 +313,7 @@ end;
 
 procedure TSessionController.EndSession;
 begin
+  FIniFile.EraseSection(_SESSION_DATA);
   DeleteIniFile;
   FreeAndNil(FIniFile);
   FSessionTerminated := True;
