@@ -140,9 +140,10 @@ type
     property HitType : THitType read FHitType write FHitType;
     property VarValue[const VariableName: string]: variant read getVarValue;
 
-    procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
+    procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:TSimpleModel);
+    procedure Assign(const KeyName: string; Value:TSQLQuery);
     function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
     function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
@@ -252,6 +253,11 @@ begin
   FIsJSON:=AValue;
 end;
 
+procedure TThemeUtil.Assign(const KeyName: string; Value: string);
+begin
+  FAssignVarStringMap.Values[KeyName] := Value;
+end;
+
 procedure TThemeUtil.Assign(const KeyName: string; const Address: pointer);
 begin
   if not Assigned(Address) then
@@ -267,20 +273,27 @@ begin
   end;
 end;
 
-procedure TThemeUtil.Assign(const KeyName: string; Value: string);
-begin
-  FAssignVarStringMap.Values[KeyName] := Value;
-end;
-
 procedure TThemeUtil.Assign(const KeyName: string; Value: TSimpleModel);
 var
   s : string;
   i : integer;
 begin
-  for i:=0 to Value.Data.Fields.Count-1 do
+  Assign( KeyName, Value.Data);
+end;
+
+procedure TThemeUtil.Assign(const KeyName: string; Value: TSQLQuery);
+var
+  s : string;
+  i : integer;
+begin
+  for i:=0 to Value.Fields.Count-1 do
   begin
-    s := KeyName + '.' + Value.Data.Fields[i].FieldName;
-    FAssignVarStringMap.Values[s] := Value.Data.Fields[i].Value;
+    s := KeyName + '.' + Value.Fields[i].FieldName;
+    try
+      FAssignVarStringMap.Values[s] := Value.Fields[i].Value;
+    except
+      FAssignVarStringMap.Values[s] := '';
+    end;
   end;
 end;
 

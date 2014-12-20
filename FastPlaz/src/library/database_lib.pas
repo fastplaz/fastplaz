@@ -124,9 +124,9 @@ begin
   s := GetCurrentDir + DirectorySeparator + ExtractFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
   if not FileExists( s) then
   begin
+    SetCurrentDir(ExtractFilePath(Application.ExeName));
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
   end;
-
 
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
     try
