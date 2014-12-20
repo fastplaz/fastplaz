@@ -140,8 +140,8 @@ type
     property HitType : THitType read FHitType write FHitType;
     property VarValue[const VariableName: string]: variant read getVarValue;
 
-    procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:string);
+    procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:TSimpleModel);
     function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
@@ -252,6 +252,11 @@ begin
   FIsJSON:=AValue;
 end;
 
+procedure TThemeUtil.Assign(const KeyName: string; Value: string);
+begin
+  FAssignVarStringMap.Values[KeyName] := Value;
+end;
+
 procedure TThemeUtil.Assign(const KeyName: string; const Address: pointer);
 begin
   if not Assigned(Address) then
@@ -267,11 +272,6 @@ begin
   end;
 end;
 
-procedure TThemeUtil.Assign(const KeyName: string; Value: string);
-begin
-  FAssignVarStringMap.Values[KeyName] := Value;
-end;
-
 procedure TThemeUtil.Assign(const KeyName: string; Value: TSimpleModel);
 var
   s : string;
@@ -280,7 +280,11 @@ begin
   for i:=0 to Value.Data.Fields.Count-1 do
   begin
     s := KeyName + '.' + Value.Data.Fields[i].FieldName;
-    FAssignVarStringMap.Values[s] := Value.Data.Fields[i].Value;
+    try
+      FAssignVarStringMap.Values[s] := Value.Data.Fields[i].Value;
+    except
+      FAssignVarStringMap.Values[s] := '';
+    end;
   end;
 end;
 
@@ -337,7 +341,7 @@ begin
     if assignVarMap[ ForeachTable_Keyname] <> nil then
     begin
       fieldname:= vartmp[1];
-      tmpvalue := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(fieldname).AsString;
+      tmpvalue := TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(fieldname).AsString;
       Result := tmpvalue;
     end;
   except
@@ -735,7 +739,7 @@ begin
   end;
 
   html := '';
-  while not TSQLQuery( assignVarMap[KeyName]^).EOF do
+  while not TSimpleModel( assignVarMap[KeyName]^).Data.EOF do
   begin
 
     tmp := RenderFromContent(@TagController, Content);
@@ -755,7 +759,7 @@ begin
     //-- proccess conditional if
     html := ConditionalIfProcessor( TagProcessor, html);
 
-    TSQLQuery( assignVarMap[KeyName]^).Next;
+    TSimpleModel( assignVarMap[KeyName]^).Data.Next;
   end;
   Result := html;
 end;
@@ -777,31 +781,31 @@ begin
   if tagstring_custom.Values['assignto'] <> '' then
   begin
     FTagAssign_Variable.Values[tagstring_custom.Values['assignto']]:='s|'
-      + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+      + TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(tagstring_custom.Values['index']).AsString;
   end;
   if tagstring_custom.Values['addassignto'] <> '' then
   begin
     if FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']] = '' then
     begin
       FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]:='s|'
-        + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        + TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(tagstring_custom.Values['index']).AsString;
     end
     else
     begin
       FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]:=
         FTagAssign_Variable.Values[tagstring_custom.Values['addassignto']]
-        + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        + TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(tagstring_custom.Values['index']).AsString;
     end;
   end;
   if tagstring_custom.Values['dateformat'] <> '' then
   begin
     ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
-      TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+      TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(tagstring_custom.Values['index']).AsDateTime
     );
   end
   else
   begin
-    ReplaceText:= TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    ReplaceText:= TSimpleModel( assignVarMap[ForeachTable_Keyname]^).Data.FieldByName(tagstring_custom.Values['index']).AsString;
   end;
   FreeAndNil( tagstring_custom);
 end;
