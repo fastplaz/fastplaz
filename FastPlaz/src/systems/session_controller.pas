@@ -138,7 +138,6 @@ begin
   try
     if DeleteFile(FSessionDir + FSessionID + FSessionExtension) then
     begin
-      FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
     end;
   except
     on e: Exception do
@@ -313,6 +312,7 @@ end;
 
 procedure TSessionController.EndSession;
 begin
+  FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
   FIniFile.EraseSection(_SESSION_DATA);
   DeleteIniFile;
   FreeAndNil(FIniFile);

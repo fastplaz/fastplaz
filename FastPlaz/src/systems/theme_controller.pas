@@ -47,6 +47,7 @@ type
   TAssignVarMap = specialize TStringHashMap<Pointer>;
   TTagCallbackMap = specialize TStringHashMap<TTagCallback>; // based on qtemplate
 
+  TRenderType = ( rtNone, rtSmarty, rtFPTemplate);
 
   { THTMLHead }
 
@@ -79,6 +80,7 @@ type
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
     FIsJSON: boolean;
     FThemeName, FThemeExtension: string;
+    FRenderType : TRenderType;
     FHTMLHead : THTMLHead;
     FTrimForce: boolean;
     FTrimWhiteSpace: boolean;
@@ -87,12 +89,14 @@ type
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
     function GetHitCount(const URL: String): integer;
+    function GetRenderType: TRenderType;
     function GetThemeName: string;
     function GetActiveModuleName(Arequest: TRequest): string;
     function getVarValue(const VariableName: string): variant;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetCacheTime(AValue: integer);
     procedure SetIsJSON(AValue: boolean);
+    procedure SetRenderType(AValue: TRenderType);
     procedure SetThemeName(AValue: string);
     procedure SetTrimForce(AValue: boolean);
     procedure SetTrimWhiteSpace(AValue: boolean);
@@ -129,6 +133,7 @@ type
     property EndDelimiter: string read FEndDelimiter write FEndDelimiter;
     property BaseURL : string Read GetBaseURL;
     property IsJSON:boolean read FIsJSON write SetIsJSON;
+    property RenderType : TRenderType read GetRenderType write SetRenderType;
     function GetVersionInfo():boolean;
     property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
 
@@ -251,6 +256,11 @@ procedure TThemeUtil.SetIsJSON(AValue: boolean);
 begin
   if FIsJSON=AValue then Exit;
   FIsJSON:=AValue;
+end;
+
+procedure TThemeUtil.SetRenderType(AValue: TRenderType);
+begin
+  FRenderType:= AValue;
 end;
 
 procedure TThemeUtil.Assign(const KeyName: string; Value: string);
@@ -410,6 +420,11 @@ begin
     end;
   end; // case FHitType of
 
+end;
+
+function TThemeUtil.GetRenderType: TRenderType;
+begin
+  Result := FRenderType;
 end;
 
 
@@ -839,6 +854,7 @@ begin
   FHitType := htNone;
   CacheTime := AppData.cacheTime; // default: 3 hours
   HTMLUtil := THTMLUtil.Create;
+  RenderType:= rtSmarty;
   ___TagCallbackMap := TTagCallbackMap.Create;
 end;
 
@@ -891,8 +907,7 @@ begin
   // check from AssignVar - end
 
   // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
-   ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
-  //ReplaceText := '';
+  ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   if tagstring_custom.Count = 0 then Begin ReplaceText:= '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
@@ -1052,7 +1067,6 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    //Result := Result + Format( __(__Err_App_Init), [Application.EnvironmentVariable['REQUEST_URI']+'/initialize/']);
     Result := Result + Format( __(__Err_App_Init), [FastPlasAppandler.URI+'/initialize/']);
     Exit;
   end;
@@ -1168,7 +1182,10 @@ begin
   //html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   //-- proccess foreach
-  html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
+  if RenderType = rtSmarty then
+  begin
+    html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
+  end;
 
   templateEngine := TFPTemplate.Create;
   templateEngine.Template := html.Text;
