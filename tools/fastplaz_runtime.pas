@@ -7,10 +7,9 @@ unit fastplaz_runtime;
 interface
 
 uses
-  fastplaz_runtime_register, fastplaz_handler, common, database_lib, html_lib, 
-  language_lib, logutil_lib, versioninfo_lib, docs_controller, 
-  error_controller, info_controller, initialize_controller, 
-  session_controller, theme_controller, about_controller;
+  fastplaz_runtime_register, fastplaz_handler, common, database_lib, html_lib, language_lib, logutil_lib, 
+  versioninfo_lib, docs_controller, error_controller, info_controller, initialize_controller, session_controller, 
+  theme_controller, module_controller, about_controller;
 
 implementation
 

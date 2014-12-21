@@ -7,15 +7,15 @@ interface
 uses
   fastplaz_handler, Classes, SysUtils;
 
-
 implementation
 
 uses about_controller, example_controller, docs_controller, info_controller;
 
 initialization
-  AddRoute('example', TExampleWebModule, false);
-  AddRoute('docs', TDocsModule);
-  AddRoute('info', TInfoModule);
+  Route.Add('example', TExampleWebModule, ALL, False);
+  Route.Add('docs', TDocsModule, GET);
+  Route.Add('info', TInfoModule);
 
 end.
+
 

@@ -24,7 +24,7 @@
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
       <RevisionNr Value="89"/>
-      <BuildNr Value="37"/>
+      <BuildNr Value="38"/>
       <StringTable Comments="Fast Plaz" CompanyName="Fast Plaz" FileDescription="Fast Plaz - web loader" LegalCopyright="FastPlaz" ProductName="FastPlaz" ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">
@@ -43,7 +43,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="20">
+    <Units Count="23">
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -149,6 +149,21 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="info_controller"/>
       </Unit19>
+      <Unit20>
+        <Filename Value="src\systems\module_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="module_controller"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="src\library\config_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="config_lib"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="src\library\mailer_lib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="mailer_lib"/>
+      </Unit22>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -171,6 +186,10 @@
       <CompilerMessages>
         <MsgFileName Value=""/>
       </CompilerMessages>
+      <ConfigFile>
+        <CustomConfigFile Value="True"/>
+        <ConfigFilePath Value="extra.cfg"/>
+      </ConfigFile>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>

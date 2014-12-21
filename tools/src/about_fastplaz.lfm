@@ -1,0 +1,185 @@
+object fAboutFastplaz: TfAboutFastplaz
+  Left = 406
+  Height = 340
+  Top = 160
+  Width = 378
+  BorderStyle = bsToolWindow
+  Caption = 'About'
+  ClientHeight = 340
+  ClientWidth = 378
+  KeyPreview = True
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  Position = poScreenCenter
+  UseDockManager = True
+  LCLVersion = '1.2.6.0'
+  object pnl_Button: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 300
+    Width = 366
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    OKButton.OnClick = OKButtonClick
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK]
+  end
+  object page: TPageControl
+    Left = 4
+    Height = 277
+    Top = 2
+    Width = 370
+    ActivePage = TabSheet1
+    TabIndex = 0
+    TabOrder = 1
+    TabPosition = tpBottom
+    object TabSheet1: TTabSheet
+      Caption = 'About'
+      ClientHeight = 249
+      ClientWidth = 362
+      object mem: TMemo
+        Left = 8
+        Height = 82
+        Top = 36
+        Width = 342
+        BorderStyle = bsNone
+        Font.Height = -15
+        Lines.Strings = (
+          'FastPlaz Plugin for Lazarus'
+          'create webbased app with Easy, Simple and Fast'
+          ''
+        )
+        ParentFont = False
+        ReadOnly = True
+        TabOrder = 0
+      end
+      object lbl_App: TLabel
+        Left = 10
+        Height = 29
+        Top = 4
+        Width = 136
+        AutoSize = False
+        Caption = 'FastPlaz'
+        Font.CharSet = ANSI_CHARSET
+        Font.Height = -20
+        Font.Name = 'Lucida Console'
+        Font.Pitch = fpFixed
+        Font.Quality = fqDraft
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lbl_URL: TLabel
+        Cursor = crHandPoint
+        Left = 10
+        Height = 18
+        Top = 122
+        Width = 198
+        AutoSize = False
+        Caption = 'http://www.fastplaz.com'
+        Font.Height = -15
+        ParentColor = False
+        ParentFont = False
+        OnClick = lbl_URLClick
+        OnMouseEnter = lbl_URLMouseEnter
+        OnMouseLeave = lbl_URLMouseLeave
+      end
+      object lbl_Version: TLabel
+        Left = 10
+        Height = 14
+        Top = 142
+        Width = 342
+        AutoSize = False
+        Caption = 'Version : 0.0.0 (build 000)'
+        Font.Height = -13
+        ParentColor = False
+        ParentFont = False
+      end
+      object lbl_URL1: TLabel
+        Cursor = crHandPoint
+        Left = 8
+        Height = 18
+        Top = 188
+        Width = 348
+        AutoSize = False
+        Caption = 'Expert with Your Finger'
+        Font.Height = -13
+        Font.Style = [fsBold]
+        ParentColor = False
+        ParentFont = False
+      end
+      object lbl_CodeName: TLabel
+        Left = 26
+        Height = 22
+        Top = 156
+        Width = 326
+        AutoSize = False
+        Caption = 'codename : Young Pledge'
+        Font.Height = -13
+        ParentColor = False
+        ParentFont = False
+      end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'Credit'
+      ClientHeight = 249
+      ClientWidth = 362
+      object mem1: TMemo
+        Left = 0
+        Height = 249
+        Top = 0
+        Width = 362
+        Align = alClient
+        BorderStyle = bsNone
+        Lines.Strings = (
+          '[+] Developer Team :'
+          'Luri Darmawan (KiOSS.com)'
+          'Agung Wicaksana ( KiOSS.com )'
+          'FastPlaz.Com'
+          ''
+          '[+] Special Credit :'
+          'see file "README - contributor.md"'
+          ''
+          '[+] Credit'
+          'all member of FastPlaz facebook '
+          'group'
+          ''
+          ''
+        )
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+    end
+    object TabSheet3: TTabSheet
+      Caption = 'Build'
+      ClientHeight = 249
+      ClientWidth = 362
+      object mem_build: TMemo
+        Left = 0
+        Height = 249
+        Top = 0
+        Width = 362
+        Align = alClient
+        BorderStyle = bsNone
+        Lines.Strings = (
+          'Build with:'
+          '- Lazarus'
+          ''
+          'Package with :'
+          '- FCL'
+          '- LCL'
+        )
+        ReadOnly = True
+        TabOrder = 0
+      end
+    end
+  end
+end

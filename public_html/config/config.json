@@ -1,26 +1,28 @@
 {
   "systems" : {
     "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
     "baseurl" : "",
     "admin_email" : "webmaster@yourfastplazdomain.com",
     "development" : true,
     "debug" : true,
     "module_default" : "main",
     "language_default" : "id",
+    "theme_enable" : true,
     "theme" : "default",
-    "error_redirect" : false,
     "cache" : "file",
     "temp" : "ztemp",
-    "error_url" : "\/"
+    "error_url" : "\/",
+    "error_redirect" : false
   },
   "database" : {
     "default" : {
-      "hostname" : "localhost",
       "driver" : "MySQL 5.0",
+      "hostname" : "localhost",
       "tabletype" : "myisam",
-      "username" : "your_username",
-      "password" : "your_password",
-      "database_name" : "your_database",
+      "username" : "root",
+      "password" : "root",
+      "database_name" : "mysql",
       "prefix" : "",
       "library" : "..\/libs\/win\/libmysql.dll"
     }

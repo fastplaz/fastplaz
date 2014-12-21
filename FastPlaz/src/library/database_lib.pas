@@ -1,24 +1,19 @@
 unit database_lib;
-{
 
-public function:
-- FieldLists
-- GetAll
-
-
-
-}
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  fpcgi, fphttp, db,
+  fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
   sqlite3conn, pqconnection,
-  Classes, SysUtils;
+  variants, Classes, SysUtils;
 
 type
+
+  generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
+  TFieldValueMap = specialize TStringHashMap<variant>;
 
   { TSimpleModel }
 
@@ -30,28 +25,44 @@ type
     FGroupField : string;
     FSelectField : string;
     FJoinList : TStrings;
+
+    primaryKeyValue : string;
+    FGenFields : TStringList;
+    function GetEOF: boolean;
     function GetRecordCount: Longint;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
     procedure DoBeforeOpen(DataSet: TDataSet);
 
+    function getFieldList_mysql: TStrings;
+    function getFieldList_sqlite: TStrings;
+    function getFieldList_postgresql: TStrings;
+
     function GetFieldList: TStrings;
-    function GetFieldValue( FieldName: String): TField;
-    procedure SetFieldValue( FieldName: String; AValue: TField);
+    function GetFieldValue( FieldName: String): Variant;
+    procedure SetFieldValue( FieldName: String; AValue: Variant);
   public
+    FieldValueMap : TFieldValueMap;
+    primaryKey : string;
     Data : TSQLQuery;
     StartTime, StopTime, ElapsedTime : Cardinal;
-    constructor Create( const DefaultTableName:string='');
+    constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
     property TableName : string Read FTableName write FTableName;
-    Property Value[ FieldName: String] : TField Read GetFieldValue Write SetFieldValue; default;
+    Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
+    property EOF: boolean read GetEOF;
 
+    function ParamByName(Const AParamName : String) : TParam;
+
+    function All:boolean;
     function GetAll:boolean;
     //function Get( where, order):boolean;
 
+    function Find( const KeyIndex:integer):boolean;
+    function Find( const KeyIndex:String):boolean;
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
@@ -62,6 +73,12 @@ type
 
     procedure GroupBy( const GroupField:string);
 
+    procedure Clear;
+    procedure New;
+    function  Save( Where:string='';AutoCommit:boolean=True):boolean;
+    function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
+
+    procedure Next;
     procedure StartTransaction;
     procedure ReStartTransaction;
     procedure Commit;
@@ -72,6 +89,9 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
+function  QueryOpenToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
+function  QueryExecToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
+function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray = nil):boolean;
 
 implementation
 
@@ -83,22 +103,39 @@ var
   DB_LibLoader : TSQLDBLibraryLoader;
 
 procedure DataBaseInit(const RedirecURL: string);
+var
+  s : string;
 begin
+  // currentdirectory mesti dipindah
+  s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
+  if not SetCurrentDir( ExtractFilePath( s)) then
+  begin
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+  end;
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
+  if not FileExists( s) then
+  begin
+    SetCurrentDir(ExtractFilePath(Application.ExeName));
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+  end;
+
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
-    DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
-    DB_LibLoader.LibraryName:= Config.GetValue( _DATABASE_LIBRARY, '');;
-    DB_LibLoader.Enabled:= True;
     try
+      DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
+      DB_LibLoader.LibraryName:= s;
+      DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
         if RedirecURL = '' then
-          Die( E.Message)
+          Die( 'Database Init: Load Library, '+E.Message)
         else
-          _Redirect( RedirecURL);
+          Redirect( RedirecURL);
       end;
     end;
   end;
+  // back to app directory
+  SetCurrentDir(ExtractFilePath(Application.ExeName));
 
   DB_Connector.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
   DB_Connector.ConnectorType := Config.GetValue( _DATABASE_DRIVER, '');
@@ -112,11 +149,98 @@ begin
   try
     DB_Connector.Open;
   except
-    on E: Exception do begin
+    on E: Exception do
+    begin
       if RedirecURL = '' then
-        Die( E.Message)
+      begin
+        DisplayError( 'Database Error '+E.Message)
+      end
       else
-        _Redirect( RedirecURL);
+        Redirect( RedirecURL);
+    end;
+  end;
+end;
+
+function QueryOpenToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+  data : TJSONArray;
+begin
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+
+  try
+    q.Open;
+    ResultJSON.Add( 'count', q.RowsAffected);
+    data := TJSONArray.Create();
+    DataToJSON( q, data);
+    ResultJSON.Add( 'data', data);
+    Result := True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', SQL);
+  {$endif}
+  FreeAndNil( q);
+end;
+
+function QueryExecToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+  try
+    q.ExecSQL;
+    DB_Connector.Transaction.Commit;
+    ResultJSON.Add( 'count', q.RowsAffected);
+    Result:=True;
+  except
+    on E: Exception do begin
+      ResultJSON.Add( 'msg', E.Message);
+    end;
+  end;
+  {$ifdef debug}
+  ResultJSON.Add( 'sql', SQL);
+  {$endif}
+  FreeAndNil(q);
+end;
+
+function DataToJSON(Data: TSQLQuery; out ResultJSON: TJSONArray): boolean;
+var
+  item : TJSONObject;
+  field_name : string;
+  i,j:integer;
+begin
+  Result:=False;
+  i:=1;
+  try
+    while not Data.EOF do
+    begin
+      item := TJSONObject.Create();
+      for j:=0 to Data.FieldCount-1 do
+      begin
+        field_name:= Data.FieldDefs.Items[j].Name;
+        item.Add(field_name, Data.FieldByName(field_name).AsString);
+      end;
+      ResultJSON.Add( item);
+      i:=i+1;
+      Data.Next;
+    end;
+    Result:=True;
+  except
+    on E: Exception do begin
+      die( E.Message);
     end;
   end;
 end;
@@ -132,16 +256,24 @@ end;
 
 function TSimpleModel.GetRecordCount: Longint;
 begin
-  Result := 0;
+  Result := -1;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
 end;
 
+function TSimpleModel.GetEOF: boolean;
+begin
+  Result := Data.EOF;
+end;
+
 function TSimpleModel._queryOpen: boolean;
 begin
+  Result := False;
   try
+    if Data.Active then Data.Close;
     Data.Open;
-    Result := True;
+    if Data.RecordCount > 0 then
+      Result := True;
   except
     on E: Exception do begin
       if AppData.debug then begin
@@ -169,47 +301,101 @@ begin
   StartTime:= _GetTickCount;
 end;
 
+function TSimpleModel.getFieldList_mysql: TStrings;
+begin
+  Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('Field').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('Field').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
+end;
+
+function TSimpleModel.getFieldList_sqlite: TStrings;
+begin
+  Data.SQL.Text:= 'PRAGMA table_info('+FTableName+');';
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('name').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('name').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
+end;
+
+function TSimpleModel.getFieldList_postgresql: TStrings;
+begin
+  Data.SQL.Text:= 'SELECT column_name as name FROM information_schema.columns WHERE table_name = ''' + FTableName + '''';
+  Data.Open;
+  FSelectField := '';
+  while not Data.Eof do begin
+    FFieldList.Add( FTableName + '.' +Data.FieldByName('name').AsString);
+    FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('name').AsString;
+    Data.Next;
+  end;
+  Data.Close;
+  FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
+  Result := FFieldList;
+end;
+
 function TSimpleModel.GetFieldList: TStrings;
+var
+  s : string;
 begin
   If Assigned(FFieldList) then begin
-
+    Result:=FFieldList;
   end else begin
+    Result := Nil;
     FFieldList:=TStringList.Create;
-
     if Data.Active then Data.Close;
-    Data.SQL.Text:= 'SHOW COLUMNS FROM ' + FTableName;
-    Data.Open;
-    FSelectField := '';
-    while not Data.Eof do begin
-      FFieldList.Add( FTableName + '.' +Data.FieldByName('Field').AsString);
-      FSelectField := FSelectField + ',' + FTableName + '.' + Data.FieldByName('Field').AsString;
-      Data.Next;
-    end;
-    FSelectField := Copy( FSelectField, 2, Length(FSelectField)-1);
-  end;
-  Result:=FFieldList;
 
+    //TODO: create auto query, depend on databasetype
+    s := lowercase(DB_Connector.ConnectorType);
+    if (Pos('mysql', s) > 0) then Result := getFieldList_mysql;
+    if (Pos('sqlite3', s) > 0) then Result := getFieldList_sqlite;
+    if (Pos('postgre', s) > 0) then Result := getFieldList_postgresql;
+  end;
 end;
 
-function TSimpleModel.GetFieldValue(FieldName: String): TField;
+function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
-  Result := Data.FieldByName( FieldName);
+  Result := Data.FieldByName( FieldName).AsVariant;
 end;
 
-procedure TSimpleModel.SetFieldValue( FieldName: String; AValue: TField);
+procedure TSimpleModel.SetFieldValue(FieldName: String; AValue: Variant);
 begin
-
+  if not Assigned( FGenFields) then
+  begin
+    FGenFields := TStringList.Create;
+    FGenFields := TStringList.Create;
+    FieldValueMap := TFieldValueMap.Create;
+  end;
+  FieldValueMap[FieldName] := AValue;
+  FGenFields.Add( FieldName);
 end;
 
-constructor TSimpleModel.Create(const DefaultTableName: string);
+constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
 var
   i : integer;
 begin
+  primaryKey := pPrimaryKey;
+  primaryKeyValue := '';
   FConnector := DB_Connector;
-  if DefaultTableName = '' then begin
-    for i:=2 to length( ToString)-1 do begin
-      if (ToString[i] in ['A'..'Z']) then begin
+  if DefaultTableName = '' then
+  begin
+    for i:=2 to length( ToString) do
+    begin
+      if (ToString[i] in ['A'..'Z']) then
+      begin
         if FTableName <> '' then
           FTableName := FTableName + '_' + LowerCase( ToString[i])
         else
@@ -218,13 +404,20 @@ begin
       else
         FTableName := FTableName + ToString[i];
     end;
+    FTableName:= copy( FTableName, 1, Length(FTableName)-6) + 's';
   end else
     FTableName:= DefaultTableName;
+  FTableName:= AppData.tablePrefix+FTableName;
+
+
   FJoinList := TStringList.Create;
   {$ifdef zeos}
-  sssss
+  still not supported
   {$else}
+  FGenFields := nil;
+  FieldValueMap := nil;
   Data := TSQLQuery.Create(nil);
+  Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
   Data.AfterOpen:= @DoAfterOpen;
   Data.BeforeOpen:= @DoBeforeOpen;
@@ -235,9 +428,20 @@ destructor TSimpleModel.Destroy;
 begin
   if Data.Active then Data.Close;
   FreeAndNil( FJoinList);
-  if Assigned( FFieldList) then
-    FreeAndNil( FFieldList);
+  if Assigned( FFieldList) then FreeAndNil( FFieldList);
+  if Assigned( FGenFields) then FreeAndNil( FGenFields);
+  if Assigned( FieldValueMap) then FreeAndNil( FieldValueMap);
   FreeAndNil( Data);
+end;
+
+function TSimpleModel.ParamByName(const AParamName: String): TParam;
+begin
+  Result := Data.ParamByName( AParamName);
+end;
+
+function TSimpleModel.All: boolean;
+begin
+  result := GetAll();
 end;
 
 {
@@ -252,6 +456,30 @@ begin
   Result := true;
 end;
 
+function TSimpleModel.Find(const KeyIndex: integer): boolean;
+var
+  s : string;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+  s := primaryKey + '=' + i2s( KeyIndex);
+  result := Find( [s], '');
+end;
+
+function TSimpleModel.Find(const KeyIndex: String): boolean;
+var
+  s : string;
+begin
+  if primaryKey = '' then
+  begin
+    Die( 'primayKey not defined');
+  end;
+  s := primaryKey + '=''' + KeyIndex + '''';
+  result := Find( [s], '');
+end;
+
 function TSimpleModel.Find(const Where: array of string; const Order: string;
   const Limit: integer; const CustomField: string): boolean;
 var
@@ -261,6 +489,8 @@ var
   _joinfield,
   _join : TStrings;
 begin
+  Clear;
+  primaryKeyValue := '';
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
@@ -310,7 +540,14 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
-  _queryOpen;
+  Data.UniDirectional:=False;
+  Result := _queryOpen;
+  Data.Last;
+  Data.First;
+  if (Data.RecordCount = 1) and (primaryKey <> '') then
+  begin
+    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+  end;
 end;
 
 function TSimpleModel.FindFirst(const Where: array of string;
@@ -362,6 +599,122 @@ begin
   FGroupField:= GroupField;
 end;
 
+procedure TSimpleModel.Clear;
+begin
+  New;
+end;
+
+procedure TSimpleModel.New;
+begin
+  if Assigned( FGenFields) then FGenFields.Clear;
+  if Assigned( FieldValueMap) then FieldValueMap.Clear;
+  primaryKeyValue:='';
+end;
+
+function TSimpleModel.Save(Where: string; AutoCommit: boolean): boolean;
+var
+  sSQL : TStringList;
+  i : integer;
+  s : string;
+begin
+  Result := false;
+  if ((Data.Active) and (primaryKeyValue='')) then Exit;
+  sSQL := TStringList.Create;
+  if Data.Active then Data.Close;
+  if Where <> '' then
+  begin
+    sSQL.Add( 'UPDATE ' + TableName + ' SET ');
+    for i:=0 to FGenFields.Count-1 do
+    begin
+      s := FGenFields[i]+'=:'+FGenFields[i];
+      if i <> FGenFields.Count-1 then s:= s + ',' ;
+      sSQL.Add( s);
+    end;
+
+    if Where <> '' then
+    begin
+      sSQL.Add( 'WHERE ' + Where);
+      primaryKeyValue:='';
+    end
+    else
+      sSQL.Add( 'WHERE ' + primaryKey + '=''' + primaryKeyValue + '''');
+
+  end
+  else
+  begin //-- new data
+    sSQL.Add( 'INSERT INTO '+TableName+' (');
+    s := Implode( FGenFields, ',');
+    sSQL.Add( s);
+    sSQL.Add( ') VALUES (');
+    s := Implode( FGenFields, ',', ':');
+    //s := Implode( FGenValues, ',', '''', '''');
+    sSQL.Add(s);
+    sSQL.Add( ')');
+  end;
+
+  try
+    Data.SQL.Text:= sSQL.Text;
+    for i:=0 to FieldValueMap.Count-1 do
+    begin
+      s := FieldValueMap.Keys[i];
+      Data.Params.ParamByName( FGenFields[i]).Value := FieldValueMap[s];
+    end;
+    Data.ExecSQL;
+    if AutoCommit then Commit;
+    Result := True;
+  except
+    on E: Exception do begin
+      if AppData.debug then begin
+        LogUtil.add( E.Message);
+        LogUtil.add( Data.SQL.Text);
+      end;
+      DisplayError( e.Message);
+    end;
+  end;
+  FreeAndNil(sSQL);
+end;
+
+function TSimpleModel.Delete(Where: string; AutoCommit: boolean): boolean;
+var
+  s : string;
+begin
+  Result := false;
+  if ((Where='') and (Data.Active)) then
+  begin
+    if RecordCount <> 1 then exit;
+  end;
+  if Data.Active then
+    Data.Close;
+  s := 'DELETE FROM ' + TableName + ' WHERE ';
+  if Where = '' then
+  begin
+    s:= s + primaryKey + '=' + primaryKeyValue;
+  end
+  else
+  begin
+    s := s + Where;
+  end;
+  try
+    Data.SQL.Text:= s;
+    Data.ExecSQL;
+    if AutoCommit then Commit;
+    Result := True;
+  except
+    on E: Exception do begin
+      if AppData.debug then begin
+        LogUtil.add( E.Message);
+        LogUtil.add( Data.SQL.Text);
+      end;
+      DisplayError( 'DB:' + e.Message);
+    end;
+  end;
+end;
+
+procedure TSimpleModel.Next;
+begin
+  Data.Next;
+end;
+
 procedure TSimpleModel.StartTransaction;
 begin
   DB_Transaction.StartTransaction;
@@ -407,4 +760,18 @@ finalization
   FreeAndNil( DB_LibLoader);
 
 end.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

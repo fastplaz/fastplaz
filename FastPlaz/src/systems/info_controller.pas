@@ -12,7 +12,7 @@ type
   { TInfoModule }
 
   TInfoModule = class(TMyCustomWebModule)
-    procedure DataModuleRequest(Sender: TObject; ARequest: TRequest; 
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
   public
@@ -24,30 +24,30 @@ implementation
 
 uses theme_controller, common;
 
-procedure TInfoModule.DataModuleRequest(Sender: TObject; ARequest: TRequest; 
-  AResponse: TResponse; var Handled: boolean);
-var
-  lst : TStringList;
-begin
-  lst := TStringList.Create;
-  Application.GetEnvironmentList(lst);
-
-  die('Your Server Info:<pre>'+lst.Text);
-
-  Response.Content := ThemeUtil.Render(@TagController);
-  Handled := True;
-end;
-
 constructor TInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
   CreateSession := True;
-  OnRequest := @DataModuleRequest;
+  OnRequest := @RequestHandler;
 end;
 
 destructor TInfoModule.Destroy;
 begin
   inherited Destroy;
+end;
+
+procedure TInfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
+var
+  lst: TStringList;
+begin
+  lst := TStringList.Create;
+  Application.GetEnvironmentList(lst);
+
+  die('<pre>Your Server Info:<br>' + lst.Text);
+
+  Response.Content := ThemeUtil.Render();
+  Handled := True;
 end;
 
 initialization

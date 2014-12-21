@@ -1,0 +1,29 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
+    "baseurl" : "",
+    "admin_email" : "webmaster@coba.com",
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
+    "theme_enable" : true,
+    "theme" : "default",
+    "cache" : "file",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "error_redirect" : false
+  },
+  "database" : {
+    "default" : {
+      "driver" : "MySQL 5.0",
+      "hostname" : "localhost",
+      "username" : "your_username",
+      "password" : "your_password",
+      "database_name" : "your_database",
+      "prefix" : "",
+      "library" : "..\/libs\/win\/libmysql.dll"
+    }
+  }
+}

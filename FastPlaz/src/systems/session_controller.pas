@@ -36,15 +36,15 @@ type
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
     function GetIsExpired: boolean;
-    function GetValue( variable: string): string;
+    function GetValue(variable: string): string;
     procedure SetSessionDir(AValue: string);
-    procedure SetValue( variable: string; AValue: string);
+    procedure SetValue(variable: string; AValue: string);
     procedure UpdateIniFile;
 
   public
     constructor Create();
     destructor Destroy; override;
-    property Values[ variable: string]: string read GetValue write SetValue; default;
+    property Values[variable: string]: string read GetValue write SetValue; default;
     property CookieID: string read FCookieID;
     property SessionID: string read FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
@@ -55,39 +55,40 @@ type
     procedure EndSession;
     procedure Terminate;
 
-    function ReadDateTime(const variable:string):TDateTime;
-    function ReadInteger(const variable:string):Integer;
+    function ReadDateTime(const variable: string): TDateTime;
+    function ReadInteger(const variable: string): integer;
 
     function _DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
   end;
 
 implementation
 
-uses logutil_lib;
+uses logutil_lib, common;
 
 //uses common; --- failed jk memasukkan common ke unit ini
 
 function AppendPathDelim(const Path: string): string;
 begin
-  if (Path<>'') and not (Path[length(Path)] in AllowDirectorySeparators) then
-    Result:=Path+PathDelim
+  if (Path <> '') and not (Path[length(Path)] in AllowDirectorySeparators) then
+    Result := Path + PathDelim
   else
-    Result:=Path;
+    Result := Path;
 end;
 
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 var
-  TempFilename: String;
-  s: String;
+  TempFilename: string;
+  s: string;
   fHandle: THANDLE;
 begin
-  Result:=false;
-  TempFilename:=SysUtils.GetTempFilename(AppendPathDelim(DirectoryName),'ztstperm');
-  fHandle:= FileCreate(TempFilename);
+  Result := False;
+  TempFilename := SysUtils.GetTempFilename(AppendPathDelim(DirectoryName), 'ztstperm');
+  fHandle := FileCreate(TempFilename);
   if (THandle(fHandle) <> feInvalidHandle) then
   begin
-    s:='WriteTest';
-    if FileWrite(fHandle,S[1],Length(S)) > 0 then Result := True;
+    s := 'WriteTest';
+    if FileWrite(fHandle, S[1], Length(S)) > 0 then
+      Result := True;
     FileClose(fHandle);
     DeleteFile(TempFilename);
   end;
@@ -135,8 +136,13 @@ end;
 procedure TSessionController.DeleteIniFile;
 begin
   try
-    DeleteFile(FSessionDir + FSessionID + FSessionExtension);
+    if DeleteFile(FSessionDir + FSessionID + FSessionExtension) then
+    begin
+    end;
   except
+    on e: Exception do
+    begin
+    end;
   end;
 end;
 
@@ -145,36 +151,40 @@ var
   L: TDateTime;
   T: integer;
 begin
-  L:=FIniFile.ReadDateTime(_SESSION_SESSION,_SESSION_KEYLAST,0);
-  T:=FIniFile.ReadInteger(_SESSION_SESSION,_SESSION_KEYTIMEOUT,FSessionTimeout);
-  Result:=(((Now-L)+TDateTimeEpsilon)*SecsPerDay)>T;
+  L := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
+  T := FIniFile.ReadInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
+  Result := (((Now - L) + TDateTimeEpsilon) * SecsPerDay) > T;
   if Result then
     FIniFile.EraseSection(_SESSION_DATA);
 end;
 
-function TSessionController.GetValue( variable: string): string;
+function TSessionController.GetValue(variable: string): string;
 begin
-  Result:='';
-  if (not FSessionStarted)or(FSessionTerminated)or(FIniFile=nil) then Exit;
-  Result:=FIniFile.ReadString(_SESSION_DATA,variable,'');
+  Result := '';
+  if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
+    Exit;
+  Result := FIniFile.ReadString(_SESSION_DATA, variable, '');
 end;
 
 procedure TSessionController.SetSessionDir(AValue: string);
 begin
-  if FSessionDir=AValue then Exit;
+  if FSessionDir = AValue then
+    Exit;
   //if not DirectoryExists(AValue) then Exit;
-  FSessionDir:=IncludeTrailingPathDelimiter(AValue);
+  FSessionDir := IncludeTrailingPathDelimiter(AValue);
   try
     ForceDirectories(FSessionDir);
   except
   end;
 end;
 
-procedure TSessionController.SetValue( variable: string; AValue: string);
+procedure TSessionController.SetValue(variable: string; AValue: string);
 begin
-  if (not FSessionStarted)or(FSessionTerminated)or(FIniFile=nil) then Exit;
+  if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
+    Exit;
   try
-    FIniFile.WriteString(_SESSION_DATA,variable,AValue);
+    FIniFile.WriteString(_SESSION_DATA, variable, AValue);
+    UpdateIniFile;
   except
   end;
 end;
@@ -210,22 +220,29 @@ begin
   until OK;
 end;
 
-function TSessionController._DateTimeDiff(const ANow, AThen: TDateTime
-  ): TDateTime;
+function TSessionController._DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
 begin
-  Result:= ANow - AThen;
-  if (ANow>0) and (AThen<0) then
-    Result:=Result-0.5
-  else if (ANow<-1.0) and (AThen>-1.0) then
-    Result:=Result+0.5;
+  Result := ANow - AThen;
+  if (ANow > 0) and (AThen < 0) then
+    Result := Result - 0.5
+  else if (ANow < -1.0) and (AThen > -1.0) then
+    Result := Result + 0.5;
 end;
 
 constructor TSessionController.Create;
+var
+  lstr: TStrings;
 begin
   inherited Create();
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
-  FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
-    Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  FHttpCookie := StringReplace(FHttpCookie, ' ', '', [rfReplaceAll]);
+  //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
+  //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  lstr := Explode(FHttpCookie, ';');
+  FCookieID := lstr.Values['__cfduid'];
+  if FCookieID = '' then
+    FCookieID := MD5Print(MD5String(FHttpCookie));
+  FreeAndNil(lstr);
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   if FSessionDir <> '' then
@@ -242,8 +259,8 @@ begin
     except
     end;
   end;
-  FSessionDir:=IncludeTrailingPathDelimiter(FSessionDir);
-  FSessionExtension := '';
+  FSessionDir := IncludeTrailingPathDelimiter(FSessionDir);
+  FSessionExtension := '.ses';
   FSessionStarted := False;
   FSessionTerminated := False;
   FCached := False;
@@ -296,9 +313,11 @@ end;
 
 procedure TSessionController.EndSession;
 begin
+  FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
+  FIniFile.EraseSection(_SESSION_DATA);
   DeleteIniFile;
   FreeAndNil(FIniFile);
-  FSessionTerminated:=True;
+  FSessionTerminated := True;
 end;
 
 procedure TSessionController.Terminate;
@@ -308,18 +327,18 @@ end;
 
 function TSessionController.ReadDateTime(const variable: string): TDateTime;
 begin
-  Result:=0;
-  if (not FSessionStarted)or(FSessionTerminated)or(FIniFile=nil) then Exit;
-  Result:=FIniFile.ReadDateTime(_SESSION_DATA,variable,0);
+  Result := 0;
+  if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
+    Exit;
+  Result := FIniFile.ReadDateTime(_SESSION_DATA, variable, 0);
 end;
 
-function TSessionController.ReadInteger(const variable: string): Integer;
+function TSessionController.ReadInteger(const variable: string): integer;
 begin
-  Result:=0;
-  if (not FSessionStarted)or(FSessionTerminated)or(FIniFile=nil) then Exit;
-  Result:=FIniFile.ReadInteger(_SESSION_DATA,variable,0);
+  Result := 0;
+  if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
+    Exit;
+  Result := FIniFile.ReadInteger(_SESSION_DATA, variable, 0);
 end;
 
 end.
-
-
