@@ -1,13 +1,5 @@
 unit database_lib;
-{
 
-public function:
-- FieldLists
-- GetAll
-
-
-
-}
 {$mode objfpc}{$H+}
 
 interface
@@ -97,9 +89,9 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
-function  QueryOpen( SQL: string; out ResultJSON: TJSONObject): boolean;
-function  QueryExec( SQL: string; out ResultJSON: TJSONObject): boolean;
-function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray):boolean;
+function  QueryOpenToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
+function  QueryExecToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
+function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray = nil):boolean;
 
 implementation
 
@@ -114,7 +106,6 @@ procedure DataBaseInit(const RedirecURL: string);
 var
   s : string;
 begin
-  //s := ExpandFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
   // currentdirectory mesti dipindah
   s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
   if not SetCurrentDir( ExtractFilePath( s)) then
@@ -143,7 +134,7 @@ begin
       end;
     end;
   end;
-  // balikin currentdirectory
+  // back to app directory
   SetCurrentDir(ExtractFilePath(Application.ExeName));
 
   DB_Connector.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
@@ -170,7 +161,7 @@ begin
   end;
 end;
 
-function QueryOpen(SQL: string; out ResultJSON: TJSONObject): boolean;
+function QueryOpenToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
   data : TJSONArray;
@@ -200,7 +191,7 @@ begin
   FreeAndNil( q);
 end;
 
-function QueryExec(SQL: string; out ResultJSON: TJSONObject): boolean;
+function QueryExecToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
 begin
