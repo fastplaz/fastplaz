@@ -541,6 +541,7 @@ begin
   inherited CreateNew(AOwner, CreateMode);
   FCreateSession := False;
   FisJSON := False;
+  ActionVar := 'act';
   //_Initialize( self);
 end;
 
