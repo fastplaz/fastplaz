@@ -184,6 +184,7 @@ begin
     Exit;
   try
     FIniFile.WriteString(_SESSION_DATA, variable, AValue);
+    UpdateIniFile;
   except
   end;
 end;
