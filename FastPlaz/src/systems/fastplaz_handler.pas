@@ -132,7 +132,8 @@ type
     procedure OnGetModule(Sender: TObject; ARequest: TRequest;
       var ModuleClass: TCustomHTTPModuleClass);
     procedure ExceptionHandler(Sender: TObject; E: Exception);
-    function Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+    function Tag_InternalContent_Handler(const TagName: string;
+      Params: TStringList): string;
 
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
@@ -198,7 +199,7 @@ procedure Debug(const Sender: TObject; const Key: string = '');
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
 procedure echo(const Number: double);
-procedure pr( const Message: variant);
+procedure pr(const Message: variant);
 
 var
   AppData: TMainData;
@@ -244,10 +245,10 @@ end;
 
 procedure pr(const Message: variant);
 begin
-  echo( #13'<pre>');
-  echo( #13'');
-  echo( String(Message));
-  echo( #13'</pre>');
+  echo(#13'<pre>');
+  echo(#13'');
+  echo(string(Message));
+  echo(#13'</pre>');
 end;
 
 procedure InitializeFastPlaz(Sender: TObject);
@@ -321,28 +322,32 @@ end;
 
 procedure Redirect(const URL: string);
 begin
-  Application.Response.SendRedirect(URL);
-  Application.Response.SendResponse;
+  Application.Response.Content := '';
+  //Application.Response.SendRedirect(URL);
+  //Application.Response.SendResponse;
+  Application.Response.Location := URL;
+  Application.Response.SendHeaders;
 end;
 
 
 procedure DisplayError(const Message: string);
 var
-  s : string;
+  s: string;
 begin
-  FastPlasAppandler.isDisplayError:= TRUE;
+  FastPlasAppandler.isDisplayError := True;
   if not AppData.theme_enable then
   begin
-    die( Message);
+    die(Message);
   end;
 
   //buat format untuk error message
   s := '<div class="box error">' + Message + '</div>';
 
-  Application.Response.Contents.Text := ThemeUtil.Render();;
-  Application.Response.Contents.Text := ReplaceAll(
-    Application.Response.Contents.Text, [ ThemeUtil.StartDelimiter+'$maincontent'+ThemeUtil.EndDelimiter], s
-    );
+  Application.Response.Contents.Text := ThemeUtil.Render();
+  ;
+  Application.Response.Contents.Text :=
+    ReplaceAll(Application.Response.Contents.Text,
+    [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], s);
   Application.Response.SendContent;
   Application.Terminate;
 end;
@@ -536,6 +541,7 @@ begin
   inherited CreateNew(AOwner, CreateMode);
   FCreateSession := False;
   FisJSON := False;
+  ActionVar := 'act';
   //_Initialize( self);
 end;
 
@@ -775,7 +781,8 @@ begin
 
 end;
 
-function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
+  Params: TStringList): string;
 begin
   Result := 'yeeee';
 end;
