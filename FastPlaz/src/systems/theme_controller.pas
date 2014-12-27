@@ -11,7 +11,7 @@ uses
     fgl,
   {$endif fpc_fullversion >= 20701}
   fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
-  RegExpr, sqldb,
+  Regex, RegExpr, sqldb,
   common, fastplaz_handler, database_lib,
   Classes, SysUtils;
 
@@ -29,7 +29,7 @@ const
 
   __HITS_FILENAME = 'hits.log';
 
-  __ERR_THEME_NOT_ENABLED = 'Using Theme''s features, but it is not enabled';
+  __ERR_THEME_NOT_ENABLED = 'Using Theme''s features but it is not enabled. Check your config.json file.';
 
 type
 
@@ -102,6 +102,7 @@ type
     procedure SetTrimWhiteSpace(AValue: boolean);
     procedure AddHit( const URL:string);
 
+    function wpautop( Content:string; BR:boolean = true):string;
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
     function GetDebugInfo( DebugType:string):string;
@@ -400,6 +401,16 @@ begin
   end;// case FHitType of
 end;
 
+function TThemeUtil.wpautop(Content: string; BR: boolean): string;
+var
+  allblocks,
+  Value, Pattern, Replace: string;
+var
+  s : string;
+begin
+  Result := Content;
+end;
+
 function TThemeUtil.GetHitCount(const URL: String): integer;
 var
   s : string;
@@ -437,6 +448,7 @@ begin
     'nl2br' : begin
       Result := StringReplace( Content, #13#10, '<br>', [rfReplaceAll]);
     end;
+    'wpautop' : Result := wpautop( Content);
     'uppercase' : begin
       Result := UpperCase( Content);
     end;
@@ -929,7 +941,9 @@ begin
     'baseurl' : begin
       ReplaceText:= BaseURL;
       end;
-    '$theme' : begin
+    '$thisurl': FastPlasAppandler.URI;
+    'thisurl' : FastPlasAppandler.URI;
+    '$theme'  : begin
       ReplaceText:= ThemeName;
       end;
     'theme' : begin
@@ -943,11 +957,11 @@ begin
       end;
     '$themefullpath' : begin
       ReplaceText := BaseURL;
-      ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
+      ReplaceText:= ReplaceText + 'themes/' + ThemeUtil.ThemeName;
       end;
     'themefullpath' : begin
       ReplaceText := BaseURL;
-      ReplaceText:= ReplaceText + '/themes/' + ThemeUtil.ThemeName;
+      ReplaceText:= ReplaceText + 'themes/' + ThemeUtil.ThemeName;
       end;
     '$version' : begin
       GetVersionInfo();
@@ -980,6 +994,8 @@ begin
     'hit' : begin
       ReplaceText:= i2s( GetHitCount(''));
       end;
+    '$lang' : ReplaceText:= LANG;
+    'lang' : ReplaceText:= LANG;
 
 
     'assign' : begin
@@ -1018,7 +1034,7 @@ begin
   end;
 
   {$if fpc_fullversion >= 20701}
-  if FTagMap.Contains(tagname) then begin
+  if ___TagCallbackMap.Contains(tagname) then begin
   {$else fpc_fullversion >= 20701}
   if ___TagCallbackMap.IndexOf(tagname) >= 0 then begin
   {$endif fpc_fullversion >= 20701}

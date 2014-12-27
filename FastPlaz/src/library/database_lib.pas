@@ -106,6 +106,7 @@ procedure DataBaseInit(const RedirecURL: string);
 var
   s : string;
 begin
+  AppData.useDatabase := True;
   // currentdirectory mesti dipindah
   s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
   if not SetCurrentDir( ExtractFilePath( s)) then
@@ -148,12 +149,13 @@ begin
 
   try
     DB_Connector.Open;
+    AppData.databaseActive := True;
   except
     on E: Exception do
     begin
       if RedirecURL = '' then
       begin
-        DisplayError( 'Database Error '+E.Message)
+        DisplayError( 'Database Error: '+ E.Message)
       end
       else
         Redirect( RedirecURL);
@@ -591,7 +593,7 @@ begin
     else
       s := s + ','+FieldNameList[i];
   end;
-  FJoinList.Add( JointType + ' JOIN|'+JoinTable+'|'+JoinField+'|'+RefField+'|'+s);
+  FJoinList.Add( JointType + ' JOIN|'+AppData.tablePrefix+JoinTable+'|'+JoinField+'|'+AppData.tablePrefix+RefField+'|'+s);
 end;
 
 procedure TSimpleModel.GroupBy(const GroupField: string);
