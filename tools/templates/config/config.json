@@ -10,7 +10,7 @@
     "language_default" : "id",
     "theme_enable" : true,
     "theme" : "default",
-    "cache" : "file",
+    "cache" : "none",
     "temp" : "ztemp",
     "error_url" : "\/",
     "error_redirect" : false

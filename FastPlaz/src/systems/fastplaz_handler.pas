@@ -58,6 +58,8 @@ type
     SessionID: string;
     SessionDir: string;
     hitStorage: string;
+    databaseActive,
+    useDatabase,
     initialized,
     debug: boolean;
   end;
@@ -259,6 +261,8 @@ begin
   AppData.module := _GET['mod'];
   AppData.modtype := _GET['type'];
   AppData.func := _GET['func'];
+  AppData.useDatabase := False;
+  AppData.databaseActive := False;
   if AppData.modtype = '' then
     AppData.modtype := 'user';
   if AppData.func = '' then
@@ -269,7 +273,7 @@ begin
   end;
 
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
-  //AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
+  AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
@@ -340,14 +344,16 @@ begin
     die(Message);
   end;
 
-  //buat format untuk error message
-  s := '<div class="box error">' + Message + '</div>';
+  if (not AppData.useDatabase) or ( AppData.useDatabase and AppData.databaseActive) then
+  begin
+    Application.Response.Contents.Text := ThemeUtil.Render();
+    Application.Response.Contents.Text :=
+      ReplaceAll(Application.Response.Contents.Text,
+      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], s);
+  end else begin
+    Application.Response.Contents.Text := '<div class="box error">' + Message + '</div>';
+  end;
 
-  Application.Response.Contents.Text := ThemeUtil.Render();
-  ;
-  Application.Response.Contents.Text :=
-    ReplaceAll(Application.Response.Contents.Text,
-    [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], s);
   Application.Response.SendContent;
   Application.Terminate;
 end;
@@ -676,7 +682,8 @@ end;
 
 function TFastPlasAppandler.GetURI: string;
 begin
-  Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
+  //Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
+  Result := ThemeUtil.BaseURL;
 end;
 
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
