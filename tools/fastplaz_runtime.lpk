@@ -18,7 +18,7 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Files Count="18">
+    <Files Count="19">
       <Item1>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -57,41 +57,45 @@
         <UnitName Value="versioninfo_lib"/>
       </Item9>
       <Item10>
-        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
-        <UnitName Value="docs_controller"/>
+        <Filename Value="..\FastPlaz\src\library\mailer_lib.pas"/>
+        <UnitName Value="mailer_lib"/>
       </Item10>
       <Item11>
-        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
-        <UnitName Value="error_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
+        <UnitName Value="docs_controller"/>
       </Item11>
       <Item12>
-        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
-        <UnitName Value="info_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
+        <UnitName Value="error_controller"/>
       </Item12>
       <Item13>
-        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
-        <UnitName Value="initialize_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
+        <UnitName Value="info_controller"/>
       </Item13>
       <Item14>
-        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
-        <UnitName Value="session_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
+        <UnitName Value="initialize_controller"/>
       </Item14>
       <Item15>
-        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
-        <UnitName Value="theme_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
+        <UnitName Value="session_controller"/>
       </Item15>
       <Item16>
-        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
-        <UnitName Value="module_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
+        <UnitName Value="theme_controller"/>
       </Item16>
       <Item17>
-        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
-        <Type Value="LFM"/>
+        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
+        <UnitName Value="module_controller"/>
       </Item17>
       <Item18>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
+        <Type Value="LFM"/>
+      </Item18>
+      <Item19>
         <Filename Value="..\FastPlaz\src\app\about\about_controller.pas"/>
         <UnitName Value="about_controller"/>
-      </Item18>
+      </Item19>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>
