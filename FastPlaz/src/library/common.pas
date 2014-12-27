@@ -34,6 +34,7 @@ const
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
 
   _DATABASE_HOSTNAME = 'database/default/hostname';
+  _DATABASE_PORT = 'database/default/port';
   _DATABASE_DRIVER = 'database/default/driver';
   _DATABASE_TABLETYPE = 'database/default/tabletype';
   _DATABASE_USERNAME = 'database/default/username';
