@@ -21,10 +21,9 @@ type
     FFormID: string;
   private
     function GetFormID: string;
-    function setTag(const Tag: string; const Content: string;
-      const Options: array of string; EndTag: boolean = True): string;
-    function setTag(const Tag: string; const Content: string;
+    function setTag(const Tag: string; const Content: string; const Options: array of string;
       EndTag: boolean = True): string;
+    function setTag(const Tag: string; const Content: string; EndTag: boolean = True): string;
     function getCsrfTokenHtml: string;
   public
     constructor Create;
@@ -38,7 +37,7 @@ type
     function img(const ImageUrl: string): string;
     function AddForm(Options: array of string): string;
     function EndForm(): string;
-    function AddInput(Options: array of string; Mandatory:boolean=false): string;
+    function AddInput(Options: array of string; Mandatory: boolean = False): string;
     function AddField(TagName: string; Options: array of string): string;
     function AddButton(TagName: string; Options: array of string): string;
   end;
@@ -51,8 +50,7 @@ function Span(Content: string; StyleClass: string = ''): string;
 function Block(Content: string; StyleClass: string = ''; BlockID: string = ''): string;
 
 function StripTags(const Content: string): string;
-function StripTagsCustom(const Content: string; const TagStart: string;
-  const TagEnd: string): string;
+function StripTagsCustom(const Content: string; const TagStart: string; const TagEnd: string): string;
 function MoreLess(const Content: string; CharacterCount: integer = 100): string;
 
 var
@@ -118,20 +116,18 @@ var
 begin
   s := Content;
   while ((Pos('<', s) > 0) or (Pos('>', s) > 0)) do
-    s := StringReplace(s, copy(s, pos('<', s), pos('>', s) - pos('<', s) + 1),
-      '', [rfIgnoreCase, rfReplaceAll]);
+    s := StringReplace(s, copy(s, pos('<', s), pos('>', s) - pos('<', s) + 1), '', [rfIgnoreCase, rfReplaceAll]);
   Result := s;
 end;
 
-function StripTagsCustom(const Content: string; const TagStart: string;
-  const TagEnd: string): string;
+function StripTagsCustom(const Content: string; const TagStart: string; const TagEnd: string): string;
 var
   s: string;
 begin
   s := Content;
   while ((Pos(TagStart, s) > 0) or (Pos(TagEnd, s) > 0)) do
-    s := StringReplace(s, copy(s, pos(TagStart, s), pos(TagEnd, s) -
-      pos(TagStart, s) + 1), '', [rfIgnoreCase, rfReplaceAll]);
+    s := StringReplace(s, copy(s, pos(TagStart, s), pos(TagEnd, s) - pos(TagStart, s) + 1),
+      '', [rfIgnoreCase, rfReplaceAll]);
   Result := s;
 end;
 
@@ -152,8 +148,8 @@ begin
   Result := FFormID;
 end;
 
-function THTMLUtil.setTag(const Tag: string; const Content: string;
-  const Options: array of string; EndTag: boolean): string;
+function THTMLUtil.setTag(const Tag: string; const Content: string; const Options: array of string;
+  EndTag: boolean): string;
 var
   i: integer;
   s: string;
@@ -170,8 +166,7 @@ begin
   Result := s;
 end;
 
-function THTMLUtil.setTag(const Tag: string; const Content: string;
-  EndTag: boolean): string;
+function THTMLUtil.setTag(const Tag: string; const Content: string; EndTag: boolean): string;
 begin
   Result := '<' + Tag + '>' + Content;
   if EndTag then
@@ -185,8 +180,7 @@ var
   key: string;
 begin
   key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormID);
-  Result := #13'<input type="hidden" name="csrftoken" value="' + key +
-    '" id="FormCsrfToken_' + FormID + '" />';
+  Result := #13'<input type="hidden" name="csrftoken" value="' + key + '" id="FormCsrfToken_' + FormID + '" />';
 end;
 
 constructor THTMLUtil.Create;
@@ -232,8 +226,7 @@ end;
 function THTMLUtil.AddForm(Options: array of string): string;
 begin
   Result := setTag('form', '', Options, False);
-  Result := Result + '<input type="hidden" name="__formid" id="form__id" value="' +
-    GetFormID + '" />';
+  Result := Result + '<input type="hidden" name="__formid" id="form__id" value="' + GetFormID + '" />';
   Result := Result + getCsrfTokenHtml;
   Result := Result + '<div>';
   //todo: set session token
@@ -248,7 +241,7 @@ end;
 
 function THTMLUtil.AddInput(Options: array of string; Mandatory: boolean): string;
 begin
-  Result := setTag('input', '', Options, false);
+  Result := setTag('input', '', Options, False);
   if Mandatory then
     Result := Result + '<span class="form-mandatory-flag">*</span>';
 end;
