@@ -153,6 +153,7 @@ begin
 
   Config.SetValue(_DATABASE_DRIVER, 'MySQL 5.0');
   Config.SetValue(_DATABASE_HOSTNAME, 'localhost');
+  Config.SetValue(_DATABASE_PORT, '');
   Config.SetValue(_DATABASE_USERNAME, 'your_username');
   Config.SetValue(_DATABASE_PASSWORD, 'your_password');
   Config.SetValue(_DATABASE_DATABASENAME, 'your_database');

@@ -143,6 +143,8 @@ begin
   DB_Connector.UserName:= Config.GetValue( _DATABASE_USERNAME, 'root');
   DB_Connector.Password:= Config.GetValue( _DATABASE_PASSWORD, 'root');
   DB_Connector.DatabaseName:= Config.GetValue( _DATABASE_DATABASENAME, 'test');
+  if Config.GetValue( _DATABASE_PORT, '') <> '' then
+    DB_Connector.Params.Values['port'] := Config.GetValue( _DATABASE_PORT, '');;
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database
