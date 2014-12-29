@@ -14,10 +14,10 @@ type
 
   TMyConfig = class(TJSONConfig)
   private
-    function GetConfigValue(KeyName: string): variant;
-    procedure SetConfigValue(KeyName: string; AValue: variant);
+    function GetConfigValue(KeyName: widestring): variant;
+    procedure SetConfigValue(KeyName: widestring; AValue: variant);
   public
-    property Value[KeyName: string]: variant read GetConfigValue write SetConfigValue;
+    property Value[KeyName: widestring]: variant read GetConfigValue write SetConfigValue;
       default;
   end;
 
@@ -28,17 +28,17 @@ uses common;
 
 { TMyConfig }
 
-function TMyConfig.GetConfigValue(KeyName: string): variant;
+function TMyConfig.GetConfigValue(KeyName: widestring): variant;
 var
-  s: string;
+  s: widestring;
 begin
   s := GetValue(KeyName, '');
   Result := s;
 end;
 
-procedure TMyConfig.SetConfigValue(KeyName: string; AValue: variant);
+procedure TMyConfig.SetConfigValue(KeyName: widestring; AValue: variant);
 var
-  s: string;
+  s: widestring;
 begin
   s := AValue;
   SetValue(KeyName, s);

@@ -335,8 +335,6 @@ end;
 
 
 procedure DisplayError(const Message: string);
-var
-  s: string;
 begin
   FastPlasAppandler.isDisplayError := True;
   if not AppData.theme_enable then
@@ -349,7 +347,7 @@ begin
     Application.Response.Contents.Text := ThemeUtil.Render();
     Application.Response.Contents.Text :=
       ReplaceAll(Application.Response.Contents.Text,
-      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], s);
+      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], Message);
   end else begin
     Application.Response.Contents.Text := '<div class="box error">' + Message + '</div>';
   end;
@@ -412,7 +410,7 @@ end;
 procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
   Method: string; SkipStreaming: boolean);
 var
-  moduleName, s: string;
+  moduleName: string;
   pattern_url: TStrings;
   i: integer;
   mi: TModuleItem;
