@@ -215,6 +215,7 @@ end;
 
 function THTMLUtil.img(const ImageUrl: string; Options: array of string): string;
 begin
+  Result := '';
 end;
 
 function THTMLUtil.img(const ImageUrl: string): string;
@@ -248,12 +249,12 @@ end;
 
 function THTMLUtil.AddField(TagName: string; Options: array of string): string;
 begin
-
+  Result := '';
 end;
 
 function THTMLUtil.AddButton(TagName: string; Options: array of string): string;
 begin
-
+  Result := '';
 end;
 
 initialization

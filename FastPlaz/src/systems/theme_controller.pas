@@ -220,7 +220,7 @@ function TThemeUtil.GetThemeName: string;
 begin
   if FThemeName = '' then
   begin
-    FThemeName := Config.GetValue(_SYSTEM_THEME, 'default');
+    FThemeName := string( Config.GetValue(_SYSTEM_THEME, 'default'));
   end;
   Result := FThemeName;
 end;
@@ -285,9 +285,6 @@ begin
 end;
 
 procedure TThemeUtil.Assign(const KeyName: string; Value: TSimpleModel);
-var
-  s : string;
-  i : integer;
 begin
   Assign( KeyName, Value.Data);
 end;
@@ -336,7 +333,6 @@ var
   tmpvalue,
   varname : string;
   vartmp : TStrings;
-  i : integer;
   f : double;
 begin
   vartmp := Explode( VariableName, '.');
@@ -402,11 +398,6 @@ begin
 end;
 
 function TThemeUtil.wpautop(Content: string; BR: boolean): string;
-var
-  allblocks,
-  Value, Pattern, Replace: string;
-var
-  s : string;
 begin
   Result := Content;
 end;
@@ -664,8 +655,7 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
 var
   parameter : TStrings;
   condition,
-  s,
-  html : string;
+  s : string;
   value1, value2 : variant;
 begin
   s := '';
