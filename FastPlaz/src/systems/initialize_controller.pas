@@ -26,13 +26,11 @@ type
   { TInitializeModule }
 
   TInitializeModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
   private
     htaccess, ContentFile: TStringList;
     function InitializeApp: boolean;
-    function CreateDirCustom(const NewDir: string;
-      CreateHtaccess: boolean = False): boolean;
+    function CreateDirCustom(const NewDir: string; CreateHtaccess: boolean = False): boolean;
     function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
@@ -75,8 +73,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest;
-  AResponse: TResponse; var Handled: boolean);
+procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse;
+  var Handled: boolean);
 begin
   if FileExists('config/config.json') then
     Redirect(BaseURL);
@@ -143,8 +141,7 @@ begin
   // initialize configuration file
   Config.SetValue(_SYSTEM_SITENAME, _APP);
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
-  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'webmaster@' +
-    GetEnvironmentVariable('SERVER_NAME'));
+  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'webmaster@' + widestring(GetEnvironmentVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
   Config.SetValue(_SYSTEM_THEME_ENABLE, True);
@@ -153,6 +150,7 @@ begin
 
   Config.SetValue(_DATABASE_DRIVER, 'MySQL 5.0');
   Config.SetValue(_DATABASE_HOSTNAME, 'localhost');
+  Config.SetValue(_DATABASE_PORT, '');
   Config.SetValue(_DATABASE_USERNAME, 'your_username');
   Config.SetValue(_DATABASE_PASSWORD, 'your_password');
   Config.SetValue(_DATABASE_DATABASENAME, 'your_database');
@@ -201,8 +199,7 @@ begin
   Result := True;
 end;
 
-function TInitializeModule.CreateDirCustom(const NewDir: string;
-  CreateHtaccess: boolean): boolean;
+function TInitializeModule.CreateDirCustom(const NewDir: string; CreateHtaccess: boolean): boolean;
 begin
   try
     Result := ForceDirectories(NewDir);
@@ -215,8 +212,7 @@ begin
   end;
 end;
 
-function TInitializeModule.Tag_MainContent_Handler(const TagName: string;
-  Params: TStringList): string;
+function TInitializeModule.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
 begin
   Result := '<h1>FastPlaz</h1>Application Structure successfully generated !!!';
 end;

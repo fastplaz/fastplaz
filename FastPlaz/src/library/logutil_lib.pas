@@ -18,7 +18,7 @@ type
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
   public
-    Dir, FileName, FullName: string;
+    Dir, FileName, FullName: widestring;
     constructor Create;
     destructor Destroy; override;
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;

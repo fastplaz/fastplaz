@@ -89,9 +89,9 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
-function  QueryOpenToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
-function  QueryExecToJson( SQL: string; out ResultJSON: TJSONObject = nil): boolean;
-function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray = nil):boolean;
+function  QueryOpenToJson( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  QueryExecToJson( SQL: string; out ResultJSON: TJSONObject): boolean;
+function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray):boolean;
 
 implementation
 
@@ -108,12 +108,12 @@ var
 begin
   AppData.useDatabase := True;
   // currentdirectory mesti dipindah
-  s := GetCurrentDir + DirectorySeparator + Config.GetValue( _DATABASE_LIBRARY, '');
+  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( _DATABASE_LIBRARY, ''));
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName(Config.GetValue( _DATABASE_LIBRARY, ''));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( _DATABASE_LIBRARY, '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
@@ -122,7 +122,7 @@ begin
 
   if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
     try
-      DB_LibLoader.ConnectionType:= Config.GetValue( _DATABASE_DRIVER, '');
+      DB_LibLoader.ConnectionType:= string( Config.GetValue( _DATABASE_DRIVER, ''));
       DB_LibLoader.LibraryName:= s;
       DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
@@ -138,11 +138,13 @@ begin
   // back to app directory
   SetCurrentDir(ExtractFilePath(Application.ExeName));
 
-  DB_Connector.HostName:= Config.GetValue( _DATABASE_HOSTNAME, 'localhost');
-  DB_Connector.ConnectorType := Config.GetValue( _DATABASE_DRIVER, '');
-  DB_Connector.UserName:= Config.GetValue( _DATABASE_USERNAME, 'root');
-  DB_Connector.Password:= Config.GetValue( _DATABASE_PASSWORD, 'root');
-  DB_Connector.DatabaseName:= Config.GetValue( _DATABASE_DATABASENAME, 'test');
+  DB_Connector.HostName:= string( Config.GetValue( _DATABASE_HOSTNAME, 'localhost'));
+  DB_Connector.ConnectorType := string( Config.GetValue( _DATABASE_DRIVER, ''));
+  DB_Connector.UserName:= string( Config.GetValue( _DATABASE_USERNAME, 'root'));
+  DB_Connector.Password:= string( Config.GetValue( _DATABASE_PASSWORD, 'root'));
+  DB_Connector.DatabaseName:= string( Config.GetValue( _DATABASE_DATABASENAME, 'test'));
+  if Config.GetValue( _DATABASE_PORT, '') <> '' then
+    DB_Connector.Params.Values['port'] := string( Config.GetValue( _DATABASE_PORT, ''));
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database
