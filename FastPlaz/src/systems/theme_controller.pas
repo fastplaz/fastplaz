@@ -79,7 +79,7 @@ type
     FCacheTime: integer;
     FEndDelimiter, FStartDelimiter, FParamValueSeparator: string;
     FIsJSON: boolean;
-    FThemeName, FThemeExtension: string;
+    FThemeName, FLayout, FThemeExtension: string;
     FRenderType : TRenderType;
     FHTMLHead : THTMLHead;
     FTrimForce: boolean;
@@ -129,6 +129,7 @@ type
     constructor Create;
     destructor Destroy; override;
     property ThemeName: string read GetThemeName write SetThemeName;
+    property Layout: string read FLayout write FLayout;
     property Extension: string read FThemeExtension write FThemeExtension;
     property StartDelimiter: string read FStartDelimiter write FStartDelimiter;
     property EndDelimiter: string read FEndDelimiter write FEndDelimiter;
@@ -150,9 +151,9 @@ type
     procedure Assign(const KeyName: string; const Address: pointer = nil);
     procedure Assign(const KeyName: string; Value:TSimpleModel);
     procedure Assign(const KeyName: string; Value:TSQLQuery);
-    function Render(TagProcessorAddress: TReplaceTagEvent=nil; TemplateFile: string = '';
+    function Render(TagProcessorAddress: TReplaceTagEvent=nil; const LayoutTemplateFile: string = '';
       Cache: boolean = False; SubModule:boolean =false): string;
-    function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; Content: string;
+    function RenderFromContent(TagProcessorAddress: TReplaceTagEvent; const Content: string;
       TemplateFile: string = ''): string;
 
     property TrimWhiteSpace:boolean read FTrimWhiteSpace write SetTrimWhiteSpace;
@@ -428,7 +429,6 @@ function TThemeUtil.GetRenderType: TRenderType;
 begin
   Result := FRenderType;
 end;
-
 
 function TThemeUtil.FilterOutput(Content, Filter: string): string;
 begin
@@ -839,6 +839,7 @@ end;
 constructor TThemeUtil.Create;
 begin
   FThemeExtension := '.html';
+  FLayout := '';
   FStartDelimiter := '[';
   FEndDelimiter := ']';
   FParamValueSeparator := '=';
@@ -1049,10 +1050,10 @@ begin
   ReplaceText:= StartDelimiter + TagString + EndDelimiter;
 end;
 
-function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent;
-  TemplateFile: string; Cache: boolean; SubModule: boolean): string;
+function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent; const LayoutTemplateFile: string; Cache: boolean;
+  SubModule: boolean): string;
 var
-  template_filename, _ext, module_active: string;
+  templateFilename, _ext, moduleActive: string;
   templateEngine: TFPTemplate;
   response_json : TJSONObject;
 begin
@@ -1077,40 +1078,56 @@ begin
     Exit;
   end;
 
-  if TemplateFile <> '' then
+  templateFilename := LayoutTemplateFile;
+  if not SubModule then
+    if FLayout <> '' then templateFilename := trim(FLayout);
+  if templateFilename <> '' then
   begin
-    TemplateFile := StringReplace(TemplateFile, '"', '', [rfReplaceAll]);
-    TemplateFile := StringReplace(TemplateFile, '''', '', [rfReplaceAll]);
+    templateFilename := StringReplace( templateFilename, '"', '', [rfReplaceAll]);
+    templateFilename := StringReplace( templateFilename, '''', '', [rfReplaceAll]);
     _ext := FThemeExtension;
-    if ExtractFileExt(TemplateFile) <> '' then
+    if ExtractFileExt( templateFilename) <> '' then
       _ext := '';
-    template_filename := 'themes/' + ThemeName + '/templates/' + TemplateFile + _ext;
+    templateFilename := GetCurrentDir + DirectorySeparator + 'themes'
+      + DirectorySeparator + ThemeName
+      + DirectorySeparator + 'templates'
+      + DirectorySeparator + templateFilename+ _ext;
 
-    if not FileExists(template_filename) then
+    if not FileExists(templateFilename) then
     begin
-      Result := EchoError( __(__Err_Theme_Not_Exists), [TemplateFile, ThemeName]);
+      Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
       Exit;
     end;
   end
   else
   begin
-    module_active := GetActiveModuleName(Application.Request);
-    template_filename := Application.Request.QueryFields.Values['act'];
-    if template_filename = '' then
-      template_filename := 'master';
-    template_filename := 'themes/' + ThemeName + '/templates/modules/' + module_active +
-      '/' + template_filename + FThemeExtension;
-    if not FileExists(template_filename) then
-      template_filename := 'themes/' + ThemeName + '/templates/modules/' + module_active +
-        '/master' + FThemeExtension;
-    if not FileExists(template_filename) then
-      template_filename := 'themes/' + ThemeName + '/templates/master' + FThemeExtension;
+    moduleActive := GetActiveModuleName(Application.Request);
+    templateFilename := Application.Request.QueryFields.Values['act'];
+    if templateFilename = '' then
+      templateFilename := 'master';
+    templateFilename := GetCurrentDir + DirectorySeparator + 'themes'
+      + DirectorySeparator + ThemeName
+      + DirectorySeparator + 'templates'
+      + DirectorySeparator + 'modules'
+      + DirectorySeparator + moduleActive
+      + DirectorySeparator + templateFilename + FThemeExtension;
+    if not FileExists(templateFilename) then
+      templateFilename := GetCurrentDir + DirectorySeparator + 'themes'
+        + DirectorySeparator + ThemeName
+        + DirectorySeparator + 'templates'
+        + DirectorySeparator + 'modules'
+        + DirectorySeparator + moduleActive
+        + DirectorySeparator + 'master' + FThemeExtension;
+    if not FileExists(templateFilename) then
+      templateFilename := GetCurrentDir + DirectorySeparator + 'themes'
+          + DirectorySeparator + ThemeName
+          + DirectorySeparator + 'templates'
+          + DirectorySeparator + 'master' + FThemeExtension;
   end;
-
 
   try
     templateEngine := TFPTemplate.Create;
-    templateEngine.FileName := template_filename;
+    templateEngine.FileName := templateFilename;
     templateEngine.AllowTagParams := True;
     templateEngine.StartDelimiter := FStartDelimiter;
     templateEngine.EndDelimiter := FEndDelimiter;
@@ -1161,8 +1178,8 @@ begin
   FreeAndNil(templateEngine);
 end;
 
-function TThemeUtil.RenderFromContent(TagProcessorAddress: TReplaceTagEvent;
-  Content: string; TemplateFile: string): string;
+function TThemeUtil.RenderFromContent(TagProcessorAddress: TReplaceTagEvent; const Content: string; TemplateFile: string
+  ): string;
 var
   templateEngine: TFPTemplate;
   html: TStringList;

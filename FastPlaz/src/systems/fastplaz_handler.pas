@@ -21,7 +21,7 @@ resourcestring
   // theme
   __Err_App_Init =
     '<h3>This is the first time using fastplaz?</h3><a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
-  __Err_Theme_Not_Exists = 'file ''%s'' does not exist in theme ''%s''';
+  __Err_Theme_Not_Exists = 'file layout "%s" does not exist in theme "%s"';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
   __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
