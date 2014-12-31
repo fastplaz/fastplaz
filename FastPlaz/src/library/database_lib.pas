@@ -89,13 +89,13 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
-function  QueryOpenToJson( SQL: string; out ResultJSON: TJSONObject): boolean;
-function  QueryExecToJson( SQL: string; out ResultJSON: TJSONObject): boolean;
-function  DataToJSON( Data : TSQLQuery; out ResultJSON: TJSONArray):boolean;
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
 
 implementation
 
-uses common, fastplaz_handler, logutil_lib;
+uses common, config_lib, fastplaz_handler, logutil_lib;
 
 var
   DB_Connector : TSQLConnector;
@@ -165,7 +165,7 @@ begin
   end;
 end;
 
-function QueryOpenToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
   data : TJSONArray;
@@ -195,7 +195,7 @@ begin
   FreeAndNil( q);
 end;
 
-function QueryExecToJson(SQL: string; out ResultJSON: TJSONObject): boolean;
+function QueryExecToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
 begin
@@ -220,7 +220,7 @@ begin
   FreeAndNil(q);
 end;
 
-function DataToJSON(Data: TSQLQuery; out ResultJSON: TJSONArray): boolean;
+function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray): boolean;
 var
   item : TJSONObject;
   field_name : string;

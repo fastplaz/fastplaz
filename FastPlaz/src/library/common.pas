@@ -57,18 +57,17 @@ function i2s(pI: integer): string;
 function s2i(s: string): integer;
 function f2s(n: extended): string;
 function s2f(s: string): extended;
-function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
-  suffix: string = ''): string;
+function Implode(lst: TStringList; sep: string = ';'; prefix: string = ''; suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
 function SafeText(const SourceString: string): string;
-function ReplaceAll(const Subject: string;
-  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
-function ReplaceAll(const Subject: string; const OldPatterns: array of string;
-  NewPatterns: string; IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
+  IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
+  IgnoreCase: boolean = False): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
@@ -76,21 +75,23 @@ function DirectoryIsWritable(const DirectoryName: string): boolean;
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function HexToInt(HexStr: string): int64;
 
-function RandomString(PLen: Integer; PrefixString:string = ''): string;
+function RandomString(PLen: integer; PrefixString: string = ''): string;
 
+// php like function
+procedure echo(const Message: string);
+procedure echo(const Number: integer);
+procedure echo(const Number: double);
+procedure pr(const Message: variant);
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
 procedure Die(const Message: TStringList); overload;
 
-// php like function
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
-
-var
-  Config: TMyConfig;
+// php like function - end
 
 implementation
 
@@ -108,7 +109,7 @@ end;
 function s2i(s: string): integer;
 begin
   Result := 0;
-  TryStrToInt(s,Result);
+  TryStrToInt(s, Result);
 end;
 
 function f2s(n: extended): string;
@@ -124,7 +125,7 @@ end;
 function s2f(s: string): extended;
 begin
   Result := 0;
-  TryStrToFloat(s,Result);
+  TryStrToFloat(s, Result);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -204,8 +205,7 @@ begin
   if Pos('.', lst[0]) <> 0 then
   begin
     lst.Insert(0, Copy(lst[0], 1, Pos('.', lst[0]) - 1));
-    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) -
-      Pos('.', lst[1]));
+    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) - Pos('.', lst[1]));
   end;
 
   Result := lst;
@@ -235,8 +235,8 @@ begin
   Result := s;
 end;
 
-function ReplaceAll(const Subject: string;
-  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
+  IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   NewPattern: string;
@@ -256,8 +256,8 @@ begin
   end;
 end;
 
-function ReplaceAll(const Subject: string; const OldPatterns: array of string;
-  NewPatterns: string; IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
+  IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   I: integer;
@@ -272,6 +272,30 @@ begin
   end;
 end;
 
+procedure echo(const Message: string);
+begin
+  Application.Response.Contents.Text :=
+    trim(Application.Response.Contents.Text) + Message;
+end;
+
+procedure echo(const Number: integer);
+begin
+  echo(i2s(Number));
+end;
+
+procedure echo(const Number: double);
+begin
+  echo(FloatToStr(Number));
+end;
+
+procedure pr(const Message: variant);
+begin
+  echo(#13'<pre>');
+  echo(#13'');
+  echo(string(Message));
+  echo(#13'</pre>');
+end;
+
 procedure Die(const Number: integer);
 begin
   Die(i2s(Number));
@@ -282,17 +306,17 @@ begin
   Die('<pre>' + Message.Text + '</pre>');
 end;
 
-function RandomString(PLen: Integer; PrefixString: string): string;
+function RandomString(PLen: integer; PrefixString: string): string;
 var
-   str: string;
+  str: string;
 begin
-   Randomize;
-   //string with all possible chars
-   str    := PrefixString+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-   Result := '';
-   repeat
-     Result := Result + str[Random(Length(str)) + 1];
-   until (Length(Result) = PLen)
+  Randomize;
+  //string with all possible chars
+  str := PrefixString + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+  Result := '';
+  repeat
+    Result := Result + str[Random(Length(str)) + 1];
+  until (Length(Result) = PLen);
 end;
 
 procedure Die(const Message: string);
@@ -405,8 +429,7 @@ begin
   Result := RetVar;
 end;
 
-function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string;
-  Flags: TReplaceFlags): string;
+function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string; Flags: TReplaceFlags): string;
 var
   i: integer;
 begin
@@ -470,11 +493,9 @@ begin
     begin
       if EncodedStr[I] = '%' then
       begin
-        Result := Result + Chr(
-          HexToInt(EncodedStr[I + 1] + EncodedStr[I + 2]));
+        Result := Result + Chr(HexToInt(EncodedStr[I + 1] + EncodedStr[I + 2]));
         I := Succ(Succ(I));
       end
-
       else if EncodedStr[I] = '+' then
         Result := Result + ' '
       else

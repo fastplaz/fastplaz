@@ -7,6 +7,7 @@ interface
 
 uses
   sqldb, gettext, session_controller, module_controller,
+  config_lib,
   fpcgi, httpdefs, fpHTTP, fpWeb, webutil, custweb, dateutils,
   SysUtils, Classes;
 
@@ -21,7 +22,7 @@ resourcestring
   // theme
   __Err_App_Init =
     '<h3>This is the first time using fastplaz?</h3><a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
-  __Err_Theme_Not_Exists = 'file ''%s'' does not exist in theme ''%s''';
+  __Err_Theme_Not_Exists = 'file layout "%s" does not exist in theme "%s"';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
   __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
@@ -64,10 +65,9 @@ type
     debug: boolean;
   end;
 
-  TOnBlockController = procedure(Sender: TObject; FunctionName: string;
-    Parameter: TStrings; var ResponseString: string) of object;
-  TTagCallback = function(const ATagName: string;
-    AParams: TStringList): string of object;
+  TOnBlockController = procedure(Sender: TObject; FunctionName: string; Parameter: TStrings;
+    var ResponseString: string) of object;
+  TTagCallback = function(const ATagName: string; AParams: TStringList): string of object;
 
   { TMyCustomWebModule }
 
@@ -99,13 +99,11 @@ type
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
 
-    property Tags[const TagName: string]: TTagCallback read GetTag write SetTag;
-      default;
-    procedure TagController(Sender: TObject; const TagString: string;
-      TagParams: TStringList; Out ReplaceText: string);
+    property Tags[const TagName: string]: TTagCallback read GetTag write SetTag; default;
+    procedure TagController(Sender: TObject; const TagString: string; TagParams: TStringList;
+      Out ReplaceText: string);
     property BaseURL: string read GetBaseURL;
-    property OnBlockController: TOnBlockController
-      read FOnBlockController write FOnBlockController;
+    property OnBlockController: TOnBlockController read FOnBlockController write FOnBlockController;
 
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
@@ -131,11 +129,9 @@ type
     property isDisplayError: boolean read FIsDisplayError write FIsDisplayError;
 
     function GetActiveModuleName(Arequest: TRequest): string;
-    procedure OnGetModule(Sender: TObject; ARequest: TRequest;
-      var ModuleClass: TCustomHTTPModuleClass);
+    procedure OnGetModule(Sender: TObject; ARequest: TRequest; var ModuleClass: TCustomHTTPModuleClass);
     procedure ExceptionHandler(Sender: TObject; E: Exception);
-    function Tag_InternalContent_Handler(const TagName: string;
-      Params: TStringList): string;
+    function Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
 
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
@@ -185,8 +181,8 @@ type
   TRoute = class
   private
   public
-    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
-      Method: string = ''; SkipStreaming: boolean = True);
+    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string = '';
+      SkipStreaming: boolean = True);
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
@@ -197,14 +193,9 @@ procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
 
-// php like function
-procedure echo(const Message: string);
-procedure echo(const Number: integer);
-procedure echo(const Number: double);
-procedure pr(const Message: variant);
-
 var
   AppData: TMainData;
+  Config: TMyConfig;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
   ModUtil: TModUtil;
@@ -229,29 +220,6 @@ begin
   Result := mysql_real_escape_string(Value);
 end;
 
-procedure echo(const Message: string);
-begin
-  Application.Response.Contents.Text :=
-    trim(Application.Response.Contents.Text) + Message;
-end;
-
-procedure echo(const Number: integer);
-begin
-  echo(i2s(Number));
-end;
-
-procedure echo(const Number: double);
-begin
-  echo(FloatToStr(Number));
-end;
-
-procedure pr(const Message: variant);
-begin
-  echo(#13'<pre>');
-  echo(#13'');
-  echo(string(Message));
-  echo(#13'</pre>');
-end;
 
 procedure InitializeFastPlaz(Sender: TObject);
 begin
@@ -342,13 +310,15 @@ begin
     die(Message);
   end;
 
-  if (not AppData.useDatabase) or ( AppData.useDatabase and AppData.databaseActive) then
+  if (not AppData.useDatabase) or (AppData.useDatabase and AppData.databaseActive) then
   begin
     Application.Response.Contents.Text := ThemeUtil.Render();
     Application.Response.Contents.Text :=
-      ReplaceAll(Application.Response.Contents.Text,
-      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter], Message);
-  end else begin
+      ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter +
+      '$maincontent' + ThemeUtil.EndDelimiter], Message);
+  end
+  else
+  begin
     Application.Response.Contents.Text := '<div class="box error">' + Message + '</div>';
   end;
 
@@ -407,8 +377,8 @@ end;
 { TRoute }
 
 // SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
-procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
-  Method: string; SkipStreaming: boolean);
+procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
+  SkipStreaming: boolean);
 var
   moduleName: string;
   pattern_url: TStrings;
@@ -594,8 +564,8 @@ begin
   _SESSION['lang'] := LANG;
 end;
 
-procedure TMyCustomWebModule.TagController(Sender: TObject;
-  const TagString: string; TagParams: TStringList; out ReplaceText: string);
+procedure TMyCustomWebModule.TagController(Sender: TObject; const TagString: string;
+  TagParams: TStringList; out ReplaceText: string);
 begin
   ThemeUtil.TagController(Sender, TagString, TagParams, ReplaceText);
 end;
@@ -786,14 +756,12 @@ begin
 
 end;
 
-function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
-  Params: TStringList): string;
+function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
 begin
   Result := 'yeeee';
 end;
 
-function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
-TCustomHTTPModule;
+function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
 var
   i: integer;
 begin
