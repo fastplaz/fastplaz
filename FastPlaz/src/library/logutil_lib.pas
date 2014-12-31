@@ -18,11 +18,10 @@ type
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
   public
-    Dir, FileName, FullName: widestring;
+    Dir, FileName, FullName: WideString;
     constructor Create;
     destructor Destroy; override;
-    procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
-      URL: string = '');
+    procedure RegisterError(MessageString: string; psHttpCode: integer = 0; URL: string = '');
     procedure Add(const message: string);
   end;
 
@@ -30,6 +29,9 @@ var
   LogUtil: TLogUtil;
 
 implementation
+
+uses config_lib, fastplaz_handler;
+
 
 { TLogUtil }
 
@@ -77,8 +79,8 @@ begin
   try
     //Rewrite(log_file);
     Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) +
-      ' | ' + MessageString + ' | ' + i2s(psHttpCode) + ' | ' + URL
+    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + MessageString +
+      ' | ' + i2s(psHttpCode) + ' | ' + URL
       );
     CloseFile(log_file);
   except
@@ -108,6 +110,7 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
+
 
 
 

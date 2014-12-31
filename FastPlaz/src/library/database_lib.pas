@@ -95,7 +95,7 @@ function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
 
 implementation
 
-uses common, fastplaz_handler, logutil_lib;
+uses common, config_lib, fastplaz_handler, logutil_lib;
 
 var
   DB_Connector : TSQLConnector;

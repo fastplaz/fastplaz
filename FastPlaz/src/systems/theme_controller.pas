@@ -169,7 +169,7 @@ var
 
 implementation
 
-uses logutil_lib, language_lib, versioninfo_lib, html_lib,
+uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib,
   initialize_controller;
 
 var
