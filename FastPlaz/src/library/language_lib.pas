@@ -8,7 +8,7 @@ uses
   {$ifdef LCL}
   Translations,
   {$endif}
-  fastplaz_handler, fphttp, HTTPDefs,
+  fphttp, HTTPDefs,
   Classes, SysUtils;
 
 function __(str: string): string;
@@ -27,7 +27,7 @@ var
   i: integer;
 begin
   Result := str;
-  po_file := 'locale'+DirectorySeparator+'fastplaz.' + LANG + '.po';
+  po_file := 'locale' + DirectorySeparator + 'fastplaz.' + LANG + '.po';
   if not FileExists(po_file) then
     Exit;
 
