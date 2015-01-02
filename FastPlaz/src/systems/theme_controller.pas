@@ -398,9 +398,70 @@ begin
   end;// case FHitType of
 end;
 
+{
+Replaces double line-breaks with paragraph elements.
+
+ref:
+wordpress file "wp-includes/formation.php"
+}
 function TThemeUtil.wpautop(Content: string; BR: boolean): string;
+var
+  tmp : TStrings;
+  html : widestring;
 begin
-  Result := Content;
+  if trim( Content) = '' then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  html := #13 + Content + #13;
+
+  {
+  html := ' awal <p>ada paragrapbh</p>asddad'#10' asd ad ad.'#13#10'<br />  <br />aasdf'
+//    + #13'<blockquote>ini quote</blockquote>'#13#1
+    + '<ul><li>satu</li><li>dua</li></ul>'#13
+    + '<br />ganti baris.<br />asdadasd <P>paragraph</P>.'#13#10'adsa fsa.'#13#10'123 3453 3455.'#13#10'mulai table<table class="ab" style="xx"><td class=x><br />kolom</td></table>akhir';
+  html := #13 + html + #13;
+  ta( html);
+  }
+
+  tmp := Explode( html, '<pre');
+  if ((tmp.Count = 1) and ( Pos( '<pre', tmp.Strings[0])=0) ) then
+  begin
+    html := preg_replace( '\<br />\s*<br />', #13#13, html);
+    html := preg_replace( '(<'+__HTML_ALLBLOCK+'[^>]*>)', #13'$1', html);
+    html := preg_replace( '(</'+__HTML_ALLBLOCK+'[^>]*>)', '$1'#13#13, html);
+
+    //check : option, object, source
+
+    html := ReplaceAll( html, [ #10#13, #10], #13, True); // cross-platform newlines
+    html := preg_replace( #13'(.*?)'#13, '<p>$1</p>'#13, html);
+    html := preg_replace( '<p>\s*</p>', '', html);
+    html := preg_replace( '<p>\s*(</?'+__HTML_ALLBLOCK+'[^>]*>)', '$1', html);
+    html := preg_replace( '(</?'+__HTML_ALLBLOCK+'[^>]*>)\s*</p>', '$1', html);
+
+    // check: div, address, form, blockquote
+
+    if BR then
+    begin
+      html := preg_replace( '<br />', '<br />'#13, html);
+    end;
+
+    html := preg_replace( '(</?'+__HTML_ALLBLOCK+'[^>]*>)\s*<br />', '$1', html);
+    html := preg_replace( '(</?'+__HTML_ALLBLOCK+'[^>]*>)\s*</p>', '$1', html);
+    html := preg_replace( '<p>\s*</p>', '', html);
+
+    // check : br before p|li|div|dl|dd|dt|th|pre|td|ul|ol
+
+  end else
+  begin
+    Result := Content;
+    //todo: process if 'pre' exists
+  end;
+
+  FreeAndNil( tmp);
+  Result := html;
 end;
 
 function TThemeUtil.GetHitCount(const URL: String): integer;
