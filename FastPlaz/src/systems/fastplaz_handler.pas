@@ -284,8 +284,13 @@ begin
   //-- session
   if AppData.SessionDir <> '' then
     SessionController.SessionDir := AppData.SessionDir;
-  SessionController.StartSession;
-  SessionController.IsExpired;
+  if not SessionController.StartSession then
+  begin
+    //SessionController.EndSession;
+    //SessionController.StartSession;
+  end;
+  SessionController.TimeOut := Config.GetValue( _SYSTEM_SESSION_TIMEOUT, 0);;
+  //todo: auto clean-up session
   //-- session - end
 
   //-- language
