@@ -36,8 +36,10 @@ type
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
     function GetIsExpired: boolean;
+    function GetTimeOut: integer;
     function GetValue(variable: string): string;
     procedure SetSessionDir(AValue: string);
+    procedure SetTimeOut(AValue: integer);
     procedure SetValue(variable: string; AValue: string);
     procedure UpdateIniFile;
 
@@ -48,6 +50,7 @@ type
     property CookieID: string read FCookieID;
     property SessionID: string read FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
+    property TimeOut: integer read GetTimeOut write SetTimeOut;
 
     property IsExpired: boolean read GetIsExpired;
 
@@ -151,11 +154,21 @@ var
   L: TDateTime;
   T: integer;
 begin
+  Result := False;
   L := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
   T := FIniFile.ReadInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
-  Result := (((Now - L) + TDateTimeEpsilon) * SecsPerDay) > T;
-  if Result then
+  if T = 0 then
+    Exit;
+  if ( (((Now - L) + TDateTimeEpsilon) * SecsPerDay) > T ) then
+  begin
+    Result := True;
     FIniFile.EraseSection(_SESSION_DATA);
+  end;
+end;
+
+function TSessionController.GetTimeOut: integer;
+begin
+  Result := FSessionTimeout;
 end;
 
 function TSessionController.GetValue(variable: string): string;
@@ -176,6 +189,12 @@ begin
     ForceDirectories(FSessionDir);
   except
   end;
+end;
+
+procedure TSessionController.SetTimeOut(AValue: integer);
+begin
+  FSessionTimeout := AValue;
+  FIniFile.WriteInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
 end;
 
 procedure TSessionController.SetValue(variable: string; AValue: string);
