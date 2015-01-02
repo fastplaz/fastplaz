@@ -13,6 +13,8 @@ const
   __HTMLLIB_FORMID_LENGTH = 5;
   __HTMLLIB_FORMCSRFTOKEN_LENGTH = 12;
 
+  __HTML_ALLBLOCK = '(table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
+
 type
 
   { THTMLUtil }

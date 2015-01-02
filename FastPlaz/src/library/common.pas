@@ -8,6 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
+  RegExpr,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -82,6 +83,7 @@ procedure echo(const Message: string);
 procedure echo(const Number: integer);
 procedure echo(const Number: double);
 procedure pr(const Message: variant);
+procedure ta(const Message: variant; Width : integer = 800; Height : integer = 200);
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
 procedure Die(const Message: TStringList); overload;
@@ -91,6 +93,8 @@ function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
+
+function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
 // php like function - end
 
 implementation
@@ -294,6 +298,15 @@ begin
   echo(#13'');
   echo(string(Message));
   echo(#13'</pre>');
+end;
+
+procedure ta(const Message: variant; Width: integer; Height: integer);
+begin
+  if Width = 0 then Width := 800;
+  echo( #13'<textarea style="width: '+i2s(Width)+'px !important; height: '+i2s(Height)+'px !important;">');
+  echo( #13'');
+  echo( string(Message));
+  echo( #13'</textarea>');
 end;
 
 procedure Die(const Number: integer);
@@ -518,6 +531,20 @@ begin
       s[i + 1] := upcase(s[i + 1]);
   end;
   Result := trim(s);
+end;
+
+function preg_replace(const RegexExpression, ReplaceString, SourceString: string; UseSubstitution: boolean): string;
+begin
+  try
+    with TRegExpr.Create do
+    begin
+      Expression := RegexExpression;
+      Result := Replace( SourceString, ReplaceString, UseSubstitution);
+      Free;
+    end;
+  except
+    Result := SourceString;
+  end;
 end;
 
 initialization

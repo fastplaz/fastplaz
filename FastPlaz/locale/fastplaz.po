@@ -86,7 +86,7 @@ msgstr ""
 
 #: fastplaz_handler.__err_theme_not_exists
 msgctxt "fastplaz_handler.__err_theme_not_exists"
-msgid "file '%s' does not exist in theme '%s'"
+msgid "file layout \"%s\" does not exist in theme \"%s\""
 msgstr ""
 
 #: fastplaz_handler.__err_theme_tag_notimplemented

@@ -1,7 +1,7 @@
 unit mailer_lib;
 
 {$mode objfpc}{$H+}
-{$include define.inc}
+{$include ../../define.inc}
 
 interface
 
@@ -81,12 +81,12 @@ end;
 
 function TMailer.Send: boolean;
 begin
-
+  Result := True;
 end;
 
 function TMailer.getMailServer: string;
 begin
-
+  Result := '';
 end;
 
 function TMailer.getEmailFormat: string;
