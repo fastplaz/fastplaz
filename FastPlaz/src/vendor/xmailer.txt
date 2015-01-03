@@ -1,0 +1,3 @@
+ X-Mailer plugin.
+ Copyright (C) 2013 Silvio Clecio - silvioprog@gmail.com
+ https://github.com/silvioprog/xmailer/

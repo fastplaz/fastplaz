@@ -6,42 +6,57 @@ unit mailer_lib;
 interface
 
 uses
+  {$ifdef synapse}
+    {$ifdef xmailer}
+  xmailer,
+    {$endif}
+  {$endif}
   Classes, SysUtils;
 
 type
 
-{
-CakePHP
-$email->to($toEmailAddress);
-$email->from(array('no-reply@rumah123.com' => 'Rumah123.com'));
-$email->subject('Listing Inquiry '.$d['ads_id'].' Rumah123.com');
-$email->emailFormat('html');
-$email->viewVars($dataAgents);
-$email->template('v4-enquiry', 'v4-default');
-
-$email->send();
-
-}
   { TMailer }
   TMailer = class
   private
+    FErrorMessage: string;
+    FMailServer: string;
+    FMailPassword: string;
+    FMailUserName: string;
+    FPort: string;
     FTo, FCc, FBcc: TStringList;
-    FEmailFormat, FMailServer: string;
-    FPort: integer;
+    FEmailFormat: string;
+    FLogs: string;
+    FSSL, FTLS: boolean;
     function getEmailFormat: string;
     function getMailServer: string;
-    function getSmtpPort: integer;
+    function getSmtpPort: string;
+    function getSSL: boolean;
+    function getTLS: boolean;
     procedure setEmailFormat(AValue: string);
+    procedure setMailPassword(AValue: string);
     procedure setMailServer(AValue: string);
-    procedure setSmptPort(AValue: integer);
+    procedure setMailUserName(AValue: string);
+    procedure setSmptPort(AValue: string);
+    procedure setSSL(AValue: boolean);
+    procedure setTLS(AValue: boolean);
+
+    {$ifdef xmailer}
+    procedure xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
+    {$endif xmailer}
   public
-    subject, fromName, fromEmail: string;
-    message: TStringList;
+    Subject, Sender: string;
+    Message: TStringList;
     constructor Create;
     destructor Destroy; override;
     property emailFormat: string read getEmailFormat write setEmailFormat;
     property MailServer: string read getMailServer write setMailServer;
-    property SmtpPort: integer read getSmtpPort write setSmptPort;
+    property Port: string read getSmtpPort write setSmptPort;
+    property UserName: string read FMailUserName write setMailUserName;
+    property Password: string read FMailPassword write setMailPassword;
+    property SSL: boolean read getSSL write setSSL;
+    property TLS: boolean read getTLS write setTLS;
+    property ErrorMessage: string read FErrorMessage;
+    property Logs: string read FLogs;
     procedure AddTo(Email: string; Name: string = '');
     procedure AddCc(Email: string; Name: string = '');
     procedure AddBcc(Email: string; Name: string = '');
@@ -52,21 +67,32 @@ $email->send();
 
 implementation
 
+uses common;
+
 { TMailer }
 
 procedure TMailer.AddTo(Email: string; Name: string);
 begin
-
+  if Name = '' then
+    FTo.Add(Email)
+  else
+    FTo.Add(Name + '<' + Email + '>');
 end;
 
 procedure TMailer.AddCc(Email: string; Name: string);
 begin
-
+  if Name = '' then
+    FCc.Add(Email)
+  else
+    FCc.Add(Name + '<' + Email + '>');
 end;
 
 procedure TMailer.AddBcc(Email: string; Name: string);
 begin
-
+  if Name = '' then
+    FBcc.Add(Email)
+  else
+    FBcc.Add(Name + '<' + Email + '>');
 end;
 
 procedure TMailer.Clear;
@@ -74,19 +100,59 @@ begin
   FTo.Clear;
   FBcc.Clear;
   FCc.Clear;
-  subject := '';
-  fromName := '';
-  fromEmail := '';
+  FLogs := '';
+  Subject := '';
+  Message.Clear;
 end;
 
 function TMailer.Send: boolean;
+{$ifdef xmailer}
+var
+  Mail: TSendMail;
+{$endif xmailer}
 begin
-  Result := True;
+  Result := False;
+
+  {$ifdef xmailer}
+  try
+    try
+      Mail := TSendMail.Create;
+      Mail.OnProgress := @xmailer_OnProgress;
+      Mail.Smtp.Host := FMailServer;
+      Mail.Smtp.Port := FPort;
+      Mail.Smtp.UserName := FMailUserName;
+      Mail.Smtp.Password := FMailPassword;
+      Mail.Smtp.SSL := FSSL;
+      Mail.Smtp.TLS := FTLS;
+
+      Mail.Sender := Sender;
+      Mail.Receivers.Text := FTo.Text;
+      Mail.Subject := Subject;
+      Mail.Message.Text := Message.Text;
+      if FEmailFormat = 'html' then
+        Mail.ContentType := ctTextHTML
+      else
+        Mail.ContentType := ctTextPlain;
+      Mail.Send;
+      FLogs := FLogs + 'OK';
+      Result := True;
+    except
+      on e: Exception do
+      begin
+        FErrorMessage := e.Message;
+        FLogs := e.Message + #13;
+      end;
+    end;
+  finally
+    Mail.Free;
+  end;
+  {$endif xmailer}
+
 end;
 
 function TMailer.getMailServer: string;
 begin
-  Result := '';
+  Result := FMailServer;
 end;
 
 function TMailer.getEmailFormat: string;
@@ -94,26 +160,70 @@ begin
   Result := FEmailFormat;
 end;
 
-function TMailer.getSmtpPort: integer;
+function TMailer.getSmtpPort: string;
 begin
+  Result := FPort;
+end;
 
+function TMailer.getSSL: boolean;
+begin
+  Result := FSSL;
+end;
+
+function TMailer.getTLS: boolean;
+begin
+  Result := FTLS;
 end;
 
 procedure TMailer.setEmailFormat(AValue: string);
 begin
   FEmailFormat := AValue;
+end;
 
+procedure TMailer.setMailPassword(AValue: string);
+begin
+  if FMailPassword = AValue then
+    Exit;
+  FMailPassword := AValue;
 end;
 
 procedure TMailer.setMailServer(AValue: string);
 begin
-
+  if FMailServer = AValue then
+    Exit;
+  FMailServer := AValue;
 end;
 
-procedure TMailer.setSmptPort(AValue: integer);
+procedure TMailer.setMailUserName(AValue: string);
 begin
-
+  if FMailUserName = AValue then
+    Exit;
+  FMailUserName := AValue;
 end;
+
+procedure TMailer.setSmptPort(AValue: string);
+begin
+  if FPort = AValue then
+    Exit;
+  FPort := AValue;
+end;
+
+procedure TMailer.setSSL(AValue: boolean);
+begin
+  FSSL := AValue;
+end;
+
+procedure TMailer.setTLS(AValue: boolean);
+begin
+  FTLS := AValue;
+end;
+
+{$ifdef xmailer}
+procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
+begin
+  FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
+end;
+{$endif xmailer}
 
 constructor TMailer.Create;
 begin
@@ -121,6 +231,10 @@ begin
   FCc := TStringList.Create;
   FBcc := TStringList.Create;
   message := TStringList.Create;
+  FSSL := False;
+  FTLS := False;
+  FEmailFormat := 'html';
+  FLogs := '';
 end;
 
 destructor TMailer.Destroy;
