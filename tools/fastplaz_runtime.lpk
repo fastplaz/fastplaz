@@ -8,13 +8,17 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="D:\garapan\FastPlaz\source\core\FastPlaz\"/>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\app\about"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <CompilerMessages>
           <MsgFileName Value=""/>
         </CompilerMessages>
+        <ConfigFile>
+          <CustomConfigFile Value="True"/>
+          <ConfigFilePath Value="extra.cfg"/>
+        </ConfigFile>
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
