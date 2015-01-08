@@ -1,0 +1,11 @@
+rm -rf *~
+rm -rf *.rst
+rm -rf *.or
+rm -rf *.bak
+rm -rf *.exe
+rm -rf *.ppu
+rm -rf *.o
+rm -rf *.compiled
+rm -rf  lib/
+rm -rf  backup/
+rm -rf  src/backup
