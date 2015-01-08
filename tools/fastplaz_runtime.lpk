@@ -7,7 +7,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="D:\garapan\FastPlaz\source\core\FastPlaz\"/>
+        <IncludeFiles Value="..\FastPlaz"/>
         <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
