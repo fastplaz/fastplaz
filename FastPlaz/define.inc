@@ -4,7 +4,7 @@
 {disabled $define synapse}
 
 {$ifdef synapse}
-  {$define xmailer}
+  {disabled $define xmailer}
 {$endif}
 
 { $define dOPF}

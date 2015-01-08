@@ -6,7 +6,7 @@
  Please see the LICENSE file.
 *)
 
-unit XMailer;
+unit xmailer;
 
 {$mode objfpc}{$H+}
 {$DEFINE OPEN_SSL}
