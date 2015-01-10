@@ -8,6 +8,8 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
+  fphttpclient,
+  //fphttpclient_with_ssl,
   RegExpr,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
@@ -78,6 +80,7 @@ procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function HexToInt(HexStr: string): int64;
 
 function RandomString(PLen: integer; PrefixString: string = ''): string;
+function EncodeQueryString( Data: array of string): string;
 
 // php like function
 procedure echo(const Message: string);
@@ -94,6 +97,8 @@ function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
+
+function file_get_contents( TargetURL: string):string;
 
 function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
 // php like function - end
@@ -333,6 +338,27 @@ begin
   until (Length(Result) = PLen);
 end;
 
+function EncodeQueryString(Data: array of string): string;
+var
+  s: string;
+  i: integer;
+begin
+  s := '';
+  if high(Data) >= 0 then
+  begin
+    for i := low(Data) to high(Data) do
+    begin
+      if s = '' then
+        s := Data[i]
+      else
+      begin
+        s := s + '&' + Data[i];
+      end;
+    end;
+  end;
+  Result := s;
+end;
+
 procedure Die(const Message: string);
 begin
   //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
@@ -532,6 +558,27 @@ begin
       s[i + 1] := upcase(s[i + 1]);
   end;
   Result := trim(s);
+end;
+
+function file_get_contents(TargetURL: string): string;
+var
+  s : string;
+begin
+  Result := '';
+  With TFPHTTPClient.Create(Nil) do
+  begin
+    try
+      s := Get( TargetURL);
+      Result := s;
+    except
+      on e : Exception do
+      begin
+        Result := e.Message;
+      end;
+    end;
+
+    Free;
+  end;
 end;
 
 function preg_replace(const RegexExpression, ReplaceString, SourceString: string; UseSubstitution: boolean): string;

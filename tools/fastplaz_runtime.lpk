@@ -8,7 +8,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\FastPlaz"/>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about;..\..\..\git\FastPlaz-core\FastPlaz\src\library"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -22,7 +22,7 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Files Count="19">
+    <Files Count="20">
       <Item1>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -65,41 +65,45 @@
         <UnitName Value="mailer_lib"/>
       </Item10>
       <Item11>
-        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
-        <UnitName Value="docs_controller"/>
+        <Filename Value="..\FastPlaz\src\library\recaptcha_lib.pas"/>
+        <UnitName Value="recaptcha_lib"/>
       </Item11>
       <Item12>
-        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
-        <UnitName Value="error_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
+        <UnitName Value="docs_controller"/>
       </Item12>
       <Item13>
-        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
-        <UnitName Value="info_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
+        <UnitName Value="error_controller"/>
       </Item13>
       <Item14>
-        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
-        <UnitName Value="initialize_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
+        <UnitName Value="info_controller"/>
       </Item14>
       <Item15>
-        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
-        <UnitName Value="session_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
+        <UnitName Value="initialize_controller"/>
       </Item15>
       <Item16>
-        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
-        <UnitName Value="theme_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
+        <UnitName Value="session_controller"/>
       </Item16>
       <Item17>
-        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
-        <UnitName Value="module_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
+        <UnitName Value="theme_controller"/>
       </Item17>
       <Item18>
-        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
-        <Type Value="LFM"/>
+        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
+        <UnitName Value="module_controller"/>
       </Item18>
       <Item19>
+        <Filename Value="..\FastPlaz\src\app\about\about_controller.lfm"/>
+        <Type Value="LFM"/>
+      </Item19>
+      <Item20>
         <Filename Value="..\FastPlaz\src\app\about\about_controller.pas"/>
         <UnitName Value="about_controller"/>
-      </Item19>
+      </Item20>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>

@@ -31,6 +31,9 @@ const
 
   __ERR_THEME_NOT_ENABLED = 'Using Theme''s features but it is not enabled. Check your config.json file.';
 
+  __ERR_RECAPTCHA_INVALID_KEY = 'Invalid recaptcha publickey.<br />Create Key from %s';
+  ReCaptcha_SignupUrl = 'https://www.google.com/recaptcha/admin';
+
 type
 
   // based on qtemplate
@@ -1084,15 +1087,40 @@ begin
       ReplaceText:= __(tagstring_custom.Values['text']);
       end;
     'recaptcha' : begin
-      // usage: [recaptcha sitekey="yourkey"]
+      // usage: [recaptcha key="yourkey" version="v1"]
       s := tagstring_custom.Values['lang'];
       if s = '' then s := 'en';
-      if tagstring_custom.Values['sitekey'] = '' then
-        ReplaceText:= 'Invalid recaptcha sitekey'
+      if tagstring_custom.Values['key'] = '' then
+        ReplaceText := Format( __ERR_RECAPTCHA_INVALID_KEY, [HTMLUtil.Link( ReCaptcha_SignupUrl, ['target=_blank'])])
       else
-        ReplaceText := #13'<div class="g-recaptcha" data-sitekey="'+tagstring_custom.Values['sitekey']+'"></div>'
-          + #13'<script src="https://www.google.com/recaptcha/api.js?hl='+s+'"></script>';
+      begin
+        if tagstring_custom.Values['version'] = 'v2' then
+        begin
+          ReplaceText := #13'<div class="g-recaptcha" data-sitekey="'+tagstring_custom.Values['key']+'"></div>'
+            + #13'<script src="https://www.google.com/recaptcha/api.js?hl='+s+'"></script>';
+        end
+        else
+        begin
+          ReplaceText:= ''
+{
+          + #13'<script type="text/javascript">'
+          + #13'var RecaptchaOptions = {'
+          + #13'	theme : "clean",'
+          + #13'	lang : "en",'
+          + #13'	custom_translations : {'
+          + #13'	},'
+          + #13'	tabindex : 0'
+          + #13'};'
+          + #13'</script>'
+}
+          + #13'<input type="hidden" name="recaptcha_version" value="'+tagstring_custom.Values['version']+'"/>'
+          + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='+tagstring_custom.Values['key']+'">'
+          + #13'</script>'
+          ;
+
+        end;
       end;
+    end;
   end;
 
   {$if fpc_fullversion >= 20701}
