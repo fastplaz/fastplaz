@@ -1082,7 +1082,17 @@ begin
       end;
     'gt' : begin
       ReplaceText:= __(tagstring_custom.Values['text']);
-    end;
+      end;
+    'recaptcha' : begin
+      // usage: [recaptcha sitekey="yourkey"]
+      s := tagstring_custom.Values['lang'];
+      if s = '' then s := 'en';
+      if tagstring_custom.Values['sitekey'] = '' then
+        ReplaceText:= 'Invalid recaptcha sitekey'
+      else
+        ReplaceText := #13'<div class="g-recaptcha" data-sitekey="'+tagstring_custom.Values['sitekey']+'"></div>'
+          + #13'<script src="https://www.google.com/recaptcha/api.js?hl='+s+'"></script>';
+      end;
   end;
 
   {$if fpc_fullversion >= 20701}
@@ -1135,7 +1145,7 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Result + Format( __(__Err_App_Init), [FastPlasAppandler.URI+'/initialize/']);
+    Result := Result + Format( __(__Err_App_Init), [ BaseURL + 'initialize/']);
     Exit;
   end;
 
