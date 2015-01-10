@@ -498,7 +498,8 @@ begin
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
-    for i:=low(Where) to high(Where) do begin
+    for i:=low(Where) to high(Where) do
+    begin
       if sWhere = '' then
         sWhere := Where[i]
       else begin

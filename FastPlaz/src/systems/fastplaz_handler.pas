@@ -602,11 +602,15 @@ begin
   if Application.Request.Method <> 'POST' then
     Exit;
   s := '';
-  _l := TStringList.Create;
-  _l.Delimiter := ';';
-  _l.StrictDelimiter := True;
-  _l.DelimitedText := Application.Request.ContentType;
-  postType := _l[0];
+  try
+    _l := TStringList.Create;
+    _l.Delimiter := ';';
+    _l.StrictDelimiter := True;
+    _l.DelimitedText := Application.Request.ContentType;
+    postType := _l[0];
+  except
+    postType := '';
+  end;
   FreeAndNil(_l);
   if postType = 'text/plain' then
   begin

@@ -15,13 +15,10 @@ rmdir /s /q backup\
 rmdir /s /q src\backup
 rmdir /s /q src\library\backup
 rmdir /s /q src\systems\backup
+rmdir /s /q src\vendor\backup
 rmdir /s /q src\app\example\backup
 rmdir /s /q src\app\example\models\backup
 rmdir /s /q src\app\example\module\backup
-
-rmdir /s /q src\app\wordpress\backup
-rmdir /s /q src\app\wordpress\model\backup
-rmdir /s /q src\app\wordpress\plugins\backup
 
 rmdir /s /q src\lib\
 
