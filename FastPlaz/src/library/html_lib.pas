@@ -42,6 +42,8 @@ type
     function AddInput(Options: array of string; Mandatory: boolean = False): string;
     function AddField(TagName: string; Options: array of string): string;
     function AddButton(TagName: string; Options: array of string): string;
+    function Link( const URL:string; Options: array of string):string;
+    function Link( const Text, URL:string; Options: array of string):string;
   end;
 
 function H1(Content: string; StyleClass: string = ''): string;
@@ -257,6 +259,23 @@ end;
 function THTMLUtil.AddButton(TagName: string; Options: array of string): string;
 begin
   Result := '';
+end;
+
+function THTMLUtil.Link(const URL: string; Options: array of string): string;
+begin
+  Result := Link( URL, URL, Options);
+end;
+
+function THTMLUtil.Link(const Text, URL: string; Options: array of string): string;
+var
+  s : string;
+  i : integer;
+begin
+  for  i := Low(Options) to High(Options) do
+  begin
+    s := s + ' ' + Options[i];
+  end;
+  Result := '<a href="'+URL+'"'+s+'>'+Text+'</a>';
 end;
 
 initialization
