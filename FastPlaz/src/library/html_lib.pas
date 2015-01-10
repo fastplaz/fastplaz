@@ -44,6 +44,7 @@ type
     function AddButton(TagName: string; Options: array of string): string;
     function Link( const URL:string; Options: array of string):string;
     function Link( const Text, URL:string; Options: array of string):string;
+    function ReCaptcha( const PublicKey:string; const Version:string = 'v1'):string;
   end;
 
 function H1(Content: string; StyleClass: string = ''): string;
@@ -276,6 +277,34 @@ begin
     s := s + ' ' + Options[i];
   end;
   Result := '<a href="'+URL+'"'+s+'>'+Text+'</a>';
+end;
+
+function THTMLUtil.ReCaptcha(const PublicKey: string; const Version: string): string;
+begin
+  if Version = 'v2' then
+  begin
+    Result := #13'<div class="g-recaptcha" data-sitekey="'+PublicKey+'"></div>'
+      + #13'<script src="https://www.google.com/recaptcha/api.js?hl=en"></script>';
+  end
+  else
+  begin
+    Result := ''
+{
+    + #13'<script type="text/javascript">'
+    + #13'var RecaptchaOptions = {'
+    + #13'	theme : "clean",'
+    + #13'	lang : "en",'
+    + #13'	custom_translations : {'
+    + #13'	},'
+    + #13'	tabindex : 0'
+    + #13'};'
+    + #13'</script>'
+}
+    + #13'<input type="hidden" name="recaptcha_version" value="'+Version+'"/>'
+    + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='+PublicKey+'">'
+    + #13'</script>'
+    ;
+  end;
 end;
 
 initialization
