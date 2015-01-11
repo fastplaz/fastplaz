@@ -37,21 +37,25 @@ const
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
 
-  _DATABASE_HOSTNAME = 'database/default/hostname';
-  _DATABASE_PORT = 'database/default/port';
-  _DATABASE_DRIVER = 'database/default/driver';
-  _DATABASE_TABLETYPE = 'database/default/tabletype';
-  _DATABASE_USERNAME = 'database/default/username';
-  _DATABASE_PASSWORD = 'database/default/password';
-  _DATABASE_DATABASENAME = 'database/default/database_name';
-  _DATABASE_TABLE_PREFIX = 'database/default/prefix';
-  _DATABASE_LIBRARY = 'database/default/library';
+  _DATABASE_OPTIONS_READ = 'database/options/read';
+  _DATABASE_OPTIONS_WRITE = 'database/options/write';
+
+  _DATABASE_HOSTNAME = 'database/%s/hostname';
+  _DATABASE_PORT = 'database/%s/port';
+  _DATABASE_DRIVER = 'database/%s/driver';
+  _DATABASE_TABLETYPE = 'database/%s/tabletype';
+  _DATABASE_USERNAME = 'database/%s/username';
+  _DATABASE_PASSWORD = 'database/%s/password';
+  _DATABASE_DATABASENAME = 'database/%s/database_name';
+  _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
+  _DATABASE_LIBRARY = 'database/%s/library';
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
   OK = 'OK';
 
-  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library not exist (%s).';
+  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
+  _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
 
 type
   TStringArray = array of string;

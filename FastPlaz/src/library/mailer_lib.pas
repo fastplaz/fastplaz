@@ -6,11 +6,11 @@ unit mailer_lib;
 interface
 
 uses
-  {$ifdef synapse}
-    {$ifdef xmailer}
+  {$IFDEF SYNAPSE}
+    {$IFDEF XMAILER}
   xmailer,
-    {$endif}
-  {$endif}
+    {$ENDIF}
+  {$ENDIF}
   Classes, SysUtils;
 
 type
@@ -40,9 +40,9 @@ type
     procedure setSSL(AValue: boolean);
     procedure setTLS(AValue: boolean);
 
-    {$ifdef xmailer}
+    {$IFDEF XMAILER}
     procedure xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
-    {$endif xmailer}
+    {$ENDIF XMAILER}
   public
     Subject, Sender: string;
     Message: TStringList;
@@ -106,14 +106,14 @@ begin
 end;
 
 function TMailer.Send: boolean;
-{$ifdef xmailer}
+{$IFDEF XMAILER}
 var
   Mail: TSendMail;
-{$endif xmailer}
+{$ENDIF XMAILER}
 begin
   Result := False;
 
-  {$ifdef xmailer}
+  {$IFDEF XMAILER}
   try
     try
       Mail := TSendMail.Create;
@@ -146,7 +146,7 @@ begin
   finally
     Mail.Free;
   end;
-  {$endif xmailer}
+  {$ENDIF XMAILER}
 
 end;
 
@@ -218,12 +218,12 @@ begin
   FTLS := AValue;
 end;
 
-{$ifdef xmailer}
+{$IFDEF XMAILER}
 procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
 begin
   FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
 end;
-{$endif xmailer}
+{$ENDIF XMAILER}
 
 constructor TMailer.Create;
 begin
