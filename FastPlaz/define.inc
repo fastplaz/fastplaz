@@ -1,17 +1,18 @@
 
-{$define debug}
-{$define short_url}
-{disabled $define synapse}
+{$DEFINE short_url}
+{disabled $DEFINE DEBUG}
+{disabled $DEFINE SYNAPSE}
 
-{$ifdef synapse}
-  {disabled $define xmailer}
+{$ifdef SYNAPSE}
+  {disabled $DEFINE XMAILER}
 {$endif}
 
-{ $define dOPF}
-{ $define zeos}
+{ $DEFINE dOPF}
+{ $DEFINE zeos}
 
 // requirement : SynEdit package
-{ $define syntext}
+{ $DEFINE syntext}
 
+{disable $DEFINE HEAPTRACE}
 
 

@@ -102,34 +102,45 @@ var
   DB_Transaction : TSQLTransaction;
   DB_LibLoader : TSQLDBLibraryLoader;
 
+  DB_Connector_Write : TSQLConnector;
+  DB_Transaction_Write : TSQLTransaction;
+  DB_LibLoader_Write : TSQLDBLibraryLoader;
+
 procedure DataBaseInit(const RedirecURL: string);
 var
   s : string;
 begin
   AppData.useDatabase := True;
+
+  // multidb - prepare
+  AppData.databaseRead := Config.GetValue( _DATABASE_OPTIONS_READ, 'default');
+  AppData.databaseWrite := Config.GetValue( _DATABASE_OPTIONS_WRITE, AppData.databaseRead);
+  AppData.tablePrefix := Config.GetValue( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead]), '');
+
   // currentdirectory mesti dipindah
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( _DATABASE_LIBRARY, ''));
+  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
-    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( _DATABASE_LIBRARY, '')));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
-    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [s]));
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
 
-  if Config.GetValue( _DATABASE_LIBRARY, '') <> '' then begin
+  if Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '') <> '' then begin
     try
-      DB_LibLoader.ConnectionType:= string( Config.GetValue( _DATABASE_DRIVER, ''));
+      DB_LibLoader.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
       DB_LibLoader.LibraryName:= s;
       DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
         if RedirecURL = '' then
-          Die( 'Database Init: Load Library, '+E.Message)
+          DisplayError( 'Database Init: Load Library, '+E.Message)
         else
           Redirect( RedirecURL);
       end;
@@ -138,13 +149,14 @@ begin
   // back to app directory
   SetCurrentDir(ExtractFilePath(Application.ExeName));
 
-  DB_Connector.HostName:= string( Config.GetValue( _DATABASE_HOSTNAME, 'localhost'));
-  DB_Connector.ConnectorType := string( Config.GetValue( _DATABASE_DRIVER, ''));
-  DB_Connector.UserName:= string( Config.GetValue( _DATABASE_USERNAME, 'root'));
-  DB_Connector.Password:= string( Config.GetValue( _DATABASE_PASSWORD, 'root'));
-  DB_Connector.DatabaseName:= string( Config.GetValue( _DATABASE_DATABASENAME, 'test'));
-  if Config.GetValue( _DATABASE_PORT, '') <> '' then
-    DB_Connector.Params.Values['port'] := string( Config.GetValue( _DATABASE_PORT, ''));
+  DB_Connector.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [AppData.databaseRead]), 'localhost'));
+  DB_Connector.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
+  DB_Connector.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [AppData.databaseRead]), ''));
+  DB_Connector.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [AppData.databaseRead]), ''));
+  DB_Connector.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [AppData.databaseRead]), 'test'));
+
+  if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
+    DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database
@@ -178,9 +190,10 @@ begin
 
   try
     q.Open;
-    ResultJSON.Add( 'count', q.RowsAffected);
     data := TJSONArray.Create();
     DataToJSON( q, data);
+    //ResultJSON.Add( 'count', q.RowsAffected);
+    ResultJSON.Add( 'count', data.Count);
     ResultJSON.Add( 'data', data);
     Result := True;
   except
@@ -195,6 +208,76 @@ begin
   FreeAndNil( q);
 end;
 
+function DatabaseSecond_Prepare( const ConnectionName:string = 'default'; Mode:string = ''):TSQLConnector;
+var
+  s : string;
+begin
+  Result := nil; //DB_Connector_Write
+  if ((Assigned( DB_Connector_Write)) and (Mode = 'write')) then
+  begin
+    Result := DB_Connector_Write;
+    Exit;
+  end;
+
+  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [ConnectionName]), ''));
+  if not SetCurrentDir( ExtractFilePath( s)) then
+  begin
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
+  end;
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '')));
+  if not FileExists( s) then
+  begin
+    SetCurrentDir(ExtractFilePath(Application.ExeName));
+    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
+  end;
+
+  if Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '') <> '' then
+  begin
+    if not Assigned( DB_LibLoader_Write) then DB_LibLoader_Write := TSQLDBLibraryLoader.Create( nil);
+    try
+      DB_LibLoader_Write.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
+      DB_LibLoader_Write.LibraryName:= s;
+      DB_LibLoader_Write.Enabled:= True;
+      DB_LibLoader_Write.LoadLibrary;
+    except
+      on E: Exception do begin
+          DisplayError( 'Database Init ('+ConnectionName+'): Load Library, '+E.Message)
+      end;
+    end;
+  end;
+  // back to app directory
+  SetCurrentDir(ExtractFilePath(Application.ExeName));
+
+  if not Assigned( DB_Connector_Write) then begin
+    DB_Transaction_Write := TSQLTransaction.Create( nil);
+    DB_Connector_Write := TSQLConnector.Create( nil);
+    DB_Connector_Write.Transaction := DB_Transaction_Write;
+  end;
+  DB_Connector_Write.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [ConnectionName]), 'localhost'));
+  DB_Connector_Write.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
+  DB_Connector_Write.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [ConnectionName]), ''));
+  DB_Connector_Write.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [ConnectionName]), ''));
+  DB_Connector_Write.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [ConnectionName]), 'test'));
+
+  if Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), '') <> '' then
+    DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), ''));
+  //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
+
+  //log database
+
+  try
+    DB_Connector_Write.Open;
+  except
+    on E: Exception do
+    begin
+      DisplayError( 'Database ("'+ConnectionName+'") Error : '+ E.Message)
+    end;
+  end;
+
+  Result := DB_Connector_Write;
+end;
+
+
 function QueryExecToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
 var
   q : TSQLQuery;
@@ -202,12 +285,22 @@ begin
   Result:=false;
   q := TSQLQuery.Create(nil);
   q.UniDirectional:=True;
-  q.DataBase := DB_Connector;
-  q.SQL.Text:= SQL;
+  if AppData.databaseRead = AppData.databaseWrite then
+    q.DataBase := DB_Connector
+  else
+  begin
+    q.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if q.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
   try
+    q.SQL.Text:= SQL;
     q.ExecSQL;
-    DB_Connector.Transaction.Commit;
     ResultJSON.Add( 'count', q.RowsAffected);
+    TSQLConnector( q.DataBase).Transaction.Commit;
+    //DB_Connector.Transaction.Commit;
     Result:=True;
   except
     on E: Exception do begin
@@ -284,7 +377,7 @@ begin
         LogUtil.add( E.Message);
         LogUtil.add( Data.SQL.Text);
       end;
-      Die( E.Message);
+      DisplayError( E.Message);
     end;
   end;
 end;
@@ -623,9 +716,24 @@ var
   s : string;
 begin
   Result := false;
-  if ((Data.Active) and (primaryKeyValue='')) then Exit;
+
+  if AppData.databaseRead = AppData.databaseWrite then
+  begin
+    if ((Data.Active) and (primaryKeyValue='')) then Exit;
+    if Data.Active then Data.Close;
+    //Data.DataBase := DB_Connector;
+  end
+  else
+  begin
+    if Data.Active then Data.Close;
+    Data.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if Data.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
+
   sSQL := TStringList.Create;
-  if Data.Active then Data.Close;
   if Where <> '' then
   begin
     sSQL.Add( 'UPDATE ' + TableName + ' SET ');
@@ -677,6 +785,7 @@ begin
     end;
   end;
   FreeAndNil(sSQL);
+  Data.DataBase := DB_Connector;
 end;
 
 function TSimpleModel.Delete(Where: string; AutoCommit: boolean): boolean;
@@ -688,8 +797,21 @@ begin
   begin
     if RecordCount <> 1 then exit;
   end;
-  if Data.Active then
-    Data.Close;
+  if Data.Active then Data.Close;
+
+  if AppData.databaseRead = AppData.databaseWrite then
+  begin
+    //Data.DataBase := DB_Connector;
+  end
+  else
+  begin
+    Data.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if Data.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
+
   s := 'DELETE FROM ' + TableName + ' WHERE ';
   if Where = '' then
   begin
@@ -713,6 +835,8 @@ begin
       DisplayError( 'DB:' + e.Message);
     end;
   end;
+
+  Data.DataBase := DB_Connector;
 end;
 
 procedure TSimpleModel.Next;
@@ -758,11 +882,19 @@ initialization
   DB_Connector := TSQLConnector.Create( nil);
   DB_Connector.Transaction := DB_Transaction;
 
+  DB_Connector_Write := nil;
+  DB_Transaction_Write := nil;
+  DB_LibLoader_Write := nil;
+
 
 finalization
   FreeAndNil( DB_Connector);
   FreeAndNil( DB_Transaction);
   FreeAndNil( DB_LibLoader);
+
+  if not Assigned( DB_Connector_Write) then FreeAndNil( DB_Connector_Write);
+  if not Assigned( DB_Transaction_Write) then FreeAndNil( DB_Transaction_Write);
+  if not Assigned( DB_LibLoader_Write) then FreeAndNil( DB_LibLoader_Write);
 
 end.
 

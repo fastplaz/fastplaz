@@ -1,11 +1,14 @@
 unit fastplaz_handler;
 
 {$mode objfpc}{$H+}
-{ $include define.inc}
+{$include ../../define.inc}
 
 interface
 
 uses
+  {$IFDEF HEAPTRACE}
+    heaptrc,
+  {$ENDIF}
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fpcgi, httpdefs, fpHTTP, fpWeb, webutil, custweb, dateutils,
@@ -50,7 +53,7 @@ type
     baseUrl,
     language,
     tempDir: string;
-    theme_enable: boolean;
+    themeEnable: boolean;
     theme: string;
     cacheType: string;
     cacheWrite: boolean;
@@ -59,6 +62,8 @@ type
     SessionID: string;
     SessionDir: string;
     hitStorage: string;
+    databaseRead,
+    databaseWrite : string;
     databaseActive,
     useDatabase,
     initialized,
@@ -244,10 +249,9 @@ begin
   AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
-  AppData.theme_enable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
+  AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
-  AppData.tablePrefix := Config.GetValue(_DATABASE_TABLE_PREFIX, '');
   AppData.cacheType := Config.GetValue(_SYSTEM_CACHE_TYPE, 'file');
   AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
@@ -269,7 +273,7 @@ begin
   if AppData.hitStorage = 'sqlite' then
     ThemeUtil.HitType := htSQLite;
 
-  if AppData.theme_enable then
+  if AppData.themeEnable then
   begin
     ThemeUtil := TThemeUtil.Create;
   end;
@@ -310,7 +314,7 @@ end;
 procedure DisplayError(const Message: string);
 begin
   FastPlasAppandler.isDisplayError := True;
-  if not AppData.theme_enable then
+  if not AppData.themeEnable then
   begin
     die(Message);
   end;
@@ -320,7 +324,7 @@ begin
     Application.Response.Contents.Text := ThemeUtil.Render();
     Application.Response.Contents.Text :=
       ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter +
-      '$maincontent' + ThemeUtil.EndDelimiter], Message);
+      '$maincontent' + ThemeUtil.EndDelimiter], '<div class="box error">' + Message + '</div>');
   end
   else
   begin
@@ -500,7 +504,7 @@ end;
 
 function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
 begin
-  if AppData.theme_enable then
+  if AppData.themeEnable then
     Result := ___TagCallbackMap[TagName];
 end;
 
@@ -511,7 +515,7 @@ end;
 
 procedure TMyCustomWebModule.SetTag(const TagName: string; AValue: TTagCallback);
 begin
-  if AppData.theme_enable then
+  if AppData.themeEnable then
     ___TagCallbackMap[TagName] := AValue;
 end;
 
@@ -671,7 +675,7 @@ end;
 
 destructor TFastPlasAppandler.Destroy;
 begin
-  if AppData.theme_enable then
+  if AppData.themeEnable then
   begin
     FreeAndNil(ThemeUtil);
     ;
@@ -820,5 +824,9 @@ finalization
   FreeAndNil(Route);
   FreeAndNil(FastPlasAppandler);
   FreeAndNil(SessionController);
+  {$IFDEF HEAPTRACE}
+    DeleteFile( AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
+    SetHeapTraceOutput( AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
+  {$ENDIF}
 
 end.

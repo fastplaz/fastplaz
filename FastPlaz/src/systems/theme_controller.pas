@@ -1130,7 +1130,7 @@ var
   templateEngine: TFPTemplate;
   response_json : TJSONObject;
 begin
-  if (not AppData.theme_enable) and (not Assigned(ThemeUtil)) then
+  if (not AppData.themeEnable) and (not Assigned(ThemeUtil)) then
   begin
     FastPlasAppandler.DieRaise(__( __ERR_THEME_NOT_ENABLED),[]);
   end;
