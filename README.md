@@ -6,6 +6,7 @@ FastPlaz
 
 Requirement
 ---
+* fpc / free pascal compiler, version 2.6.4
 * fcl-web
 * lazarus (optional)
 
