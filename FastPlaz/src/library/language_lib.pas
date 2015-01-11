@@ -11,7 +11,7 @@ uses
   fphttp, HTTPDefs,
   Classes, SysUtils;
 
-function __(str: string): string;
+function __(str: string; AutoCreate:Boolean = False): string;
 
 var
   LANG, FallbackLANG: string;
@@ -20,7 +20,7 @@ implementation
 
 uses common;
 
-function __(str: string): string;
+function __(str: string; AutoCreate: Boolean): string;
 var
   //  strl : TStringList;
   po_file: string;
@@ -60,6 +60,11 @@ begin
     Free;
   end;
   {$endif}
+
+  if AutoCreate then
+  begin
+    // prepare for autocreate language
+  end;
 
 end;
 
