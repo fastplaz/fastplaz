@@ -13,6 +13,7 @@
     "cache" : "none",
     "temp" : "ztemp",
     "error_url" : "\/",
+    "session_timeout" : 0,
     "error_redirect" : false
   },
   "database" : {
@@ -25,6 +26,16 @@
       "database_name" : "your_database",
       "prefix" : "",
       "library" : "..\/libs\/win\/libmysql.dll"
+    }
+  },
+  "mailer" : {
+    "default" : {
+      "hostname" : "your.smtp.server",
+      "username" : "your_username",
+      "password" : "the_password",
+      "smtp_port" : "465",
+      "ssl" : true,
+      "tls" : true
     }
   }
 }

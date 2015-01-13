@@ -50,6 +50,13 @@ const
   _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
   _DATABASE_LIBRARY = 'database/%s/library';
 
+  _MAIL_MAILSERVER = 'mailer/%s/hostname';
+  _MAIL_USERNAME = 'mailer/%s/username';
+  _MAIL_PASSWORD = 'mailer/%s/password';
+  _MAIL_SMTPPORT = 'mailer/%s/smtp_port';
+  _MAIL_SSL = 'mailer/%s/ssl';
+  _MAIL_TLS = 'mailer/%s/tls';
+
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
   OK = 'OK';
@@ -601,8 +608,10 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
+  AppData.debug := True;
   Config := TMyConfig.Create(nil);
-  Config.Filename := 'config/config.json';
+  Config.ValidateFile( 'config/config.json');
+
 
 finalization
   FreeAndNil(Config);

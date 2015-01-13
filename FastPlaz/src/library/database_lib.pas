@@ -6,7 +6,7 @@ interface
 
 uses
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
-  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, {mysql56conn,}
+  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn,
   sqlite3conn, pqconnection,
   variants, Classes, SysUtils;
 
@@ -140,7 +140,7 @@ begin
     except
       on E: Exception do begin
         if RedirecURL = '' then
-          DisplayError( 'Database Init: Load Library, '+E.Message)
+          DisplayError( 'Database Init: Load Library, ' + E.Message)
         else
           Redirect( RedirecURL);
       end;

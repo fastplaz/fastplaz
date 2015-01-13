@@ -1160,7 +1160,9 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Result + Format( __(__Err_App_Init), [ BaseURL + 'initialize/']);
+    Result := Result + Format( __(__Err_App_Init), [
+      'http://' + GetEnvironmentVariable('SERVER_NAME') + (GetEnvironmentVariable('SCRIPT_NAME'))
+      + '/initialize/']);
     Exit;
   end;
 
