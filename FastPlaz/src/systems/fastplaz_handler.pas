@@ -51,6 +51,7 @@ type
     sitename,
     slogan,
     baseUrl,
+    admin_email,
     language,
     tempDir: string;
     themeEnable: boolean;
@@ -245,9 +246,12 @@ begin
   except
   end;
 
+  if Config.Status = 2 then
+    die( Config.Message);
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
   AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
+  AppData.admin_email:= Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email);
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
