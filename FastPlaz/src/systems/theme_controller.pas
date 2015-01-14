@@ -367,7 +367,7 @@ begin
   except
     on e: Exception do
     begin
-      die( 'getVarValue: ' + e.Message);
+      die( 'ThemeUtil.VarValue['+VariableName+']: ' + e.Message);
     end;
   end;
 
@@ -1118,9 +1118,9 @@ begin
     ReplaceText := ___TagCallbackMap[tagname](TagString,tagstring_custom);
   end;
 
-  if FAssignVarStringMap.IndexOfName(TagString) <> -1 then
+  if FAssignVarStringMap.IndexOfName( tagname) <> -1 then
   begin
-    ReplaceText:=FAssignVarStringMap.Values[TagString];
+    ReplaceText:=FAssignVarStringMap.Values[ tagname];
   end;
 
   ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);

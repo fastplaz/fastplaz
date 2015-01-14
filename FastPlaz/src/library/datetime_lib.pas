@@ -20,8 +20,8 @@ uses
 const
   TDateTimeEpsilon = 2.2204460493e-16;
 
-function DateTimeHuman(TheDate: string; MaxIntervalDate: integer = 7; FormatDate: string = ''): string;
-function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 7; FormatDate: string = ''): string;
+function DateTimeHuman(TheDate: string; MaxIntervalDate: integer = 30; FormatDate: string = ''): string;
+function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 30; FormatDate: string = ''): string;
 
 implementation
 

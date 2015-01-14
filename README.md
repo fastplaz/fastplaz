@@ -28,8 +28,19 @@ how to enable email support
 - open file define.inc
 - add code :
 
-```
+```pascal
 {$define synapse}
+{$define xmailer}
+```
+
+```delphi
+{$define synapse}
+{$define xmailer}
+```
+
+```pas
+{$define synapse}
+{$define xmailer}
 ```
 
 
