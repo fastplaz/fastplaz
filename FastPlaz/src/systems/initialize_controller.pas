@@ -139,14 +139,16 @@ begin
   end;
 
   // initialize configuration file
+  Config.Filename := 'config/config.json';
   Config.SetValue(_SYSTEM_SITENAME, _APP);
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
-  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'webmaster@' + widestring(GetEnvironmentVariable('SERVER_NAME')));
+  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'admin@' + widestring(GetEnvironmentVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
   Config.SetValue(_SYSTEM_THEME_ENABLE, True);
   Config.SetValue(_SYSTEM_THEME, 'default');
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
+  Config.SetValue(_SYSTEM_SESSION_TIMEOUT, 0);
 
   Config.SetValue(_DATABASE_DRIVER, 'MySQL 5.0');
   Config.SetValue(_DATABASE_HOSTNAME, 'localhost');
@@ -156,6 +158,14 @@ begin
   Config.SetValue(_DATABASE_DATABASENAME, 'your_database');
   Config.SetValue(_DATABASE_TABLE_PREFIX, '');
   Config.SetValue(_DATABASE_LIBRARY, '../libs/win/libmysql.dll');
+
+  Config.SetValue( format(_MAIL_MAILSERVER, ['default']), 'your.mail.server');
+  Config.SetValue( format(_MAIL_USERNAME, ['default']), 'your-username');
+  Config.SetValue( format(_MAIL_PASSWORD, ['default']), 'your-password');
+  Config.SetValue( format(_MAIL_SMTPPORT, ['default']), '465');
+  Config.SetValue( format(_MAIL_SSL, ['default']), True);
+  Config.SetValue( format(_MAIL_TLS, ['default']), True);
+
   FreeAndNil(Config);
 
   // beautifier json

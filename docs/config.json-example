@@ -1,0 +1,29 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz",
+    "slogan" : "Fast Pascal Framework for Web Development",
+    "baseurl" : "",
+    "admin_email" : "example@fastplaz.com",
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
+    "theme_enable" : true,
+    "theme" : "default",
+    "cache" : "file",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "error_redirect" : false
+  },
+  "database" : {
+    "default" : {
+      "driver" : "sqlite3",
+      "hostname" : "localhost",
+      "username" : "root",
+      "password" : "root",
+      "database_name" : "thisisdatabase",
+      "prefix" : "",
+      "library" : "sqlite3.dll"
+    }
+  }
+}

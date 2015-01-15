@@ -6,12 +6,15 @@ unit mailer_lib;
 interface
 
 uses
-  {$ifdef synapse}
-    {$ifdef xmailer}
+  {$IFDEF SYNAPSE}
+    {$IFDEF XMAILER}
   xmailer,
-    {$endif}
-  {$endif}
+    {$ENDIF}
+  {$ENDIF}
   Classes, SysUtils;
+
+const
+  _MAIL_NOSUPPORT = 'Mailer-Support not exist.';
 
 type
 
@@ -40,13 +43,13 @@ type
     procedure setSSL(AValue: boolean);
     procedure setTLS(AValue: boolean);
 
-    {$ifdef xmailer}
+    {$IFDEF XMAILER}
     procedure xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
-    {$endif xmailer}
+    {$ENDIF XMAILER}
   public
     Subject, Sender: string;
     Message: TStringList;
-    constructor Create;
+    constructor Create(Setting: string = 'default');
     destructor Destroy; override;
     property emailFormat: string read getEmailFormat write setEmailFormat;
     property MailServer: string read getMailServer write setMailServer;
@@ -61,13 +64,14 @@ type
     procedure AddCc(Email: string; Name: string = '');
     procedure AddBcc(Email: string; Name: string = '');
     procedure Clear;
+    procedure Prepare;
     function Send: boolean;
   end;
 
 
 implementation
 
-uses common;
+uses fastplaz_handler, common, config_lib;
 
 { TMailer }
 
@@ -100,20 +104,28 @@ begin
   FTo.Clear;
   FBcc.Clear;
   FCc.Clear;
-  FLogs := '';
+  FLogs := _MAIL_NOSUPPORT;
   Subject := '';
   Message.Clear;
+  {$IFDEF XMAILER}
+  FLogs := '';
+  {$ENDIF}
+end;
+
+procedure TMailer.Prepare;
+begin
+  Clear;
 end;
 
 function TMailer.Send: boolean;
-{$ifdef xmailer}
+{$IFDEF XMAILER}
 var
   Mail: TSendMail;
-{$endif xmailer}
+{$ENDIF XMAILER}
 begin
   Result := False;
 
-  {$ifdef xmailer}
+  {$IFDEF XMAILER}
   try
     try
       Mail := TSendMail.Create;
@@ -146,7 +158,7 @@ begin
   finally
     Mail.Free;
   end;
-  {$endif xmailer}
+  {$ENDIF XMAILER}
 
 end;
 
@@ -218,14 +230,15 @@ begin
   FTLS := AValue;
 end;
 
-{$ifdef xmailer}
+{$IFDEF XMAILER}
 procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
 begin
   FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
 end;
-{$endif xmailer}
 
-constructor TMailer.Create;
+{$ENDIF XMAILER}
+
+constructor TMailer.Create(Setting: string);
 begin
   FTo := TStringList.Create;
   FCc := TStringList.Create;
@@ -235,6 +248,15 @@ begin
   FTLS := False;
   FEmailFormat := 'html';
   FLogs := '';
+
+  // read from config.json
+  MailServer := Config[ format(_MAIL_MAILSERVER, [Setting])];
+  UserName := Config[ format(_MAIL_USERNAME, [Setting])];
+  Password := Config[ format(_MAIL_PASSWORD, [Setting])];
+  Port := Config[ format(_MAIL_SMTPPORT, [Setting])];
+  SSL := Config.GetValue( format(_MAIL_SSL, [Setting]), True);
+  TLS := Config.GetValue( format(_MAIL_TLS, [Setting]), True);
+
 end;
 
 destructor TMailer.Destroy;

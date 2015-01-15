@@ -12,7 +12,7 @@ uses
   {$endif fpc_fullversion >= 20701}
   fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
   Regex, RegExpr, sqldb,
-  common, fastplaz_handler, database_lib,
+  common, fastplaz_handler, database_lib, datetime_lib,
   Classes, SysUtils;
 
 const
@@ -516,6 +516,9 @@ begin
     'moreless' : begin
       //Result := MoreLess(Content);
     end;
+    'dateformathuman' : begin
+      Result := DateTimeHuman( Content);
+    end;
   end;
 end;
 
@@ -889,9 +892,14 @@ begin
   end;
   if tagstring_custom.Values['dateformat'] <> '' then
   begin
-    ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
-      TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-    );
+    if tagstring_custom.Values['dateformat'] = 'human' then
+    begin
+      ReplaceText:= DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+    end
+    else
+      ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
+        TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+      );
   end
   else
   begin
@@ -953,9 +961,14 @@ begin
       try
         if tagstring_custom.Values['dateformat'] <> '' then
         begin
-          ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
-            TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-          );
+          if tagstring_custom.Values['dateformat'] = 'human' then
+          begin
+            ReplaceText := DateTimeHuman( TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+          end
+          else
+            ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
+              TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+            );
         end
         else
           ReplaceText:= TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
@@ -1130,7 +1143,7 @@ var
   templateEngine: TFPTemplate;
   response_json : TJSONObject;
 begin
-  if (not AppData.theme_enable) and (not Assigned(ThemeUtil)) then
+  if (not AppData.themeEnable) and (not Assigned(ThemeUtil)) then
   begin
     FastPlasAppandler.DieRaise(__( __ERR_THEME_NOT_ENABLED),[]);
   end;
@@ -1147,7 +1160,9 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Result + Format( __(__Err_App_Init), [ BaseURL + 'initialize/']);
+    Result := Result + Format( __(__Err_App_Init), [
+      'http://' + GetEnvironmentVariable('SERVER_NAME') + (GetEnvironmentVariable('SCRIPT_NAME'))
+      + '/initialize/']);
     Exit;
   end;
 

@@ -37,21 +37,32 @@ const
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
 
-  _DATABASE_HOSTNAME = 'database/default/hostname';
-  _DATABASE_PORT = 'database/default/port';
-  _DATABASE_DRIVER = 'database/default/driver';
-  _DATABASE_TABLETYPE = 'database/default/tabletype';
-  _DATABASE_USERNAME = 'database/default/username';
-  _DATABASE_PASSWORD = 'database/default/password';
-  _DATABASE_DATABASENAME = 'database/default/database_name';
-  _DATABASE_TABLE_PREFIX = 'database/default/prefix';
-  _DATABASE_LIBRARY = 'database/default/library';
+  _DATABASE_OPTIONS_READ = 'database/options/read';
+  _DATABASE_OPTIONS_WRITE = 'database/options/write';
+
+  _DATABASE_HOSTNAME = 'database/%s/hostname';
+  _DATABASE_PORT = 'database/%s/port';
+  _DATABASE_DRIVER = 'database/%s/driver';
+  _DATABASE_TABLETYPE = 'database/%s/tabletype';
+  _DATABASE_USERNAME = 'database/%s/username';
+  _DATABASE_PASSWORD = 'database/%s/password';
+  _DATABASE_DATABASENAME = 'database/%s/database_name';
+  _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
+  _DATABASE_LIBRARY = 'database/%s/library';
+
+  _MAIL_MAILSERVER = 'mailer/%s/hostname';
+  _MAIL_USERNAME = 'mailer/%s/username';
+  _MAIL_PASSWORD = 'mailer/%s/password';
+  _MAIL_SMTPPORT = 'mailer/%s/smtp_port';
+  _MAIL_SSL = 'mailer/%s/ssl';
+  _MAIL_TLS = 'mailer/%s/tls';
 
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
   OK = 'OK';
 
-  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library not exist (%s).';
+  _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
+  _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
 
 type
   TStringArray = array of string;
@@ -597,8 +608,10 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
+  AppData.debug := True;
   Config := TMyConfig.Create(nil);
-  Config.Filename := 'config/config.json';
+  Config.ValidateFile( 'config/config.json');
+
 
 finalization
   FreeAndNil(Config);
