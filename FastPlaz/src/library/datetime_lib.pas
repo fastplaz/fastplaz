@@ -90,8 +90,12 @@ begin
       Result := Format(__('%d days ago'), [i])
     else
     begin
-      if FormatDate = '' then
-        Result := DateTimeToStr(TheDate)
+      if FormatDate = '' then begin
+        if i > 30 then
+          Result := Format(__('more %d months ago'), [ MonthsBetween( Now, TheDate)]);
+        if i > 360 then
+          Result := Format(__('more %d years ago'), [ YearsBetween( Now, TheDate)])
+      end
       else
         DateTimeToString(Result, FormatDate, TheDate);
     end;
@@ -105,9 +109,12 @@ begin
       Result := Format(__('%d days from now'), [i])
     else
     begin
-      if FormatDate = '' then
-        Result := DateTimeToStr(TheDate)
-      else
+      if FormatDate = '' then begin
+        if i > 30 then
+          Result := Format(__('more %d months from now'), [ MonthsBetween( Now, TheDate)]);
+        if i > 360 then
+          Result := Format(__('more %d years from now'), [ YearsBetween( Now, TheDate)]);
+      end else
         DateTimeToString(Result, FormatDate, TheDate);
     end;
 
