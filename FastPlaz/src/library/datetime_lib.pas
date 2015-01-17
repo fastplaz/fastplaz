@@ -2,7 +2,9 @@ unit datetime_lib;
 
 {
   Format datetimes in a more Human Readable form
-  (like tomorow, 4 days from now, 6 hours ago)
+  (like tomorow, yesterday, 4 days from now, 6 hours ago, more 3 years ago)
+
+  example:
 
   var := DateTimeHuman( theDate);
   var := DateTimeHuman( theDate, 7);
@@ -49,7 +51,8 @@ begin
   end;
 end;
 
-function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer; FormatDate: string; Text: string = 'ago'): string;
+function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer; FormatDate: string;
+  Suffix: string = 'ago'; Prefix: string = ''): string;
 var
   diff, i: integer;
 begin
@@ -60,17 +63,17 @@ begin
     if i >= 1 then
     begin
       if i > 24 then
-        Result := Format(__('%d days ' + Text), [diff])
+        Result := Format(__('%d days ' + Suffix), [diff])
       else
-        Result := Format(__('%d hours ' + Text), [i]);
+        Result := Format(__('%d hours ' + Suffix), [i]);
     end
     else
     begin
       i := MinutesBetween(Now, TheDate);
       if i = 0 then
-        Result := Format(__('%d secondss ' + Text), [SecondsBetween(Now, TheDate)])
+        Result := Format(__('%d secondss ' + Suffix), [SecondsBetween(Now, TheDate)])
       else
-        Result := Format(__('%d minutes ' + Text), [i]);
+        Result := Format(__('%d minutes ' + Suffix), [i]);
     end;
   end
   else
@@ -78,11 +81,11 @@ begin
     if FormatDate = '' then
     begin
       if diff < 31 then
-        Result := Format(__('more %d days  ' + Text), [DaysBetween(Now, TheDate)]);
+        Result := Format(__('%d days  ' + Suffix), [DaysBetween(Now, TheDate)]);
       if diff > 30 then
-        Result := Format(__('more %d months ' + Text), [MonthsBetween(Now, TheDate)]);
+        Result := Format(__(Prefix + ' %d months ' + Suffix), [MonthsBetween(Now, TheDate)]);
       if diff > 360 then
-        Result := Format(__('more %d years ' + Text), [YearsBetween(Now, TheDate)]);
+        Result := Format(__(Prefix + ' %d years ' + Suffix), [YearsBetween(Now, TheDate)]);
     end
     else
     begin
@@ -98,7 +101,6 @@ var
 begin
   if MaxIntervalDate = 0 then
     MaxIntervalDate := 30;
-  MaxIntervalDate := 7;
 
   diffDate := _DateTimeDiff(TheDate, Now);
   diff := DaysBetween(Now, TheDate);
@@ -108,7 +110,7 @@ begin
     if diff = 1 then
       Result := __('yesterday')
     else
-      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago');
+      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
   end
   else
   begin // present
