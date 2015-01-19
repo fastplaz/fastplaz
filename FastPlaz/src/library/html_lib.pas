@@ -272,6 +272,7 @@ var
   s : string;
   i : integer;
 begin
+  s := '';
   for  i := Low(Options) to High(Options) do
   begin
     s := s + ' ' + Options[i];
@@ -289,17 +290,17 @@ begin
   else
   begin
     Result := ''
-{
-    + #13'<script type="text/javascript">'
-    + #13'var RecaptchaOptions = {'
-    + #13'	theme : "clean",'
-    + #13'	lang : "en",'
-    + #13'	custom_translations : {'
-    + #13'	},'
-    + #13'	tabindex : 0'
-    + #13'};'
-    + #13'</script>'
-}
+
+//    + #13'<script type="text/javascript">'
+//    + #13'var RecaptchaOptions = {'
+//    + #13'	theme : "clean",'
+//    + #13'	lang : "en",'
+//    + #13'	custom_translations : {'
+//    + #13'	},'
+//    + #13'	tabindex : 0'
+//    + #13'};'
+//    + #13'</script>'
+
     + #13'<input type="hidden" name="recaptcha_version" value="'+Version+'"/>'
     + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='+PublicKey+'">'
     + #13'</script>'

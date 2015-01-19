@@ -137,8 +137,9 @@ function f2s(n: extended): string;
 begin
   Result := '0';
   try
-    Result := FloatToStr(n);
-    //Result := Format( '%.2f', [n]);
+    //Result := FloatToStr(n);
+    //Result := FloatToStrF(n, ffCurrency, 8, 2);
+    Result := Format( '%.2f', [n]);
   except
   end;
 end;

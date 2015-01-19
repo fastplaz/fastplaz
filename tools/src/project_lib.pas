@@ -78,8 +78,7 @@ begin
     if edt_WebRootDir.Text <> '' then
     begin
       if edt_WebRootDir.Text <> GetUserDir then
-        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) +
-          ProjectName + _APP_EXTENSION;
+        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) + ProjectName + _APP_EXTENSION;
     end;
     isCreateStructure := cbx_GenerateStructure.Checked;
     Free;
@@ -138,6 +137,8 @@ begin
     'lib' + DirectorySeparator + '$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
   AProject.LazCompilerOptions.TargetFilename := targetExecutable;
+  //AProject.LazCompilerOptions.CustomConfigFile := True;
+  AProject.LazCompilerOptions.ConfigFilePath := 'extra.cfg';
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];
 
   // web dir structure
@@ -154,8 +155,7 @@ begin
   Result := mrOk;
 end;
 
-function TProjectFastPlazDescriptor.CreateStartFiles(AProject: TLazProject):
-TModalResult;
+function TProjectFastPlazDescriptor.CreateStartFiles(AProject: TLazProject): TModalResult;
 
 var
   Pkg: TIDEPackage;
@@ -173,8 +173,10 @@ begin
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
 
   // open readme file
-  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator +
-    'docs' + DirectorySeparator + 'README-new project.txt';
+  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator + 'docs' + DirectorySeparator +
+    'README-new project.txt';
+
+
   if FileExists(filename) then
   begin
     LazarusIDE.DoOpenEditorFile(filename, -1, -1, [ofAddToRecent]);
