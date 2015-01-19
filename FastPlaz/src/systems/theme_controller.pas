@@ -367,7 +367,7 @@ begin
   except
     on e: Exception do
     begin
-      die( 'getVarValue: ' + e.Message);
+      die( 'ThemeUtil.VarValue['+VariableName+']: ' + e.Message);
     end;
   end;
 
@@ -948,10 +948,23 @@ end;
 procedure TThemeUtil.TagController(Sender: TObject; const TagString: String;
   TagParams: TStringList; out ReplaceText: String);
 var
-  s, tagname : string;
+  s, tagname, filter : string;
   tagstring_custom : TStringList;
+  tag_with_filter : TStrings;
 begin
-  tagstring_custom := ExplodeTags( TagString);
+  if Pos( '|', TagString) = 0 then begin
+    tagstring_custom := ExplodeTags( TagString);
+    filter := tagstring_custom.Values['filter'];
+  end
+  else begin
+    tagstring_custom := TStringList.Create;
+    tag_with_filter := Explode( TagString, '|');
+    tagstring_custom.Text := tag_with_filter.Text;
+    FreeAndNil( tag_with_filter);
+    filter := tagstring_custom[1];
+  end;
+  //ReplaceText := tagstring_custom[0];
+  ReplaceText := '';
 
   // check from AssignVar
   if tagstring_custom.Values['index']<>'' then
@@ -986,8 +999,6 @@ begin
   end;
   // check from AssignVar - end
 
-  // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
-  ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   if tagstring_custom.Count = 0 then Begin ReplaceText:= '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
@@ -1065,7 +1076,6 @@ begin
     '$lang' : ReplaceText:= LANG;
     'lang' : ReplaceText:= LANG;
 
-
     'assign' : begin
       //s| <<-- prepare for variable type
       FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value'];
@@ -1118,12 +1128,29 @@ begin
     ReplaceText := ___TagCallbackMap[tagname](TagString,tagstring_custom);
   end;
 
-  if FAssignVarStringMap.IndexOfName(TagString) <> -1 then
+  if FAssignVarStringMap.IndexOfName( tagname) <> -1 then
   begin
-    ReplaceText:=FAssignVarStringMap.Values[TagString];
+    ReplaceText:=FAssignVarStringMap.Values[ tagname];
+  end else
+  begin
+    if FAssignVarStringMap.IndexOfName( TagString) <> -1 then
+    begin
+      ReplaceText:=FAssignVarStringMap.Values[ TagString];
+    end;
   end;
 
-  ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
+  if ReplaceText = '' then
+  begin
+    // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
+    ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
+  end;
+
+  if filter <> '' then
+  begin
+    ReplaceText:= FilterOutput( ReplaceText, filter);
+  end else begin
+
+  end;
 
   FreeAndNil( tagstring_custom);
 end;

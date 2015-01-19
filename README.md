@@ -30,7 +30,6 @@ how to enable email support
 
 ```
 {$define synapse}
+{$define xmailer}
 ```
-
-
 
