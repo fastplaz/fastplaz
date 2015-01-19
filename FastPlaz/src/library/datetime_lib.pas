@@ -38,7 +38,10 @@ var
   dateTmp: TDateTime;
   ts: TFormatSettings;
 begin
+  {$WARN SYMBOL_PLATFORM OFF}
   GetLocaleFormatSettings(0, ts);
+  {$WARN SYMBOL_PLATFORM ON}
+
   ts.ShortDateFormat := 'yyyy/MM/dd h:nn';
   try
     dateTmp := StrToDateTime(TheDate, ts);

@@ -963,7 +963,8 @@ begin
     FreeAndNil( tag_with_filter);
     filter := tagstring_custom[1];
   end;
-  ReplaceText := tagstring_custom[0];
+  //ReplaceText := tagstring_custom[0];
+  ReplaceText := '';
 
   // check from AssignVar
   if tagstring_custom.Values['index']<>'' then
@@ -1130,6 +1131,12 @@ begin
   if FAssignVarStringMap.IndexOfName( tagname) <> -1 then
   begin
     ReplaceText:=FAssignVarStringMap.Values[ tagname];
+  end else
+  begin
+    if FAssignVarStringMap.IndexOfName( TagString) <> -1 then
+    begin
+      ReplaceText:=FAssignVarStringMap.Values[ TagString];
+    end;
   end;
 
   if ReplaceText = '' then
