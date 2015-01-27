@@ -140,6 +140,7 @@ begin
     except
       on E: Exception do begin
         if RedirecURL = '' then
+          //TODO: check if database library cannot loaded
           DisplayError( 'Database Init: Load Library, ' + E.Message)
         else
           Redirect( RedirecURL);
