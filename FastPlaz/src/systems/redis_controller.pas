@@ -11,7 +11,7 @@ requirement:
 
 USAGE:
 [x] set value
-Redis := TRedisLib.Create;
+Redis := TRedisConstroller.Create;
 Redis['thekey'] := 'your string';
 
 [x] get value
