@@ -24,7 +24,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz Extras Library"/>
-    <Files Count="3">
+    <Files Count="4">
       <Item1>
         <Filename Value="src\fastplaz_extras_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -35,9 +35,13 @@
         <Type Value="Include"/>
       </Item2>
       <Item3>
+        <Filename Value="..\FastPlaz\src\library\redis_lib.pas"/>
+        <UnitName Value="redis_lib"/>
+      </Item3>
+      <Item4>
         <Filename Value="..\FastPlaz\src\systems\redis_controller.pas"/>
         <UnitName Value="redis_controller"/>
-      </Item3>
+      </Item4>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

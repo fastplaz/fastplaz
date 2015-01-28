@@ -6,7 +6,7 @@ interface
 
 uses
   {$ifdef LCL}
-  Translations,
+  //Translations,
   {$endif}
   fphttp, HTTPDefs,
   Classes, SysUtils;
