@@ -836,10 +836,10 @@ begin
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
 
-    tmp := RenderFromContent(@TagController, Content);
+    //tmp := RenderFromContent(@TagController, Content);
 
     templateEngine := TFPTemplate.Create;
-    templateEngine.Template := tmp;
+    templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
     templateEngine.StartDelimiter := FStartDelimiter;
     templateEngine.EndDelimiter := FEndDelimiter;
@@ -965,7 +965,8 @@ begin
     filter := tagstring_custom[1];
   end;
   //ReplaceText := tagstring_custom[0];
-  ReplaceText := '';
+  //ReplaceText := '';
+  ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
 
   // check from AssignVar
   if not FastPlasAppandler.isDisplayError then
@@ -1146,7 +1147,7 @@ begin
   if ReplaceText = '' then
   begin
     // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
-    ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
+    //ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   end;
 
   if filter <> '' then
