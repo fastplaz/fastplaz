@@ -365,6 +365,8 @@ begin
 end;
 
 function TSimpleModel._queryOpen: boolean;
+var
+  s : string;
 begin
   Result := False;
   try
@@ -377,8 +379,9 @@ begin
       if AppData.debug then begin
         LogUtil.add( E.Message);
         LogUtil.add( Data.SQL.Text);
+        s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
-      DisplayError( E.Message);
+      DisplayError( E.Message + s);
     end;
   end;
 end;

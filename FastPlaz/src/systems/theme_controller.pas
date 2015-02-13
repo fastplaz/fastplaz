@@ -144,6 +144,7 @@ type
 
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
     procedure TagCleaner(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
+    procedure TagDefault(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
 
     property AssignVar[const TagName: String]: Pointer read GetAssignVar write SetAssignVar;
     property Hit[const URL: String]: integer read GetHitCount;
@@ -835,10 +836,10 @@ begin
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
 
-    tmp := RenderFromContent(@TagController, Content);
+    //tmp := RenderFromContent(@TagController, Content);
 
     templateEngine := TFPTemplate.Create;
-    templateEngine.Template := tmp;
+    templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
     templateEngine.StartDelimiter := FStartDelimiter;
     templateEngine.EndDelimiter := FEndDelimiter;
@@ -894,16 +895,16 @@ begin
   begin
     if tagstring_custom.Values['dateformat'] = 'human' then
     begin
-      ReplaceText:= DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+      ReplaceText := DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
     end
     else
-      ReplaceText:= FormatDateTime( tagstring_custom.Values['dateformat'],
+      ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
         TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
       );
   end
   else
   begin
-    ReplaceText:= TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    ReplaceText := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
   end;
   FreeAndNil( tagstring_custom);
 end;
@@ -964,9 +965,12 @@ begin
     filter := tagstring_custom[1];
   end;
   //ReplaceText := tagstring_custom[0];
-  ReplaceText := '';
+  //ReplaceText := '';
+  ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
 
   // check from AssignVar
+  if not FastPlasAppandler.isDisplayError then
+  begin
   if tagstring_custom.Values['index']<>'' then
   begin
     if ThemeUtil.AssignVar[tagstring_custom[0]] <> Nil then
@@ -984,79 +988,80 @@ begin
             );
         end
         else
-          ReplaceText:= TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
+          ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
       except
-        ReplaceText:='----';
+        ReplaceText :='----';
       end;
-      ReplaceText:= FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
+      ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
       FreeAndNil(tagstring_custom);
       Exit;
     end
     else
     begin
-      ReplaceText:= '';
+      ReplaceText := '';
     end;
+  end;
   end;
   // check from AssignVar - end
 
-  if tagstring_custom.Count = 0 then Begin ReplaceText:= '[]'; Exit; End;
+  if tagstring_custom.Count = 0 then Begin ReplaceText := '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
     '$title' : begin
-      ReplaceText:= AppData.sitename;
+      ReplaceText := AppData.sitename;
       end;
     'title' : begin
-      ReplaceText:= AppData.sitename;
+      ReplaceText := AppData.sitename;
       end;
     '$slogan' : begin
-      ReplaceText:= AppData.slogan;
+      ReplaceText := AppData.slogan;
       end;
     'slogan' : begin
-      ReplaceText:= AppData.slogan;
+      ReplaceText := AppData.slogan;
       end;
     '$baseurl' : begin
-      ReplaceText:= BaseURL;
+      ReplaceText := BaseURL;
       end;
     'baseurl' : begin
-      ReplaceText:= BaseURL;
+      ReplaceText := BaseURL;
       end;
-    '$thisurl': FastPlasAppandler.URI;
-    'thisurl' : FastPlasAppandler.URI;
+    '$thisurl': ReplaceText := FastPlasAppandler.URI;
+    'thisurl' : ReplaceText := FastPlasAppandler.URI;
     '$theme'  : begin
-      ReplaceText:= ThemeName;
+      ReplaceText := ThemeName;
       end;
     'theme' : begin
-      ReplaceText:= ThemeName;
+      ReplaceText := ThemeName;
       end;
     '$themepath' : begin
-      ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
+      ReplaceText := 'themes/' + ThemeUtil.ThemeName;
       end;
     'themepath' : begin
-      ReplaceText:= 'themes/' + ThemeUtil.ThemeName;
+      ReplaceText := 'themes/' + ThemeUtil.ThemeName;
       end;
     '$themefullpath' : begin
       ReplaceText := BaseURL;
-      ReplaceText:= ReplaceText + 'themes/' + ThemeUtil.ThemeName;
+      ReplaceText := ReplaceText + 'themes/' + ThemeUtil.ThemeName;
       end;
     'themefullpath' : begin
       ReplaceText := BaseURL;
-      ReplaceText:= ReplaceText + 'themes/' + ThemeUtil.ThemeName;
+      ReplaceText := ReplaceText + 'themes/' + ThemeUtil.ThemeName;
       end;
     '$version' : begin
       GetVersionInfo();
-      ReplaceText:= VersionInfo.FullVersion;
+      ReplaceText := VersionInfo.FullVersion;
       end;
     'version' : begin
       GetVersionInfo();
-      ReplaceText:= VersionInfo.FullVersion;
+      ReplaceText := VersionInfo.FullVersion;
       end;
     '$env' : begin
       if tagstring_custom.Values['key'] <> '' then
-        ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
+        ReplaceText :=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
     'env' : begin
       if tagstring_custom.Values['key'] <> '' then
-        ReplaceText:=Application.EnvironmentVariable[tagstring_custom.Values['key']];
+        ReplaceText :=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
     'datetime' : begin
       if tagstring_custom.Values['format'] <> '' then
@@ -1071,15 +1076,15 @@ begin
       ReplaceText := FormatDateTime('HH:nn:ss', Now);
       end;
     'hit' : begin
-      ReplaceText:= i2s( GetHitCount(''));
+      ReplaceText := i2s( GetHitCount(''));
       end;
-    '$lang' : ReplaceText:= LANG;
-    'lang' : ReplaceText:= LANG;
+    '$lang' : ReplaceText := LANG;
+    'lang' : ReplaceText := LANG;
 
     'assign' : begin
       //s| <<-- prepare for variable type
       FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value'];
-      ReplaceText:='';
+      ReplaceText :='';
     end;
     'assignadd' : begin
       s := FTagAssign_Variable.Values[ tagstring_custom.Values['var']];
@@ -1088,26 +1093,26 @@ begin
         FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := 's|'+tagstring_custom.Values['value']
       else
         FTagAssign_Variable.Values[ tagstring_custom.Values['var']] := s+tagstring_custom.Values['value'];
-      ReplaceText:='';
+      ReplaceText :='';
     end;
     'value' : begin
-      ReplaceText:=FTagAssign_Variable.Values[ tagstring_custom.Values['var']];
-      ReplaceText:=Copy(ReplaceText,3,Length(ReplaceText)-2);
+      ReplaceText :=FTagAssign_Variable.Values[ tagstring_custom.Values['var']];
+      ReplaceText :=Copy(ReplaceText,3,Length(ReplaceText)-2);
     end;
     'include' : begin
-      ReplaceText:= ThemeUtil.Render( @TagController, tagstring_custom.Values['file'], false, true);;
+      ReplaceText := ThemeUtil.Render( @TagController, tagstring_custom.Values['file'], false, true);;
       end;
     'block' : begin
-      ReplaceText:= BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
+      ReplaceText := BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
       end;
     'text' : begin
-      ReplaceText:= BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
+      ReplaceText := BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
       end;
     'debug' : begin
-      ReplaceText:= getDebugInfo( tagstring_custom.Values['type']);
+      ReplaceText := getDebugInfo( tagstring_custom.Values['type']);
       end;
     'gt' : begin
-      ReplaceText:= __(tagstring_custom.Values['text']);
+      ReplaceText := __(tagstring_custom.Values['text']);
       end;
     'recaptcha' : begin
       // usage: [recaptcha key="yourkey" version="v1"]
@@ -1130,24 +1135,24 @@ begin
 
   if FAssignVarStringMap.IndexOfName( tagname) <> -1 then
   begin
-    ReplaceText:=FAssignVarStringMap.Values[ tagname];
+    ReplaceText :=FAssignVarStringMap.Values[ tagname];
   end else
   begin
     if FAssignVarStringMap.IndexOfName( TagString) <> -1 then
     begin
-      ReplaceText:=FAssignVarStringMap.Values[ TagString];
+      ReplaceText :=FAssignVarStringMap.Values[ TagString];
     end;
   end;
 
   if ReplaceText = '' then
   begin
     // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
-    ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
+    //ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   end;
 
   if filter <> '' then
   begin
-    ReplaceText:= FilterOutput( ReplaceText, filter);
+    ReplaceText := FilterOutput( ReplaceText, filter);
   end else begin
 
   end;
@@ -1160,7 +1165,13 @@ procedure TThemeUtil.TagCleaner(Sender: TObject; const TagString: String; TagPar
 begin
   if Length(TagString) < 3 then Exit;
   if TagString[1] = '$' then Exit;
-  ReplaceText:= StartDelimiter + TagString + EndDelimiter;
+  ReplaceText := StartDelimiter + TagString + EndDelimiter;
+end;
+
+procedure TThemeUtil.TagDefault(Sender: TObject; const TagString: String; TagParams: TStringList; out
+  ReplaceText: String);
+begin
+  ReplaceText := StartDelimiter + TagString + EndDelimiter;
 end;
 
 function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent; const LayoutTemplateFile: string; Cache: boolean;
@@ -1251,6 +1262,7 @@ begin
       templateEngine.OnReplaceTag := @TagController
     else
       templateEngine.OnReplaceTag := TagProcessorAddress;
+
     Result := templateEngine.GetContent;
 
     // clean tag

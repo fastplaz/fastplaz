@@ -56,7 +56,7 @@ function Block(Content: string; StyleClass: string = ''; BlockID: string = ''): 
 
 function StripTags(const Content: string): string;
 function StripTagsCustom(const Content: string; const TagStart: string; const TagEnd: string): string;
-function MoreLess(const Content: string; CharacterCount: integer = 100): string;
+function MoreLess(const Content: string; CharacterCount: integer = 100; Suffix:string = '...'): string;
 
 var
   HTMLUtil: THTMLUtil;
@@ -136,10 +136,12 @@ begin
   Result := s;
 end;
 
-function MoreLess(const Content: string; CharacterCount: integer): string;
+function MoreLess(const Content: string; CharacterCount: integer; Suffix: string): string;
 begin
   Result := Copy(Content, 1, CharacterCount);
   Result := Copy(Result, 1, RPos(' ', Result) - 1);
+  if Suffix <> '' then
+    Result := Result + ' ' + Suffix;
 end;
 
 { THTMLUtil }
