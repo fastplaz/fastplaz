@@ -30,6 +30,7 @@ type
     FGenFields : TStringList;
     function GetEOF: boolean;
     function GetRecordCount: Longint;
+    function GetTablePrefix: string;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
@@ -50,6 +51,7 @@ type
     constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
     property TableName : string Read FTableName write FTableName;
+    property TablePrefix : string read GetTablePrefix;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
@@ -357,6 +359,11 @@ begin
   Result := -1;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
+end;
+
+function TSimpleModel.GetTablePrefix: string;
+begin
+  Result := AppData.tablePrefix;
 end;
 
 function TSimpleModel.GetEOF: boolean;

@@ -6,9 +6,10 @@ interface
 
 uses
   {$if fpc_fullversion >= 20701}
-    ghashmap,
+  //ghashmap,
+  fgl,
   {$else fpc_fullversion >= 20701}
-    fgl,
+  fgl,
   {$endif fpc_fullversion >= 20701}
   fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
   Regex, RegExpr, sqldb,
@@ -39,10 +40,13 @@ type
   // based on qtemplate
   {$if fpc_fullversion >= 20701}
     { TStringHash }
+    {*
     TStringHash = class
       class function hash(s: String; n: Integer): Integer;
     end;
     generic TStringHashMap<T> = class(specialize THashMap<String,T,TStringHash>) end;
+    *}
+    generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
   {$else fpc_fullversion >= 20701}
     generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
   {$endif fpc_fullversion >= 20701}
@@ -862,11 +866,15 @@ procedure TThemeUtil.ForeachProcessor_Table_TagController(Sender: TObject;
   const TagString: string; TagParams: TStringList; out ReplaceText: string);
 var
   tagstring_custom : TStringList;
+  filter : string;
+  i : integer;
 begin
   if ForeachTable_Keyname = '' then
     Exit;
   tagstring_custom := ExplodeTags( TagString);
   ReplaceText := FStartDelimiter +  TagString + FEndDelimiter;
+  filter := tagstring_custom.Values['filter'];
+
   if tagstring_custom[0] <> ForeachTable_Itemname then
   begin
     FreeAndNil( tagstring_custom);
@@ -905,6 +913,17 @@ begin
   else
   begin
     ReplaceText := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+  end;
+
+  if filter <> '' then
+  begin
+    if filter = 'moreless' then
+    begin
+      i := s2i( tagstring_custom.Values['count']);
+      ReplaceText := MoreLess( ReplaceText, i);
+    end
+    else
+      ReplaceText := FilterOutput( ReplaceText, filter);
   end;
   FreeAndNil( tagstring_custom);
 end;
@@ -1126,11 +1145,12 @@ begin
   end;
 
   {$if fpc_fullversion >= 20701}
-  if ___TagCallbackMap.Contains(tagname) then begin
+  //if ___TagCallbackMap.Contains(tagname) then begin
+  if ___TagCallbackMap.IndexOf(tagname) >= 0 then begin
   {$else fpc_fullversion >= 20701}
   if ___TagCallbackMap.IndexOf(tagname) >= 0 then begin
   {$endif fpc_fullversion >= 20701}
-    ReplaceText := ___TagCallbackMap[tagname](TagString,tagstring_custom);
+  ReplaceText := ___TagCallbackMap[tagname](TagString,tagstring_custom);
   end;
 
   if FAssignVarStringMap.IndexOfName( tagname) <> -1 then
