@@ -696,7 +696,6 @@ begin
   if AppData.themeEnable then
   begin
     FreeAndNil(ThemeUtil);
-    ;
   end;
   inherited Destroy;
 end;

@@ -972,7 +972,14 @@ var
   tagstring_custom : TStringList;
   tag_with_filter : TStrings;
 begin
-  if Pos( '|', TagString) = 0 then begin
+  if trim( TagString) = '' then Exit;
+  if Pos( '*', TagString) = 1 then
+  begin
+    ReplaceText := '<!--'+TagString+'-->';
+    Exit;
+  end;
+  if Pos( '|', TagString) = 0 then
+  begin
     tagstring_custom := ExplodeTags( TagString);
     filter := tagstring_custom.Values['filter'];
   end
