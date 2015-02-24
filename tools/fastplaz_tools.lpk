@@ -3,6 +3,7 @@
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="fastplaz_tools"/>
+    <Type Value="RunAndDesignTime"/>
     <Author Value="Luri Darmawan"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -16,18 +17,12 @@
           <GenerateDebugInfo Value="False"/>
         </Debugging>
       </Linking>
-      <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
-        <CompilerPath Value="$(CompPath)"/>
-      </Other>
     </CompilerOptions>
     <Description Value="Tools Generator for FastPlaz
 for more information visit http://www.fastplaz.com
 "/>
     <Version Minor="1" Release="1"/>
-    <Files Count="14">
+    <Files Count="15">
       <Item1>
         <Filename Value="src\fastplaz_tools_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -85,12 +80,15 @@ for more information visit http://www.fastplaz.com
         <Filename Value="src\webstructure_wzd.pas"/>
         <UnitName Value="webstructure_wzd"/>
       </Item14>
+      <Item15>
+        <Filename Value="src\themestructure_wzd.pas"/>
+        <UnitName Value="themestructure_wzd"/>
+      </Item15>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
-    <Type Value="RunAndDesignTime"/>
     <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="IDEIntf"/>

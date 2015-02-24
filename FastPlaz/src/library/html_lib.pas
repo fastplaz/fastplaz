@@ -138,7 +138,9 @@ end;
 
 function MoreLess(const Content: string; CharacterCount: integer; Suffix: string): string;
 begin
-  Result := Copy(Content, 1, CharacterCount);
+  if CharacterCount = 0 then CharacterCount := 100;
+  Result := StripTags( Content);
+  Result := Copy(Result, 1, CharacterCount);
   Result := Copy(Result, 1, RPos(' ', Result) - 1);
   if Suffix <> '' then
     Result := Result + ' ' + Suffix;

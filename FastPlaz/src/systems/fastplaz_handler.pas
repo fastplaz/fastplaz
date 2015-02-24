@@ -92,6 +92,7 @@ type
     function GetIsPut: boolean;
     function GetSession: TSessionController;
     function GetSessionID: string;
+    function GetTablePrefix: string;
     function GetTag(const TagName: string): TTagCallback;
     function GetURI: string;
     procedure SetTag(const TagName: string; AValue: TTagCallback);
@@ -120,6 +121,8 @@ type
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
     property SessionID: string read GetSessionID;
+
+    property TablePrefix: string read GetTablePrefix;
   end;
 
   { TFastPlasAppandler }
@@ -447,6 +450,7 @@ begin
 end;
 
 {$if fpc_fullversion >= 20701}
+{
 class function TStringHash.hash(s: string; n: integer): integer;
 var
   c: char;
@@ -456,7 +460,7 @@ begin
     Inc(Result, Ord(c));
   Result := Result mod n;
 end;
-
+}
 {$endif fpc_fullversion >= 20701}
 
 { TMyCustomWebModule }
@@ -507,6 +511,11 @@ end;
 function TMyCustomWebModule.GetSessionID: string;
 begin
   Result := SessionController.SessionID;
+end;
+
+function TMyCustomWebModule.GetTablePrefix: string;
+begin
+  Result := AppData.tablePrefix;
 end;
 
 function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
@@ -687,7 +696,6 @@ begin
   if AppData.themeEnable then
   begin
     FreeAndNil(ThemeUtil);
-    ;
   end;
   inherited Destroy;
 end;
