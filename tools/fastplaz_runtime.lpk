@@ -13,14 +13,10 @@
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
         <ConfigFile>
           <CustomConfigFile Value="True"/>
           <ConfigFilePath Value="extra.cfg"/>
         </ConfigFile>
-        <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>

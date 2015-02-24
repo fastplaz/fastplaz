@@ -1,10 +1,14 @@
 unit database_lib;
 
 {$mode objfpc}{$H+}
+{$include ../../define.inc}
 
 interface
 
 uses
+  {$ifdef GREYHOUND}
+  ghSQL, ghSQLdbLib,
+  {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn,
   sqlite3conn, pqconnection,

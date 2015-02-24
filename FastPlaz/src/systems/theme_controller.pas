@@ -1,6 +1,7 @@
 unit theme_controller;
 
 {$mode objfpc}{$H+}
+{$include ../../define.inc}
 
 interface
 
@@ -11,8 +12,11 @@ uses
   {$else fpc_fullversion >= 20701}
   fgl,
   {$endif fpc_fullversion >= 20701}
+  {$ifdef GREYHOUND}
+  ghSQL, ghSQLdbLib,
+  {$endif}
   fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
-  Regex, RegExpr, sqldb,
+  Regex, RegExpr, db, sqldb,
   common, fastplaz_handler, database_lib, datetime_lib,
   Classes, SysUtils;
 
@@ -93,6 +97,7 @@ type
     FTrimWhiteSpace: boolean;
     isRendering,
     isRenderingModule : boolean;
+    foreachJsonIndex : integer;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
     function GetHitCount(const URL: String): integer;
@@ -131,6 +136,17 @@ type
     function ForeachProcessor_Table( TagProcessor: TReplaceTagEvent; KeyName, Content: string):string;
     procedure ForeachProcessor_Table_TagController(Sender: TObject; const TagString: string;
       TagParams: TStringList; Out ReplaceText: string);
+    function ForeachProcessor_Dataset( TagProcessor: TReplaceTagEvent; KeyName, Content: string):string;
+    procedure ForeachProcessor_Dataset_TagController(Sender: TObject; const TagString: string;
+      TagParams: TStringList; Out ReplaceText: string);
+    function ForeachProcessor_Json( TagProcessor: TReplaceTagEvent; KeyName, Content: string):string;
+    procedure ForeachProcessor_Json_TagController(Sender: TObject; const TagString: string;
+      TagParams: TStringList; Out ReplaceText: string);
+    {$ifdef GREYHOUND}
+    function ForeachProcessor_GreyhoundTable( TagProcessor: TReplaceTagEvent; KeyName, Content: string):string;
+    procedure ForeachProcessor_GreyhoundTable_TagController(Sender: TObject; const TagString: string;
+      TagParams: TStringList; Out ReplaceText: string);
+    {$endif GREYHOUND}
   public
     isCleanTag : boolean;
     constructor Create;
@@ -521,8 +537,13 @@ begin
     'moreless' : begin
       //Result := MoreLess(Content);
     end;
-    'dateformathuman' : begin
+    'dateformathuman' :
+    begin
       Result := DateTimeHuman( Content);
+    end;
+    'shorturl' :
+    begin
+      Result := ShortUrl( Content);
     end;
   end;
 end;
@@ -796,13 +817,26 @@ begin
       ForeachTable_Itemname := parameter.Values['item'];
       case parameter.Values['type'] of
         '' : begin
-          FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
+          DisplayError( 'field "type" is not define in "foreach ' + Match[1] + '"');
+          //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
         end;
         'table' : begin
           html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], Match[2]);
         end;
+        'dataset' : begin
+          html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], Match[2]);
+        end;
+        'json' : begin
+          html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], Match[2]);
+        end;
+        {$ifdef GREYHOUND}
+        'ghtable' : begin
+          html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
+        end;
+        {$endif GREYHOUND}
         'array' : begin
-          FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
+          DisplayError( __( __Err_Theme_ForeachNotImplemented));
+          //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
         end;
       end;
 
@@ -861,6 +895,180 @@ begin
   end;
   Result := html;
 end;
+
+function TThemeUtil.ForeachProcessor_Dataset(TagProcessor: TReplaceTagEvent;
+  KeyName, Content: string): string;
+var
+  html, tmp : string;
+  templateEngine : TFPTemplate;
+begin
+  if ( AssignVar[KeyName] = nil) then
+  begin
+    Exit;
+  end;
+
+  html := '';
+  while not TDataSet( assignVarMap[KeyName]^).EOF do
+  begin
+    templateEngine := TFPTemplate.Create;
+    templateEngine.Template := Content; // tmp
+    templateEngine.AllowTagParams := True;
+    templateEngine.StartDelimiter := FStartDelimiter;
+    templateEngine.EndDelimiter := FEndDelimiter;
+    templateEngine.ParamValueSeparator := '=';
+    templateEngine.OnReplaceTag := @ForeachProcessor_Dataset_TagController;
+    html := html + templateEngine.GetContent;
+    FreeAndNil(templateEngine);
+
+    html := RenderFromContent(@TagController, html);
+
+    //-- proccess conditional if
+    html := ConditionalIfProcessor( TagProcessor, html);
+
+    TDataSet( assignVarMap[KeyName]^).Next;
+  end;
+  Result := html;
+end;
+
+function TThemeUtil.ForeachProcessor_Json(TagProcessor: TReplaceTagEvent; KeyName, Content: string): string;
+var
+  html, tmp : string;
+  templateEngine : TFPTemplate;
+  i : integer;
+begin
+  if ForeachTable_Keyname = '' then
+    Exit;
+  if ( AssignVar[KeyName] = nil) then
+  begin
+    Exit;
+  end;
+
+  html := '';
+  foreachJsonIndex := 0;
+  for i := 0 to TJSONData( assignVarMap[KeyName]^).Count - 1 do
+  begin
+    templateEngine := TFPTemplate.Create;
+    templateEngine.Template := Content; // tmp
+    templateEngine.AllowTagParams := True;
+    templateEngine.StartDelimiter := FStartDelimiter;
+    templateEngine.EndDelimiter := FEndDelimiter;
+    templateEngine.ParamValueSeparator := '=';
+    templateEngine.OnReplaceTag := @ForeachProcessor_Json_TagController;
+    tmp := templateEngine.GetContent;
+    FreeAndNil(templateEngine);
+
+    //-- proccess conditional if
+    //html := ConditionalIfProcessor( TagProcessor, html);
+
+    html := html + tmp;
+    inc( foreachJsonIndex);
+  end;
+
+  Result := html;
+end;
+
+{$ifdef GREYHOUND}
+function TThemeUtil.ForeachProcessor_GreyhoundTable(
+  TagProcessor: TReplaceTagEvent; KeyName, Content: string): string;
+var
+  html, tmp : string;
+  templateEngine : TFPTemplate;
+begin
+  if ( AssignVar[KeyName] = nil) then
+  begin
+    Exit;
+  end;
+
+  if TghSQLTable( assignVarMap[KeyName]^).IsEmpty then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  html := '';
+
+  TghSQLTable( assignVarMap[KeyName]^).First;
+  while not TghSQLTable( assignVarMap[KeyName]^).EOF do
+  begin
+
+    //tmp := RenderFromContent(@TagController, Content);
+
+    templateEngine := TFPTemplate.Create;
+    templateEngine.Template := Content; // tmp
+    templateEngine.AllowTagParams := True;
+    templateEngine.StartDelimiter := FStartDelimiter;
+    templateEngine.EndDelimiter := FEndDelimiter;
+    templateEngine.ParamValueSeparator := '=';
+    templateEngine.OnReplaceTag := @ForeachProcessor_GreyhoundTable_TagController;
+    html := html + templateEngine.GetContent;
+    FreeAndNil(templateEngine);
+
+    html := RenderFromContent(@TagController, html);
+
+    //-- proccess conditional if
+    html := ConditionalIfProcessor( TagProcessor, html);
+
+    TghSQLTable( assignVarMap[KeyName]^).Next;
+  end;
+  Result := html;
+end;
+
+procedure TThemeUtil.ForeachProcessor_GreyhoundTable_TagController(
+  Sender: TObject; const TagString: string; TagParams: TStringList; out
+  ReplaceText: string);
+var
+  tagstring_custom : TStringList;
+  tag_with_filter, lst : TStrings;
+  fieldName, filter, s : string;
+  i : integer;
+begin
+  if ForeachTable_Keyname = '' then
+    Exit;
+
+  if Pos( '|', TagString) = 0 then
+  begin
+    tagstring_custom := ExplodeTags( TagString);
+    filter := tagstring_custom.Values['filter'];
+  end
+  else begin
+    tag_with_filter := Explode( TagString, '|');
+    tagstring_custom := ExplodeTags( tag_with_filter[0]);
+    filter := tag_with_filter[1];
+    lst := Explode( filter, ' ');
+    filter := lst[0];
+    lst.Delete(0);
+    tagstring_custom.Add( 'filter=' + filter);
+    tagstring_custom.Add( lst.Text);
+    FreeAndNil( lst);
+    FreeAndNil( tag_with_filter);
+  end;
+  fieldName := tagstring_custom.Values['index'];
+
+  try
+    ReplaceText := TghSQLTable( assignVarMap[ForeachTable_Keyname]^)[ fieldName].AsString;
+  except
+    on e : Exception do
+    begin
+      ReplaceText:= 'ghtable' +e.Message;
+    end;
+  end;
+
+  if filter <> '' then
+  begin
+    if filter = 'moreless' then
+    begin
+      s := trim( tagstring_custom.Values['count']);
+      i := s2i( s);
+      ReplaceText := MoreLess( ReplaceText, i);
+    end
+    else
+      ReplaceText := FilterOutput( ReplaceText, filter);
+  end;
+
+  FreeAndNil( tagstring_custom);
+end;
+{$endif GREYHOUND}
+
 
 procedure TThemeUtil.ForeachProcessor_Table_TagController(Sender: TObject;
   const TagString: string; TagParams: TStringList; out ReplaceText: string);
@@ -925,6 +1133,120 @@ begin
     else
       ReplaceText := FilterOutput( ReplaceText, filter);
   end;
+  FreeAndNil( tagstring_custom);
+end;
+
+procedure TThemeUtil.ForeachProcessor_Dataset_TagController(Sender: TObject;
+  const TagString: string; TagParams: TStringList; out ReplaceText: string);
+var
+  tagstring_custom : TStringList;
+  tag_with_filter, lst : TStrings;
+  fieldName, filter, s : string;
+  i : integer;
+begin
+  if ForeachTable_Keyname = '' then
+    Exit;
+
+  if Pos( '|', TagString) = 0 then
+  begin
+    tagstring_custom := ExplodeTags( TagString);
+    filter := tagstring_custom.Values['filter'];
+  end
+  else begin
+    tag_with_filter := Explode( TagString, '|');
+    tagstring_custom := ExplodeTags( tag_with_filter[0]);
+    filter := tag_with_filter[1];
+    lst := Explode( filter, ' ');
+    filter := lst[0];
+    lst.Delete(0);
+    tagstring_custom.Add( 'filter=' + filter);
+    tagstring_custom.Add( lst.Text);
+    FreeAndNil( lst);
+    FreeAndNil( tag_with_filter);
+  end;
+  fieldName := tagstring_custom.Values['index'];
+
+  try
+    ReplaceText := TDataSet( assignVarMap[ForeachTable_Keyname]^).FieldByName( fieldName).AsString;
+  except
+    on e : Exception do
+    begin
+      ReplaceText:= 'dataset' +e.Message;
+    end;
+  end;
+
+  if filter <> '' then
+  begin
+    if filter = 'moreless' then
+    begin
+      s := trim( tagstring_custom.Values['count']);
+      i := s2i( s);
+      ReplaceText := MoreLess( ReplaceText, i);
+    end
+    else
+      ReplaceText := FilterOutput( ReplaceText, filter);
+  end;
+
+  FreeAndNil( tagstring_custom);
+end;
+
+procedure TThemeUtil.ForeachProcessor_Json_TagController(Sender: TObject; const TagString: string;
+  TagParams: TStringList; out ReplaceText: string);
+var
+  tagstring_custom : TStringList;
+  tag_with_filter, lst : TStrings;
+  fieldName, filter, s : string;
+  i : integer;
+begin
+  if ForeachTable_Keyname = '' then
+    Exit;
+
+  if Pos( '|', TagString) = 0 then
+  begin
+    tagstring_custom := ExplodeTags( TagString);
+    filter := tagstring_custom.Values['filter'];
+  end
+  else begin
+    tag_with_filter := Explode( TagString, '|');
+    tagstring_custom := ExplodeTags( tag_with_filter[0]);
+    filter := tag_with_filter[1];
+    lst := Explode( filter, ' ');
+    filter := lst[0];
+    lst.Delete(0);
+    tagstring_custom.Add( 'filter=' + filter);
+    tagstring_custom.Add( lst.Text);
+    FreeAndNil( lst);
+    FreeAndNil( tag_with_filter);
+  end;
+  fieldName := tagstring_custom.Values['index'];
+
+  try
+    ReplaceText := TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+  except
+    on e : Exception do begin
+      if e.Message = 'Access violation' then
+        s := ForeachTable_Keyname + ': Index "'+fieldName+'" not found'
+      else
+        s:= ForeachTable_Keyname + '('+fieldName+') : ' + e.Message;
+      s := 'foreach json: ' + s;
+      TagController( Sender, TagString, TagParams, ReplaceText);
+      if ReplaceText = '' then
+        ReplaceText := s;
+    end;
+  end;
+
+  if filter <> '' then
+  begin
+    if filter = 'moreless' then
+    begin
+      s := trim( tagstring_custom.Values['count']);
+      i := s2i( s);
+      ReplaceText := MoreLess( ReplaceText, i);
+    end
+    else
+      ReplaceText := FilterOutput( ReplaceText, filter);
+  end;
+
   FreeAndNil( tagstring_custom);
 end;
 
@@ -1046,10 +1368,10 @@ begin
       ReplaceText := AppData.slogan;
       end;
     '$baseurl' : begin
-      ReplaceText := BaseURL;
+      ReplaceText := AppData.baseUrl;
       end;
     'baseurl' : begin
-      ReplaceText := BaseURL;
+      ReplaceText := AppData.baseUrl;
       end;
     '$thisurl': ReplaceText := FastPlasAppandler.URI;
     'thisurl' : ReplaceText := FastPlasAppandler.URI;
@@ -1295,6 +1617,13 @@ begin
     // clean tag
     if isCleanTag then
       Result := RenderFromContent( @TagCleaner, Result);
+
+    //-- proccess foreach
+    if RenderType = rtSmarty then
+    begin
+      // only from module
+      //Result := ForeachProcessor( TagProcessorAddress, Result);
+    end;
 
   except
     on e : Exception do
