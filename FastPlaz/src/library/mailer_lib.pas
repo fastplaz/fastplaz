@@ -250,12 +250,12 @@ begin
   FLogs := '';
 
   // read from config.json
-  MailServer := Config[ format(_MAIL_MAILSERVER, [Setting])];
-  UserName := Config[ format(_MAIL_USERNAME, [Setting])];
-  Password := Config[ format(_MAIL_PASSWORD, [Setting])];
-  Port := Config[ format(_MAIL_SMTPPORT, [Setting])];
-  SSL := Config.GetValue( format(_MAIL_SSL, [Setting]), True);
-  TLS := Config.GetValue( format(_MAIL_TLS, [Setting]), True);
+  MailServer := Config[format(_MAIL_MAILSERVER, [Setting])];
+  UserName := Config[format(_MAIL_USERNAME, [Setting])];
+  Password := Config[format(_MAIL_PASSWORD, [Setting])];
+  Port := Config[format(_MAIL_SMTPPORT, [Setting])];
+  SSL := Config.GetValue(format(_MAIL_SSL, [Setting]), True);
+  TLS := Config.GetValue(format(_MAIL_TLS, [Setting]), True);
 
 end;
 

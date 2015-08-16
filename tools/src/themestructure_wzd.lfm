@@ -1,33 +1,33 @@
-object fWebStructure: TfWebStructure
-  Left = 621
-  Height = 209
-  Top = 220
-  Width = 633
+object fThemeStructure: TfThemeStructure
+  Left = 428
+  Height = 223
+  Top = 413
+  Width = 628
   BorderStyle = bsDialog
-  Caption = 'Web Structure Wizard'
-  ClientHeight = 209
-  ClientWidth = 633
+  Caption = 'Theme Structure'
+  ClientHeight = 223
+  ClientWidth = 628
   OnCreate = FormCreate
-  Position = poScreenCenter
+  Position = poDesktopCenter
   LCLVersion = '1.5'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
     Top = 0
-    Width = 633
+    Width = 628
     Align = alTop
     BevelOuter = bvNone
     ClientHeight = 34
-    ClientWidth = 633
+    ClientWidth = 628
     Color = clWhite
     ParentColor = False
-    TabOrder = 2
+    TabOrder = 3
     object lbl_Title: TLabel
       Left = 6
       Height = 25
       Top = 4
-      Width = 186
-      Caption = 'Web Structure Wizard'
+      Width = 204
+      Caption = 'Theme Structure Wizard'
       Font.Height = -19
       ParentColor = False
       ParentFont = False
@@ -36,8 +36,8 @@ object fWebStructure: TfWebStructure
   object pnl_Button: TButtonPanel
     Left = 6
     Height = 34
-    Top = 169
-    Width = 621
+    Top = 183
+    Width = 616
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
     OKButton.OnClick = OKButtonClick
@@ -48,41 +48,58 @@ object fWebStructure: TfWebStructure
     CancelButton.Name = 'CancelButton'
     CancelButton.DefaultCaption = True
     CancelButton.OnClick = CancelButtonClick
-    TabOrder = 1
+    TabOrder = 2
     ShowButtons = [pbOK, pbCancel]
   end
   object mem: TMemo
     Left = 112
     Height = 82
-    Top = 74
+    Top = 94
     Width = 508
     Color = clBtnFace
     Lines.Strings = (
       ''
-      'This Wizard will help you to create FastPlaz directory structures.'
+      'This Wizard will help you to create Theme directory structures.'
       ''
       'Choose your target directory, then click "Ok"'
     )
     ReadOnly = True
-    TabOrder = 3
+    TabOrder = 4
   end
   object edt_TargetDir: TDirectoryEdit
     Left = 112
     Height = 23
-    Top = 40
+    Top = 64
     Width = 488
     ShowHidden = False
     ButtonWidth = 23
     NumGlyphs = 1
     MaxLength = 0
-    TabOrder = 0
+    TabOrder = 1
   end
   object Label1: TLabel
     Left = 10
     Height = 15
-    Top = 44
+    Top = 68
     Width = 91
     Caption = 'Target Directory :'
     ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 10
+    Height = 15
+    Top = 40
+    Width = 78
+    Caption = 'Theme Name :'
+    ParentColor = False
+  end
+  object edt_ThemeName: TEdit
+    Left = 112
+    Height = 23
+    Top = 38
+    Width = 152
+    OnKeyDown = edt_ThemeNameKeyDown
+    TabOrder = 0
+    Text = 'edt_ThemeName'
   end
 end

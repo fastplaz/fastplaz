@@ -3,6 +3,7 @@
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="fastplaz_runtime"/>
+    <Author Value="Luri Darmawan"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
@@ -12,16 +13,13 @@
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
         <ConfigFile>
           <CustomConfigFile Value="True"/>
           <ConfigFilePath Value="extra.cfg"/>
         </ConfigFile>
-        <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
+    <Description Value="FastPlaz RunTime"/>
     <Files Count="21">
       <Item1>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
@@ -109,6 +107,10 @@
         <UnitName Value="about_controller"/>
       </Item21>
     </Files>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <EnableI18NForLFM Value="True"/>
+    </i18n>
     <RequiredPkgs Count="1">
       <Item1>
         <PackageName Value="LCL"/>

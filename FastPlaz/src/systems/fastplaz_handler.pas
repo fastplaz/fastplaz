@@ -7,7 +7,7 @@ interface
 
 uses
   {$IFDEF HEAPTRACE}
-    heaptrc,
+  heaptrc,
   {$ENDIF}
   sqldb, gettext, session_controller, module_controller,
   config_lib,
@@ -64,11 +64,12 @@ type
     SessionDir: string;
     hitStorage: string;
     databaseRead,
-    databaseWrite : string;
+    databaseWrite: string;
     databaseActive,
     useDatabase,
     initialized,
     debug: boolean;
+    isReady: boolean;
   end;
 
   TOnBlockController = procedure(Sender: TObject; FunctionName: string; Parameter: TStrings;
@@ -91,6 +92,7 @@ type
     function GetIsPut: boolean;
     function GetSession: TSessionController;
     function GetSessionID: string;
+    function GetTablePrefix: string;
     function GetTag(const TagName: string): TTagCallback;
     function GetURI: string;
     procedure SetTag(const TagName: string; AValue: TTagCallback);
@@ -119,6 +121,8 @@ type
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
     property SessionID: string read GetSessionID;
+
+    property TablePrefix: string read GetTablePrefix;
   end;
 
   { TFastPlasAppandler }
@@ -247,11 +251,11 @@ begin
   end;
 
   if Config.Status = 2 then
-    die( Config.Message);
+    die(Config.Message);
   AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
   AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
   AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
-  AppData.admin_email:= Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email);
+  AppData.admin_email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email);
   AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
@@ -297,12 +301,14 @@ begin
     //SessionController.EndSession;
     //SessionController.StartSession;
   end;
-  SessionController.TimeOut := Config.GetValue( _SYSTEM_SESSION_TIMEOUT, 0);;
+  SessionController.TimeOut := Config.GetValue(_SYSTEM_SESSION_TIMEOUT, 0);
+  ;
   //todo: auto clean-up session
   //-- session - end
 
   //-- language
 
+  AppData.isReady := True;
 end;
 
 procedure Redirect(const URL: string);
@@ -325,10 +331,10 @@ begin
 
   if (not AppData.useDatabase) or (AppData.useDatabase and AppData.databaseActive) then
   begin
-    Application.Response.Contents.Text := ThemeUtil.Render();
+    Application.Response.Contents.Text := ThemeUtil.Render( @ThemeUtil.TagDefault, 'error');
     Application.Response.Contents.Text :=
-      ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter +
-      '$maincontent' + ThemeUtil.EndDelimiter], '<div class="box error">' + Message + '</div>');
+      ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter + '$maincontent' +
+      ThemeUtil.EndDelimiter], '<div class="box error">' + Message + '</div>');
   end
   else
   begin
@@ -444,6 +450,7 @@ begin
 end;
 
 {$if fpc_fullversion >= 20701}
+{
 class function TStringHash.hash(s: string; n: integer): integer;
 var
   c: char;
@@ -453,7 +460,7 @@ begin
     Inc(Result, Ord(c));
   Result := Result mod n;
 end;
-
+}
 {$endif fpc_fullversion >= 20701}
 
 { TMyCustomWebModule }
@@ -506,6 +513,11 @@ begin
   Result := SessionController.SessionID;
 end;
 
+function TMyCustomWebModule.GetTablePrefix: string;
+begin
+  Result := AppData.tablePrefix;
+end;
+
 function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
 begin
   if AppData.themeEnable then
@@ -545,6 +557,7 @@ begin
   methodDefault := MethodMap.Values[moduleName];
   if methodDefault = '' then
   begin
+    AppData.isReady:=True;
     inherited HandleRequest(ARequest, AResponse);
   end
   else
@@ -668,7 +681,8 @@ end;
 function TFastPlasAppandler.GetURI: string;
 begin
   //Result := ThemeUtil.BaseURL + Application.EnvironmentVariable['REQUEST_URI'];
-  Result := ThemeUtil.BaseURL;
+  //Result := ThemeUtil.BaseURL;
+  Result := Application.EnvironmentVariable['REQUEST_URI'];
 end;
 
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
@@ -682,7 +696,6 @@ begin
   if AppData.themeEnable then
   begin
     FreeAndNil(ThemeUtil);
-    ;
   end;
   inherited Destroy;
 end;
@@ -775,7 +788,7 @@ end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
 begin
-  Result := 'yeeee';
+  Result := 'Tag_InternalContent_Handler';
 end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
@@ -805,6 +818,7 @@ begin
 end;
 
 initialization
+  AppData.isReady := False;
   StartTime := _GetTickCount;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
@@ -829,8 +843,8 @@ finalization
   FreeAndNil(FastPlasAppandler);
   FreeAndNil(SessionController);
   {$IFDEF HEAPTRACE}
-    DeleteFile( AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
-    SetHeapTraceOutput( AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
+  DeleteFile(AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
+  SetHeapTraceOutput(AppData.tempDir + DirectorySeparator + 'HEAP.TXT');
   {$ENDIF}
 
 end.

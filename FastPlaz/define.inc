@@ -1,5 +1,8 @@
 
+{$DEFINE FASTPLAZ}
+
 {$DEFINE short_url}
+{disabled $DEFINE GREYHOUND}
 {disabled $DEFINE DEBUG}
 {disabled $DEFINE SYNAPSE}
 

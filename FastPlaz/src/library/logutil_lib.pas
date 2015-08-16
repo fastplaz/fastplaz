@@ -21,8 +21,9 @@ type
     Dir, FileName, FullName: WideString;
     constructor Create;
     destructor Destroy; override;
-    procedure RegisterError(MessageString: string; psHttpCode: integer = 0; URL: string = '');
-    procedure Add(const message: string);
+    procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
+      URL: string = '');
+    procedure Add(const message: string; const ModName: string = ''; const isDie:boolean = false);
   end;
 
 var
@@ -72,23 +73,30 @@ begin
 
 end;
 
-procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer; URL: string);
+procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer;
+  URL: string);
 begin
   AssignFile(log_file, fullname);
   { $I+}
   try
     //Rewrite(log_file);
     Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + MessageString +
-      ' | ' + i2s(psHttpCode) + ' | ' + URL
+    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) +
+      ' | ' + MessageString + ' | ' + i2s(psHttpCode) + ' | ' + URL
       );
     CloseFile(log_file);
   except
   end;
 end;
 
-procedure TLogUtil.Add(const message: string);
+procedure TLogUtil.Add(const message: string; const ModName: string;
+  const isDie: boolean);
+var
+  s: string;
 begin
+  if ModName <> '' then
+    s := ModName + ': ';
+  s := s + message;
   AssignFile(log_file, fullname);
   { $I+}
   try
@@ -96,11 +104,12 @@ begin
       Rewrite(log_file)
     else
       Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + message
-      );
+    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
     CloseFile(log_file);
   except
   end;
+  if isDie then
+    die( s);
 end;
 
 initialization
@@ -110,7 +119,5 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
-
-
 
 

@@ -1,10 +1,14 @@
 unit database_lib;
 
 {$mode objfpc}{$H+}
+{$include ../../define.inc}
 
 interface
 
 uses
+  {$ifdef GREYHOUND}
+  ghSQL, ghSQLdbLib,
+  {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn,
   sqlite3conn, pqconnection,
@@ -30,6 +34,7 @@ type
     FGenFields : TStringList;
     function GetEOF: boolean;
     function GetRecordCount: Longint;
+    function GetTablePrefix: string;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
@@ -50,6 +55,7 @@ type
     constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
     property TableName : string Read FTableName write FTableName;
+    property TablePrefix : string read GetTablePrefix;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
@@ -140,6 +146,7 @@ begin
     except
       on E: Exception do begin
         if RedirecURL = '' then
+          //TODO: check if database library cannot loaded
           DisplayError( 'Database Init: Load Library, ' + E.Message)
         else
           Redirect( RedirecURL);
@@ -358,12 +365,19 @@ begin
   Result := Data.RecordCount;
 end;
 
+function TSimpleModel.GetTablePrefix: string;
+begin
+  Result := AppData.tablePrefix;
+end;
+
 function TSimpleModel.GetEOF: boolean;
 begin
   Result := Data.EOF;
 end;
 
 function TSimpleModel._queryOpen: boolean;
+var
+  s : string;
 begin
   Result := False;
   try
@@ -376,8 +390,9 @@ begin
       if AppData.debug then begin
         LogUtil.add( E.Message);
         LogUtil.add( Data.SQL.Text);
+        s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
-      DisplayError( E.Message);
+      DisplayError( E.Message + s);
     end;
   end;
 end;
