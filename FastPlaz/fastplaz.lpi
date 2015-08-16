@@ -47,7 +47,6 @@
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="fastplaz"/>
       </Unit0>
       <Unit1>
         <Filename Value="main.pas"/>
@@ -66,7 +65,6 @@
       <Unit4>
         <Filename Value="src\library\common.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="common"/>
       </Unit4>
       <Unit5>
         <Filename Value="src\library\database_lib.pas"/>
@@ -76,7 +74,6 @@
       <Unit6>
         <Filename Value="src\library\logutil_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="logutil_lib"/>
       </Unit6>
       <Unit7>
         <Filename Value="src\systems\theme_controller.pas"/>
@@ -89,12 +86,10 @@
         <ComponentName Value="ExampleWebModule"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
-        <UnitName Value="example_controller"/>
       </Unit8>
       <Unit9>
         <Filename Value="src\app\example\models\users_model.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="users_model"/>
       </Unit9>
       <Unit10>
         <Filename Value="src\app\about\about_controller.pas"/>
@@ -102,17 +97,14 @@
         <ComponentName Value="AboutModule"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
-        <UnitName Value="about_controller"/>
       </Unit10>
       <Unit11>
         <Filename Value="src\library\html_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="html_lib"/>
       </Unit11>
       <Unit12>
         <Filename Value="src\library\language_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="language_lib"/>
       </Unit12>
       <Unit13>
         <Filename Value="src\routes.pas"/>
@@ -122,7 +114,6 @@
       <Unit14>
         <Filename Value="src\library\versioninfo_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="versioninfo_lib"/>
       </Unit14>
       <Unit15>
         <Filename Value="src\systems\initialize_controller.pas"/>
@@ -132,7 +123,6 @@
       <Unit16>
         <Filename Value="src\systems\error_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="error_controller"/>
       </Unit16>
       <Unit17>
         <Filename Value="src\systems\docs_controller.pas"/>
@@ -142,22 +132,18 @@
       <Unit18>
         <Filename Value="src\systems\session_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="session_controller"/>
       </Unit18>
       <Unit19>
         <Filename Value="src\systems\info_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="info_controller"/>
       </Unit19>
       <Unit20>
         <Filename Value="src\systems\module_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="module_controller"/>
       </Unit20>
       <Unit21>
         <Filename Value="src\library\config_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="config_lib"/>
       </Unit21>
       <Unit22>
         <Filename Value="src\library\mailer_lib.pas"/>
@@ -183,14 +169,10 @@
       </Debugging>
     </Linking>
     <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
       <ConfigFile>
         <CustomConfigFile Value="True"/>
         <ConfigFilePath Value="extra.cfg"/>
       </ConfigFile>
-      <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
   <Debugging>

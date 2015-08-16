@@ -105,7 +105,7 @@ procedure Die(const Message: TStringList); overload;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
-function ShortUrl( URL:string):string;
+function CleanUrl( URL:string):string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
@@ -512,11 +512,11 @@ begin
   FreeAndNil(lst);
 end;
 
-function ShortUrl(URL: string): string;
+function CleanUrl(URL: string): string;
 begin
   Result := LowerCase( Trim( URL));
   Result := ReplaceAll( Result,
-    [' ', ',', '?', '!', '.'],
+    [' ', ',', '?', '!', '.', '''', '"', #13, #10, '/', '\'],
     '-');
   Result := ReplaceAll( Result, ['---', '--'], '-');
 end;
