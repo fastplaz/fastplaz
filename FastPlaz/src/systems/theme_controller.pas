@@ -543,7 +543,15 @@ begin
     end;
     'shorturl' :
     begin
-      Result := ShortUrl( Content);
+      Result := HTMLUtil.Permalink( Content);
+    end;
+    'cleanurl' :
+    begin
+      Result := HTMLUtil.Permalink( Content);
+    end;
+    'permalink' :
+    begin
+      Result := HTMLUtil.Permalink( Content);
     end;
   end;
 end;

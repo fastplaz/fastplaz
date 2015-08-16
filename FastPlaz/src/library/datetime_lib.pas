@@ -44,8 +44,8 @@ begin
   //{$WARN SYMBOL_PLATFORM ON}
 
   //ts.ShortDateFormat := 'yyyy/MM/dd h:nn';
-  sdf := ShortDateFormat;
-  ShortDateFormat := 'yyyy/MM/dd h:nn';
+  sdf := DefaultFormatSettings.ShortDateFormat;
+  DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd h:nn';
   try
     //dateTmp := StrToDateTime(TheDate, ts);
     dateTmp := StrToDateTime(TheDate);
@@ -56,7 +56,7 @@ begin
       Result := e.Message + ': "' + TheDate + '"';
     end;
   end;
-  ShortDateFormat := sdf;
+  DefaultFormatSettings.ShortDateFormat := sdf;
 end;
 
 function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer; FormatDate: string;
