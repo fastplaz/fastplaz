@@ -124,7 +124,8 @@ begin
   AppData.tablePrefix := Config.GetValue( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead]), '');
 
   // currentdirectory mesti dipindah
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  s := string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
 
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
