@@ -393,7 +393,8 @@ begin
         LogUtil.add( Data.SQL.Text);
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
-      DisplayError( E.Message + s);
+      die( E.Message + s);
+      //DisplayError( E.Message + s);
     end;
   end;
 end;
@@ -481,7 +482,13 @@ end;
 function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
-  Result := Data.FieldByName( FieldName).AsVariant;
+  try
+    Result := Data.FieldByName( FieldName).AsVariant;
+  except
+    on E: Exception do begin
+      die( 'getFieldValue: ' + e.Message);
+    end;
+  end;
 end;
 
 procedure TSimpleModel.SetFieldValue(FieldName: String; AValue: Variant);
