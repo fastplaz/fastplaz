@@ -27,11 +27,14 @@ unit slack_integration;
 {$mode objfpc}{$H+}
 {$include ../../define.inc}
 
+
 interface
 
 uses
   http_lib,
   Classes, SysUtils;
+
+{$ifdef SLACK_INTEGRATION}
 
 type
 
@@ -70,8 +73,11 @@ type
     property IsSuccessfull: boolean read getIsSuccessfull;
   end;
 
+{$endif}
 
 implementation
+
+{$ifdef SLACK_INTEGRATION}
 
 { TSlackWebhookIntegration }
 
@@ -92,7 +98,7 @@ end;
 
 function TSlackWebhookIntegration.getIsSuccessfull: boolean;
 begin
-
+  Result := FIsSuccessfull;
 end;
 
 function TSlackWebhookIntegration.getPayload: string;
@@ -174,6 +180,7 @@ begin
     Exit;
 
   generatePayload;
+  FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
   begin
     FormData['payload'] := FPayload;
@@ -183,4 +190,8 @@ begin
   end;
 end;
 
+{$endif}
+
 end.
+
+
