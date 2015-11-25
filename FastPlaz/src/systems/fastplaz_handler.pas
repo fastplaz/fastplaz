@@ -198,7 +198,7 @@ type
 procedure InitializeFastPlaz(Sender: TObject = nil);
 procedure Redirect(const URL: string);
 
-procedure DisplayError(const Message: string);
+procedure DisplayError(const Message: string; const Layout: string = 'error');
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
@@ -321,7 +321,7 @@ begin
 end;
 
 
-procedure DisplayError(const Message: string);
+procedure DisplayError(const Message: string; const Layout: string);
 begin
   FastPlasAppandler.isDisplayError := True;
   if not AppData.themeEnable then
@@ -331,7 +331,7 @@ begin
 
   if (not AppData.useDatabase) or (AppData.useDatabase and AppData.databaseActive) then
   begin
-    Application.Response.Contents.Text := ThemeUtil.Render( @ThemeUtil.TagDefault, 'error');
+    Application.Response.Contents.Text := ThemeUtil.Render( @ThemeUtil.TagDefault, Layout);
     Application.Response.Contents.Text :=
       ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter + '$maincontent' +
       ThemeUtil.EndDelimiter], '<div class="box error">' + Message + '</div>');

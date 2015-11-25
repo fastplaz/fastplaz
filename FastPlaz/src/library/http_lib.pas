@@ -145,7 +145,6 @@ type
   THTTPLib = class(TInterfacedObject)
   private
     FContentType: string;
-    FHeader: string;
     FOnSyncStatus: TNotifyEvent;
     FRequestBody: TStream;
     FWorker: TWorkerHTTP;
@@ -174,11 +173,11 @@ type
       VarName: string = 'files[]'): IHTTPResponse;
     procedure Clear;
     procedure AddFile(FileName: string; VarName: string = 'files[]');
+    procedure AddHeader(const HeaderKey, HeaderValue: String);
     property FormData[variable: string]: string
       read GetPostFormData write SetPostFormData; default;
   published
     property URL: string read getURL write setURL;
-    property Header: string read FHeader write FHeader;
     property ContentType: string read FContentType write FContentType;
     property RequestBody: TStream read FRequestBody write FRequestBody;
     property Cookies: TStrings read GetCookies write SetCookies;
@@ -466,8 +465,6 @@ end;
 
 procedure THTTPLib.Prepare;
 begin
-  if FHeader <> '' then
-    FWorker.HTTPClient.RequestHeaders.Add(FHeader);
   if FContentType <> '' then
     FWorker.HTTPClient.RequestHeaders.Add('Content-Type: ' + FContentType);
   if assigned(FRequestBody) then
@@ -502,13 +499,17 @@ procedure THTTPLib.Clear;
 begin
   FWorker.HTTPClient.RequestHeaders.Clear;
   FWorker.PostFormData.Clear;
-  FHeader := '';
   FContentType := '';
 end;
 
 procedure THTTPLib.AddFile(FileName: string; VarName: string);
 begin
   FWorker.AddFile(FileName, VarName);
+end;
+
+procedure THTTPLib.AddHeader(const HeaderKey, HeaderValue: String);
+begin
+  FWorker.HTTPClient.AddHeader( HeaderKey, HeaderValue);
 end;
 
 function THTTPLib.Get: IHTTPResponse;

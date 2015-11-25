@@ -394,7 +394,7 @@ begin
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
       die( E.Message + s);
-      //DisplayError( E.Message + s);
+      DisplayError( E.Message + s);
     end;
   end;
 end;
