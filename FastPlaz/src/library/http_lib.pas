@@ -75,6 +75,9 @@ uses
   {$endif fpc_fullversion >= 20701}
   strutils, Classes, SysUtils;
 
+const
+  FASTPLAZ_USERAGENT = 'fpc/'+{$i %FPCVERSION%}+';fastplaz;'+{$i %FPCTARGETOS%}+'/'+{$i %FPCTARGET%};
+
 type
 
   IHTTPResponse = interface(IInterface)
@@ -171,6 +174,7 @@ type
     function Post: IHTTPResponse;
     function UploadFile(Files: array of string;
       VarName: string = 'files[]'): IHTTPResponse;
+    function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
     procedure Clear;
     procedure AddFile(FileName: string; VarName: string = 'files[]');
     procedure AddHeader(const HeaderKey, HeaderValue: String);
@@ -476,10 +480,33 @@ begin
   Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
 end;
 
+function THTTPLib.UrlEncode(const DecodedStr: string; Pluses: boolean): string;
+var
+  I: integer;
+begin
+  Result := '';
+  if Length(DecodedStr) > 0 then
+    for I := 1 to Length(DecodedStr) do
+    begin
+      if not (DecodedStr[I] in ['0'..'9', 'a'..'z', 'A'..'Z', ' ']) then
+        Result := Result + '%' + IntToHex(Ord(DecodedStr[I]), 2)
+      else if not (DecodedStr[I] = ' ') then
+        Result := Result + DecodedStr[I]
+      else
+      begin
+        if not Pluses then
+          Result := Result + '%20'
+        else
+          Result := Result + '+';
+      end;
+    end;
+end;
+
 constructor THTTPLib.Create(URL: string);
 begin
   FRequestBody := nil;
   FWorker := TWorkerHTTP.Create(True);
+  FWorker.HTTPClient.AddHeader('User-Agent', FASTPLAZ_USERAGENT);
   //FWorker.OnTerminate := @ThreadTerminated; -- prepare for threading
   setURL(URL);
   FStopProcessing := False;

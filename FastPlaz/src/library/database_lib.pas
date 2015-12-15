@@ -97,6 +97,7 @@ type
 procedure DataBaseInit( const RedirecURL:string = '');
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function  QueryExec( SQL: string):boolean;
 function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
 
 implementation
@@ -317,6 +318,38 @@ begin
   end;
   {$ifdef debug}
   ResultJSON.Add( 'sql', SQL);
+  {$endif}
+  FreeAndNil(q);
+end;
+
+function QueryExec(SQL: string): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  if AppData.databaseRead = AppData.databaseWrite then
+    q.DataBase := DB_Connector
+  else
+  begin
+    q.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if q.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
+  try
+    q.SQL.Text:= SQL;
+    q.ExecSQL;
+    TSQLConnector( q.DataBase).Transaction.Commit;
+    //DB_Connector.Transaction.Commit;
+    Result:=True;
+  except
+    on E: Exception do begin
+    end;
+  end;
+  {$ifdef debug}
   {$endif}
   FreeAndNil(q);
 end;

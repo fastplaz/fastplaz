@@ -22,13 +22,13 @@ module_controller, config_lib, mailer_lib;
 {$R *.res}
 
 begin
-  Application.Title := Config.GetValue(_SYSTEM_SITENAME, _APP);
-  Application.Email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,
-    'webmaster@' + GetEnvironmentVariable('SERVER_NAME'));
-  Application.DefaultModuleName := Config.GetValue(_SYSTEM_MODULE_DEFAULT, 'main');
-  Application.ModuleVariable := Config.GetValue(_SYSTEM_MODULE_VARIABLE, 'mod');
+  Application.Title := string( Config.GetValue(_SYSTEM_SITENAME, _APP));
+  Application.Email := string( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,
+    'webmaster@' + string( GetEnvironmentVariable('SERVER_NAME'))));
+  Application.DefaultModuleName := string( Config.GetValue(_SYSTEM_MODULE_DEFAULT, 'main'));
+  Application.ModuleVariable := string( Config.GetValue(_SYSTEM_MODULE_VARIABLE, 'mod'));
   Application.AllowDefaultModule := True;
-  Application.RedirectOnErrorURL := Config.GetValue(_SYSTEM_ERROR_URL, '/');
+  Application.RedirectOnErrorURL := string( Config.GetValue(_SYSTEM_ERROR_URL, '/'));
   Application.RedirectOnError:= Config.GetValue( _SYSTEM_ERROR_REDIRECT, false);
 
   Application.OnGetModule := @FastPlasAppandler.OnGetModule;

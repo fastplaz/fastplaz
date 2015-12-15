@@ -115,6 +115,8 @@ function file_get_contents( TargetURL: string):string;
 function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
 // php like function - end
 
+function isIPAddress( const IPAddress: string): boolean;
+
 implementation
 
 uses language_lib;
@@ -615,6 +617,11 @@ begin
   except
     Result := SourceString;
   end;
+end;
+
+function isIPAddress(const IPAddress: string): boolean;
+begin
+  result:= execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
 end;
 
 initialization

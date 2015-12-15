@@ -252,21 +252,21 @@ begin
 
   if Config.Status = 2 then
     die(Config.Message);
-  AppData.sitename := Config.GetValue(_SYSTEM_SITENAME, _APP);
-  AppData.slogan := Config.GetValue(_SYSTEM_SLOGAN, _APP);
-  AppData.baseUrl := Config.GetValue(_SYSTEM_BASEURL, '');
-  AppData.admin_email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email);
-  AppData.language := Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en');
+  AppData.sitename := String( Config.GetValue(_SYSTEM_SITENAME, _APP));
+  AppData.slogan := String( Config.GetValue(_SYSTEM_SLOGAN, _APP));
+  AppData.baseUrl := String( Config.GetValue(_SYSTEM_BASEURL, ''));
+  AppData.admin_email := String( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email));
+  AppData.language := String( Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en'));
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
-  AppData.theme := Config.GetValue(_SYSTEM_THEME, 'default');
+  AppData.theme := String( Config.GetValue(_SYSTEM_THEME, 'default'));
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
-  AppData.cacheType := Config.GetValue(_SYSTEM_CACHE_TYPE, 'file');
+  AppData.cacheType := String( Config.GetValue(_SYSTEM_CACHE_TYPE, 'file'));
   AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
-  AppData.tempDir := Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp');
-  AppData.SessionDir := Config.GetValue(_SYSTEM_SESSION_DIR, '');
-  AppData.hitStorage := Config.GetValue(_SYSTEM_HIT_STORAGE, '');
+  AppData.tempDir := String( Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.SessionDir := String( Config.GetValue(_SYSTEM_SESSION_DIR, ''));
+  AppData.hitStorage := String( Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
 
   if AppData.baseUrl = '' then
   begin
