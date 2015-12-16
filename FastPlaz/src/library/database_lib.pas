@@ -95,6 +95,8 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
+
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExec( SQL: string):boolean;
@@ -184,6 +186,82 @@ begin
         Redirect( RedirecURL);
     end;
   end;
+end;
+
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
+  const aParams: array of string; SQLCount: string; Where: string;
+  Order: string; Limit: integer; Offset: integer; Echo: integer;
+  sParams: string): boolean;
+var
+  q: TSQLQuery;
+  Data: TJSONArray;
+  i, iTotal, iFiltered: integer;
+begin
+
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional := True;
+  q.DataBase := DB_Connector;
+
+
+  try
+    q.SQL.Text := SQLCount;
+    q.Prepare;
+    q.Open;
+    iTotal := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQLCount;
+    if Where <> '' then
+    begin
+      q.SQL.Text := q.SQL.Text + Where;
+
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    end;
+    q.Prepare;
+    q.Open;
+    iFiltered := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQL;
+    if Where <> '' then
+      q.SQL.Text := q.SQL.Text + Where;
+    if Order <> '' then
+      q.SQL.Text := q.SQL.Text + ' ORDER BY ' + Order;
+    if Limit > 0 then
+      q.SQL.Text := q.SQL.Text + ' LIMIT ' + IntToStr(Limit);
+    if Offset >= 0 then
+      q.SQL.Text := q.SQL.Text + ' OFFSET ' + IntToStr(Offset);
+    q.Prepare;
+
+    if Where <> '' then
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    q.Open;
+
+    Data := TJSONArray.Create();
+    DataToJSON(q, Data);
+    ResultJSON.Add('draw', Echo);
+    ResultJSON.Add('recordsTotal', iTotal);
+    ResultJSON.Add('recordsFiltered', iFiltered);
+    ResultJSON.Add('data', Data);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      ResultJSON.Add('msg', E.Message);
+    end;
+  end;
+
+  {$ifdef debug}
+  ResultJSON.Add('sql', SQL);
+  {$endif}
+  FreeAndNil(q);
 end;
 
 function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
