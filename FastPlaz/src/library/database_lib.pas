@@ -95,8 +95,11 @@ type
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
+
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function  QueryExec( SQL: string):boolean;
 function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
 
 implementation
@@ -124,7 +127,8 @@ begin
   AppData.tablePrefix := Config.GetValue( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead]), '');
 
   // currentdirectory mesti dipindah
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  s := string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
 
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
@@ -182,6 +186,82 @@ begin
         Redirect( RedirecURL);
     end;
   end;
+end;
+
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
+  const aParams: array of string; SQLCount: string; Where: string;
+  Order: string; Limit: integer; Offset: integer; Echo: integer;
+  sParams: string): boolean;
+var
+  q: TSQLQuery;
+  Data: TJSONArray;
+  i, iTotal, iFiltered: integer;
+begin
+
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional := True;
+  q.DataBase := DB_Connector;
+
+
+  try
+    q.SQL.Text := SQLCount;
+    q.Prepare;
+    q.Open;
+    iTotal := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQLCount;
+    if Where <> '' then
+    begin
+      q.SQL.Text := q.SQL.Text + Where;
+
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    end;
+    q.Prepare;
+    q.Open;
+    iFiltered := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQL;
+    if Where <> '' then
+      q.SQL.Text := q.SQL.Text + Where;
+    if Order <> '' then
+      q.SQL.Text := q.SQL.Text + ' ORDER BY ' + Order;
+    if Limit > 0 then
+      q.SQL.Text := q.SQL.Text + ' LIMIT ' + IntToStr(Limit);
+    if Offset >= 0 then
+      q.SQL.Text := q.SQL.Text + ' OFFSET ' + IntToStr(Offset);
+    q.Prepare;
+
+    if Where <> '' then
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    q.Open;
+
+    Data := TJSONArray.Create();
+    DataToJSON(q, Data);
+    ResultJSON.Add('draw', Echo);
+    ResultJSON.Add('recordsTotal', iTotal);
+    ResultJSON.Add('recordsFiltered', iFiltered);
+    ResultJSON.Add('data', Data);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      ResultJSON.Add('msg', E.Message);
+    end;
+  end;
+
+  {$ifdef debug}
+  ResultJSON.Add('sql', SQL);
+  {$endif}
+  FreeAndNil(q);
 end;
 
 function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
@@ -320,6 +400,38 @@ begin
   FreeAndNil(q);
 end;
 
+function QueryExec(SQL: string): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  if AppData.databaseRead = AppData.databaseWrite then
+    q.DataBase := DB_Connector
+  else
+  begin
+    q.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if q.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
+  try
+    q.SQL.Text:= SQL;
+    q.ExecSQL;
+    TSQLConnector( q.DataBase).Transaction.Commit;
+    //DB_Connector.Transaction.Commit;
+    Result:=True;
+  except
+    on E: Exception do begin
+    end;
+  end;
+  {$ifdef debug}
+  {$endif}
+  FreeAndNil(q);
+end;
+
 function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray): boolean;
 var
   item : TJSONObject;
@@ -392,6 +504,7 @@ begin
         LogUtil.add( Data.SQL.Text);
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
+      die( E.Message + s);
       DisplayError( E.Message + s);
     end;
   end;
@@ -480,7 +593,13 @@ end;
 function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
-  Result := Data.FieldByName( FieldName).AsVariant;
+  try
+    Result := Data.FieldByName( FieldName).AsVariant;
+  except
+    on E: Exception do begin
+      die( 'getFieldValue: ' + e.Message);
+    end;
+  end;
 end;
 
 procedure TSimpleModel.SetFieldValue(FieldName: String; AValue: Variant);

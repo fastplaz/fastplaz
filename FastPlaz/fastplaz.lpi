@@ -51,7 +51,6 @@
       <Unit1>
         <Filename Value="main.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="main"/>
       </Unit1>
       <Unit2>
         <Filename Value="define.inc"/>
@@ -60,7 +59,6 @@
       <Unit3>
         <Filename Value="src\systems\fastplaz_handler.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="fastplaz_handler"/>
       </Unit3>
       <Unit4>
         <Filename Value="src\library\common.pas"/>
@@ -69,7 +67,6 @@
       <Unit5>
         <Filename Value="src\library\database_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="database_lib"/>
       </Unit5>
       <Unit6>
         <Filename Value="src\library\logutil_lib.pas"/>
@@ -78,7 +75,6 @@
       <Unit7>
         <Filename Value="src\systems\theme_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="theme_controller"/>
       </Unit7>
       <Unit8>
         <Filename Value="src\app\example\example_controller.pas"/>
@@ -109,7 +105,6 @@
       <Unit13>
         <Filename Value="src\routes.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="routes"/>
       </Unit13>
       <Unit14>
         <Filename Value="src\library\versioninfo_lib.pas"/>
@@ -118,7 +113,6 @@
       <Unit15>
         <Filename Value="src\systems\initialize_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="initialize_controller"/>
       </Unit15>
       <Unit16>
         <Filename Value="src\systems\error_controller.pas"/>
@@ -127,7 +121,6 @@
       <Unit17>
         <Filename Value="src\systems\docs_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="docs_controller"/>
       </Unit17>
       <Unit18>
         <Filename Value="src\systems\session_controller.pas"/>
@@ -148,7 +141,6 @@
       <Unit22>
         <Filename Value="src\library\mailer_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="mailer_lib"/>
       </Unit22>
     </Units>
   </ProjectOptions>

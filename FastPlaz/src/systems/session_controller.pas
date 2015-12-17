@@ -302,6 +302,11 @@ begin
   if FIniFile = nil then
     Exit;
 
+  if not DirectoryIsWritable(FSessionDir) then
+  begin
+    LogUtil.Add( 'Can''t write session', 'sessions', true);
+  end;
+
   // init session
   if not FIniFile.ReadBool(_SESSION_SESSION, _SESSION_ACTIVE, False) then
   begin

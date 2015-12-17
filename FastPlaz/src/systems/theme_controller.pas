@@ -1568,6 +1568,7 @@ begin
   begin
     templateFilename := StringReplace( templateFilename, '"', '', [rfReplaceAll]);
     templateFilename := StringReplace( templateFilename, '''', '', [rfReplaceAll]);
+    templateFilename := trim( templateFilename);
     _ext := FThemeExtension;
     if ExtractFileExt( templateFilename) <> '' then
       _ext := '';
