@@ -116,6 +116,7 @@ function preg_replace( const RegexExpression, ReplaceString, SourceString : stri
 // php like function - end
 
 function isIPAddress( const IPAddress: string): boolean;
+function FastInfo():string;
 
 implementation
 
@@ -622,6 +623,27 @@ end;
 function isIPAddress(const IPAddress: string): boolean;
 begin
   result:= execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+end;
+
+function FastInfo: string;
+var
+  lst: TStringList;
+  s : string;
+begin
+  lst := TStringList.Create;
+  Application.GetEnvironmentList(lst);
+
+  s := '<pre><b>Your Server Info:</b><br>';
+//  s := #13#0'Target ' + {$i %FPCTARGET%};
+//  s := s + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
+//  s := s + #13#10'Target OS ' + {$i %FPCTARGETOS%};
+  s := s + #13#10'FPC Version ' + {$i %FPCVERSION%};
+  s := s + #13#10'Build Date ' + {$i %DATE%};
+  s := s + #13#10#13;
+
+  lst.Text:= s + lst.Text;
+  result := lst.Text;
+  lst.Free;
 end;
 
 initialization

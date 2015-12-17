@@ -149,9 +149,12 @@ begin
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
+        LogUtil.Add( 'Database Init: Load Library, ' + E.Message);
         if RedirecURL = '' then
+        begin
           //TODO: check if database library cannot loaded
-          DisplayError( 'Database Init: Load Library, ' + E.Message)
+          DisplayError( 'Database Init: Load Library, ' + E.Message);
+        end
         else
           Redirect( RedirecURL);
       end;

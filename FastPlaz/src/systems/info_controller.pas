@@ -38,15 +38,9 @@ end;
 
 procedure TInfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
-var
-  lst: TStringList;
 begin
-  lst := TStringList.Create;
-  Application.GetEnvironmentList(lst);
-
-  die('<pre>Your Server Info:<br>' + lst.Text);
-
-  Response.Content := ThemeUtil.Render();
+  //Response.Content := ThemeUtil.Render();
+  Response.Content := FastInfo();
   Handled := True;
 end;
 
