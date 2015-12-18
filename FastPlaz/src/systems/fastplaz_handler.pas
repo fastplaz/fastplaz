@@ -689,6 +689,7 @@ constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FIsDisplayError := False;
+  Application.OnException := @ExceptionHandler;
 end;
 
 destructor TFastPlasAppandler.Destroy;
@@ -782,8 +783,9 @@ end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
-  die(e.Message);
-
+  //Application.ShowException(E);
+  //Application.Terminate;
+  LogUtil.Add( E.Message, Sender.ClassName);
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
