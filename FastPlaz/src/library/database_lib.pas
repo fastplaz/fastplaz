@@ -81,6 +81,7 @@ type
 
     procedure Clear;
     procedure New;
+    procedure Close;
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
 
@@ -844,6 +845,12 @@ begin
   if Assigned( FGenFields) then FGenFields.Clear;
   if Assigned( FieldValueMap) then FieldValueMap.Clear;
   primaryKeyValue:='';
+end;
+
+procedure TSimpleModel.Close;
+begin
+  if Data.Active then Data.Close;
+  if Assigned( FJoinList) then FJoinList.Clear;
 end;
 
 function TSimpleModel.Save(Where: string; AutoCommit: boolean): boolean;
