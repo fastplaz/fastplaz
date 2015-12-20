@@ -104,12 +104,12 @@ begin
     Add('{$R *.res}');
     Add('');
     Add('begin');
-    Add('  Application.Title := Config.GetValue(_SYSTEM_SITENAME, _APP);');
-    Add('  Application.Email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''));');
-    Add('  Application.DefaultModuleName := Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main'');');
-    Add('  Application.ModuleVariable := Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod'');');
+    Add('  Application.Title := string( Config.GetValue(_SYSTEM_SITENAME, _APP));');
+    Add('  Application.Email := string( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME'')));');
+    Add('  Application.DefaultModuleName := string( Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main''));');
+    Add('  Application.ModuleVariable := string( Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod''));');
     Add('  Application.AllowDefaultModule := True;');
-    Add('  Application.RedirectOnErrorURL := Config.GetValue(_SYSTEM_ERROR_URL, ''/'');');
+    Add('  Application.RedirectOnErrorURL := string( Config.GetValue(_SYSTEM_ERROR_URL, ''/''));');
     Add('  Application.RedirectOnError:= Config.GetValue( _SYSTEM_ERROR_REDIRECT, false);');
     Add('');
     Add('  Application.OnGetModule := @FastPlasAppandler.OnGetModule;');

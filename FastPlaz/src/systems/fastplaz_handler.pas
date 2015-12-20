@@ -274,12 +274,22 @@ begin
       ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
   end;
 
-  if AppData.hitStorage = 'file' then
-    ThemeUtil.HitType := htFile;
-  if AppData.hitStorage = 'database' then
-    ThemeUtil.HitType := htDatabase;
-  if AppData.hitStorage = 'sqlite' then
-    ThemeUtil.HitType := htSQLite;
+  try
+    if AppData.hitStorage <> '' then
+    begin
+      if AppData.hitStorage = 'file' then
+        ThemeUtil.HitType := htFile;
+      if AppData.hitStorage = 'database' then
+        ThemeUtil.HitType := htDatabase;
+      if AppData.hitStorage = 'sqlite' then
+        ThemeUtil.HitType := htSQLite;
+    end;
+  except
+    on e: Exception do
+    begin
+      LogUtil.add( E.Message, 'hitstorage-init');
+    end;
+  end;
 
   if AppData.themeEnable then
   begin
