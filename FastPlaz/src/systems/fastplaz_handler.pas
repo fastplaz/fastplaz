@@ -11,7 +11,9 @@ uses
   {$ENDIF}
   sqldb, gettext, session_controller, module_controller,
   config_lib,
-  fpcgi, httpdefs, fpHTTP, fpWeb, webutil, custweb, dateutils,
+  fpcgi, httpdefs, fpHTTP, fpWeb,
+  //webutil,
+  custweb, dateutils,
   SysUtils, Classes;
 
 const
@@ -219,8 +221,7 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller,
-  about_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller;
 
 var
   MethodMap: TStringList;

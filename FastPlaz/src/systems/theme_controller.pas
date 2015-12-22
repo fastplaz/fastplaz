@@ -15,8 +15,9 @@ uses
   {$ifdef GREYHOUND}
   ghSQL, ghSQLdbLib,
   {$endif}
-  fpcgi, fpTemplate, fphttp, fpWeb, fpjson, HTTPDefs, dateutils,
-  Regex, RegExpr, db, sqldb,
+  fpWeb, Regex,
+  fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
+  RegExpr, db, sqldb,
   common, fastplaz_handler, database_lib, datetime_lib,
   Classes, SysUtils;
 
