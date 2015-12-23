@@ -118,7 +118,17 @@ type
     function wpautop( Content:string; BR:boolean = true):string;
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
+
     function GetDebugInfo( DebugType:string):string;
+    function GetDebugBenchmark( const DebugType:string = ''):string;
+    function GetDebugGetData( const DebugType:string = ''):string;
+    function GetDebugPostData( const DebugType:string = ''):string;
+    function GetDebugMemoryUsage( const DebugType:string = ''):string;
+    function GetDebugURIString( const DebugType:string = ''):string;
+    function GetDebugClassMethod( const DebugType:string = ''):string;
+    function GetDebugHeadersData( const DebugType:string = ''):string;
+    function GetDebugSessionData( const DebugType:string = ''):string;
+
     function DoTrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
 
     //- cache
@@ -640,7 +650,137 @@ begin
     'memory' : begin
       Result := f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) + 'MB';
     end;
+    'all' : begin
+      Result := GetDebugBenchmark();
+      Result := Result + GetDebugGetData();
+      Result := Result + GetDebugPostData();
+      //Result := Result + GetDebugMemoryUsage();
+      Result := Result + GetDebugURIString();
+      Result := Result + GetDebugClassMethod();
+      Result := Result + GetDebugHeadersData();
+      Result := Result + GetDebugSessionData();
+    end;
   end;
+end;
+
+function TThemeUtil.GetDebugBenchmark(const DebugType: string): string;
+var
+  html : string;
+begin
+  StopTime:= _GetTickCount;
+  ElapsedTime:= StopTime - StartTime;
+
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Benchmark Info</legend>';
+  html := html + '<table>';
+  html := html + '<tr><td>Time Usage:</td><td>:</td><td>' + i2s( ElapsedTime) + ' ms</td></tr>';
+  html := html + '<tr><td>Memory Usage:</td><td>:</td><td>'+ f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) +' MB</td></tr>';
+  html := html + '</table>';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  Result := html;
+end;
+
+function TThemeUtil.GetDebugGetData(const DebugType: string): string;
+var
+  html : string;
+  i : integer;
+begin
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Get Data</legend>';
+  html  := html + '<table>';
+  for i := 0 to Application.Request.QueryFields.Count -1 do
+  begin
+    html  := html + '<tr>';
+    html  := html + '<td>'+Application.Request.QueryFields.Names[i]+'</td><td>:</td><td>' + Application.Request.QueryFields.ValueFromIndex[i] + '</td>';
+    html  := html + '</tr>';
+  end;
+  html  := html + '</table>';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  Result := html;
+end;
+
+function TThemeUtil.GetDebugPostData(const DebugType: string): string;
+var
+  html : string;
+  i : integer;
+begin
+  Result := '';
+  if Application.Request.Method <> 'POST' then
+    Exit;
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Post Data</legend>';
+  html  := html + '<table>';
+  for i := 0 to Application.Request.ContentFields.Count -1 do
+  begin
+    html  := html + '<tr>';
+    html  := html + '<td>'+Application.Request.ContentFields.Names[i]+'</td><td>:</td><td>' + Application.Request.ContentFields.ValueFromIndex[i] + '</td>';
+    html  := html + '</tr>';
+  end;
+  html  := html + '</table>';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  Result := html;
+end;
+
+function TThemeUtil.GetDebugMemoryUsage(const DebugType: string): string;
+var
+  html : string;
+begin
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Memory Usage</legend>';
+  html := html + 'Memory Usage : ' + f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) + 'MB';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  Result := html;
+end;
+
+function TThemeUtil.GetDebugURIString(const DebugType: string): string;
+begin
+  Result := '';
+end;
+
+function TThemeUtil.GetDebugClassMethod(const DebugType: string): string;
+begin
+  Result := '';
+end;
+
+function TThemeUtil.GetDebugHeadersData(const DebugType: string): string;
+begin
+  Result := '';
+end;
+
+function TThemeUtil.GetDebugSessionData(const DebugType: string): string;
+var
+  html : string;
+  i : integer;
+  lst : TStrings;
+begin
+  Result := '';
+  //if SessionController.IsStarted then
+  //  Exit;;
+  lst := TStrings.Create;
+  lst.Text := SessionController.GetData;
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Session Data</legend>';
+  html  := html + '<table>';
+  for i := 0 to lst.Count -1 do
+  begin
+    html  := html + '<tr>';
+    html  := html + '<td>'+lst.Names[i]+'</td><td>:</td><td>' + lst.ValueFromIndex[i] + '</td>';
+    html  := html + '</tr>';
+  end;
+  html  := html + '</table>';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  lst.Free;
+  Result := html;
 end;
 
 function TThemeUtil.GetVersionInfo: boolean;
