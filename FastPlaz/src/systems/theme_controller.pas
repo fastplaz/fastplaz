@@ -651,14 +651,16 @@ begin
       Result := f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) + 'MB';
     end;
     'all' : begin
-      Result := GetDebugBenchmark();
+      Result := '<div class="fastplaz_profiler">';
+      Result := Result + GetDebugBenchmark();
       Result := Result + GetDebugGetData();
       Result := Result + GetDebugPostData();
       //Result := Result + GetDebugMemoryUsage();
       Result := Result + GetDebugURIString();
       Result := Result + GetDebugClassMethod();
       Result := Result + GetDebugHeadersData();
-      Result := Result + GetDebugSessionData();
+      //Result := Result + GetDebugSessionData();
+      Result := Result + '</div>';
     end;
   end;
 end;
@@ -670,15 +672,15 @@ begin
   StopTime:= _GetTickCount;
   ElapsedTime:= StopTime - StartTime;
 
-  html := '<div class="debug">';
+  //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Benchmark Info</legend>';
   html := html + '<table>';
-  html := html + '<tr><td>Time Usage:</td><td>:</td><td>' + i2s( ElapsedTime) + ' ms</td></tr>';
-  html := html + '<tr><td>Memory Usage:</td><td>:</td><td>'+ f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) +' MB</td></tr>';
+  html := html + '<tr><td>Time Usage</td><td>:</td><td>' + i2s( ElapsedTime) + ' ms</td></tr>';
+  html := html + '<tr><td>Memory Usage</td><td>:</td><td>'+ f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) +' MB</td></tr>';
   html := html + '</table>';
   html := html + '</fieldset>';
-  html := html + '</div>';
+  //html := html + '</div>';
   Result := html;
 end;
 
@@ -687,7 +689,7 @@ var
   html : string;
   i : integer;
 begin
-  html := '<div class="debug">';
+  //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Get Data</legend>';
   html  := html + '<table>';
@@ -699,7 +701,7 @@ begin
   end;
   html  := html + '</table>';
   html := html + '</fieldset>';
-  html := html + '</div>';
+  //html := html + '</div>';
   Result := html;
 end;
 
@@ -711,7 +713,7 @@ begin
   Result := '';
   if Application.Request.Method <> 'POST' then
     Exit;
-  html := '<div class="debug">';
+  //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Post Data</legend>';
   html  := html + '<table>';
@@ -723,7 +725,7 @@ begin
   end;
   html  := html + '</table>';
   html := html + '</fieldset>';
-  html := html + '</div>';
+  //html := html + '</div>';
   Result := html;
 end;
 
@@ -731,12 +733,12 @@ function TThemeUtil.GetDebugMemoryUsage(const DebugType: string): string;
 var
   html : string;
 begin
-  html := '<div class="debug">';
+  //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Memory Usage</legend>';
   html := html + 'Memory Usage : ' + f2s((GetHeapStatus.TotalAddrSpace div 1024) / 1024) + 'MB';
   html := html + '</fieldset>';
-  html := html + '</div>';
+  //html := html + '</div>';
   Result := html;
 end;
 
@@ -751,8 +753,39 @@ begin
 end;
 
 function TThemeUtil.GetDebugHeadersData(const DebugType: string): string;
+var
+  html : string;
+  i : integer;
 begin
   Result := '';
+  html := '<div class="debug">';
+  html := html + '<fieldset>';
+  html := html + '<legend>Header Data</legend>';
+  html  := html + '<table>';
+  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.HTTPAccept + '</td></tr>';
+  html := html + '<tr><td>HTTP_USER_AGENT</td><td>:</td><td>' + Application.Request.UserAgent + '</td></tr>';
+  html := html + '<tr><td>HTTP_CONNECTION</td><td>:</td><td>' + Application.Request. Connection + '</td></tr>';
+  html := html + '<tr><td>SERVER_NAME</td><td>:</td><td>' + Application.Request.ServerName + '</td></tr>';
+  html := html + '<tr><td>REMOTE_HOST</td><td>:</td><td>' + Application.Request.RemoteHost + '</td></tr>';
+  html := html + '<tr><td>REMOTE_ADDR</td><td>:</td><td>' + Application.Request.RemoteAddress + '</td></tr>';
+  html := html + '<tr><td>SCRIPT_NAME</td><td>:</td><td>' + Application.Request.ScriptName + '</td></tr>';
+  html := html + '<tr><td>REQUEST_METHOD</td><td>:</td><td>' + Application.Request.Method + '</td></tr>';
+  html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + Application.Request.ContentType + '</td></tr>';
+  html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + Application.Request.ServerProtocol + '</td></tr>';
+  html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + Application.Request.QueryString + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.HTTPAcceptEncoding + '</td></tr>';
+  //html := html + '<tr><td>&nbsp;</td><td>:</td><td>' + Application.Request.HTTPXRequestedWith + '</td></tr>';
+  //html := html + '<tr><td>HTTP_DNT</td><td>:</td><td>' + Application.Request. + '</td></tr>';
+  for i := 0 to Application.Request.CustomHeaders.Count - 1 do
+  begin
+    html  := html + '<tr>';
+    html  := html + '<td>'+Application.Request.CustomHeaders.Names[i]+'</td><td>:</td><td>' + Application.Request.CustomHeaders.ValueFromIndex[i] + '</td>';
+    html  := html + '</tr>';
+  end;
+  html  := html + '</table>';
+  html := html + '</fieldset>';
+  html := html + '</div>';
+  Result := html;
 end;
 
 function TThemeUtil.GetDebugSessionData(const DebugType: string): string;
