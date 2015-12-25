@@ -4,20 +4,11 @@ program fastplaz;
 {$include define.inc}
 
 uses
-  SysUtils,
-  fpcgi,
-  main,
-  common,
-  fastplaz_handler,
-  database_lib,
-  gettext,
-  theme_controller,
-  example_controller,
-  about_controller,
-  logutil_lib,
-  html_lib, language_lib, versioninfo_lib, routes, initialize_controller,
+  SysUtils, fpcgi, common, fastplaz_handler, database_lib, gettext,
+  theme_controller, example_controller, about_controller, logutil_lib, html_lib,
+  language_lib, versioninfo_lib, routes, mainapp, initialize_controller,
   error_controller, docs_controller, session_controller, info_controller,
-module_controller, config_lib, mailer_lib;
+  module_controller, config_lib, mailer_lib;
 
 {$R *.res}
 

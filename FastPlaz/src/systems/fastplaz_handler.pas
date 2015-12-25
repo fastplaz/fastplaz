@@ -218,6 +218,7 @@ var
   _REQUEST: TREQUESTVAR;
   _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
+  MemoryAllocated : integer;
 
 implementation
 
@@ -833,6 +834,8 @@ end;
 initialization
   AppData.isReady := False;
   StartTime := _GetTickCount;
+  //MemoryAllocated := GetHeapStatus.TotalAllocated;
+  MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
   Route := TRoute.Create;
