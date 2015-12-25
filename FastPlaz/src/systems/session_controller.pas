@@ -53,6 +53,7 @@ type
     property TimeOut: integer read GetTimeOut write SetTimeOut;
 
     property IsExpired: boolean read GetIsExpired;
+    property IsStarted: boolean read FSessionStarted;
 
     function StartSession: boolean;
     procedure EndSession;
@@ -62,6 +63,7 @@ type
     function ReadInteger(const variable: string): integer;
 
     function _DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
+    function GetData( ) : string;
   end;
 
 implementation
@@ -246,6 +248,16 @@ begin
     Result := Result - 0.5
   else if (ANow < -1.0) and (AThen > -1.0) then
     Result := Result + 0.5;
+end;
+
+function TSessionController.GetData: string;
+var
+  lst : TStringList;
+begin
+  lst := TStringList.Create;
+  FIniFile.GetStrings( lst);
+  Result :=  lst.Text;
+  lst.Free;
 end;
 
 constructor TSessionController.Create;

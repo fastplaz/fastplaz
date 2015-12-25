@@ -11,7 +11,9 @@ uses
   {$ENDIF}
   sqldb, gettext, session_controller, module_controller,
   config_lib,
-  fpcgi, httpdefs, fpHTTP, fpWeb, webutil, custweb, dateutils,
+  fpcgi, httpdefs, fpHTTP, fpWeb,
+  //webutil,
+  custweb, dateutils,
   SysUtils, Classes;
 
 const
@@ -216,11 +218,11 @@ var
   _REQUEST: TREQUESTVAR;
   _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
+  MemoryAllocated : integer;
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller,
-  about_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller;
 
 var
   MethodMap: TStringList;
@@ -274,12 +276,22 @@ begin
       ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
   end;
 
-  if AppData.hitStorage = 'file' then
-    ThemeUtil.HitType := htFile;
-  if AppData.hitStorage = 'database' then
-    ThemeUtil.HitType := htDatabase;
-  if AppData.hitStorage = 'sqlite' then
-    ThemeUtil.HitType := htSQLite;
+  try
+    if AppData.hitStorage <> '' then
+    begin
+      if AppData.hitStorage = 'file' then
+        ThemeUtil.HitType := htFile;
+      if AppData.hitStorage = 'database' then
+        ThemeUtil.HitType := htDatabase;
+      if AppData.hitStorage = 'sqlite' then
+        ThemeUtil.HitType := htSQLite;
+    end;
+  except
+    on e: Exception do
+    begin
+      LogUtil.add( E.Message, 'hitstorage-init');
+    end;
+  end;
 
   if AppData.themeEnable then
   begin
@@ -689,6 +701,7 @@ constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FIsDisplayError := False;
+  Application.OnException := @ExceptionHandler;
 end;
 
 destructor TFastPlasAppandler.Destroy;
@@ -782,8 +795,9 @@ end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
-  die(e.Message);
-
+  //Application.ShowException(E);
+  //Application.Terminate;
+  LogUtil.Add( E.Message, Sender.ClassName);
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
@@ -820,6 +834,8 @@ end;
 initialization
   AppData.isReady := False;
   StartTime := _GetTickCount;
+  //MemoryAllocated := GetHeapStatus.TotalAllocated;
+  MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
   Route := TRoute.Create;

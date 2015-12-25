@@ -598,7 +598,10 @@ function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
   try
-    Result := Data.FieldByName( FieldName).AsVariant;
+    if Data.FieldByName( FieldName).AsVariant = null then
+      Result := ''
+    else
+      Result := Data.FieldByName( FieldName).AsVariant;
   except
     on E: Exception do begin
       die( 'getFieldValue: ' + e.Message);
