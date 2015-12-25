@@ -628,6 +628,7 @@ var
   i:integer;
   lst : TStrings;
 begin
+  if DebugType = '' then DebugType := 'all';
   case DebugType of
     'sql': begin
       Result := '<div class="debug"><table class="debug">';
@@ -655,7 +656,7 @@ begin
       Result := Result + GetDebugGetData();
       Result := Result + GetDebugPostData();
       Result := Result + GetDebugURIString();
-      Result := Result + GetDebugClassMethod();
+      //Result := Result + GetDebugClassMethod();
       Result := Result + GetDebugHeadersData();
       //Result := Result + GetDebugSessionData();
       Result := Result + '</div>';
