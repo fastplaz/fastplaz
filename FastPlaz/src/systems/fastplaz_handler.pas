@@ -74,9 +74,10 @@ type
     isReady: boolean;
   end;
 
-  TOnBlockController = procedure(Sender: TObject; FunctionName: string; Parameter: TStrings;
-    var ResponseString: string) of object;
-  TTagCallback = function(const ATagName: string; AParams: TStringList): string of object;
+  TOnBlockController = procedure(Sender: TObject; FunctionName: string;
+    Parameter: TStrings; var ResponseString: string) of object;
+  TTagCallback = function(const ATagName: string;
+    AParams: TStringList): string of object;
 
   { TMyCustomWebModule }
 
@@ -110,10 +111,11 @@ type
     property Environtment[const KeyName: string]: string read GetEnvirontment;
 
     property Tags[const TagName: string]: TTagCallback read GetTag write SetTag; default;
-    procedure TagController(Sender: TObject; const TagString: string; TagParams: TStringList;
-      Out ReplaceText: string);
+    procedure TagController(Sender: TObject; const TagString: string;
+      TagParams: TStringList; Out ReplaceText: string);
     property BaseURL: string read GetBaseURL;
-    property OnBlockController: TOnBlockController read FOnBlockController write FOnBlockController;
+    property OnBlockController: TOnBlockController
+      read FOnBlockController write FOnBlockController;
 
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
@@ -141,9 +143,11 @@ type
     property isDisplayError: boolean read FIsDisplayError write FIsDisplayError;
 
     function GetActiveModuleName(Arequest: TRequest): string;
-    procedure OnGetModule(Sender: TObject; ARequest: TRequest; var ModuleClass: TCustomHTTPModuleClass);
+    procedure OnGetModule(Sender: TObject; ARequest: TRequest;
+      var ModuleClass: TCustomHTTPModuleClass);
     procedure ExceptionHandler(Sender: TObject; E: Exception);
-    function Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+    function Tag_InternalContent_Handler(const TagName: string;
+      Params: TStringList): string;
 
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
@@ -193,8 +197,8 @@ type
   TRoute = class
   private
   public
-    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string = '';
-      SkipStreaming: boolean = True);
+    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+      Method: string = ''; SkipStreaming: boolean = True);
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
@@ -218,7 +222,7 @@ var
   _REQUEST: TREQUESTVAR;
   _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
-  MemoryAllocated : integer;
+  MemoryAllocated: integer;
 
 implementation
 
@@ -254,21 +258,22 @@ begin
 
   if Config.Status = 2 then
     die(Config.Message);
-  AppData.sitename := String( Config.GetValue(_SYSTEM_SITENAME, _APP));
-  AppData.slogan := String( Config.GetValue(_SYSTEM_SLOGAN, _APP));
-  AppData.baseUrl := String( Config.GetValue(_SYSTEM_BASEURL, ''));
-  AppData.admin_email := String( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email));
-  AppData.language := String( Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en'));
+  AppData.sitename := string(Config.GetValue(_SYSTEM_SITENAME, _APP));
+  AppData.slogan := string(Config.GetValue(_SYSTEM_SLOGAN, _APP));
+  AppData.baseUrl := string(Config.GetValue(_SYSTEM_BASEURL, ''));
+  AppData.admin_email := string(
+    Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email));
+  AppData.language := string(Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en'));
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
-  AppData.theme := String( Config.GetValue(_SYSTEM_THEME, 'default'));
+  AppData.theme := string(Config.GetValue(_SYSTEM_THEME, 'default'));
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
-  AppData.cacheType := String( Config.GetValue(_SYSTEM_CACHE_TYPE, 'file'));
+  AppData.cacheType := string(Config.GetValue(_SYSTEM_CACHE_TYPE, 'file'));
   AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
-  AppData.tempDir := String( Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
-  AppData.SessionDir := String( Config.GetValue(_SYSTEM_SESSION_DIR, ''));
-  AppData.hitStorage := String( Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
+  AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.SessionDir := string(Config.GetValue(_SYSTEM_SESSION_DIR, ''));
+  AppData.hitStorage := string(Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
 
   if AppData.baseUrl = '' then
   begin
@@ -289,7 +294,7 @@ begin
   except
     on e: Exception do
     begin
-      LogUtil.add( E.Message, 'hitstorage-init');
+      LogUtil.add(E.Message, 'hitstorage-init');
     end;
   end;
 
@@ -343,10 +348,12 @@ begin
 
   if (not AppData.useDatabase) or (AppData.useDatabase and AppData.databaseActive) then
   begin
-    Application.Response.Contents.Text := ThemeUtil.Render( @ThemeUtil.TagDefault, Layout);
     Application.Response.Contents.Text :=
-      ReplaceAll(Application.Response.Contents.Text, [ThemeUtil.StartDelimiter + '$maincontent' +
-      ThemeUtil.EndDelimiter], '<div class="box error">' + Message + '</div>');
+      ThemeUtil.Render(@ThemeUtil.TagDefault, Layout);
+    Application.Response.Contents.Text :=
+      ReplaceAll(Application.Response.Contents.Text,
+      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter],
+      '<div class="box error">' + Message + '</div>');
   end
   else
   begin
@@ -408,8 +415,8 @@ end;
 { TRoute }
 
 // SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
-procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass; Method: string;
-  SkipStreaming: boolean);
+procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+  Method: string; SkipStreaming: boolean);
 var
   moduleName: string;
   pattern_url: TStrings;
@@ -569,7 +576,7 @@ begin
   methodDefault := MethodMap.Values[moduleName];
   if methodDefault = '' then
   begin
-    AppData.isReady:=True;
+    AppData.isReady := True;
     inherited HandleRequest(ARequest, AResponse);
   end
   else
@@ -602,8 +609,8 @@ begin
   _SESSION['lang'] := LANG;
 end;
 
-procedure TMyCustomWebModule.TagController(Sender: TObject; const TagString: string;
-  TagParams: TStringList; out ReplaceText: string);
+procedure TMyCustomWebModule.TagController(Sender: TObject;
+  const TagString: string; TagParams: TStringList; out ReplaceText: string);
 begin
   ThemeUtil.TagController(Sender, TagString, TagParams, ReplaceText);
 end;
@@ -797,15 +804,17 @@ procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
   //Application.ShowException(E);
   //Application.Terminate;
-  LogUtil.Add( E.Message, Sender.ClassName);
+  LogUtil.Add(E.Message, Sender.ClassName);
 end;
 
-function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string; Params: TStringList): string;
+function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
+  Params: TStringList): string;
 begin
   Result := 'Tag_InternalContent_Handler';
 end;
 
-function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
+function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
+TCustomHTTPModule;
 var
   i: integer;
 begin
