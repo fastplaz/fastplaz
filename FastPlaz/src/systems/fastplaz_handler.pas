@@ -9,6 +9,7 @@ uses
   {$IFDEF HEAPTRACE}
   heaptrc,
   {$ENDIF}
+  RegExpr,
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fpcgi, httpdefs, fpHTTP, fpWeb,
@@ -197,7 +198,9 @@ type
   TRoute = class
   private
   public
-    procedure Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+    procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
+      Method: string = ''; SkipStreaming: boolean = True);
+    procedure Add(const ModuleName: string; const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
       Method: string = ''; SkipStreaming: boolean = True);
   end;
 
@@ -230,6 +233,7 @@ uses common, language_lib, database_lib, logutil_lib, theme_controller;
 
 var
   MethodMap: TStringList;
+  RouteRegexMap: TStringList;
 
 function _CleanVar(const Value: string): string;
 begin
@@ -326,6 +330,9 @@ begin
   //-- language
 
   AppData.isReady := True;
+  {$ifdef DEBUG}
+  LogUtil.Add( 'initialize ok: ' + Application.Request.QueryString, 'init');
+  {$endif}
 end;
 
 procedure Redirect(const URL: string);
@@ -415,29 +422,41 @@ end;
 { TRoute }
 
 // SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
-procedure TRoute.Add(const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
+procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
   Method: string; SkipStreaming: boolean);
 var
-  moduleName: string;
-  pattern_url: TStrings;
+  moduleNameReal: string;
+begin
+  if ModuleName = 'main' then
+  begin
+    Add( 'main', 'main', ModuleClass, Method, SkipStreaming);
+    exit;
+  end;
+  moduleNameReal := CleanUrl( ModuleName);
+  moduleNameReal := 'r'+ReplaceAll( moduleNameReal, ['-'], '_');
+  Add( moduleNameReal, ModuleName, ModuleClass, Method, SkipStreaming);
+end;
+
+procedure TRoute.Add(const ModuleName: string; const PatternURL: string;
+  ModuleClass: TCustomHTTPModuleClass; Method: string; SkipStreaming: boolean);
+var
   i: integer;
   mi: TModuleItem;
   mc: TCustomHTTPModuleClass;
   m: TCustomHTTPModule;
 begin
-
-  // prepare pattern-url for next version
-  pattern_url := Explode(PatternURL, '/');
-  moduleName := pattern_url[0];
-
   if not Assigned(MethodMap) then
     MethodMap := TStringList.Create;
-  MethodMap.Values[moduleName] := Method;
+  if not Assigned(RouteRegexMap) then
+    RouteRegexMap := TStringList.Create;
 
-  RegisterHTTPModule(moduleName, ModuleClass, SkipStreaming);
+  MethodMap.Values[ ModuleName] := Method;
+  RouteRegexMap.Values[ ModuleName] := PatternURL;
+
+  RegisterHTTPModule( ModuleName, ModuleClass, SkipStreaming);
 
   //mi := ModuleFactory.FindModule( moduleName);
-  i := ModuleFactory.IndexOfModule(moduleName);
+  i := ModuleFactory.IndexOfModule( ModuleName);
   if i <> -1 then
   begin
     mi := ModuleFactory[I];
@@ -574,6 +593,10 @@ var
 begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
+  {$ifdef DEBUG}
+  LogUtil.Add( 'name=' + name, 'init' );
+  LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
+  {$endif}
   if methodDefault = '' then
   begin
     AppData.isReady := True;
@@ -582,9 +605,15 @@ begin
   else
   begin
     if Application.Request.Method = methodDefault then
+    begin
+      AppData.isReady := True;
       inherited HandleRequest(ARequest, AResponse)
+    end
     else
     begin
+      {$ifdef DEBUG}
+      LogUtil.Add( 'handle request: ' + __(__Err_Http_InvalidMethod), 'init' );
+      {$endif}
       FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
   end;
@@ -765,6 +794,8 @@ procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
   s: string;
+  i, j: integer;
+  reg: TRegExpr;
   //  m  : TCustomHTTPModule;
   //  mi : TModuleItem;
   //  mc : TCustomHTTPModuleClass;
@@ -773,6 +804,33 @@ begin
   s := GetActiveModuleName(ARequest);
   if ModuleFactory.FindModule(S) = nil then
   begin
+
+    // check with Regex
+    try
+      reg := TRegExpr.Create;
+      for i:=0 to RouteRegexMap.Count-1 do
+      begin
+        reg.Expression:= RouteRegexMap.ValueFromIndex[i];
+        if reg.Exec( ARequest.PathInfo) then
+        begin
+          s := RouteRegexMap.Names[i];
+          if ModuleFactory.FindModule(S) <> nil then
+          begin
+            ARequest.QueryFields.Values[Application.ModuleVariable] := s;
+            for j:=1 to reg.SubExprMatchCount do
+            begin
+              ARequest.QueryFields.Values[ '$'+i2s(j)] := reg.Match[ j];
+            end;
+          end;
+        end;
+      end;
+    except
+      on E : Exception do
+        die( 'OnGetModule: ' + E.Message);
+    end;
+    reg.Free;
+
+
     //_Redirect( '/?url='+ copy( ARequest.PathInfo, 2, Length(ARequest.PathInfo)-1) + '&' + ARequest.QueryString );
 
     {
@@ -857,6 +915,7 @@ initialization
   MethodMap := TStringList.Create;
 
 finalization
+  FreeAndNil(RouteRegexMap);
   FreeAndNil(MethodMap);
   FreeAndNil(_SESSION);
   FreeAndNil(_GET);

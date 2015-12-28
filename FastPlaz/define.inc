@@ -3,7 +3,7 @@
 
 {$DEFINE short_url}
 {disabled $DEFINE GREYHOUND}
-{disabled $DEFINE DEBUG}
+{$DEFINE DEBUG}
 {disabled $DEFINE SYNAPSE}
 
 {$ifdef SYNAPSE}

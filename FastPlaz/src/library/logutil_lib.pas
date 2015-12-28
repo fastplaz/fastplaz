@@ -94,22 +94,29 @@ procedure TLogUtil.Add(const message: string; const ModName: string;
 var
   s: string;
 begin
-  if ModName <> '' then
-    s := ModName + ': ';
-  s := s + message;
-  AssignFile(log_file, fullname);
-  { $I+}
   try
-    if not FileExists(fullname) then
-      Rewrite(log_file)
-    else
-      Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
-    CloseFile(log_file);
+    if ModName <> '' then
+      s := ModName + ': ';
+    s := s + message;
+    AssignFile(log_file, fullname);
+    { $I+}
+    try
+      if not FileExists(fullname) then
+        Rewrite(log_file)
+      else
+        Append(log_file);
+      WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
+      CloseFile(log_file);
+    except
+    end;
+    if isDie then
+      die( s);
   except
+    on E: Exception do
+    begin
+      die( 'cannot logging: ' + E.Message);
+    end;
   end;
-  if isDie then
-    die( s);
 end;
 
 initialization
