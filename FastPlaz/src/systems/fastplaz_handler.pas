@@ -326,6 +326,9 @@ begin
   //-- language
 
   AppData.isReady := True;
+  {$ifdef DEBUG}
+  LogUtil.Add( 'initialize ok: ' + Application.Request.QueryString, 'init');
+  {$endif}
 end;
 
 procedure Redirect(const URL: string);
