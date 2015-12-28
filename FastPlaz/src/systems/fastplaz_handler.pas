@@ -577,6 +577,9 @@ var
 begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
+  {$ifdef DEBUG}
+  LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
+  {$endif}
   if methodDefault = '' then
   begin
     AppData.isReady := True;
@@ -585,9 +588,15 @@ begin
   else
   begin
     if Application.Request.Method = methodDefault then
+    begin
+      AppData.isReady := True;
       inherited HandleRequest(ARequest, AResponse)
+    end
     else
     begin
+      {$ifdef DEBUG}
+      LogUtil.Add( 'handle request: ' + __(__Err_Http_InvalidMethod), 'init' );
+      {$endif}
       FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
   end;
