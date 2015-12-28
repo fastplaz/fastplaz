@@ -518,7 +518,7 @@ end;
 function CleanUrl(URL: string; Separator: string): string;
 begin
   Result := LowerCase(Trim(URL));
-  Result := ReplaceAll(Result, [' ', ',', '?', '!', '.', '''', '+',
+  Result := ReplaceAll(Result, [' ', ',', '?', '!', '.', '''', '+', '^',
     '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], Separator);
   Result := ReplaceAll(Result, ['---', '--'], '-');
 end;

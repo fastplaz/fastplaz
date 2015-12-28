@@ -758,6 +758,7 @@ begin
   html := html + '<tr><td>REMOTE_ADDR</td><td>:</td><td>' + Application.Request.RemoteAddress + '</td></tr>';
   html := html + '<tr><td>SCRIPT_NAME</td><td>:</td><td>' + Application.Request.ScriptName + '</td></tr>';
   html := html + '<tr><td>SCRIPT_URI</td><td>:</td><td>' + Application.Request.ScriptURI + '</td></tr>';
+  html := html + '<tr><td>PATH INFO</td><td>:</td><td>' + Application.Request.PathInfo + '</td></tr>';
   html := html + '<tr><td>REQUEST_METHOD</td><td>:</td><td>' + Application.Request.Method + '</td></tr>';
   html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + Application.Request.ContentType + '</td></tr>';
   html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + Application.Request.ServerProtocol + '</td></tr>';
