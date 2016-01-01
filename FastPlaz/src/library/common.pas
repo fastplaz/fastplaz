@@ -91,6 +91,8 @@ procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function HexToInt(HexStr: string): int64;
 
 function RandomString(PLen: integer; PrefixString: string = ''): string;
+function RandomString( MinLength, MaxLength: integer; LeadingCapital: boolean = true; UseUpper: boolean = true; UseLower: boolean = true; UseSpace: boolean = false;
+  UseNumber:boolean = false; UseSpecial: boolean = false; UseSeed:boolean = false; DontUse: string = ''):string;
 function EncodeQueryString( Data: array of string): string;
 
 // php like function
@@ -352,6 +354,54 @@ begin
   repeat
     Result := Result + str[Random(Length(str)) + 1];
   until (Length(Result) = PLen);
+end;
+
+function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean;
+  UseUpper: boolean; UseLower: boolean; UseSpace: boolean; UseNumber: boolean;
+  UseSpecial: boolean; UseSeed: boolean; DontUse: string): string;
+const
+  c_upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  c_lower = 'abcdefghijklmnopqrstuvwxyz';
+  c_number = '0123456789';
+  c_special = '~@#$%^*()_+-={}|][';
+var
+  rnd, chars : string;
+  i, len, clen : integer;
+begin
+  chars:= '';
+  if UseLower then
+    chars:= chars + c_lower;
+  if UseUpper then
+    chars:= chars + c_upper;
+  if UseNumber then
+    chars:= chars + c_number;
+  if UseSpecial then
+    chars:= chars + c_special;
+  if UseSpace then
+  begin
+    for i:=0 to (Length( chars) mod 10) do
+      chars := chars + ' ';
+  end;
+  if DontUse <> '' then
+  begin
+    // .. next ...
+  end;
+
+  Randomize;
+  len := RandomRange( MinLength, MaxLength);
+  clen := length( chars);
+  rnd := '';
+  try
+    for i:=1 to len do
+    begin
+      rnd := rnd + chars[ RandomRange( 1, clen)];
+    end;
+  except
+  end;
+
+  if LeadingCapital then
+    rnd[1] := upCase( rnd[1]);
+  Result := rnd;
 end;
 
 function EncodeQueryString(Data: array of string): string;
