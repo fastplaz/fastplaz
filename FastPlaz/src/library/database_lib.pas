@@ -33,6 +33,7 @@ type
     primaryKeyValue : string;
     FGenFields : TStringList;
     function GetEOF: boolean;
+    function GetLastInsertID: LongInt;
     function GetRecordCount: Longint;
     function GetTablePrefix: string;
     procedure _queryPrepare;
@@ -60,6 +61,7 @@ type
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
     property EOF: boolean read GetEOF;
+    property LastInsertID: LongInt read GetLastInsertID;
 
     function ParamByName(Const AParamName : String) : TParam;
 
@@ -83,7 +85,7 @@ type
     procedure New;
     procedure Close;
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
-    function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
+    function  Delete( Where:string='';AutoCommit:boolean=True):boolean; overload;
 
     procedure Next;
     procedure StartTransaction;
@@ -491,6 +493,19 @@ begin
   Result := Data.EOF;
 end;
 
+function TSimpleModel.GetLastInsertID: LongInt;
+begin
+  Result := 0;
+  try
+    if Data.Active then Data.Close;
+    Data.SQL.Text := 'SELECT LAST_INSERT_ID() as lastid FROM ' + TableName;
+    Data.Open;
+    if Data.RecordCount > 0 then
+      Result := Data.FieldValues['lastid'];
+  except
+  end;
+end;
+
 function TSimpleModel._queryOpen: boolean;
 var
   s : string;
@@ -848,6 +863,7 @@ begin
   if Assigned( FGenFields) then FGenFields.Clear;
   if Assigned( FieldValueMap) then FieldValueMap.Clear;
   primaryKeyValue:='';
+  Close;
 end;
 
 procedure TSimpleModel.Close;
