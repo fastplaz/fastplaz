@@ -56,7 +56,7 @@ type
     property IsStarted: boolean read FSessionStarted;
 
     function StartSession: boolean;
-    procedure EndSession;
+    procedure EndSession( const Force:boolean = True);
     procedure Terminate;
 
     function ReadDateTime(const variable: string): TDateTime;
@@ -347,13 +347,19 @@ begin
   Result := True;
 end;
 
-procedure TSessionController.EndSession;
+procedure TSessionController.EndSession(const Force: boolean);
 begin
-  FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
-  FIniFile.EraseSection(_SESSION_DATA);
-  DeleteIniFile;
-  FreeAndNil(FIniFile);
-  FSessionTerminated := True;
+  try
+    FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
+    FIniFile.EraseSection(_SESSION_DATA);
+    if Force then
+    begin
+      DeleteIniFile;
+      FreeAndNil(FIniFile);
+      FSessionTerminated := True;
+    end;
+  except
+  end;
 end;
 
 procedure TSessionController.Terminate;

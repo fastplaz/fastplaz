@@ -152,7 +152,7 @@ begin
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   Config.SetValue(_SYSTEM_SESSION_TIMEOUT, 0);
 
-  Config.SetValue( format(_DATABASE_DRIVER, ['default']), 'MySQL 5.0');
+  Config.SetValue( format(_DATABASE_DRIVER, ['default']), 'MySQL 5.5');
   Config.SetValue( format(_DATABASE_HOSTNAME, ['default']), 'localhost');
   Config.SetValue( format(_DATABASE_PORT, ['default']), '');
   Config.SetValue( format(_DATABASE_USERNAME, ['default']), 'your_username');

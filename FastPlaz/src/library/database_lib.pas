@@ -46,7 +46,6 @@ type
 
     function GetFieldList: TStrings;
     function GetFieldValue( FieldName: String): Variant;
-    procedure SetFieldValue( FieldName: String; AValue: Variant);
   public
     FieldValueMap : TFieldValueMap;
     primaryKey : string;
@@ -54,6 +53,7 @@ type
     StartTime, StopTime, ElapsedTime : Cardinal;
     constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
+    procedure SetFieldValue( FieldName: String; AValue: Variant);
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
