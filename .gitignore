@@ -204,6 +204,7 @@ dist
 #Zikula Setting
 ztemp/doctrinemodels/*
 ztemp/error_logs/*
+ztemp/logs/*
 ztemp/idsTmp/*
 ztemp/NewsPDF/*
 ztemp/purifierCache/*
