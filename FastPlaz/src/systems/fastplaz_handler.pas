@@ -427,13 +427,8 @@ procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleCla
 var
   moduleNameReal: string;
 begin
-  if ModuleName = 'main' then
-  begin
-    Add( 'main', 'main', ModuleClass, Method, SkipStreaming);
-    exit;
-  end;
   moduleNameReal := CleanUrl( ModuleName);
-  moduleNameReal := 'r'+ReplaceAll( moduleNameReal, ['-'], '_');
+  moduleNameReal := ReplaceAll( moduleNameReal, ['-'], '_');
   Add( moduleNameReal, ModuleName, ModuleClass, Method, SkipStreaming);
 end;
 
@@ -594,7 +589,6 @@ begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
   {$ifdef DEBUG}
-  LogUtil.Add( 'name=' + name, 'init' );
   LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
   {$endif}
   if methodDefault = '' then

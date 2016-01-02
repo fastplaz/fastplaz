@@ -58,7 +58,7 @@ end;
 
 constructor TLogUtil.Create;
 begin
-  Dir := Config.GetValue('log/dir', 'ztemp/error_log');
+  Dir := Config.GetValue('log/dir', 'ztemp/logs');
   try
     if not DirectoryExists(Dir) then
       ForceDirectories(Dir);
