@@ -32,7 +32,7 @@ implementation
 uses
   common, fastplaz_handler, groupmembership_model;
 
-{$include group_define.inc}
+{$include define_group.inc}
 
 constructor TGroupModel.Create(const DefaultTableName: string = '');
 begin

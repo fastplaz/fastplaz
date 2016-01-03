@@ -12,6 +12,7 @@ const
   PASSWORD_LENGTH_MIN = 5;
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
+  {$include define_cms.inc}
 
 type
 
@@ -20,13 +21,14 @@ type
   TUsersUtil = class(TUserModel)
   private
     FSecUtil: TSecurityUtil;
+    function getLoggedInUserID: LongInt;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
+    property UserIdLoggedIn: LongInt read getLoggedInUserID;
 
     function Add(const UserName, Email: string; Password: string = '';
       Params: TStrings = nil): integer;
-    function Delete(const UserID: integer): boolean; overload;
     function ChangePassword(const UserID: integer; const NewPassword: string): boolean;
     function AssignToGroup( const UserID:integer; const GroupID: integer = USER_GROUP_DEFAULT_ID):boolean;
     function AssignToGroup( const UserID:integer; const GroupName: string = USER_GROUP_DEFAULT_NAME):boolean;
@@ -38,12 +40,15 @@ type
     function Login(const Username: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
+
+    function checkPermission(Component: string = ''; Instance: string = ''; Level: integer = ACCESS_NONE): boolean;
+
   end;
 
 implementation
 
 uses
-  fastplaz_handler, group_util;
+  fastplaz_handler, group_util, permission_util;
 
 const
   USER_PRIMARY_KEY = 'uid';
@@ -54,6 +59,22 @@ const
   USER_FIELDNAME_REGDATE = 'user_regdate';
 
 { TUsersUtil }
+
+function TUsersUtil.getLoggedInUserID: LongInt;
+var
+  uid : string;
+begin
+  Result := 0;
+  if SessionController.IsExpired then
+  begin
+    Logout;
+    Exit;
+  end;
+
+  uid := _SESSION['uid'];
+  if uid <> '' then  //-- simple check
+    Result := s2i( uid);
+end;
 
 constructor TUsersUtil.Create(const DefaultTableName: string);
 begin
@@ -103,11 +124,6 @@ begin
     Result := LastInsertID;
     AssignToGroup( Result, USER_GROUP_DEFAULT_ID);
   end;
-end;
-
-function TUsersUtil.Delete(const UserID: integer): boolean;
-begin
-  Result := Delete( USER_FIELDNAME_ID + '=' + i2s( UserID));
 end;
 
 function TUsersUtil.ChangePassword(const UserID: integer;
@@ -224,6 +240,24 @@ begin
   except
   end;
   Result := True;
+end;
+
+function TUsersUtil.checkPermission(Component: string; Instance: string;
+  Level: integer): boolean;
+begin
+  Result := False;
+
+  if UserIdLoggedIn = 0 then
+  begin
+    Exit;
+  end;
+
+  with TPermissionUtil.Create() do
+  begin
+    Result := checkPermission( Component, Instance, Level);
+    Free;
+  end;
+
 end;
 
 end.

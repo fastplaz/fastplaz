@@ -85,8 +85,10 @@ type
     procedure New;
     procedure Close;
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
-    function  Delete( Where:string='';AutoCommit:boolean=True):boolean; overload;
+    function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
+    function  Delete( ID: LongInt): boolean;
 
+    procedure First;
     procedure Next;
     procedure StartTransaction;
     procedure ReStartTransaction;
@@ -1000,6 +1002,19 @@ begin
   end;
 
   Data.DataBase := DB_Connector;
+end;
+
+function TSimpleModel.Delete(ID: LongInt): boolean;
+begin
+  Result := False;
+  if primaryKey = '' then
+    Exit;
+  Result := Delete( primaryKey+'='+i2s(ID));
+end;
+
+procedure TSimpleModel.First;
+begin
+  Data.First;
 end;
 
 procedure TSimpleModel.Next;

@@ -30,7 +30,7 @@ implementation
 uses
   fastplaz_handler;
 
-{$include group_define.inc}
+{$include define_group.inc}
 
 { TGroupsUtil }
 

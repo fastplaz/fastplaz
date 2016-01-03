@@ -91,4 +91,38 @@ add user to group
 ## PERMISSION
 ---
 
-is permitted
+check permission
+```
+   with TPermissionUtil.Create() do
+   begin
+     if checkPermission( 'modulename', 'instance', ACCESS_DELETE, UserId) then
+     begin
+     .
+     .
+     .
+     end;
+     Free;
+   end;
+```
+
+other way to check permission from existing loggedin user
+```
+  if UsersUtil.checkPermission( 'modulename', 'instance', ACCESS_DELETE) then
+  begin
+  .
+  .
+  .
+  end;
+```
+
+get security level
+```
+  userID := 2;
+  secLevel := getSecurityLevel( userID, 'modulname', 'list');
+```
+
+get security level from any instance
+```
+  userID := 2;
+  secLevel := getSecurityLevel( userID, 'modulname', 'any');
+```
