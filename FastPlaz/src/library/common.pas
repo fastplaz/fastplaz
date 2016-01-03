@@ -114,6 +114,7 @@ function ucwords(const str: string): string;
 
 function file_get_contents( TargetURL: string):string;
 
+function preg_match( const RegexExpression:string; SourceString:string):boolean;
 function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
 // php like function - end
 
@@ -652,6 +653,21 @@ begin
     end;
 
     Free;
+  end;
+end;
+
+function preg_match(const RegexExpression: string; SourceString: string
+  ): boolean;
+begin
+  Result := False;
+  try
+    with TRegExpr.Create do
+    begin
+      Expression := RegexExpression;
+      Result := Exec( SourceString);
+      Free;
+    end;
+  except
   end;
 end;
 
