@@ -46,6 +46,8 @@ add user
 ```
   lastUserID := UsersUtil.Add( 'theusername', 'theusername@email.com', 'password');
 
+  // or, with random password
+
   lastUserID := UsersUtil.Add( 'theusername', 'theusername@email.com');
 ```
 
@@ -85,10 +87,12 @@ add user to group
 ```
   TGroupsUtil.AddUserToGroup( 1, 'Users');
 
+  // or
+
   TGroupsUtil.AddUserToGroup( 1, 1);
 ```
 
-## PERMISSION
+## PERMISSION UTILS
 ---
 
 check permission
