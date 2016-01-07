@@ -94,6 +94,7 @@ type
     function GetIsGet: boolean;
     function GetIsPost: boolean;
     function GetIsPut: boolean;
+    function GetIsValidCSRF: boolean;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTablePrefix: string;
@@ -122,6 +123,7 @@ type
     property isGet: boolean read GetIsGet;
     property isPut: boolean read GetIsPut;
     property isDelete: boolean read GetIsDelete;
+    property isValidCSRF: boolean read GetIsValidCSRF;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -229,7 +231,7 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller, html_lib;
 
 var
   MethodMap: TStringList;
@@ -536,6 +538,21 @@ begin
     Result := True;
 end;
 
+function TMyCustomWebModule.GetIsValidCSRF: boolean;
+begin
+  Result := False;
+  if not isPost then
+    Exit;
+
+  if _POST['csrftoken'] = '' then
+    Exit;
+
+  if _POST['csrftoken'] = _SESSION[ __HTML_CSRF_TOKEN_KEY] then
+    Result := True;
+
+  HTMLUtil.ResetCSRF;
+end;
+
 function TMyCustomWebModule.GetSession: TSessionController;
 begin
   Result := SessionController;
@@ -591,6 +608,16 @@ begin
   {$ifdef DEBUG}
   LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
   {$endif}
+
+  // CSRF Security
+  if isPost then
+  begin
+    if not HTMLUtil.CheckCSRF( False) then
+    begin
+      //----
+    end;
+  end;
+
   if methodDefault = '' then
   begin
     AppData.isReady := True;

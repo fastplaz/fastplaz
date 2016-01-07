@@ -1642,6 +1642,10 @@ begin
     'gt' : begin
       ReplaceText := __(tagstring_custom.Values['text']);
       end;
+    'csrf-token' : begin
+      HTMLUtil.ResetCSRF;
+      ReplaceText := HTMLUtil.CSRF( tagstring_custom.Values['name']);
+      end;
     'recaptcha' : begin
       // usage: [recaptcha key="yourkey" version="v1"]
       if tagstring_custom.Values['key'] = '' then
