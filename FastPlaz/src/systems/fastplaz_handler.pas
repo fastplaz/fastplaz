@@ -787,7 +787,7 @@ end;
 procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
-  s: string;
+  s, pathInfo : string;
   i, j: integer;
   reg: TRegExpr;
   //  m  : TCustomHTTPModule;
@@ -798,6 +798,8 @@ begin
   s := GetActiveModuleName(ARequest);
   if ModuleFactory.FindModule(S) = nil then
   begin
+    pathInfo := ARequest.PathInfo;
+    pathInfo := ExcludeLeadingPathDelimiter( pathInfo);
 
     // check with Regex
     try
@@ -805,7 +807,7 @@ begin
       for i:=0 to RouteRegexMap.Count-1 do
       begin
         reg.Expression:= RouteRegexMap.ValueFromIndex[i];
-        if reg.Exec( ARequest.PathInfo) then
+        if reg.Exec( pathInfo) then
         begin
           s := RouteRegexMap.Names[i];
           if ModuleFactory.FindModule(S) <> nil then

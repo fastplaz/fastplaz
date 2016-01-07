@@ -7,8 +7,9 @@ unit fastplaz_cms;
 interface
 
 uses
-  group_model, groupmembership_model, grouppermission_model, user_model, 
-  group_util, permission_util, security_util, user_util, hash_tools;
+  user_controller, useradmin_controller, group_model, groupmembership_model, 
+  grouppermission_model, user_model, group_util, permission_util, 
+  security_util, user_util, hash_tools;
 
 implementation
 
