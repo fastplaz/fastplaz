@@ -127,6 +127,7 @@ begin
     Add('  <link rel="stylesheet" id="fastplaz-style-css"  href="[$themefullpath]/style/style.css" type="text/css" media="all" />');
     Add('</head>');
     Add('<body>');
+    Add('[flashmessages]');
     Add('[$maincontent]');
     Add('</body>');
     Add('</html>');

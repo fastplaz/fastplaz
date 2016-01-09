@@ -17,6 +17,7 @@ const
   _SESSION_KEYSTART = 'start';         // Start time of session
   _SESSION_KEYLAST = 'last';          // Last seen time of session
   _SESSION_KEYTIMEOUT = 'timeout';       // Timeout in seconds;
+  _SESSION_FLASHMESSAGE = 'flash';
   _SESSION_TIMEOUT_DEFAULT = 3600;
   TDateTimeEpsilon = 2.2204460493e-16;
 
