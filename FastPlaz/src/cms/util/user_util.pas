@@ -20,28 +20,19 @@ type
 
   TUsersUtil = class(TUserModel)
   private
-    FSecUtil: TSecurityUtil;
-    function getLoggedInUserID: LongInt;
+    function getLoggedInUserID: longint;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
-    property UserIdLoggedIn: LongInt read getLoggedInUserID;
-
-    function Add(const UserName, Email: string; Password: string = '';
-      Params: TStrings = nil): integer;
-    function ChangePassword(const UserID: integer; const NewPassword: string): boolean;
-    function AssignToGroup( const UserID:integer; const GroupID: integer = USER_GROUP_DEFAULT_ID):boolean;
-    function AssignToGroup( const UserID:integer; const GroupName: string = USER_GROUP_DEFAULT_NAME):boolean;
-
-    function GeneratePassword: string;
-    function GenerateHashedPassword(const UnhashedPassword: string): string;
+    property UserIdLoggedIn: longint read getLoggedInUserID;
 
     function isLoggedIn: boolean;
     function Login(const Username: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
 
-    function checkPermission(Component: string = ''; Instance: string = ''; Level: integer = ACCESS_NONE): boolean;
+    function checkPermission(Component: string = ''; Instance: string = '';
+      Level: integer = ACCESS_NONE): boolean;
 
   end;
 
@@ -50,19 +41,11 @@ implementation
 uses
   fastplaz_handler, group_util, permission_util;
 
-const
-  USER_PRIMARY_KEY = 'uid';
-  USER_FIELDNAME_ID = 'uid';
-  USER_FIELDNAME_USERNAME = 'uname';
-  USER_FIELDNAME_PASSWORD = 'pass';
-  USER_FIELDNAME_EMAIL = 'email';
-  USER_FIELDNAME_REGDATE = 'user_regdate';
-
 { TUsersUtil }
 
-function TUsersUtil.getLoggedInUserID: LongInt;
+function TUsersUtil.getLoggedInUserID: longint;
 var
-  uid : string;
+  uid: string;
 begin
   Result := 0;
   if SessionController.IsExpired then
@@ -73,124 +56,17 @@ begin
 
   uid := _SESSION['uid'];
   if uid <> '' then  //-- simple check
-    Result := s2i( uid);
+    Result := s2i(uid);
 end;
 
 constructor TUsersUtil.Create(const DefaultTableName: string);
 begin
   inherited Create;
-  FSecUtil := TSecurityUtil.Create;
-  primaryKey := USER_PRIMARY_KEY;
 end;
 
 destructor TUsersUtil.Destroy;
 begin
-  FSecUtil.Free;
   inherited Destroy;
-end;
-
-function TUsersUtil.Add(const UserName, Email: string; Password: string;
-  Params: TStrings): integer;
-var
-  saltedHash: string;
-  i: integer;
-begin
-  Result := 0;
-  if (UserName = '') or (Email = '') then
-    Exit;
-
-  saltedHash := Password;
-  if saltedHash = '' then
-    saltedHash := GeneratePassword;
-  saltedHash := FSecUtil.GenerateSaltedHash(saltedHash);
-
-  New;
-  SetFieldValue(USER_FIELDNAME_USERNAME, UserName);
-  SetFieldValue(USER_FIELDNAME_EMAIL, Email);
-  SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
-  SetFieldValue(USER_FIELDNAME_REGDATE, Now);
-
-  //-- save params
-  if Params <> nil then
-  begin
-    for i := 0 to Params.Count - 1 do
-    begin
-      SetFieldValue(Params.Names[i], Params.ValueFromIndex[i]);
-    end;
-  end;
-
-  if Save() then
-  begin
-    Result := LastInsertID;
-    AssignToGroup( Result, USER_GROUP_DEFAULT_ID);
-  end;
-end;
-
-function TUsersUtil.ChangePassword(const UserID: integer;
-  const NewPassword: string): boolean;
-var
-  saltedHash: string;
-begin
-  Result := False;
-  saltedHash := FSecUtil.GenerateSaltedHash(NewPassword);
-  if FindFirst([USER_FIELDNAME_ID + '="' + i2s(UserID) + '"'],
-    USER_FIELDNAME_ID + ' desc') then
-  begin
-    SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
-    New;
-    if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then
-    begin
-      Result := True;
-    end;
-
-  end;
-
-end;
-
-{
-  example:
-  UsersUtil.AssignToGroup( 24, 1);
-  UsersUtil.AssignToGroup( 24, 'Users');
-}
-function TUsersUtil.AssignToGroup(const UserID: integer; const GroupID: integer
-  ): boolean;
-begin
-  with TGroupsUtil.Create() do
-  begin
-    Result := AddUserToGroup( UserID, GroupID);
-    Free;
-  end;
-end;
-
-function TUsersUtil.AssignToGroup(const UserID: integer; const GroupName: string
-  ): boolean;
-begin
-  Result := False;
-  with TGroupsUtil.Create() do
-  begin
-    Result := AddUserToGroup( UserID, GroupName);
-    Free;
-  end;
-end;
-
-
-function TUsersUtil.GeneratePassword: string;
-var
-  min, max: integer;
-begin
-  Randomize;
-  min := RandomRange(PASSWORD_LENGTH_MIN, 15);
-  max := RandomRange(PASSWORD_LENGTH_MIN + 3, 15);
-  Result := RandomString(min, max, False, True, True, False, True, False, False, '');
-end;
-
-function TUsersUtil.GenerateHashedPassword(const UnhashedPassword: string): string;
-begin
-  with TSecurityUtil.Create do
-  begin
-    Result := GenerateSaltedHash(UnhashedPassword);
-    Free;
-  end;
 end;
 
 function TUsersUtil.isLoggedIn: boolean;
@@ -219,14 +95,18 @@ begin
     USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
-    if FSecUtil.CheckSaltedHash(Password, hashedData) then
+    with TSecurityUtil.Create do
     begin
-      // save session
-      _SESSION['uid'] := Data[USER_FIELDNAME_ID];
-      _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
-      _SESSION['rememberme'] := RememberMe;
+      if CheckSaltedHash(Password, hashedData) then
+      begin
+        // save session
+        _SESSION['uid'] := Data[USER_FIELDNAME_ID];
+        _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
+        _SESSION['rememberme'] := RememberMe;
 
-      Result := True;
+        Result := True;
+      end;
+      Free;
     end;
   end
   else
@@ -254,7 +134,7 @@ begin
 
   with TPermissionUtil.Create() do
   begin
-    Result := checkPermission( Component, Instance, Level);
+    Result := checkPermission(Component, Instance, Level);
     Free;
   end;
 

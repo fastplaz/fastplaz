@@ -521,8 +521,8 @@ begin
   except
     on E: Exception do begin
       if AppData.debug then begin
-        LogUtil.add( E.Message);
-        LogUtil.add( Data.SQL.Text);
+        LogUtil.add( E.Message, 'DB');
+        LogUtil.add( Data.SQL.Text, 'DB');
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
       die( E.Message + s);

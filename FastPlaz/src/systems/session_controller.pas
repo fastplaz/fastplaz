@@ -58,6 +58,7 @@ type
     function StartSession: boolean;
     procedure EndSession( const Force:boolean = True);
     procedure Terminate;
+    procedure ForceUpdate;
 
     function ReadDateTime(const variable: string): TDateTime;
     function ReadInteger(const variable: string): integer;
@@ -365,6 +366,11 @@ end;
 procedure TSessionController.Terminate;
 begin
   EndSession;
+end;
+
+procedure TSessionController.ForceUpdate;
+begin
+  UpdateIniFile;
 end;
 
 function TSessionController.ReadDateTime(const variable: string): TDateTime;

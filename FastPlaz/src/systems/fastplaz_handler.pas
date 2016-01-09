@@ -551,6 +551,7 @@ begin
     Result := True;
 
   HTMLUtil.ResetCSRF;
+  SessionController.ForceUpdate;
 end;
 
 function TMyCustomWebModule.GetSession: TSessionController;
