@@ -54,6 +54,7 @@ type
 
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
+    property IsTerminated: boolean read FSessionTerminated;
 
     function StartSession: boolean;
     procedure EndSession( const Force:boolean = True);

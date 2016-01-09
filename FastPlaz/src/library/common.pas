@@ -136,8 +136,11 @@ end;
 
 function s2i(s: string): integer;
 begin
-  Result := 0;
-  TryStrToInt(s, Result);
+  try
+    TryStrToInt(s, Result);
+  except
+    Result := 0;
+  end;
 end;
 
 function f2s(n: extended): string;
@@ -153,8 +156,11 @@ end;
 
 function s2f(s: string): extended;
 begin
-  Result := 0;
-  TryStrToFloat(s, Result);
+  try
+    Result := 0;
+    TryStrToFloat(s, Result);
+  except
+  end;
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;

@@ -27,7 +27,7 @@ type
     property UserIdLoggedIn: longint read getLoggedInUserID;
 
     function isLoggedIn: boolean;
-    function Login(const Username: string; const Password: string;
+    function Login(const UserEmail: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
 
@@ -48,6 +48,8 @@ var
   uid: string;
 begin
   Result := 0;
+  if SessionController.IsTerminated then
+    Exit;
   if SessionController.IsExpired then
   begin
     Logout;
@@ -74,24 +76,17 @@ var
   uid: string;
 begin
   Result := False;
-  if SessionController.IsExpired then
-  begin
-    Logout;
-    Exit;
-  end;
-
-  uid := _SESSION['uid'];
-  if uid <> '' then  //-- simple check
-    Result := True;
+  if getLoggedInUserID > 0 then
+     Result := True;
 end;
 
-function TUsersUtil.Login(const Username: string; const Password: string;
+function TUsersUtil.Login(const UserEmail: string; const Password: string;
   RememberMe: boolean): boolean;
 var
   hashedData: string;
 begin
   Result := False;
-  if FindFirst([USER_FIELDNAME_USERNAME + '="' + Username + '"'],
+  if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"'],
     USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
@@ -102,6 +97,7 @@ begin
         // save session
         _SESSION['uid'] := Data[USER_FIELDNAME_ID];
         _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
+        _SESSION['email'] := Data[USER_FIELDNAME_EMAIL];
         _SESSION['rememberme'] := RememberMe;
 
         Result := True;
@@ -116,7 +112,7 @@ end;
 function TUsersUtil.Logout: boolean;
 begin
   try
-    SessionController.EndSession(False);
+    SessionController.EndSession( True);
   except
   end;
   Result := True;
