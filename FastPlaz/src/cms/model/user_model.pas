@@ -9,7 +9,6 @@ uses
   Math, Classes, SysUtils;
 
 const
-  PASSWORD_LENGTH_MIN = 5;
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
 
@@ -18,6 +17,7 @@ const
   USER_FIELDNAME_USERNAME = 'uname';
   USER_FIELDNAME_PASSWORD = 'pass';
   USER_FIELDNAME_EMAIL = 'email';
+  USER_FIELDNAME_ACTIVATED = 'activated';
   USER_FIELDNAME_REGDATE = 'user_regdate';
 
   {$include define_cms.inc}
@@ -41,10 +41,10 @@ type
     function AssignToGroup(const UserID: integer;
       const GroupName: string = USER_GROUP_DEFAULT_NAME): boolean;
 
+    function isActive(const UserID: integer): boolean;
     function isUserNameExists(const UserName: string): boolean;
     function isEmailExists(const EmailAddress: string): boolean;
 
-    function GeneratePassword: string;
     function GenerateHashedPassword(const UnhashedPassword: string): string;
   end;
 
@@ -76,10 +76,10 @@ begin
   if (UserName = '') or (Email = '') then
     Exit;
 
-  saltedHash := Password;
-  if saltedHash = '' then
-    saltedHash := GeneratePassword;
-  saltedHash := FSecUtil.GenerateSaltedHash(saltedHash);
+  if Password = '' then
+    saltedHash := FSecUtil.GenerateSaltedHash(FSecUtil.GeneratePassword)
+  else
+    saltedHash := FSecUtil.GenerateSaltedHash(Password);
 
   New;
   SetFieldValue(USER_FIELDNAME_USERNAME, UserName);
@@ -150,6 +150,16 @@ begin
   end;
 end;
 
+function TUserModel.isActive(const UserID: integer): boolean;
+begin
+  Result := False;
+  if UserID = 0 then
+    Exit;
+  Clear;
+  if Find([USER_FIELDNAME_ID + '=' + i2s(UserID), USER_FIELDNAME_ACTIVATED + '=1']) then
+    Result := True;
+end;
+
 function TUserModel.isUserNameExists(const UserName: string): boolean;
 begin
   Result := False;
@@ -168,16 +178,6 @@ begin
   Clear;
   if Find([USER_FIELDNAME_EMAIL + '=''' + EmailAddress + '''']) then
     Result := True;
-end;
-
-function TUserModel.GeneratePassword: string;
-var
-  min, max: integer;
-begin
-  Randomize;
-  min := RandomRange(PASSWORD_LENGTH_MIN, 15);
-  max := RandomRange(PASSWORD_LENGTH_MIN + 3, 15);
-  Result := RandomString(min, max, False, True, True, False, True, False, False, '');
 end;
 
 function TUserModel.GenerateHashedPassword(const UnhashedPassword: string): string;

@@ -6,11 +6,12 @@ interface
 
 uses
   fpcgi, common, hash_tools,
-  Classes, SysUtils;
+  math, Classes, SysUtils;
 
 const
   SALT_DELIM = '$';
   SALT_PREFIX = '8';
+  PASSWORD_LENGTH_MIN = 5;
 
 type
 
@@ -21,6 +22,7 @@ type
   public
     function CheckSaltedHash(const UnhasedData: string;
       const SaltedHash: string): boolean;
+    function GeneratePassword: string;
     function GenerateSaltedHash(const UnhasedData: string): string;
     function GenerateSaltedHash(const UnhasedData: string; SaltString: string;
       SaltDelimiter: string = SALT_DELIM): string;
@@ -55,6 +57,16 @@ begin
     Result := True;
 
   lst.Free;
+end;
+
+function TSecurityUtil.GeneratePassword: string;
+var
+  min, max: integer;
+begin
+  Randomize;
+  min := RandomRange(PASSWORD_LENGTH_MIN, 15);
+  max := RandomRange(PASSWORD_LENGTH_MIN + 3, 15);
+  Result := RandomString(min, max, False, True, True, False, True, False, False, '');
 end;
 
 function TSecurityUtil.GenerateSaltedHash(const UnhasedData: string): string;
