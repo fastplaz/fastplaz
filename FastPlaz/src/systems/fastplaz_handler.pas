@@ -432,7 +432,8 @@ var
   moduleNameReal: string;
 begin
   moduleNameReal := CleanUrl( ModuleName);
-  moduleNameReal := ReplaceAll( moduleNameReal, ['-'], '_');
+  moduleNameReal := ReplaceAll( moduleNameReal, ['_'], '');
+  moduleNameReal := ReplaceAll( moduleNameReal, ['-', '|'], '_');
   Add( moduleNameReal, ModuleName, ModuleClass, Method, SkipStreaming);
 end;
 
@@ -619,7 +620,8 @@ begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
   {$ifdef DEBUG}
-  LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
+  if AppData.debug then
+    LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
   {$endif}
 
   // CSRF Security

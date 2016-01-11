@@ -1552,6 +1552,9 @@ begin
   if tagstring_custom.Count = 0 then Begin ReplaceText := '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
+    'sitename' : begin
+      ReplaceText := AppData.sitename;
+      end;
     '$title' : begin
       ReplaceText := AppData.sitename;
       end;
