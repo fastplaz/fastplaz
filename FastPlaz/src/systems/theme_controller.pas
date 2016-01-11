@@ -101,6 +101,7 @@ type
     foreachJsonIndex : integer;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
+    function GetFlashMessage: string;
     function GetHitCount(const URL: String): integer;
     function GetRenderType: TRenderType;
     function GetThemeName: string;
@@ -108,6 +109,7 @@ type
     function getVarValue(const VariableName: string): variant;
     procedure SetAssignVar(const TagName: String; AValue: Pointer);
     procedure SetCacheTime(AValue: integer);
+    procedure SetFlashMessage(AValue: string);
     procedure SetIsJSON(AValue: boolean);
     procedure SetRenderType(AValue: TRenderType);
     procedure SetThemeName(AValue: string);
@@ -171,6 +173,7 @@ type
     function GetVersionInfo():boolean;
     function GetDebugInfo( DebugType:string):string;
     property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
+    property FlashMessages: string read GetFlashMessage write SetFlashMessage;
 
     procedure TagController(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
     procedure TagCleaner(Sender: TObject; const TagString:String; TagParams: TStringList; Out ReplaceText: String);
@@ -203,7 +206,7 @@ var
 
 implementation
 
-uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib,
+uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller,
   initialize_controller;
 
 var
@@ -277,6 +280,11 @@ begin
   Result := FBaseURL;
 end;
 
+function TThemeUtil.GetFlashMessage: string;
+begin
+  Result := _SESSION[_SESSION_FLASHMESSAGE];
+end;
+
 procedure TThemeUtil.SetAssignVar(const TagName: String; AValue: Pointer);
 begin
   assignVarMap[TagName] := AValue;
@@ -286,6 +294,14 @@ procedure TThemeUtil.SetCacheTime(AValue: integer);
 begin
   if FCacheTime=AValue then Exit;
   FCacheTime:=AValue - 1;
+end;
+
+procedure TThemeUtil.SetFlashMessage(AValue: string);
+begin
+  if AValue = '' then
+    _SESSION[_SESSION_FLASHMESSAGE] := ''
+  else
+    _SESSION[_SESSION_FLASHMESSAGE] := FlashMessages + trim( AValue) + '|';
 end;
 
 procedure TThemeUtil.SetIsJSON(AValue: boolean);
@@ -1470,9 +1486,10 @@ end;
 procedure TThemeUtil.TagController(Sender: TObject; const TagString: String;
   TagParams: TStringList; out ReplaceText: String);
 var
+  i : integer;
   s, tagname, filter : string;
   tagstring_custom : TStringList;
-  tag_with_filter : TStrings;
+  str, tag_with_filter : TStrings;
 begin
   if trim( TagString) = '' then Exit;
   if Pos( '*', TagString) = 1 then
@@ -1641,6 +1658,21 @@ begin
       end;
     'gt' : begin
       ReplaceText := __(tagstring_custom.Values['text']);
+      end;
+    'csrf-token' : begin
+      HTMLUtil.ResetCSRF;
+      ReplaceText := HTMLUtil.CSRF( tagstring_custom.Values['name']);
+      end;
+    'flashmessages' : begin
+      s := FlashMessages;
+      str := Explode( s, '|');
+      ReplaceText := '<div id="flashmessages" class="'+tagstring_custom.Values['class']+'"><ul>';
+      for i:=0 to str.Count-1 do
+      begin
+        ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>';
+      end;
+      ReplaceText:= ReplaceText + '</ul></div>';
+      FlashMessages:='';
       end;
     'recaptcha' : begin
       // usage: [recaptcha key="yourkey" version="v1"]

@@ -12,7 +12,7 @@ uses
 const
   __HTMLLIB_FORMID_LENGTH = 5;
   __HTMLLIB_FORMCSRFTOKEN_LENGTH = 12;
-
+  __HTML_CSRF_TOKEN_KEY = '_csrf_token_key';
   __HTML_ALLBLOCK =
     '(table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
 
@@ -28,12 +28,14 @@ type
       const Options: array of string; EndTag: boolean = True): string;
     function setTag(const Tag: string; const Content: string;
       EndTag: boolean = True): string;
-    function setCsrfTokenHtml: string;
+    function setCsrfTokenHtml( const FormIDDefault:string = ''): string;
   public
     constructor Create;
     destructor Destroy; override;
     property FormID: string read GetFormID;
     procedure ResetCSRF;
+    function CSRF( const FormIDDefault:string = ''):string;
+    function CheckCSRF( Force : boolean = True):boolean;
     function H1(const Content: string; Options: array of string): string;
     function H1(const Content: string): string;
     function Block(const Content: string; Options: array of string): string;
@@ -73,8 +75,6 @@ implementation
 
 uses
   fastplaz_handler;
-const
-  __HTML_CSRF_TOKEN_KEY = '_csrf_token_key';
 
 function H1(Content: string; StyleClass: string): string;
 begin
@@ -202,14 +202,51 @@ end;
 
 
 // prepare for next security feature
-function THTMLUtil.setCsrfTokenHtml: string;
+function THTMLUtil.setCsrfTokenHtml(const FormIDDefault: string): string;
 var
-  key: string;
+  s, key: string;
 begin
-  key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormID);
+  s := FormIDDefault;
+  if s = '' then
+    s := FormID;
+  key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, s);
   _SESSION[ __HTML_CSRF_TOKEN_KEY] := key;
   Result := #13'<input type="hidden" name="csrftoken" value="' + key +
-    '" id="FormCsrfToken_' + FormID + '" />';
+    '" id="FormCsrfToken_' + s + '" />';
+end;
+
+function THTMLUtil.CSRF(const FormIDDefault: string): string;
+begin
+  Result := setCsrfTokenHtml( FormIDDefault);
+end;
+
+function THTMLUtil.CheckCSRF(Force: boolean): boolean;
+var
+  key : string;
+begin
+  Result := false;
+  key := _SESSION[ __HTML_CSRF_TOKEN_KEY];
+  if _POST['csrftoken'] = '' then
+  begin
+    if not Force then
+    begin
+      Result := True;
+    end;
+    Exit;
+  end;
+
+  if key = _POST['csrftoken'] then
+  begin
+    Result := True;;
+  end;
+
+  if Force then
+    ResetCSRF;
+end;
+
+procedure THTMLUtil.ResetCSRF;
+begin
+  _SESSION[ __HTML_CSRF_TOKEN_KEY] := '';
 end;
 
 constructor THTMLUtil.Create;
@@ -220,11 +257,6 @@ end;
 destructor THTMLUtil.Destroy;
 begin
   inherited Destroy;
-end;
-
-procedure THTMLUtil.ResetCSRF;
-begin
-  _SESSION[ __HTML_CSRF_TOKEN_KEY] := '';
 end;
 
 function THTMLUtil.H1(const Content: string; Options: array of string): string;

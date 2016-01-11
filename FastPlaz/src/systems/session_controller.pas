@@ -17,6 +17,7 @@ const
   _SESSION_KEYSTART = 'start';         // Start time of session
   _SESSION_KEYLAST = 'last';          // Last seen time of session
   _SESSION_KEYTIMEOUT = 'timeout';       // Timeout in seconds;
+  _SESSION_FLASHMESSAGE = 'flash';
   _SESSION_TIMEOUT_DEFAULT = 3600;
   TDateTimeEpsilon = 2.2204460493e-16;
 
@@ -54,10 +55,14 @@ type
 
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
+    property IsTerminated: boolean read FSessionTerminated;
 
     function StartSession: boolean;
+    procedure Clear;
+    procedure DeleteKey( const Key:string);
     procedure EndSession( const Force:boolean = True);
     procedure Terminate;
+    procedure ForceUpdate;
 
     function ReadDateTime(const variable: string): TDateTime;
     function ReadInteger(const variable: string): integer;
@@ -347,6 +352,20 @@ begin
   Result := True;
 end;
 
+procedure TSessionController.Clear;
+begin
+  try
+    FIniFile.EraseSection(_SESSION_DATA);
+    ForceUpdate;
+  except;
+  end;
+end;
+
+procedure TSessionController.DeleteKey(const Key: string);
+begin
+  FIniFile.DeleteKey( _SESSION_DATA, Key);
+end;
+
 procedure TSessionController.EndSession(const Force: boolean);
 begin
   try
@@ -365,6 +384,11 @@ end;
 procedure TSessionController.Terminate;
 begin
   EndSession;
+end;
+
+procedure TSessionController.ForceUpdate;
+begin
+  UpdateIniFile;
 end;
 
 function TSessionController.ReadDateTime(const variable: string): TDateTime;

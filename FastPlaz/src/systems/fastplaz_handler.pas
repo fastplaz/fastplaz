@@ -14,7 +14,7 @@ uses
   config_lib,
   fpcgi, httpdefs, fpHTTP, fpWeb,
   //webutil,
-  custweb, dateutils,
+  custweb, dateutils, variants,
   SysUtils, Classes;
 
 const
@@ -90,10 +90,12 @@ type
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
+    function GetIsAjax: boolean;
     function GetIsDelete: boolean;
     function GetIsGet: boolean;
     function GetIsPost: boolean;
     function GetIsPut: boolean;
+    function GetIsValidCSRF: boolean;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTablePrefix: string;
@@ -122,6 +124,8 @@ type
     property isGet: boolean read GetIsGet;
     property isPut: boolean read GetIsPut;
     property isDelete: boolean read GetIsDelete;
+    property isValidCSRF: boolean read GetIsValidCSRF;
+    property isAjax: boolean read GetIsAjax;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -229,7 +233,7 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller;
+uses common, language_lib, database_lib, logutil_lib, theme_controller, html_lib;
 
 var
   MethodMap: TStringList;
@@ -475,6 +479,9 @@ end;
 procedure TSESSION.SetValue(variable: string; AValue: variant);
 begin
   SessionController[variable] := AValue;
+  if ((VarType(AValue) = varSmallInt) or (VarType(AValue) = varinteger) or
+    (VarType(AValue) = varint64)) then
+    SessionController[variable] := i2s(AValue);
 end;
 
 function TSESSION.ReadDateTime(const variable: string): TDateTime;
@@ -508,6 +515,13 @@ begin
   Result := Application.EnvironmentVariable[KeyName];
 end;
 
+function TMyCustomWebModule.GetIsAjax: boolean;
+begin
+  Result := False;
+  if (LowerCase( Application.EnvironmentVariable['HTTP_X_REQUESTED_WITH']) = 'xmlhttprequest') then
+    Result := True;
+end;
+
 function TMyCustomWebModule.GetIsDelete: boolean;
 begin
   Result := False;
@@ -534,6 +548,22 @@ begin
   Result := False;
   if Application.Request.Method = PUT then
     Result := True;
+end;
+
+function TMyCustomWebModule.GetIsValidCSRF: boolean;
+begin
+  Result := False;
+  if not isPost then
+    Exit;
+
+  if _POST['csrftoken'] = '' then
+    Exit;
+
+  if _POST['csrftoken'] = _SESSION[ __HTML_CSRF_TOKEN_KEY] then
+    Result := True;
+
+  HTMLUtil.ResetCSRF;
+  SessionController.ForceUpdate;
 end;
 
 function TMyCustomWebModule.GetSession: TSessionController;
@@ -591,6 +621,16 @@ begin
   {$ifdef DEBUG}
   LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
   {$endif}
+
+  // CSRF Security
+  if isPost then
+  begin
+    if not HTMLUtil.CheckCSRF( False) then
+    begin
+      //----
+    end;
+  end;
+
   if methodDefault = '' then
   begin
     AppData.isReady := True;
@@ -787,7 +827,7 @@ end;
 procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
-  s: string;
+  s, pathInfo : string;
   i, j: integer;
   reg: TRegExpr;
   //  m  : TCustomHTTPModule;
@@ -798,6 +838,8 @@ begin
   s := GetActiveModuleName(ARequest);
   if ModuleFactory.FindModule(S) = nil then
   begin
+    pathInfo := ARequest.PathInfo;
+    pathInfo := ExcludeLeadingPathDelimiter( pathInfo);
 
     // check with Regex
     try
@@ -805,7 +847,7 @@ begin
       for i:=0 to RouteRegexMap.Count-1 do
       begin
         reg.Expression:= RouteRegexMap.ValueFromIndex[i];
-        if reg.Exec( ARequest.PathInfo) then
+        if reg.Exec( pathInfo) then
         begin
           s := RouteRegexMap.Names[i];
           if ModuleFactory.FindModule(S) <> nil then
