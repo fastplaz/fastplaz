@@ -14,7 +14,7 @@ uses
   config_lib,
   fpcgi, httpdefs, fpHTTP, fpWeb,
   //webutil,
-  custweb, dateutils,
+  custweb, dateutils, variants,
   SysUtils, Classes;
 
 const
@@ -90,6 +90,7 @@ type
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
+    function GetIsAjax: boolean;
     function GetIsDelete: boolean;
     function GetIsGet: boolean;
     function GetIsPost: boolean;
@@ -124,6 +125,7 @@ type
     property isPut: boolean read GetIsPut;
     property isDelete: boolean read GetIsDelete;
     property isValidCSRF: boolean read GetIsValidCSRF;
+    property isAjax: boolean read GetIsAjax;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -477,6 +479,9 @@ end;
 procedure TSESSION.SetValue(variable: string; AValue: variant);
 begin
   SessionController[variable] := AValue;
+  if ((VarType(AValue) = varSmallInt) or (VarType(AValue) = varinteger) or
+    (VarType(AValue) = varint64)) then
+    SessionController[variable] := i2s(AValue);
 end;
 
 function TSESSION.ReadDateTime(const variable: string): TDateTime;
@@ -508,6 +513,13 @@ end;
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
+end;
+
+function TMyCustomWebModule.GetIsAjax: boolean;
+begin
+  Result := False;
+  if (LowerCase( Application.EnvironmentVariable['HTTP_X_REQUESTED_WITH']) = 'xmlhttprequest') then
+    Result := True;
 end;
 
 function TMyCustomWebModule.GetIsDelete: boolean;

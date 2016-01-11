@@ -58,6 +58,8 @@ type
     property IsTerminated: boolean read FSessionTerminated;
 
     function StartSession: boolean;
+    procedure Clear;
+    procedure DeleteKey( const Key:string);
     procedure EndSession( const Force:boolean = True);
     procedure Terminate;
     procedure ForceUpdate;
@@ -348,6 +350,20 @@ begin
     UpdateIniFile;
   FSessionStarted := True;
   Result := True;
+end;
+
+procedure TSessionController.Clear;
+begin
+  try
+    FIniFile.EraseSection(_SESSION_DATA);
+    ForceUpdate;
+  except;
+  end;
+end;
+
+procedure TSessionController.DeleteKey(const Key: string);
+begin
+  FIniFile.DeleteKey( _SESSION_DATA, Key);
 end;
 
 procedure TSessionController.EndSession(const Force: boolean);

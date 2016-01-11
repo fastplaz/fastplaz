@@ -77,15 +77,19 @@ var
 begin
   Result := False;
   if getLoggedInUserID > 0 then
-     Result := True;
+    Result := True;
 end;
 
 function TUsersUtil.Login(const UserEmail: string; const Password: string;
   RememberMe: boolean): boolean;
 var
   hashedData: string;
+  i: integer;
 begin
   Result := False;
+  i := s2i(_SESSION['failedlogin']);
+  SessionController.Clear;
+  _SESSION['failedlogin'] := i + 1;
   if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"'],
     USER_FIELDNAME_ID + ' desc') then
   begin
@@ -99,20 +103,18 @@ begin
         _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
         _SESSION['email'] := Data[USER_FIELDNAME_EMAIL];
         _SESSION['rememberme'] := RememberMe;
-
+        SessionController.DeleteKey('failedlogin');
         Result := True;
       end;
       Free;
     end;
-  end
-  else
-    SessionController.EndSession;
+  end;//--- findFirst
 end;
 
 function TUsersUtil.Logout: boolean;
 begin
   try
-    SessionController.EndSession( True);
+    SessionController.EndSession(True);
   except
   end;
   Result := True;
