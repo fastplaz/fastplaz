@@ -1,7 +1,6 @@
 
 FastPlaz
 ===
-**[FastPlaz](http://www.fastplaz.com)** adalah satu satu web framework dengan menggunakan bahasa  free pascal  . Dibuat sedemikian rupa sehingga requirement server yang diperlukan pun sederhana dan minimal, dan bahkan bisa di  compile  langsung dari console/terminal tanpa memerlukan ide/editor  Lazarus  . Cukup dengan menggunakan  apache  biasa seperti di shared hosting, fastplaz sudah bisa langsung digunakan.
 
 
 Package
@@ -24,6 +23,12 @@ or with this statement
   .
   .
   end;
+```
+
+optional :
+```
+  UsersUtil.LoginAttempsMax := 3; // default = 0
+  UsersUtil.OnLoginAttemps := @LoginAttemps; // callback, if too many login attempts
 ```
 
 check is loggedin or not
@@ -130,3 +135,24 @@ get security level from any instance
   userID := 2;
   secLevel := getSecurityLevel( userID, 'modulname', 'any');
 ```
+
+## FORM SECURITY
+---
+
+CSRF
+```
+  if isPost then
+  begin
+    if not isValidCSRF then
+    begin
+      //ThemeUtil.FlashMessages:= 'Security: Invalid CSRF Token';
+      //Redirect( BaseURL);
+    end;
+  end;
+```
+
+in HTML layout, just add this :
+```
+  [csrf-token name="optionalmodulename"]
+```
+
