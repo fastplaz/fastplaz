@@ -16,17 +16,23 @@ const
 
 type
 
+  TOnLoginAttemps = procedure(Sender: TObject) of object;
+
   { TUsersUtil }
 
   TUsersUtil = class(TUserModel)
   private
     FLoginAttempsMax: integer;
+    FOnLoginAttemps: TOnLoginAttemps;
+    function GetFailedLoginCount: integer;
     function getLoggedInUserID: longint;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
     property UserIdLoggedIn: longint read getLoggedInUserID;
-    property LoginAttempsMax : integer read FLoginAttempsMax write FLoginAttempsMax;
+    property LoginAttempsMax: integer read FLoginAttempsMax write FLoginAttempsMax;
+    property OnLoginAttemps: TOnLoginAttemps read FOnLoginAttemps write FOnLoginAttemps;
+    property FailedLoginCount: integer read GetFailedLoginCount;
 
     function isLoggedIn: boolean;
     function Login(const UserEmail: string; const Password: string;
@@ -63,10 +69,24 @@ begin
     Result := s2i(uid);
 end;
 
+function TUsersUtil.GetFailedLoginCount: integer;
+begin
+  try
+    Result := _SESSION['failedlogin'];
+    if SessionController.IsExpired then
+    begin
+      SessionController.DeleteKey( 'failedlogin');
+    end;
+  except
+    Result := 0;
+  end;
+end;
+
 constructor TUsersUtil.Create(const DefaultTableName: string);
 begin
   inherited Create;
   FLoginAttempsMax := 0;
+  FOnLoginAttemps := nil;
 end;
 
 destructor TUsersUtil.Destroy;
@@ -90,13 +110,17 @@ var
   i: integer;
 begin
   Result := False;
-  i := s2i(_SESSION['failedlogin']);
+  i := s2i(_SESSION['failedlogin']) + 1;
   SessionController.Clear;
-  _SESSION['failedlogin'] := i + 1;
+  _SESSION['failedlogin'] := i;
   if FLoginAttempsMax > 0 then
   begin
-    if i > FLoginAttempsMax then
+    if i > FLoginAttempsMax-1 then
+    begin
+      if FOnLoginAttemps <> nil then
+        FOnLoginAttemps(Self);
       Exit;
+    end;
   end;
   if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"'],
     USER_FIELDNAME_ID + ' desc') then
