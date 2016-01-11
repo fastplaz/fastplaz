@@ -20,11 +20,13 @@ type
 
   TUsersUtil = class(TUserModel)
   private
+    FLoginAttempsMax: integer;
     function getLoggedInUserID: longint;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
     property UserIdLoggedIn: longint read getLoggedInUserID;
+    property LoginAttempsMax : integer read FLoginAttempsMax write FLoginAttempsMax;
 
     function isLoggedIn: boolean;
     function Login(const UserEmail: string; const Password: string;
@@ -64,6 +66,7 @@ end;
 constructor TUsersUtil.Create(const DefaultTableName: string);
 begin
   inherited Create;
+  FLoginAttempsMax := 0;
 end;
 
 destructor TUsersUtil.Destroy;
@@ -90,6 +93,11 @@ begin
   i := s2i(_SESSION['failedlogin']);
   SessionController.Clear;
   _SESSION['failedlogin'] := i + 1;
+  if FLoginAttempsMax > 0 then
+  begin
+    if i > FLoginAttempsMax then
+      Exit;
+  end;
   if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"'],
     USER_FIELDNAME_ID + ' desc') then
   begin
