@@ -153,6 +153,24 @@ CSRF
 
 in HTML layout, just add this :
 ```
-  [csrf-token name="optionalmodulename"]
+  <form id="user_login" class="" action="" method="post">
+    [csrf-token name="optionalmodulename"]
+
+    ...
+    ...
+    <input id="someid" type="text" name="somename" >
+    <input id="someid2" type="text" name="somename2" >
+    ...
+    ...
+
+  </form>
+```
+example result:
+```
+  <form id="user_login" class="" action="" method="post">
+    <input type="hidden" name="csrftoken" value="mFqiGVTovWl3" id="FormCsrfToken_optionalmodulename" />
+
+    ...
+    ...
 ```
 
