@@ -145,8 +145,8 @@ CSRF
   begin
     if not isValidCSRF then
     begin
-      //ThemeUtil.FlashMessages:= 'Security: Invalid CSRF Token';
-      //Redirect( BaseURL);
+      ThemeUtil.FlashMessages:= 'Security: Invalid CSRF Token';
+      Redirect( BaseURL);
     end;
   end;
 ```
