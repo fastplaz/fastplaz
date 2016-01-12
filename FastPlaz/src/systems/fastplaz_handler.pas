@@ -557,6 +557,9 @@ begin
   if not isPost then
     Exit;
 
+  if Session.IsExpired then
+    Exit;
+
   if _POST['csrftoken'] = '' then
     Exit;
 

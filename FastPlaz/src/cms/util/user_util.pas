@@ -12,6 +12,7 @@ const
   PASSWORD_LENGTH_MIN = 5;
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
+  USER_LOGIN_ATTEMPTS_MAX = 5;
   {$include define_cms.inc}
 
 type
@@ -85,7 +86,7 @@ end;
 constructor TUsersUtil.Create(const DefaultTableName: string);
 begin
   inherited Create;
-  FLoginAttempsMax := 0;
+  FLoginAttempsMax := USER_LOGIN_ATTEMPTS_MAX;
   FOnLoginAttemps := nil;
 end;
 
