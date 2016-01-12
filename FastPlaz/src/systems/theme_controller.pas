@@ -1552,6 +1552,9 @@ begin
   if tagstring_custom.Count = 0 then Begin ReplaceText := '[]'; Exit; End;
   tagname := tagstring_custom[0];
   case tagname of
+    'sitename' : begin
+      ReplaceText := AppData.sitename;
+      end;
     '$title' : begin
       ReplaceText := AppData.sitename;
       end;
@@ -1665,14 +1668,18 @@ begin
       end;
     'flashmessages' : begin
       s := FlashMessages;
-      str := Explode( s, '|');
-      ReplaceText := '<div id="flashmessages" class="'+tagstring_custom.Values['class']+'"><ul>';
-      for i:=0 to str.Count-1 do
+      ReplaceText := '';
+      if s <> '' then
       begin
-        ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>';
+        str := Explode( s, '|');
+        ReplaceText := '<div id="flashmessages" class="callout callout-warning '+tagstring_custom.Values['class']+'"><h4>Warning!</h4><ul>';
+        for i:=0 to str.Count-1 do
+        begin
+          ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>';
+        end;
+        ReplaceText:= ReplaceText + '</ul></div>';
+        FlashMessages:='';
       end;
-      ReplaceText:= ReplaceText + '</ul></div>';
-      FlashMessages:='';
       end;
     'recaptcha' : begin
       // usage: [recaptcha key="yourkey" version="v1"]
