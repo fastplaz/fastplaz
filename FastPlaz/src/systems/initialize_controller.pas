@@ -81,7 +81,7 @@ begin
 
   InitializeApp;
 
-  Tags['$maincontent'] := @Tag_MainContent_Handler;
+  Tags['maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
@@ -128,7 +128,7 @@ begin
     Add('</head>');
     Add('<body>');
     Add('[flashmessages]');
-    Add('[$maincontent]');
+    Add('[maincontent]');
     Add('</body>');
     Add('</html>');
     try

@@ -174,7 +174,7 @@ begin
     Add('procedure ' + ModulTypeName +
       '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('Begin');
-    Add('  Tags[''$maincontent''] := @Tag_MainContent_Handler; //<<-- tag $maincontent handler');
+    Add('  Tags[''maincontent''] := @Tag_MainContent_Handler; //<<-- tag maincontent handler');
     Add('  Response.Content := ThemeUtil.Render();');
     Add('  Handled := True;');
     Add('End;');

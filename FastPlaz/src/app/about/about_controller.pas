@@ -62,7 +62,7 @@ begin
 
   tags := ExplodeTags(TagString);
   case tags[0] of
-    '$maincontent':
+    'maincontent':
     begin
       ContributorInfo := TStringList.Create;
       a('<h1>About <a href="' + _APP_URL + '">' + _APP + '</a></h1>');
@@ -131,7 +131,7 @@ begin
 
       ReplaceText := ThemeUtil.RenderFromContent(@TagController, ContributorInfo.Text);
       FreeAndNil(ContributorInfo);
-    end; //-- $maincontent - end
+    end; //-- maincontent - end
   end;
 end;
 

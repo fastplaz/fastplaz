@@ -47,7 +47,7 @@ begin
 
   //==================================== YOUR CUSTOM CMS/FRAMEWORK - END ===
 
-  Tags['$maincontent'] := @Tag_MainContent_Handler;
+  Tags['maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render(nil, 'home'); // <<-- use home layout
   //Response.Content := ThemeUtil.Render(); <<-- use master layout
   Handled := True;
