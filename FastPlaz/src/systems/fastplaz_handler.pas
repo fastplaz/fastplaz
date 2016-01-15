@@ -363,7 +363,7 @@ begin
       ThemeUtil.Render(@ThemeUtil.TagDefault, Layout);
     Application.Response.Contents.Text :=
       ReplaceAll(Application.Response.Contents.Text,
-      [ThemeUtil.StartDelimiter + '$maincontent' + ThemeUtil.EndDelimiter],
+      [ThemeUtil.StartDelimiter + 'maincontent' + ThemeUtil.EndDelimiter],
       '<div class="box error">' + Message + '</div>');
   end
   else
@@ -555,6 +555,9 @@ function TMyCustomWebModule.GetIsValidCSRF: boolean;
 begin
   Result := False;
   if not isPost then
+    Exit;
+
+  if Session.IsExpired then
     Exit;
 
   if _POST['csrftoken'] = '' then

@@ -28,6 +28,7 @@ type
   TSessionController = class(TObject)
   private
     FIniFile: TMemInifile;
+    FLastAccess: TDateTime;
     FSessionTimeout: integer;
     FSessionStarted, FSessionTerminated, FCached: boolean;
     FSessionPrefix, FSessionSuffix, FSessionExtension, FHttpCookie,
@@ -36,6 +37,7 @@ type
     function GenerateSesionID: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
+    function GetInterval: Double;
     function GetIsExpired: boolean;
     function GetTimeOut: integer;
     function GetValue(variable: string): string;
@@ -52,7 +54,9 @@ type
     property SessionID: string read FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
     property TimeOut: integer read GetTimeOut write SetTimeOut;
+    property LastAccess: TDateTime read FLastAccess;
 
+    property Interval: Double read GetInterval;
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
@@ -156,17 +160,23 @@ begin
   end;
 end;
 
+function TSessionController.GetInterval: Double;
+begin
+  Result := (((Now - LastAccess) + TDateTimeEpsilon) * SecsPerDay);
+  if Result < 0 then
+    Result := 0;
+end;
+
+
 function TSessionController.GetIsExpired: boolean;
 var
-  L: TDateTime;
   T: integer;
 begin
   Result := False;
-  L := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
   T := FIniFile.ReadInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
   if T = 0 then
     Exit;
-  if ( (((Now - L) + TDateTimeEpsilon) * SecsPerDay) > T ) then
+  if ( Interval > T ) then
   begin
     Result := True;
     FIniFile.EraseSection(_SESSION_DATA);
@@ -270,6 +280,7 @@ var
   lstr: TStrings;
 begin
   inherited Create();
+  FLastAccess := 0;
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
   FHttpCookie := StringReplace(FHttpCookie, ' ', '', [rfReplaceAll]);
   //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
@@ -332,6 +343,8 @@ begin
     FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, now);
     FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, now);
   end;
+
+  FLastAccess := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
 
   // check if expired
   if GetIsExpired then

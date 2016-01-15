@@ -39,7 +39,7 @@ end;
 procedure TErrorinfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
-  Tags['$maincontent'] := @Tag_MainContent_Handler;
+  Tags['maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
