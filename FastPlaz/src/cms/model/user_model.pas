@@ -14,11 +14,13 @@ const
 
   USER_PRIMARY_KEY = 'uid';
   USER_FIELDNAME_ID = 'uid';
+  USER_FIELDNAME_NAME = 'name';
   USER_FIELDNAME_USERNAME = 'uname';
   USER_FIELDNAME_PASSWORD = 'pass';
   USER_FIELDNAME_EMAIL = 'email';
   USER_FIELDNAME_ACTIVATED = 'activated';
   USER_FIELDNAME_REGDATE = 'user_regdate';
+  USER_FIELDNAME_LASTLOGIN = 'lastlogin';
 
   {$include define_cms.inc}
 
