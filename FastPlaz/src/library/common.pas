@@ -72,6 +72,8 @@ function i2s(pI: integer): string;
 function s2i(s: string): integer;
 function f2s(n: extended): string;
 function s2f(s: string): extended;
+function b2s( b: boolean): string;
+function s2b( s: string): boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = ''; suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
@@ -161,6 +163,19 @@ begin
     TryStrToFloat(s, Result);
   except
   end;
+end;
+
+function b2s(b: boolean): string;
+begin
+  if b then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
+function s2b(s: string): boolean;
+begin
+  Result := StrToBool( s);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;

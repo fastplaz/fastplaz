@@ -27,6 +27,7 @@ type
     FOnLoginAttemps: TOnLoginAttemps;
     function GetFailedLoginCount: integer;
     function getLoggedInUserID: longint;
+    function GetUserInfo(FieldName: string): variant;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
@@ -34,6 +35,8 @@ type
     property LoginAttempsMax: integer read FLoginAttempsMax write FLoginAttempsMax;
     property OnLoginAttemps: TOnLoginAttemps read FOnLoginAttemps write FOnLoginAttemps;
     property FailedLoginCount: integer read GetFailedLoginCount;
+
+    property UserInfo[FieldName: string]: variant read GetUserInfo;
 
     function isLoggedIn: boolean;
     function Login(const UserEmail: string; const Password: string;
@@ -70,13 +73,18 @@ begin
     Result := s2i(uid);
 end;
 
+function TUsersUtil.GetUserInfo(FieldName: string): variant;
+begin
+  Result := _SESSION[FieldName];
+end;
+
 function TUsersUtil.GetFailedLoginCount: integer;
 begin
   try
     Result := _SESSION['failedlogin'];
     if SessionController.IsExpired then
     begin
-      SessionController.DeleteKey( 'failedlogin');
+      SessionController.DeleteKey('failedlogin');
     end;
   except
     Result := 0;
@@ -116,15 +124,15 @@ begin
   _SESSION['failedlogin'] := i;
   if FLoginAttempsMax > 0 then
   begin
-    if i > FLoginAttempsMax-1 then
+    if i > FLoginAttempsMax - 1 then
     begin
       if FOnLoginAttemps <> nil then
         FOnLoginAttemps(Self);
       Exit;
     end;
   end;
-  if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"'],
-    USER_FIELDNAME_ID + ' desc') then
+  if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"',
+    USER_FIELDNAME_ACTIVATED + '=1'], USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
     with TSecurityUtil.Create do
@@ -132,11 +140,20 @@ begin
       if CheckSaltedHash(Password, hashedData) then
       begin
         // save session
-        _SESSION['uid'] := Data[USER_FIELDNAME_ID];
+        i := Data[USER_FIELDNAME_ID];
+        _SESSION['uid'] := i;
+        _SESSION['name'] := Data[USER_FIELDNAME_NAME];
         _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
         _SESSION['email'] := Data[USER_FIELDNAME_EMAIL];
         _SESSION['rememberme'] := RememberMe;
         SessionController.DeleteKey('failedlogin');
+
+        // save last login
+        Value[USER_FIELDNAME_LASTLOGIN] := now;
+        if not Save(USER_FIELDNAME_ID + '=' + i2s(i)) then
+        begin
+
+        end;
         Result := True;
       end;
       Free;

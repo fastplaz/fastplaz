@@ -101,6 +101,7 @@ type
     function GetTablePrefix: string;
     function GetTag(const TagName: string): TTagCallback;
     function GetURI: string;
+    procedure SetFlashMessage(AValue: string);
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
@@ -127,6 +128,8 @@ type
     property isValidCSRF: boolean read GetIsValidCSRF;
     property isAjax: boolean read GetIsAjax;
 
+    property FlashMessages: string write SetFlashMessage;
+
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
     property SessionID: string read GetSessionID;
@@ -139,6 +142,7 @@ type
   TFastPlasAppandler = class(TComponent)
   private
     FIsDisplayError: boolean;
+    FLoadModule : TStringList;
     function GetURI: string;
   public
     constructor Create(AOwner: TComponent); override;
@@ -154,6 +158,10 @@ type
     function Tag_InternalContent_Handler(const TagName: string;
       Params: TStringList): string;
 
+    procedure AddLoadModule( const ModuleName: string; SkipStreaming: boolean = True);
+    function LoadModule( const ModuleName: string): boolean;
+    procedure RegisterModule(const ModuleName: string;
+      ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean = False);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -201,11 +209,12 @@ type
 
   TRoute = class
   private
+    procedure Add(const ModuleName: string; const PatternURL: string;
+      ModuleClass: TCustomHTTPModuleClass; Method: string = ''; LoadOnStart: boolean = False;
+      SkipStreaming: boolean = True);
   public
     procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-      Method: string = ''; SkipStreaming: boolean = True);
-    procedure Add(const ModuleName: string; const PatternURL: string; ModuleClass: TCustomHTTPModuleClass;
-      Method: string = ''; SkipStreaming: boolean = True);
+      Method: string = ''; LoadOnStart: boolean = False; SkipStreaming: boolean = True);
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
@@ -326,7 +335,8 @@ begin
     //SessionController.EndSession;
     //SessionController.StartSession;
   end;
-  SessionController.TimeOut := Config.GetValue(_SYSTEM_SESSION_TIMEOUT, 0);
+  SessionController.TimeOut :=
+    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
   ;
   //todo: auto clean-up session
   //-- session - end
@@ -335,7 +345,7 @@ begin
 
   AppData.isReady := True;
   {$ifdef DEBUG}
-  LogUtil.Add( 'initialize ok: ' + Application.Request.QueryString, 'init');
+  LogUtil.Add('--== initialize: ' + Application.Request.PathInfo, 'init');
   {$endif}
 end;
 
@@ -426,19 +436,21 @@ end;
 { TRoute }
 
 // SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
-procedure TRoute.Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
-  Method: string; SkipStreaming: boolean);
+procedure TRoute.Add(const ModuleName: string;
+  ModuleClass: TCustomHTTPModuleClass; Method: string; LoadOnStart: boolean;
+  SkipStreaming: boolean);
 var
   moduleNameReal: string;
 begin
-  moduleNameReal := CleanUrl( ModuleName);
-  moduleNameReal := ReplaceAll( moduleNameReal, ['_'], '');
-  moduleNameReal := ReplaceAll( moduleNameReal, ['-', '|'], '_');
-  Add( moduleNameReal, ModuleName, ModuleClass, Method, SkipStreaming);
+  moduleNameReal := CleanUrl(ModuleName);
+  moduleNameReal := ReplaceAll(moduleNameReal, ['_'], '');
+  moduleNameReal := ReplaceAll(moduleNameReal, ['-', '|'], '_');
+  Add(moduleNameReal, ModuleName, ModuleClass, Method, LoadOnStart, SkipStreaming);
 end;
 
 procedure TRoute.Add(const ModuleName: string; const PatternURL: string;
-  ModuleClass: TCustomHTTPModuleClass; Method: string; SkipStreaming: boolean);
+  ModuleClass: TCustomHTTPModuleClass; Method: string; LoadOnStart: boolean;
+  SkipStreaming: boolean);
 var
   i: integer;
   mi: TModuleItem;
@@ -450,12 +462,14 @@ begin
   if not Assigned(RouteRegexMap) then
     RouteRegexMap := TStringList.Create;
 
-  MethodMap.Values[ ModuleName] := Method;
-  RouteRegexMap.Values[ ModuleName] := PatternURL;
+  MethodMap.Values[ModuleName] := Method;
+  RouteRegexMap.Values[ModuleName] := PatternURL;
 
-  RegisterHTTPModule( ModuleName, ModuleClass, SkipStreaming);
+  //RegisterHTTPModule( ModuleName, ModuleClass, SkipStreaming);
+  FastPlasAppandler.RegisterModule(ModuleName, ModuleClass, SkipStreaming);
 
   //mi := ModuleFactory.FindModule( moduleName);
+  {
   i := ModuleFactory.IndexOfModule( ModuleName);
   if i <> -1 then
   begin
@@ -467,6 +481,15 @@ begin
       //--
     end;
   end;
+  }
+
+  if LoadOnStart then
+    FastPlasAppandler.AddLoadModule( ModuleName, SkipStreaming);
+
+  {$ifdef DEBUG}
+  //if AppData.debug then
+  //  LogUtil.Add('add: ' + ModuleName, 'route');
+  {$endif}
 
 end;
 
@@ -519,7 +542,8 @@ end;
 function TMyCustomWebModule.GetIsAjax: boolean;
 begin
   Result := False;
-  if (LowerCase( Application.EnvironmentVariable['HTTP_X_REQUESTED_WITH']) = 'xmlhttprequest') then
+  if (LowerCase(Application.EnvironmentVariable['HTTP_X_REQUESTED_WITH']) =
+    'xmlhttprequest') then
     Result := True;
 end;
 
@@ -563,7 +587,7 @@ begin
   if _POST['csrftoken'] = '' then
     Exit;
 
-  if _POST['csrftoken'] = _SESSION[ __HTML_CSRF_TOKEN_KEY] then
+  if _POST['csrftoken'] = _SESSION[__HTML_CSRF_TOKEN_KEY] then
     Result := True;
 
   HTMLUtil.ResetCSRF;
@@ -596,6 +620,11 @@ begin
   Result := FastPlasAppandler.URI;
 end;
 
+procedure TMyCustomWebModule.SetFlashMessage(AValue: string);
+begin
+  ThemeUtil.FlashMessages := AValue;
+end;
+
 procedure TMyCustomWebModule.SetTag(const TagName: string; AValue: TTagCallback);
 begin
   if AppData.themeEnable then
@@ -609,6 +638,10 @@ begin
   FisJSON := False;
   ActionVar := 'act';
   //_Initialize( self);
+  {$ifdef DEBUG}
+  if AppData.debug then
+    LogUtil.Add(ClassName + '.create()', 'init');
+  {$endif}
 end;
 
 destructor TMyCustomWebModule.Destroy;
@@ -624,13 +657,13 @@ begin
   methodDefault := MethodMap.Values[moduleName];
   {$ifdef DEBUG}
   if AppData.debug then
-    LogUtil.Add( 'handle request: mod=' + moduleName, 'init' );
+    LogUtil.Add('handle request: mod=' + moduleName, 'init');
   {$endif}
 
   // CSRF Security
   if isPost then
   begin
-    if not HTMLUtil.CheckCSRF( False) then
+    if not HTMLUtil.CheckCSRF(False) then
     begin
       //----
     end;
@@ -646,12 +679,12 @@ begin
     if Application.Request.Method = methodDefault then
     begin
       AppData.isReady := True;
-      inherited HandleRequest(ARequest, AResponse)
+      inherited HandleRequest(ARequest, AResponse);
     end
     else
     begin
       {$ifdef DEBUG}
-      LogUtil.Add( 'handle request: ' + __(__Err_Http_InvalidMethod), 'init' );
+      LogUtil.Add('handle request: ' + __(__Err_Http_InvalidMethod), 'init');
       {$endif}
       FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
@@ -774,6 +807,7 @@ end;
 
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
+  FLoadModule := TStringList.Create;
   inherited Create(AOwner);
   FIsDisplayError := False;
   Application.OnException := @ExceptionHandler;
@@ -785,6 +819,7 @@ begin
   begin
     FreeAndNil(ThemeUtil);
   end;
+  FreeAndNil( FLoadModule);
   inherited Destroy;
 end;
 
@@ -832,42 +867,42 @@ end;
 procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
-  s, pathInfo : string;
+  s, pathInfo: string;
   i, j: integer;
   reg: TRegExpr;
-  //  m  : TCustomHTTPModule;
-  //  mi : TModuleItem;
-  //  mc : TCustomHTTPModuleClass;
+  m  : TCustomHTTPModule;
+  mi : TModuleItem;
+  mc : TCustomHTTPModuleClass;
 begin
   InitializeFastPlaz(Sender);
   s := GetActiveModuleName(ARequest);
   if ModuleFactory.FindModule(S) = nil then
   begin
     pathInfo := ARequest.PathInfo;
-    pathInfo := ExcludeLeadingPathDelimiter( pathInfo);
+    pathInfo := ExcludeLeadingPathDelimiter(pathInfo);
 
-    // check with Regex
+    // check with Regex - redefine variable
     try
       reg := TRegExpr.Create;
-      for i:=0 to RouteRegexMap.Count-1 do
+      for i := 0 to RouteRegexMap.Count - 1 do
       begin
-        reg.Expression:= RouteRegexMap.ValueFromIndex[i];
-        if reg.Exec( pathInfo) then
+        reg.Expression := RouteRegexMap.ValueFromIndex[i];
+        if reg.Exec(pathInfo) then
         begin
           s := RouteRegexMap.Names[i];
           if ModuleFactory.FindModule(S) <> nil then
           begin
             ARequest.QueryFields.Values[Application.ModuleVariable] := s;
-            for j:=1 to reg.SubExprMatchCount do
+            for j := 1 to reg.SubExprMatchCount do
             begin
-              ARequest.QueryFields.Values[ '$'+i2s(j)] := reg.Match[ j];
+              ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
             end;
           end;
         end;
       end;
     except
-      on E : Exception do
-        die( 'OnGetModule: ' + E.Message);
+      on E: Exception do
+        die('OnGetModule: ' + E.Message);
     end;
     reg.Free;
 
@@ -892,11 +927,19 @@ begin
     ModuleClass:= mc;
     }
 
-  end
+  end //-- if ModuleFactory.FindModule(S) = nil
   else
   begin
-  end;
+  end; //-- if ModuleFactory.FindModule(S) = nil
 
+  // Load Module @startup
+  if FLoadModule.Count > 0 then
+  begin
+    for i:=0 to FLoadModule.Count-1 do
+    begin
+      LoadModule( FLoadModule.Names[i] );
+    end;
+  end;
 end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
@@ -910,6 +953,55 @@ function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
   Result := 'Tag_InternalContent_Handler';
+end;
+
+procedure TFastPlasAppandler.AddLoadModule(const ModuleName: string;
+  SkipStreaming: boolean);
+begin
+  FLoadModule.Values[ ModuleName] := b2s( SkipStreaming);
+end;
+
+function TFastPlasAppandler.LoadModule(const ModuleName: string): boolean;
+var
+  m  : TCustomHTTPModule;
+  mi : TModuleItem;
+  mc : TCustomHTTPModuleClass;
+  i : integer;
+begin
+  Result := False;
+  i := ModuleFactory.IndexOfModule( ModuleName);
+  if i <> -1 then
+  begin
+    mi := ModuleFactory[I];
+    mc := mi.ModuleClass;
+    m := FastPlasAppandler.FindModule(mc);
+    if m = nil then
+    begin
+      if assigned( mi) and mi.SkipStreaming then
+        M:=MC.CreateNew(Self)
+      else
+        M:=MC.Create(Self);
+      Result := True;
+    end;
+  end;
+end;
+
+procedure TFastPlasAppandler.RegisterModule(const ModuleName: string;
+  ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean);
+var
+  I: integer;
+  MI: TModuleItem;
+begin
+  I := ModuleFactory.IndexOfModule(ModuleName);
+  if (I = -1) then
+  begin
+    MI := ModuleFactory.Add as TModuleItem;
+    MI.ModuleName := ModuleName;
+  end
+  else
+    MI := ModuleFactory[I];
+  MI.ModuleClass := ModuleClass;
+  MI.SkipStreaming := SkipStreaming;
 end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
