@@ -442,6 +442,10 @@ procedure TRoute.Add(const ModuleName: string;
 var
   moduleNameReal: string;
 begin
+  if isRegex( ModuleName) then
+  begin
+    // next;
+  end;
   moduleNameReal := CleanUrl(ModuleName);
   moduleNameReal := ReplaceAll(moduleNameReal, ['_'], '');
   moduleNameReal := ReplaceAll(moduleNameReal, ['-', '|'], '_');
@@ -897,6 +901,7 @@ begin
             begin
               ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
             end;
+            Break;
           end;
         end;
       end;
