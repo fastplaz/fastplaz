@@ -1611,6 +1611,9 @@ begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText :=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
+    'referrer' : begin
+        ReplaceText := Application.Request.Referer;
+      end;
     'datetime' : begin
       if tagstring_custom.Values['format'] <> '' then
         ReplaceText := FormatDateTime(tagstring_custom.Values['format'], Now)
