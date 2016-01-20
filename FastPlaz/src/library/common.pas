@@ -77,6 +77,7 @@ function s2b( s: string): boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = ''; suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
+function isRegex( s:string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
@@ -259,6 +260,15 @@ begin
   end;
 
   Result := lst;
+end;
+
+// maybe is regex ?
+function isRegex(s: string): boolean;
+begin
+  Result := False;
+  if Pos( '?', s) <> 0 then Result := True;
+  if Pos( '^', s) <> 0 then Result := True;
+  if Pos( '$', s) <> 0 then Result := True;
 end;
 
 function EchoError(const Fmt: string; const Args: array of const): string;

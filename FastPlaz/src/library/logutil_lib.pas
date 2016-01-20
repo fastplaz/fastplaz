@@ -64,7 +64,7 @@ begin
       ForceDirectories(Dir);
   except
   end;
-  FileName := 'app.log';
+  FileName := 'app-'+FormatDateTime('YYYYMMDD', Now)+'.log';
   FullName := dir + '/' + FileName;
 end;
 
