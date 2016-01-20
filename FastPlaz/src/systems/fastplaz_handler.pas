@@ -79,6 +79,7 @@ type
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
+  TOnMenu = function( ARequest : TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -87,6 +88,7 @@ type
   private
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
+    FOnMenu: TOnMenu;
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
@@ -120,6 +122,7 @@ type
     property BaseURL: string read GetBaseURL;
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
+    property OnMenu: TOnMenu read FOnMenu write FOnMenu;
 
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
@@ -136,13 +139,39 @@ type
 
     property TablePrefix: string read GetTablePrefix;
   end;
+  TMyCustomWebModuleClass = Class of TMyCustomWebModule;
+
+  { TModuleLoadedItem }
+
+  TModuleLoadedItem = Class(TCollectionItem)
+  private
+    FModuleClass: TMyCustomWebModuleClass;
+    FModuleName: String;
+    FModuleStore: TMyCustomWebModule;
+    FSkipStreaming: Boolean;
+  Public
+    Property ModuleClass : TMyCustomWebModuleClass Read FModuleClass Write FModuleClass;
+    Property ModuleStore : TMyCustomWebModule read FModuleStore Write FModuleStore;
+    Property ModuleName : String Read FModuleName Write FModuleName;
+    Property SkipStreaming : Boolean Read FSkipStreaming Write FSkipStreaming;
+  end;
+
+  { TModuleLoaded }
+
+  TModuleLoaded = Class(TCollection)
+  private
+    function GetModule(Index : Integer): TModuleLoadedItem;
+    procedure SetModule(Index : Integer; AValue: TModuleLoadedItem);
+  Public
+    Property Modules [Index : Integer]: TModuleLoadedItem Read GetModule Write SetModule; default;
+    Function IndexOfModule(const AModuleName : String) : Integer;
+  end;
 
   { TFastPlasAppandler }
 
   TFastPlasAppandler = class(TComponent)
   private
     FIsDisplayError: boolean;
-    FLoadModule : TStringList;
     function GetURI: string;
   public
     constructor Create(AOwner: TComponent); override;
@@ -158,10 +187,10 @@ type
     function Tag_InternalContent_Handler(const TagName: string;
       Params: TStringList): string;
 
-    procedure AddLoadModule( const ModuleName: string; SkipStreaming: boolean = True);
-    function LoadModule( const ModuleName: string): boolean;
+    procedure AddLoadModule( const ModuleName: string; ModuleClass: TMyCustomWebModuleClass; SkipStreaming: boolean = True);
+    function LoadModule( const ModuleName: string): TMyCustomWebModule;
     procedure RegisterModule(const ModuleName: string;
-      ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean = False);
+      ModuleClass: TMyCustomWebModuleClass; LoadOnStart:boolean = True; SkipStreaming: boolean = False);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -210,10 +239,10 @@ type
   TRoute = class
   private
     procedure Add(const ModuleName: string; const PatternURL: string;
-      ModuleClass: TCustomHTTPModuleClass; Method: string = ''; LoadOnStart: boolean = False;
+      ModuleClass: TMyCustomWebModuleClass; Method: string = ''; LoadOnStart: boolean = False;
       SkipStreaming: boolean = True);
   public
-    procedure Add(const ModuleName: string; ModuleClass: TCustomHTTPModuleClass;
+    procedure Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleClass;
       Method: string = ''; LoadOnStart: boolean = False; SkipStreaming: boolean = True);
   end;
 
@@ -230,6 +259,7 @@ var
   Config: TMyConfig;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
+  ModuleLoaded : TModuleLoaded;
   ModUtil: TModUtil;
   Route: TRoute;
   _GET: TGET;
@@ -433,12 +463,30 @@ begin
   echo(prefix + html + suffic);
 end;
 
+{ TModuleLoaded }
+
+function TModuleLoaded.GetModule(Index : Integer): TModuleLoadedItem;
+begin
+  Result := TModuleLoadedItem(Items[Index]);
+end;
+
+procedure TModuleLoaded.SetModule(Index : Integer; AValue: TModuleLoadedItem);
+begin
+  Items[Index]:=AValue;
+end;
+
+function TModuleLoaded.IndexOfModule(const AModuleName: String): Integer;
+begin
+  Result:=Count-1;
+  While (Result>=0) and (CompareText(Modules[Result].ModuleName,AModuleName)<>0) do
+    Dec(Result);
+end;
+
 { TRoute }
 
 // SkipStreaming: True -> skip the streaming support - which means you don't require Lazarus!!!
-procedure TRoute.Add(const ModuleName: string;
-  ModuleClass: TCustomHTTPModuleClass; Method: string; LoadOnStart: boolean;
-  SkipStreaming: boolean);
+procedure TRoute.Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleClass;
+  Method: string; LoadOnStart: boolean; SkipStreaming: boolean);
 var
   moduleNameReal: string;
 begin
@@ -453,7 +501,7 @@ begin
 end;
 
 procedure TRoute.Add(const ModuleName: string; const PatternURL: string;
-  ModuleClass: TCustomHTTPModuleClass; Method: string; LoadOnStart: boolean;
+  ModuleClass: TMyCustomWebModuleClass; Method: string; LoadOnStart: boolean;
   SkipStreaming: boolean);
 var
   i: integer;
@@ -470,7 +518,7 @@ begin
   RouteRegexMap.Values[ModuleName] := PatternURL;
 
   //RegisterHTTPModule( ModuleName, ModuleClass, SkipStreaming);
-  FastPlasAppandler.RegisterModule(ModuleName, ModuleClass, SkipStreaming);
+  FastPlasAppandler.RegisterModule(ModuleName, ModuleClass, LoadOnStart, SkipStreaming);
 
   //mi := ModuleFactory.FindModule( moduleName);
   {
@@ -487,13 +535,8 @@ begin
   end;
   }
 
-  if LoadOnStart then
-    FastPlasAppandler.AddLoadModule( ModuleName, SkipStreaming);
-
-  {$ifdef DEBUG}
-  //if AppData.debug then
-  //  LogUtil.Add('add: ' + ModuleName, 'route');
-  {$endif}
+//  if LoadOnStart then
+//    FastPlasAppandler.AddLoadModule( ModuleName, TMyCustomWebModuleClass(ModuleClass), SkipStreaming);
 
 end;
 
@@ -641,6 +684,7 @@ begin
   FCreateSession := False;
   FisJSON := False;
   ActionVar := 'act';
+  FOnMenu := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
   if AppData.debug then
@@ -811,7 +855,6 @@ end;
 
 constructor TFastPlasAppandler.Create(AOwner: TComponent);
 begin
-  FLoadModule := TStringList.Create;
   inherited Create(AOwner);
   FIsDisplayError := False;
   Application.OnException := @ExceptionHandler;
@@ -823,7 +866,6 @@ begin
   begin
     FreeAndNil(ThemeUtil);
   end;
-  FreeAndNil( FLoadModule);
   inherited Destroy;
 end;
 
@@ -938,13 +980,14 @@ begin
   end; //-- if ModuleFactory.FindModule(S) = nil
 
   // Load Module @startup
-  if FLoadModule.Count > 0 then
+  if ModuleLoaded.Count > 0 then
   begin
-    for i:=0 to FLoadModule.Count-1 do
+    for i:=0 to ModuleLoaded.Count - 1 do
     begin
-      LoadModule( FLoadModule.Names[i] );
+      ModuleLoaded[i].ModuleStore := LoadModule( ModuleLoaded[i].ModuleName);
     end;
   end;
+
 end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
@@ -961,19 +1004,33 @@ begin
 end;
 
 procedure TFastPlasAppandler.AddLoadModule(const ModuleName: string;
-  SkipStreaming: boolean);
+  ModuleClass: TMyCustomWebModuleClass; SkipStreaming: boolean);
+var
+  i : integer;
+  mi : TModuleLoadedItem;
 begin
-  FLoadModule.Values[ ModuleName] := b2s( SkipStreaming);
+  i := ModuleLoaded.IndexOfModule( ModuleName);
+  if i = -1 then
+  begin
+    mi := ModuleLoaded.Add as TModuleLoadedItem;
+    mi.ModuleName := ModuleName;
+    mi.ModuleStore := nil;
+  end
+  else
+    mi := ModuleLoaded[i];
+
+  mi.SkipStreaming := SkipStreaming;
 end;
 
-function TFastPlasAppandler.LoadModule(const ModuleName: string): boolean;
+function TFastPlasAppandler.LoadModule(const ModuleName: string
+  ): TMyCustomWebModule;
 var
   m  : TCustomHTTPModule;
   mi : TModuleItem;
   mc : TCustomHTTPModuleClass;
   i : integer;
 begin
-  Result := False;
+  Result := nil;
   i := ModuleFactory.IndexOfModule( ModuleName);
   if i <> -1 then
   begin
@@ -986,16 +1043,18 @@ begin
         M:=MC.CreateNew(Self)
       else
         M:=MC.Create(Self);
-      Result := True;
+      Result := TMyCustomWebModule( M);
     end;
   end;
 end;
 
 procedure TFastPlasAppandler.RegisterModule(const ModuleName: string;
-  ModuleClass: TCustomHTTPModuleClass; SkipStreaming: boolean);
+  ModuleClass: TMyCustomWebModuleClass; LoadOnStart: boolean;
+  SkipStreaming: boolean);
 var
   I: integer;
   MI: TModuleItem;
+  mli : TModuleLoadedItem;
 begin
   I := ModuleFactory.IndexOfModule(ModuleName);
   if (I = -1) then
@@ -1007,6 +1066,13 @@ begin
     MI := ModuleFactory[I];
   MI.ModuleClass := ModuleClass;
   MI.SkipStreaming := SkipStreaming;
+
+  //FastPlasAppandler.AddLoadModule( ModuleName, TMyCustomWebModuleClass(ModuleClass), SkipStreaming);
+  if LoadOnStart then
+  begin
+    AddLoadModule( ModuleName, ModuleClass, SkipStreaming);
+  end; //-- LoadOnStart
+
 end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
@@ -1043,6 +1109,7 @@ initialization
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
+  ModuleLoaded := TModuleLoaded.Create( TModuleLoadedItem);
   Route := TRoute.Create;
   ModUtil := TModUtil.Create;
   _DebugInfo := TStringList.Create;
@@ -1062,6 +1129,7 @@ finalization
   FreeAndNil(_DebugInfo);
   FreeAndNil(ModUtil);
   FreeAndNil(Route);
+  FreeAndNil(ModuleLoaded);
   FreeAndNil(FastPlasAppandler);
   FreeAndNil(SessionController);
   {$IFDEF HEAPTRACE}

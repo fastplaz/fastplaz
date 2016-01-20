@@ -235,6 +235,6 @@ end;
 
 
 initialization
-  Route.Add('initialize', TInitializeModule);
+  Route.Add('initialize', TMyCustomWebModuleClass( TInitializeModule));
 
 end.
