@@ -689,7 +689,7 @@ begin
   FOnMenu := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
-  if AppData.debug then
+  if ((AppData.debug) and (AppData.debugLevel <= 1)) then
     LogUtil.Add(ClassName + '.create()', 'init');
   {$endif}
 end;
@@ -706,7 +706,7 @@ begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
   {$ifdef DEBUG}
-  if AppData.debug then
+  if ((AppData.debug) and (AppData.debugLevel <= 1)) then
     LogUtil.Add('handle request: mod=' + moduleName, 'init');
   {$endif}
 
