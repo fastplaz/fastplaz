@@ -29,6 +29,7 @@ const
   _SYSTEM_THEME_ENABLE = 'systems/theme_enable';
   _SYSTEM_THEME = 'systems/theme';
   _SYSTEM_DEBUG = 'systems/debug';
+  _SYSTEM_DEBUGLEVEL = 'systems/debug_level';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
   _SYSTEM_CACHE_TIME = 'systems/cache_time';
   _SYSTEM_CACHE_WRITE = 'systems/write';

@@ -72,6 +72,7 @@ type
     useDatabase,
     initialized,
     debug: boolean;
+    debugLevel: integer;
     isReady: boolean;
   end;
 
@@ -314,6 +315,7 @@ begin
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := string(Config.GetValue(_SYSTEM_THEME, 'default'));
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
+  AppData.debugLevel := Config.GetValue(_SYSTEM_DEBUGLEVEL, 0);
   AppData.cacheType := string(Config.GetValue(_SYSTEM_CACHE_TYPE, 'file'));
   AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
