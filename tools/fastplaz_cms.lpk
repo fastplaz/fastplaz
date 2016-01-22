@@ -12,7 +12,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="FastPlaz Library for CMS/Application"/>
-    <Files Count="14">
+    <Files Count="15">
       <Item1>
         <Filename Value="../FastPlaz/define.inc"/>
         <Type Value="Include"/>
@@ -22,53 +22,57 @@
         <UnitName Value="admin_controller"/>
       </Item2>
       <Item3>
-        <Filename Value="../FastPlaz/src/cms/controller/systeminfo_controller.pas"/>
-        <UnitName Value="systeminfo_controller"/>
+        <Filename Value="../FastPlaz/src/cms/controller/search_controller.pas"/>
+        <UnitName Value="search_controller"/>
       </Item3>
       <Item4>
-        <Filename Value="../FastPlaz/src/cms/controller/user_controller.pas"/>
-        <UnitName Value="user_controller"/>
+        <Filename Value="../FastPlaz/src/cms/controller/systeminfo_controller.pas"/>
+        <UnitName Value="systeminfo_controller"/>
       </Item4>
       <Item5>
-        <Filename Value="../FastPlaz/src/cms/controller/useradmin_controller.pas"/>
-        <UnitName Value="useradmin_controller"/>
+        <Filename Value="../FastPlaz/src/cms/controller/user_controller.pas"/>
+        <UnitName Value="user_controller"/>
       </Item5>
       <Item6>
-        <Filename Value="../FastPlaz/src/cms/model/group_model.pas"/>
-        <UnitName Value="group_model"/>
+        <Filename Value="../FastPlaz/src/cms/controller/useradmin_controller.pas"/>
+        <UnitName Value="useradmin_controller"/>
       </Item6>
       <Item7>
-        <Filename Value="../FastPlaz/src/cms/model/groupmembership_model.pas"/>
-        <UnitName Value="groupmembership_model"/>
+        <Filename Value="../FastPlaz/src/cms/model/group_model.pas"/>
+        <UnitName Value="group_model"/>
       </Item7>
       <Item8>
-        <Filename Value="../FastPlaz/src/cms/model/grouppermission_model.pas"/>
-        <UnitName Value="grouppermission_model"/>
+        <Filename Value="../FastPlaz/src/cms/model/groupmembership_model.pas"/>
+        <UnitName Value="groupmembership_model"/>
       </Item8>
       <Item9>
-        <Filename Value="../FastPlaz/src/cms/model/user_model.pas"/>
-        <UnitName Value="user_model"/>
+        <Filename Value="../FastPlaz/src/cms/model/grouppermission_model.pas"/>
+        <UnitName Value="grouppermission_model"/>
       </Item9>
       <Item10>
-        <Filename Value="../FastPlaz/src/cms/util/group_util.pas"/>
-        <UnitName Value="group_util"/>
+        <Filename Value="../FastPlaz/src/cms/model/user_model.pas"/>
+        <UnitName Value="user_model"/>
       </Item10>
       <Item11>
-        <Filename Value="../FastPlaz/src/cms/util/permission_util.pas"/>
-        <UnitName Value="permission_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/group_util.pas"/>
+        <UnitName Value="group_util"/>
       </Item11>
       <Item12>
-        <Filename Value="../FastPlaz/src/cms/util/security_util.pas"/>
-        <UnitName Value="security_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/permission_util.pas"/>
+        <UnitName Value="permission_util"/>
       </Item12>
       <Item13>
-        <Filename Value="../FastPlaz/src/cms/util/user_util.pas"/>
-        <UnitName Value="user_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/security_util.pas"/>
+        <UnitName Value="security_util"/>
       </Item13>
       <Item14>
+        <Filename Value="../FastPlaz/src/cms/util/user_util.pas"/>
+        <UnitName Value="user_util"/>
+      </Item14>
+      <Item15>
         <Filename Value="../FastPlaz/src/vendor/dcrypt/hash_tools.pas"/>
         <UnitName Value="hash_tools"/>
-      </Item14>
+      </Item15>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

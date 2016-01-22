@@ -80,7 +80,8 @@ type
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
-  TOnMenu = function( ARequest : TRequest): string of object;
+  TOnMenu = function( RequestHeader : TRequest): string of object;
+  TOnSearch = function( Keyword: string; RequestHeader : TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -90,6 +91,7 @@ type
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
+    FOnSearch: TOnSearch;
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
@@ -124,6 +126,7 @@ type
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
     property OnMenu: TOnMenu read FOnMenu write FOnMenu;
+    property OnSearch: TOnSearch read FOnSearch write FOnSearch;
 
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
@@ -687,6 +690,7 @@ begin
   FisJSON := False;
   ActionVar := 'act';
   FOnMenu := nil;
+  FOnSearch := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
@@ -882,8 +886,9 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
   end;
 
 var
-  S: string;
+  S, pathInfo: string;
   I: integer;
+  reg : TRegExpr;
 begin
   Result := ARequest.QueryFields.Values[Application.ModuleVariable];
   if (Result = '') then
@@ -996,7 +1001,7 @@ procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
   //Application.ShowException(E);
   //Application.Terminate;
-  LogUtil.Add(E.Message, Sender.ClassName);
+  LogUtil.Add( Sender.ClassName + ': ' + E.Message, 'exceptipn');
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
