@@ -472,9 +472,19 @@ begin
             item_array.add( Data.FieldByName(field_name).AsString);
         end
         else
-        begin
-          item.Add(field_name, Data.FieldByName(field_name).AsString);
-        end;
+        begin // with fieldname
+
+          if Data.FieldDefs.Items[j].DataType = ftDateTime then
+          begin
+            if (Data.FieldByName(field_name).AsDateTime) = 0 then
+              item.add( field_name, '')
+            else
+              item.add( field_name, FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
+          end
+          else
+            item.Add(field_name, Data.FieldByName(field_name).AsString);
+
+        end;//-- if nofieldname
       end;
       if NoFieldName then
         ResultJSON.Add( item_array)

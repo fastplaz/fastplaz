@@ -7,7 +7,7 @@ interface
 
 uses
   //SynExportHTML,
-  fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
+  fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient,
   //fphttpclient_with_ssl,
   RegExpr,
@@ -68,6 +68,15 @@ const
 type
   TStringArray = array of string;
 
+  { TLocalJSONParser }
+
+  TLocalJSONParser = class(TJSONParser)
+  private
+    FScanner: TJSONScanner;
+  public
+    property Scanner: TJSONScanner read FScanner;
+  end;
+
 
 function i2s(pI: integer): string;
 function s2i(s: string): integer;
@@ -92,6 +101,8 @@ function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
+function JsonFormatter( JsonString:string):string;
+function IsJsonValid( JsonString:string):boolean;
 function HexToInt(HexStr: string): int64;
 
 function RandomString(PLen: integer; PrefixString: string = ''): string;
@@ -538,6 +549,43 @@ begin
   end;
   if DOEOLN then
     echo(#13#10);
+end;
+
+function JsonFormatter(JsonString: string): string;
+// error line : VJSONParser.Scanner.CurRow;
+var
+  VJSONData: TJSONData = nil;
+  VJSONParser: TLocalJSONParser;
+begin
+  Result := '';
+  JsonString := trim( JsonString);
+  if JsonString = '' then
+    Exit;
+
+  VJSONParser := TLocalJSONParser.Create( JsonString);
+  try
+    try
+      VJSONParser.Strict := True;
+      VJSONData := VJSONParser.Parse;
+      Result := VJSONData.FormatJSON([], 2);;
+      VJSONData.Free;
+    except
+      on E : Exception do
+      begin
+      end;
+    end;
+  finally
+    VJSONParser.Free;
+  end;
+
+end;
+
+function IsJsonValid(JsonString: string): boolean;
+begin
+  if JsonFormatter( JsonString) = '' then
+    Result := False
+  else
+    Result := True;
 end;
 
 function HexToInt(HexStr: string): int64;
