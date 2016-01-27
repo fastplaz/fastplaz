@@ -18,6 +18,7 @@ type
 
   TPermissionUtil = class(TGroupPermissionModel)
   private
+    function getLoggedInUserID: longint;
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
@@ -34,6 +35,23 @@ uses
 
 
 { TPermissionUtil }
+
+function TPermissionUtil.getLoggedInUserID: longint;
+var
+  uid: string;
+begin
+  Result := 0;
+  if SessionController.IsTerminated then
+    Exit;
+  if SessionController.IsExpired then
+  begin
+    Exit;
+  end;
+
+  uid := _SESSION['uid'];
+  if uid <> '' then  //-- simple check
+    Result := s2i(uid);
+end;
 
 constructor TPermissionUtil.Create(const DefaultTableName: string);
 begin
@@ -52,9 +70,7 @@ begin
   Result := False;
   if UserID = 0 then
   begin
-    // next: get default userid from session
-
-    Exit;
+    UserID:= getLoggedInUserID;
   end;
 
   Result := (getSecurityLevel(UserID, Component, Instance) >= Level);

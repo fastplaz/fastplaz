@@ -5,7 +5,7 @@ unit user_util;
 interface
 
 uses
-  security_util, user_model,
+  security_util, user_model, fpjson,
   fpcgi, common, Math, Classes, SysUtils;
 
 const
@@ -39,6 +39,7 @@ type
     property UserInfo[FieldName: string]: variant read GetUserInfo;
 
     function isLoggedIn: boolean;
+    function isHaveAdmin: boolean;
     function Login(const UserEmail: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
@@ -46,6 +47,9 @@ type
     function checkPermission(Component: string = ''; Instance: string = '';
       Level: integer = ACCESS_NONE): boolean;
 
+    // menu util
+    function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
+      IsAjax: boolean = False): TJSONObject;
   end;
 
 implementation
@@ -110,6 +114,13 @@ begin
   Result := False;
   if getLoggedInUserID > 0 then
     Result := True;
+end;
+
+function TUsersUtil.isHaveAdmin: boolean;
+begin
+  // prepare for next feature
+
+  Result := True;
 end;
 
 function TUsersUtil.Login(const UserEmail: string; const Password: string;
@@ -186,6 +197,23 @@ begin
     Free;
   end;
 
+end;
+
+function TUsersUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
+  IsAjax: boolean): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if RgihtLabel <> '' then
+    o.Add('right-label', RgihtLabel);
+  if IsAjax then
+    o.Add( 'ajax', '1');
+
+  Result := o;
 end;
 
 end.

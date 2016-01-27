@@ -78,6 +78,13 @@ begin
   if (UserName = '') or (Email = '') then
     Exit;
 
+  //if user exists
+  if FindFirst([USER_FIELDNAME_USERNAME + '="' + UserName + '" OR ' + USER_FIELDNAME_EMAIL + '="'+Email+'"'],
+    USER_FIELDNAME_ID + ' desc') then
+  begin
+    Exit;
+  end;
+
   if Password = '' then
     saltedHash := FSecUtil.GenerateSaltedHash(FSecUtil.GeneratePassword)
   else

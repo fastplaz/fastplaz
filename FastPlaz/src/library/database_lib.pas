@@ -102,10 +102,10 @@ type
 procedure DataBaseInit( const RedirecURL:string = '');
 
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
-function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExec( SQL: string):boolean;
-function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
+function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName : boolean = True):boolean;
 
 implementation
 
@@ -272,7 +272,8 @@ begin
   FreeAndNil(q);
 end;
 
-function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
+  NoFieldName: boolean): boolean;
 var
   q : TSQLQuery;
   data : TJSONArray;
@@ -286,7 +287,7 @@ begin
   try
     q.Open;
     data := TJSONArray.Create();
-    DataToJSON( q, data);
+    DataToJSON( q, data, NoFieldName);
     //ResultJSON.Add( 'count', q.RowsAffected);
     ResultJSON.Add( 'count', data.Count);
     ResultJSON.Add( 'data', data);
@@ -440,9 +441,11 @@ begin
   FreeAndNil(q);
 end;
 
-function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray): boolean;
+function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray;
+  NoFieldName: boolean): boolean;
 var
   item : TJSONObject;
+  item_array : TJSONArray;
   field_name : string;
   i,j:integer;
 begin
@@ -452,12 +455,31 @@ begin
     while not Data.EOF do
     begin
       item := TJSONObject.Create();
+      item_array := TJSONArray.Create;
       for j:=0 to Data.FieldCount-1 do
       begin
         field_name:= Data.FieldDefs.Items[j].Name;
-        item.Add(field_name, Data.FieldByName(field_name).AsString);
+        if NoFieldName then
+        begin
+          if Data.FieldDefs.Items[j].DataType = ftDateTime then
+          begin
+            if (Data.FieldByName(field_name).AsDateTime) = 0 then
+              item_array.add( '')
+            else
+              item_array.add( FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
+          end
+          else
+            item_array.add( Data.FieldByName(field_name).AsString);
+        end
+        else
+        begin
+          item.Add(field_name, Data.FieldByName(field_name).AsString);
+        end;
       end;
-      ResultJSON.Add( item);
+      if NoFieldName then
+        ResultJSON.Add( item_array)
+      else
+        ResultJSON.Add( item);
       i:=i+1;
       Data.Next;
     end;
