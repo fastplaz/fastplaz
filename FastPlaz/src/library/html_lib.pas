@@ -6,7 +6,7 @@ interface
 
 uses
   common,
-  strutils,
+  strutils, fpjson,
   Classes, SysUtils;
 
 const
@@ -53,6 +53,9 @@ type
     function ReCaptcha(const PublicKey: string; const Version: string = 'v1'): string;
     function Permalink(Title: string): string;
     function CleanURL(Title: string): string;
+
+    function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
   end;
 
 function H1(Content: string; StyleClass: string = ''): string;
@@ -377,6 +380,25 @@ end;
 function THTMLUtil.CleanURL(Title: string): string;
 begin
   Result := CleanUrl(Title);
+end;
+
+function THTMLUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if RgihtLabel <> '' then
+    o.Add('right-label', RgihtLabel);
+  if IsAjax then
+    o.Add( 'ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add( 'rel', AjaxTarget);
+
+  Result := o;
 end;
 
 initialization

@@ -1675,7 +1675,7 @@ begin
       if s <> '' then
       begin
         str := Explode( s, '|');
-        ReplaceText := '<div id="flashmessages" class="callout callout-warning '+tagstring_custom.Values['class']+'"><h4>Warning!</h4><ul>';
+        ReplaceText := '<div id="flashmessages" class="alert alert-warning alert-dismissable '+tagstring_custom.Values['class']+'"><h4><i class="icon fa fa-ban"></i> Warning!</h4><ul>';
         for i:=0 to str.Count-1 do
         begin
           ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>';

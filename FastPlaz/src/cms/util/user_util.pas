@@ -5,7 +5,7 @@ unit user_util;
 interface
 
 uses
-  security_util, user_model,
+  security_util, user_model, fpjson,
   fpcgi, common, Math, Classes, SysUtils;
 
 const
@@ -27,6 +27,7 @@ type
     FOnLoginAttemps: TOnLoginAttemps;
     function GetFailedLoginCount: integer;
     function getLoggedInUserID: longint;
+    function GetPendingCount: integer;
     function GetUserInfo(FieldName: string): variant;
   public
     constructor Create(const DefaultTableName: string = '');
@@ -35,10 +36,12 @@ type
     property LoginAttempsMax: integer read FLoginAttempsMax write FLoginAttempsMax;
     property OnLoginAttemps: TOnLoginAttemps read FOnLoginAttemps write FOnLoginAttemps;
     property FailedLoginCount: integer read GetFailedLoginCount;
+    property PendingCount: integer read GetPendingCount;
 
     property UserInfo[FieldName: string]: variant read GetUserInfo;
 
     function isLoggedIn: boolean;
+    function isHaveAdmin: boolean;
     function Login(const UserEmail: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
@@ -46,6 +49,9 @@ type
     function checkPermission(Component: string = ''; Instance: string = '';
       Level: integer = ACCESS_NONE): boolean;
 
+    // menu util
+    function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
   end;
 
 implementation
@@ -71,6 +77,13 @@ begin
   uid := _SESSION['uid'];
   if uid <> '' then  //-- simple check
     Result := s2i(uid);
+end;
+
+function TUsersUtil.GetPendingCount: integer;
+begin
+  Result := 0;
+  if Find( ['isnull( activated)']) then
+    Result := RecordCount;
 end;
 
 function TUsersUtil.GetUserInfo(FieldName: string): variant;
@@ -110,6 +123,13 @@ begin
   Result := False;
   if getLoggedInUserID > 0 then
     Result := True;
+end;
+
+function TUsersUtil.isHaveAdmin: boolean;
+begin
+  // prepare for next feature
+
+  Result := True;
 end;
 
 function TUsersUtil.Login(const UserEmail: string; const Password: string;
@@ -186,6 +206,25 @@ begin
     Free;
   end;
 
+end;
+
+function TUsersUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if RgihtLabel <> '' then
+    o.Add('right-label', RgihtLabel);
+  if IsAjax then
+    o.Add( 'ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add( 'rel', AjaxTarget);
+
+  Result := o;
 end;
 
 end.

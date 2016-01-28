@@ -72,6 +72,7 @@ type
     useDatabase,
     initialized,
     debug: boolean;
+    debugLevel: integer;
     isReady: boolean;
   end;
 
@@ -79,7 +80,8 @@ type
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
-  TOnMenu = function( ARequest : TRequest): string of object;
+  TOnMenu = function( RequestHeader : TRequest): string of object;
+  TOnSearch = function( Keyword: string; RequestHeader : TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -89,9 +91,11 @@ type
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
+    FOnSearch: TOnSearch;
 
     function GetBaseURL: string;
     function GetEnvirontment(const KeyName: string): string;
+    function GetIsActive: boolean;
     function GetIsAjax: boolean;
     function GetIsDelete: boolean;
     function GetIsGet: boolean;
@@ -107,6 +111,7 @@ type
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
+    RouteRegex : String;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -123,7 +128,9 @@ type
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
     property OnMenu: TOnMenu read FOnMenu write FOnMenu;
+    property OnSearch: TOnSearch read FOnSearch write FOnSearch;
 
+    property isActive: boolean read GetIsActive;
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
     property isPut: boolean read GetIsPut;
@@ -314,6 +321,7 @@ begin
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := string(Config.GetValue(_SYSTEM_THEME, 'default'));
   AppData.debug := Config.GetValue(_SYSTEM_DEBUG, False);
+  AppData.debugLevel := Config.GetValue(_SYSTEM_DEBUGLEVEL, 0);
   AppData.cacheType := string(Config.GetValue(_SYSTEM_CACHE_TYPE, 'file'));
   AppData.cacheWrite := Config.GetValue(_SYSTEM_CACHE_WRITE, True);
 
@@ -586,6 +594,18 @@ begin
   Result := Application.EnvironmentVariable[KeyName];
 end;
 
+function TMyCustomWebModule.GetIsActive: boolean;
+var
+  i : integer;
+begin
+  Result := False;
+  i := ModuleFactory.IndexOfModule( FastPlasAppandler.GetActiveModuleName( Application.Request));
+  if i = -1 then
+    Exit;
+  if ClassName = ModuleFactory[i].ModuleClass.ClassName then
+    Result := True;
+end;
+
 function TMyCustomWebModule.GetIsAjax: boolean;
 begin
   Result := False;
@@ -685,9 +705,10 @@ begin
   FisJSON := False;
   ActionVar := 'act';
   FOnMenu := nil;
+  FOnSearch := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
-  if AppData.debug then
+  if ((AppData.debug) and (AppData.debugLevel <= 1)) then
     LogUtil.Add(ClassName + '.create()', 'init');
   {$endif}
 end;
@@ -704,7 +725,7 @@ begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
   methodDefault := MethodMap.Values[moduleName];
   {$ifdef DEBUG}
-  if AppData.debug then
+  if ((AppData.debug) and (AppData.debugLevel <= 1)) then
     LogUtil.Add('handle request: mod=' + moduleName, 'init');
   {$endif}
 
@@ -732,7 +753,8 @@ begin
     else
     begin
       {$ifdef DEBUG}
-      LogUtil.Add('handle request: ' + __(__Err_Http_InvalidMethod), 'init');
+      if ((AppData.debug) and (AppData.debugLevel <= 1)) then
+        LogUtil.Add('handle request: ' + __(__Err_Http_InvalidMethod), 'init');
       {$endif}
       FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
@@ -880,12 +902,53 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
   end;
 
 var
-  S: string;
+  S, pathInfo: string;
   I: integer;
+  reg : TRegExpr;
 begin
+{
   Result := ARequest.QueryFields.Values[Application.ModuleVariable];
   if (Result = '') then
   begin
+    try
+      pathInfo := ARequest.PathInfo;
+      pathInfo := ExcludeLeadingPathDelimiter(pathInfo);
+      reg := TRegExpr.Create;
+      for i := 0 to RouteRegexMap.Count - 1 do
+      begin
+        reg.Expression := RouteRegexMap.ValueFromIndex[i];
+        if reg.Exec(pathInfo) then
+        begin
+          s := RouteRegexMap.Names[i];
+          if ModuleFactory.FindModule(S) <> nil then
+          begin
+            Result := s;
+            Break;
+          end;
+        end;
+      end;
+    except
+      on E: Exception do
+        die('OnGetModule: ' + E.Message);
+    end;
+  end;
+  reg.Free;
+  if (Result = '') then
+  begin
+    //if not Application.AllowDefaultModule then
+      raise EFPWebError.Create(__(__ErrNoModuleNameForRequest));
+    //Result := GetDefaultModuleName;
+  end;
+  pr( Result);
+  die('zzzz');
+  Exit;
+}
+
+  //--- OLD STYLE
+  Result := ARequest.QueryFields.Values[Application.ModuleVariable];
+  if (Result = '') then
+  begin
+    {
     S := ARequest.PathInfo;
     if (Length(S) > 0) and (S[1] = '/') then
       Delete(S, 1, 1);                      //Delete the leading '/' if exists
@@ -899,6 +962,10 @@ begin
     begin
       s := Copy(s, 1, i - 1);
     end;
+    }
+
+    S := ARequest.PathInfo;
+    s := ExcludeLeadingPathDelimiter(s);
     Result := S;
   end;
   if (Result = '') then
@@ -942,6 +1009,8 @@ begin
             for j := 1 to reg.SubExprMatchCount do
             begin
               ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
+              if j = 3 then
+                ARequest.QueryFields.Values['act'] := reg.Match[j];
             end;
             Break;
           end;
@@ -994,7 +1063,7 @@ procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
   //Application.ShowException(E);
   //Application.Terminate;
-  LogUtil.Add(E.Message, Sender.ClassName);
+  LogUtil.Add( Sender.ClassName + ': ' + E.Message, 'exception');
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
@@ -1043,6 +1112,7 @@ begin
         M:=MC.CreateNew(Self)
       else
         M:=MC.Create(Self);
+      M.Name := ModuleName;
       Result := TMyCustomWebModule( M);
     end;
   end;
@@ -1067,7 +1137,6 @@ begin
   MI.ModuleClass := ModuleClass;
   MI.SkipStreaming := SkipStreaming;
 
-  //FastPlasAppandler.AddLoadModule( ModuleName, TMyCustomWebModuleClass(ModuleClass), SkipStreaming);
   if LoadOnStart then
   begin
     AddLoadModule( ModuleName, ModuleClass, SkipStreaming);
