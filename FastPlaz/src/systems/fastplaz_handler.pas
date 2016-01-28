@@ -1009,6 +1009,8 @@ begin
             for j := 1 to reg.SubExprMatchCount do
             begin
               ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
+              if j = 3 then
+                ARequest.QueryFields.Values['act'] := reg.Match[j];
             end;
             Break;
           end;

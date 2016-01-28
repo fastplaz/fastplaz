@@ -27,6 +27,7 @@ type
     FOnLoginAttemps: TOnLoginAttemps;
     function GetFailedLoginCount: integer;
     function getLoggedInUserID: longint;
+    function GetPendingCount: integer;
     function GetUserInfo(FieldName: string): variant;
   public
     constructor Create(const DefaultTableName: string = '');
@@ -35,6 +36,7 @@ type
     property LoginAttempsMax: integer read FLoginAttempsMax write FLoginAttempsMax;
     property OnLoginAttemps: TOnLoginAttemps read FOnLoginAttemps write FOnLoginAttemps;
     property FailedLoginCount: integer read GetFailedLoginCount;
+    property PendingCount: integer read GetPendingCount;
 
     property UserInfo[FieldName: string]: variant read GetUserInfo;
 
@@ -49,7 +51,7 @@ type
 
     // menu util
     function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
-      IsAjax: boolean = False): TJSONObject;
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
   end;
 
 implementation
@@ -75,6 +77,13 @@ begin
   uid := _SESSION['uid'];
   if uid <> '' then  //-- simple check
     Result := s2i(uid);
+end;
+
+function TUsersUtil.GetPendingCount: integer;
+begin
+  Result := 0;
+  if Find( ['isnull( activated)']) then
+    Result := RecordCount;
 end;
 
 function TUsersUtil.GetUserInfo(FieldName: string): variant;
@@ -200,7 +209,7 @@ begin
 end;
 
 function TUsersUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
-  IsAjax: boolean): TJSONObject;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
 var
   o: TJSONObject;
 begin
@@ -212,6 +221,8 @@ begin
     o.Add('right-label', RgihtLabel);
   if IsAjax then
     o.Add( 'ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add( 'rel', AjaxTarget);
 
   Result := o;
 end;
