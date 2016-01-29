@@ -80,8 +80,10 @@ type
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
+
   TOnMenu = function( RequestHeader : TRequest): string of object;
   TOnSearch = function( Keyword: string; RequestHeader : TRequest): string of object;
+  TOnNotification = function( NotifType: string; RequestHeader : TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -91,6 +93,7 @@ type
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
+    FOnNotification: TOnNotification;
     FOnSearch: TOnSearch;
 
     function GetBaseURL: string;
@@ -127,8 +130,10 @@ type
     property BaseURL: string read GetBaseURL;
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
+
     property OnMenu: TOnMenu read FOnMenu write FOnMenu;
     property OnSearch: TOnSearch read FOnSearch write FOnSearch;
+    property OnNotification: TOnNotification read FOnNotification write FOnNotification;
 
     property isActive: boolean read GetIsActive;
     property isPost: boolean read GetIsPost;
@@ -706,6 +711,7 @@ begin
   ActionVar := 'act';
   FOnMenu := nil;
   FOnSearch := nil;
+  FOnNotification := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
