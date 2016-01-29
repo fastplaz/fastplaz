@@ -12,6 +12,7 @@ const
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
 
+  USER_TABLE_NAME = 'users';
   USER_PRIMARY_KEY = 'uid';
   USER_FIELDNAME_ID = 'uid';
   USER_FIELDNAME_NAME = 'name';
@@ -57,7 +58,7 @@ uses
 
 constructor TUserModel.Create(const DefaultTableName: string = '');
 begin
-  inherited Create(DefaultTableName); // table name = users
+  inherited Create( USER_TABLE_NAME); // table name = users
   FSecUtil := TSecurityUtil.Create;
   primaryKey := USER_PRIMARY_KEY;
 end;

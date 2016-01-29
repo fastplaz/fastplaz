@@ -19,9 +19,9 @@ type
 
   TOnLoginAttemps = procedure(Sender: TObject) of object;
 
-  { TUsersUtil }
+  { TUserUtil }
 
-  TUsersUtil = class(TUserModel)
+  TUserUtil = class(TUserModel)
   private
     FLoginAttempsMax: integer;
     FOnLoginAttemps: TOnLoginAttemps;
@@ -59,9 +59,9 @@ implementation
 uses
   fastplaz_handler, group_util, permission_util;
 
-{ TUsersUtil }
+{ TUserUtil }
 
-function TUsersUtil.getLoggedInUserID: longint;
+function TUserUtil.getLoggedInUserID: longint;
 var
   uid: string;
 begin
@@ -79,19 +79,19 @@ begin
     Result := s2i(uid);
 end;
 
-function TUsersUtil.GetPendingCount: integer;
+function TUserUtil.GetPendingCount: integer;
 begin
   Result := 0;
   if Find( ['isnull( activated)']) then
     Result := RecordCount;
 end;
 
-function TUsersUtil.GetUserInfo(FieldName: string): variant;
+function TUserUtil.GetUserInfo(FieldName: string): variant;
 begin
   Result := _SESSION[FieldName];
 end;
 
-function TUsersUtil.GetFailedLoginCount: integer;
+function TUserUtil.GetFailedLoginCount: integer;
 begin
   try
     Result := _SESSION['failedlogin'];
@@ -104,19 +104,19 @@ begin
   end;
 end;
 
-constructor TUsersUtil.Create(const DefaultTableName: string);
+constructor TUserUtil.Create(const DefaultTableName: string);
 begin
-  inherited Create;
+  inherited Create( DefaultTableName);
   FLoginAttempsMax := USER_LOGIN_ATTEMPTS_MAX;
   FOnLoginAttemps := nil;
 end;
 
-destructor TUsersUtil.Destroy;
+destructor TUserUtil.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TUsersUtil.isLoggedIn: boolean;
+function TUserUtil.isLoggedIn: boolean;
 var
   uid: string;
 begin
@@ -125,14 +125,14 @@ begin
     Result := True;
 end;
 
-function TUsersUtil.isHaveAdmin: boolean;
+function TUserUtil.isHaveAdmin: boolean;
 begin
   // prepare for next feature
 
   Result := True;
 end;
 
-function TUsersUtil.Login(const UserEmail: string; const Password: string;
+function TUserUtil.Login(const UserEmail: string; const Password: string;
   RememberMe: boolean): boolean;
 var
   hashedData: string;
@@ -181,7 +181,7 @@ begin
   end;//--- findFirst
 end;
 
-function TUsersUtil.Logout: boolean;
+function TUserUtil.Logout: boolean;
 begin
   try
     SessionController.EndSession(True);
@@ -190,7 +190,7 @@ begin
   Result := True;
 end;
 
-function TUsersUtil.checkPermission(Component: string; Instance: string;
+function TUserUtil.checkPermission(Component: string; Instance: string;
   Level: integer): boolean;
 begin
   Result := False;
@@ -208,7 +208,7 @@ begin
 
 end;
 
-function TUsersUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
+function TUserUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
   IsAjax: boolean; AjaxTarget: string): TJSONObject;
 var
   o: TJSONObject;
