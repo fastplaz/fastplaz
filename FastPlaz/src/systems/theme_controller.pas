@@ -1665,6 +1665,9 @@ begin
     'gt' : begin
       ReplaceText := __(tagstring_custom.Values['text']);
       end;
+    'config' : begin
+      ReplaceText:= Config[ tagstring_custom.Values['key']];
+      end;
     'csrf-token' : begin
       HTMLUtil.ResetCSRF;
       ReplaceText := HTMLUtil.CSRF( tagstring_custom.Values['name']);

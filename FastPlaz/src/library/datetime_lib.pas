@@ -107,27 +107,30 @@ var
   diff: integer;
   diffDate: TDateTime;
 begin
-  if MaxIntervalDate = 0 then
-    MaxIntervalDate := 30;
+  Result := '';
+  try
+    if MaxIntervalDate = 0 then
+      MaxIntervalDate := 30;
 
-  diffDate := _DateTimeDiff(TheDate, Now);
-  diff := DaysBetween(Now, TheDate);
+    diffDate := _DateTimeDiff(TheDate, Now);
+    diff := DaysBetween(Now, TheDate);
 
-  if diffDate <= 0 then
-  begin
-    if diff = 1 then
-      Result := __('yesterday')
+    if diffDate <= 0 then
+    begin
+      if diff = 1 then
+        Result := __('yesterday')
+      else
+        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
+    end
     else
-      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
-  end
-  else
-  begin // present
-    if diff = 1 then
-      Result := __('tomorrow')
-    else
-      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'from now');
+    begin // present
+      if diff = 1 then
+        Result := __('tomorrow')
+      else
+        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'from now');
+    end;
+  except
   end;
-
 end;
 
 end.
