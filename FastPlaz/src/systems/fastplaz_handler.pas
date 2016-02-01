@@ -246,6 +246,17 @@ type
     function ReadDateTime(const variable: string): TDateTime;
   end;
 
+  { TSESSION }
+
+  { TSERVER }
+
+  TSERVER = class
+  private
+    function GetValue( const variable: string): string;
+  public
+    property Values[variable: string]: string read GetValue; default;
+  end;
+
   { TRoute }
 
   TRoute = class
@@ -278,6 +289,7 @@ var
   _POST: TPOST;
   _SESSION: TSESSION;
   _REQUEST: TREQUESTVAR;
+  _SERVER: TSERVER;
   _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
   MemoryAllocated: integer;
@@ -872,6 +884,15 @@ begin
   Application.Request.QueryFields.Values[Name] := AValue;
 end;
 
+{ TSERVER }
+
+function TSERVER.GetValue(const variable: string): string;
+begin
+  Result := GetEnvironmentVariable( variable);
+end;
+
+
+
 { TLazCMSAppandler }
 
 function TFastPlasAppandler.GetURI: string;
@@ -1192,6 +1213,7 @@ initialization
   _POST := TPOST.Create;
   _GET := TGET.Create;
   _SESSION := TSESSION.Create;
+  _SERVER := TSERVER.Create;
   MethodMap := TStringList.Create;
 
 finalization
@@ -1201,6 +1223,7 @@ finalization
   FreeAndNil(_GET);
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
+  FreeAndNil(_SERVER);
   FreeAndNil(_DebugInfo);
   FreeAndNil(ModUtil);
   FreeAndNil(Route);
