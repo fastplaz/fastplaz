@@ -80,8 +80,10 @@ type
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
+
   TOnMenu = function( RequestHeader : TRequest): string of object;
   TOnSearch = function( Keyword: string; RequestHeader : TRequest): string of object;
+  TOnNotification = function( NotifType: string; RequestHeader : TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -91,9 +93,11 @@ type
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
+    FOnNotification: TOnNotification;
     FOnSearch: TOnSearch;
 
     function GetBaseURL: string;
+    function GetCSRFFailedCount: integer;
     function GetEnvirontment(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
@@ -127,8 +131,10 @@ type
     property BaseURL: string read GetBaseURL;
     property OnBlockController: TOnBlockController
       read FOnBlockController write FOnBlockController;
+
     property OnMenu: TOnMenu read FOnMenu write FOnMenu;
     property OnSearch: TOnSearch read FOnSearch write FOnSearch;
+    property OnNotification: TOnNotification read FOnNotification write FOnNotification;
 
     property isActive: boolean read GetIsActive;
     property isPost: boolean read GetIsPost;
@@ -139,6 +145,7 @@ type
     property isAjax: boolean read GetIsAjax;
 
     property FlashMessages: string write SetFlashMessage;
+    property CSRFFailedCount : integer read GetCSRFFailedCount;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -241,6 +248,17 @@ type
     function ReadDateTime(const variable: string): TDateTime;
   end;
 
+  { TSESSION }
+
+  { TSERVER }
+
+  TSERVER = class
+  private
+    function GetValue( const variable: string): string;
+  public
+    property Values[variable: string]: string read GetValue; default;
+  end;
+
   { TRoute }
 
   TRoute = class
@@ -273,6 +291,7 @@ var
   _POST: TPOST;
   _SESSION: TSESSION;
   _REQUEST: TREQUESTVAR;
+  _SERVER: TSERVER;
   _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
   MemoryAllocated: integer;
@@ -552,7 +571,11 @@ end;
 
 function TSESSION.GetValue(variable: string): variant;
 begin
-  Result := SessionController[variable];
+  Result := '';
+  try
+    Result := SessionController[variable];
+  except
+  end;
 end;
 
 procedure TSESSION.SetValue(variable: string; AValue: variant);
@@ -587,6 +610,11 @@ end;
 function TMyCustomWebModule.GetBaseURL: string;
 begin
   Result := ThemeUtil.BaseURL;
+end;
+
+function TMyCustomWebModule.GetCSRFFailedCount: integer;
+begin
+  Result := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT]);
 end;
 
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
@@ -643,6 +671,8 @@ begin
 end;
 
 function TMyCustomWebModule.GetIsValidCSRF: boolean;
+var
+  i : integer;
 begin
   Result := False;
   if not isPost then
@@ -657,7 +687,16 @@ begin
   if _POST['csrftoken'] = _SESSION[__HTML_CSRF_TOKEN_KEY] then
     Result := True;
 
-  HTMLUtil.ResetCSRF;
+  if Result then
+  begin
+    HTMLUtil.ResetCSRF;
+  end
+  else
+  begin
+    i := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT])+1;
+    _SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT] := i;
+  end;
+
   SessionController.ForceUpdate;
 end;
 
@@ -706,6 +745,7 @@ begin
   ActionVar := 'act';
   FOnMenu := nil;
   FOnSearch := nil;
+  FOnNotification := nil;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
@@ -865,6 +905,15 @@ procedure TGET.SetValue(const Name: string; AValue: string);
 begin
   Application.Request.QueryFields.Values[Name] := AValue;
 end;
+
+{ TSERVER }
+
+function TSERVER.GetValue(const variable: string): string;
+begin
+  Result := GetEnvironmentVariable( variable);
+end;
+
+
 
 { TLazCMSAppandler }
 
@@ -1186,6 +1235,7 @@ initialization
   _POST := TPOST.Create;
   _GET := TGET.Create;
   _SESSION := TSESSION.Create;
+  _SERVER := TSERVER.Create;
   MethodMap := TStringList.Create;
 
 finalization
@@ -1195,6 +1245,7 @@ finalization
   FreeAndNil(_GET);
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
+  FreeAndNil(_SERVER);
   FreeAndNil(_DebugInfo);
   FreeAndNil(ModUtil);
   FreeAndNil(Route);

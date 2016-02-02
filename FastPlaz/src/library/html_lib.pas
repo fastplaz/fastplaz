@@ -13,6 +13,7 @@ const
   __HTMLLIB_FORMID_LENGTH = 5;
   __HTMLLIB_FORMCSRFTOKEN_LENGTH = 12;
   __HTML_CSRF_TOKEN_KEY = '_csrf_token_key';
+  __HTML_CSRF_TOKEN_KEY_FAILEDCOUNT = '_csrf_token_key_failedcount';
   __HTML_ALLBLOCK =
     '(table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
 
@@ -250,6 +251,7 @@ end;
 procedure THTMLUtil.ResetCSRF;
 begin
   _SESSION[ __HTML_CSRF_TOKEN_KEY] := '';
+  SessionController.DeleteKey( __HTML_CSRF_TOKEN_KEY_FAILEDCOUNT);
 end;
 
 constructor THTMLUtil.Create;
