@@ -1574,7 +1574,14 @@ begin
       ReplaceText := AppData.baseUrl;
       end;
     '$thisurl': ReplaceText := FastPlasAppandler.URI;
-    'thisurl' : ReplaceText := FastPlasAppandler.URI;
+    'thisurl' : begin
+      ReplaceText := FastPlasAppandler.URI;
+      if tagstring_custom.Values['type'] = 'full' then
+      begin
+        ReplaceText := BaseURL + ReplaceText;
+        //ReplaceText := StringReplace( ReplaceText, '//', '/', [rfReplaceAll]);
+      end;
+    end;
     '$theme'  : begin
       ReplaceText := ThemeName;
       end;
