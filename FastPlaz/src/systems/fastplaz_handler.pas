@@ -97,6 +97,7 @@ type
     FOnSearch: TOnSearch;
 
     function GetBaseURL: string;
+    function GetCSRFFailedCount: integer;
     function GetEnvirontment(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
@@ -144,6 +145,7 @@ type
     property isAjax: boolean read GetIsAjax;
 
     property FlashMessages: string write SetFlashMessage;
+    property CSRFFailedCount : integer read GetCSRFFailedCount;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -569,7 +571,11 @@ end;
 
 function TSESSION.GetValue(variable: string): variant;
 begin
-  Result := SessionController[variable];
+  Result := '';
+  try
+    Result := SessionController[variable];
+  except
+  end;
 end;
 
 procedure TSESSION.SetValue(variable: string; AValue: variant);
@@ -604,6 +610,11 @@ end;
 function TMyCustomWebModule.GetBaseURL: string;
 begin
   Result := ThemeUtil.BaseURL;
+end;
+
+function TMyCustomWebModule.GetCSRFFailedCount: integer;
+begin
+  Result := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT]);
 end;
 
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
@@ -660,6 +671,8 @@ begin
 end;
 
 function TMyCustomWebModule.GetIsValidCSRF: boolean;
+var
+  i : integer;
 begin
   Result := False;
   if not isPost then
@@ -674,7 +687,16 @@ begin
   if _POST['csrftoken'] = _SESSION[__HTML_CSRF_TOKEN_KEY] then
     Result := True;
 
-  HTMLUtil.ResetCSRF;
+  if Result then
+  begin
+    HTMLUtil.ResetCSRF;
+  end
+  else
+  begin
+    i := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT])+1;
+    _SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT] := i;
+  end;
+
   SessionController.ForceUpdate;
 end;
 

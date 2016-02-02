@@ -82,7 +82,7 @@ end;
 function TUserUtil.GetPendingCount: integer;
 begin
   Result := 0;
-  if Find( ['isnull( activated)']) then
+  if Find(['isnull( activated)']) then
     Result := RecordCount;
 end;
 
@@ -106,7 +106,7 @@ end;
 
 constructor TUserUtil.Create(const DefaultTableName: string);
 begin
-  inherited Create( DefaultTableName);
+  inherited Create(DefaultTableName);
   FLoginAttempsMax := USER_LOGIN_ATTEMPTS_MAX;
   FOnLoginAttemps := nil;
 end;
@@ -184,7 +184,7 @@ end;
 function TUserUtil.Logout: boolean;
 begin
   try
-    SessionController.EndSession(True);
+    SessionController.Clear;
   except
   end;
   Result := True;
@@ -220,9 +220,9 @@ begin
   if RgihtLabel <> '' then
     o.Add('right-label', RgihtLabel);
   if IsAjax then
-    o.Add( 'ajax', '1');
+    o.Add('ajax', '1');
   if AjaxTarget <> '' then
-    o.Add( 'rel', AjaxTarget);
+    o.Add('rel', AjaxTarget);
 
   Result := o;
 end;
