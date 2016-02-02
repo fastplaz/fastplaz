@@ -38,6 +38,8 @@ type
 
     function Add(const UserName, Email: string; Password: string = '';
       Params: TStrings = nil): integer;
+    function Add(const Email: string; Password: string = '';
+      Params: TStrings = nil): integer;
     function ChangePassword(const UserID: integer; const NewPassword: string): boolean;
     function AssignToGroup(const UserID: integer;
       const GroupID: integer = USER_GROUP_DEFAULT_ID): boolean;
@@ -48,6 +50,7 @@ type
     function isUserNameExists(const UserName: string): boolean;
     function isEmailExists(const EmailAddress: string): boolean;
 
+    function GenerateUsername(const EmailAddress: string): string;
     function GenerateHashedPassword(const UnhashedPassword: string): string;
   end;
 
@@ -58,7 +61,7 @@ uses
 
 constructor TUserModel.Create(const DefaultTableName: string = '');
 begin
-  inherited Create( USER_TABLE_NAME); // table name = users
+  inherited Create(USER_TABLE_NAME); // table name = users
   FSecUtil := TSecurityUtil.Create;
   primaryKey := USER_PRIMARY_KEY;
 end;
@@ -80,8 +83,8 @@ begin
     Exit;
 
   //if user exists
-  if FindFirst([USER_FIELDNAME_USERNAME + '="' + UserName + '" OR ' + USER_FIELDNAME_EMAIL + '="'+Email+'"'],
-    USER_FIELDNAME_ID + ' desc') then
+  if FindFirst([USER_FIELDNAME_USERNAME + '="' + UserName + '" OR ' +
+    USER_FIELDNAME_EMAIL + '="' + Email + '"'], USER_FIELDNAME_ID + ' desc') then
   begin
     Exit;
   end;
@@ -92,6 +95,7 @@ begin
     saltedHash := FSecUtil.GenerateSaltedHash(Password);
 
   New;
+  SetFieldValue(USER_FIELDNAME_NAME, UserName);
   SetFieldValue(USER_FIELDNAME_USERNAME, UserName);
   SetFieldValue(USER_FIELDNAME_EMAIL, Email);
   SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
@@ -112,6 +116,12 @@ begin
     AssignToGroup(Result, USER_GROUP_DEFAULT_ID);
   end;
 
+end;
+
+function TUserModel.Add(const Email: string; Password: string;
+  Params: TStrings): integer;
+begin
+  Result := Add(GenerateUsername(Email), Email, Password, Params);
 end;
 
 function TUserModel.ChangePassword(const UserID: integer;
@@ -188,6 +198,22 @@ begin
   Clear;
   if Find([USER_FIELDNAME_EMAIL + '=''' + EmailAddress + '''']) then
     Result := True;
+end;
+
+function TUserModel.GenerateUsername(const EmailAddress: string): string;
+var
+  uname: string;
+begin
+  Result := '';
+  if EmailAddress = '' then
+    Exit;
+  uname := Copy(EmailAddress, 1, Pos('@', EmailAddress) - 1);
+  if Find([USER_FIELDNAME_USERNAME + ' LIKE ''' + uname + '%''']) then
+  begin
+    uname := uname + i2s(RecordCount + 1);
+  end;
+
+  Result := uname;
 end;
 
 function TUserModel.GenerateHashedPassword(const UnhashedPassword: string): string;
