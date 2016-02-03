@@ -134,8 +134,8 @@ begin
   if FindFirst([USER_FIELDNAME_ID + '="' + i2s(UserID) + '"'],
     USER_FIELDNAME_ID + ' desc') then
   begin
-    SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
     New;
+    SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
     if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then
     begin
       Result := True;
@@ -152,6 +152,7 @@ end;
 function TUserModel.AssignToGroup(const UserID: integer;
   const GroupID: integer): boolean;
 begin
+  Result := False;
   with TGroupsUtil.Create() do
   begin
     Result := AddUserToGroup(UserID, GroupID);

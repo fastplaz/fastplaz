@@ -50,9 +50,11 @@ end;
 
 function TGroupModel.AddUserToGroup(UserID: integer; GroupID: integer): boolean;
 begin
+  Result := False;
   with TGroupMembershipModel.Create() do
   begin
     Result := Add(UserID, GroupID);
+    QueryExec( 'UPDATE groups SET nbuser=(nbuser+1) WHERE gid = ' + i2s(GroupID));
     Free;
   end;
 end;

@@ -345,6 +345,7 @@ begin
   end;
 
   FLastAccess := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
+  FSessionStarted := True;
 
   // check if expired
   if GetIsExpired then
@@ -361,7 +362,6 @@ begin
 
   if not FCached then
     UpdateIniFile;
-  FSessionStarted := True;
   Result := True;
 end;
 
@@ -369,6 +369,10 @@ procedure TSessionController.Clear;
 begin
   try
     FIniFile.EraseSection(_SESSION_DATA);
+    FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, True);
+    FIniFile.WriteInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
+    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, now);
+    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, now);
     ForceUpdate;
   except;
   end;
