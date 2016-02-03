@@ -29,14 +29,14 @@ type
       const Options: array of string; EndTag: boolean = True): string;
     function setTag(const Tag: string; const Content: string;
       EndTag: boolean = True): string;
-    function setCsrfTokenHtml( const FormIDDefault:string = ''): string;
+    function setCsrfTokenHtml(const FormIDDefault: string = ''): string;
   public
     constructor Create;
     destructor Destroy; override;
     property FormID: string read GetFormID;
     procedure ResetCSRF;
-    function CSRF( const FormIDDefault:string = ''):string;
-    function CheckCSRF( Force : boolean = True):boolean;
+    function CSRF(const FormIDDefault: string = ''): string;
+    function CheckCSRF(Force: boolean = True): boolean;
     function H1(const Content: string; Options: array of string): string;
     function H1(const Content: string): string;
     function Block(const Content: string; Options: array of string): string;
@@ -56,6 +56,8 @@ type
     function CleanURL(Title: string): string;
 
     function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
+    function AddNotif(NotifType: integer; Title, Icon, URL: string;
       IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
   end;
 
@@ -214,22 +216,23 @@ begin
   if s = '' then
     s := FormID;
   key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, s);
-  _SESSION[ __HTML_CSRF_TOKEN_KEY] := key;
+  _SESSION[__HTML_CSRF_TOKEN_KEY] := key;
   Result := #13'<input type="hidden" name="csrftoken" value="' + key +
     '" id="FormCsrfToken_' + s + '" />';
+  SessionController.ForceUpdate;
 end;
 
 function THTMLUtil.CSRF(const FormIDDefault: string): string;
 begin
-  Result := setCsrfTokenHtml( FormIDDefault);
+  Result := setCsrfTokenHtml(FormIDDefault);
 end;
 
 function THTMLUtil.CheckCSRF(Force: boolean): boolean;
 var
-  key : string;
+  key: string;
 begin
-  Result := false;
-  key := _SESSION[ __HTML_CSRF_TOKEN_KEY];
+  Result := False;
+  key := _SESSION[__HTML_CSRF_TOKEN_KEY];
   if _POST['csrftoken'] = '' then
   begin
     if not Force then
@@ -241,7 +244,8 @@ begin
 
   if key = _POST['csrftoken'] then
   begin
-    Result := True;;
+    Result := True;
+    ;
   end;
 
   if Force then
@@ -250,8 +254,8 @@ end;
 
 procedure THTMLUtil.ResetCSRF;
 begin
-  _SESSION[ __HTML_CSRF_TOKEN_KEY] := '';
-  SessionController.DeleteKey( __HTML_CSRF_TOKEN_KEY_FAILEDCOUNT);
+  _SESSION[__HTML_CSRF_TOKEN_KEY] := '';
+  SessionController.DeleteKey(__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT);
 end;
 
 constructor THTMLUtil.Create;
@@ -351,8 +355,8 @@ function THTMLUtil.ReCaptcha(const PublicKey: string; const Version: string): st
 begin
   if Version = 'v2' then
   begin
-    Result := #13'<div class="g-recaptcha" data-sitekey="' + PublicKey + '"></div>' +
-      #13'<script src="https://www.google.com/recaptcha/api.js?hl=en"></script>';
+    Result := #13'<div class="g-recaptcha" data-sitekey="' + PublicKey +
+      '"></div>' + #13'<script src="https://www.google.com/recaptcha/api.js?hl=en"></script>';
   end
   else
   begin
@@ -368,8 +372,8 @@ begin
       //    + #13'};'
       //    + #13'</script>'
 
-      + #13'<input type="hidden" name="recaptcha_version" value="' + Version + '"/>' +
-      #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='
+      + #13'<input type="hidden" name="recaptcha_version" value="' +
+      Version + '"/>' + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='
       + PublicKey + '">' + #13'</script>';
   end;
 end;
@@ -396,10 +400,26 @@ begin
   if RgihtLabel <> '' then
     o.Add('right-label', RgihtLabel);
   if IsAjax then
-    o.Add( 'ajax', '1');
+    o.Add('ajax', '1');
   if AjaxTarget <> '' then
-    o.Add( 'rel', AjaxTarget);
+    o.Add('rel', AjaxTarget);
 
+  Result := o;
+end;
+
+function THTMLUtil.AddNotif(NotifType: integer; Title, Icon, URL: string;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if IsAjax then
+    o.Add('ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add('rel', AjaxTarget);
   Result := o;
 end;
 

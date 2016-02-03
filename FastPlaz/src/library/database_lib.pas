@@ -80,6 +80,8 @@ type
     procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
 
     procedure GroupBy( const GroupField:string);
+    function RecordsTotalFiltered( const SQL:string = ''; ForceClose: boolean = True):integer;
+
 
     procedure Clear;
     procedure New;
@@ -885,6 +887,29 @@ end;
 procedure TSimpleModel.GroupBy(const GroupField: string);
 begin
   FGroupField:= GroupField;
+end;
+
+function TSimpleModel.RecordsTotalFiltered(const SQL: string;
+  ForceClose: boolean): integer;
+begin
+  Result := 0;
+  if Data.Active then
+  begin
+    if not ForceClose then
+    begin
+      Result := Data.RecordCount;
+      Exit;
+    end;
+    Data.Close;
+  end;
+  if SQL = '' then
+    Exit;
+  Data.SQL.Text := SQL;
+  Data.Open;
+  if RecordCount > 0 then
+  begin
+    Result := Data.Fields.Fields[0].AsInteger;
+  end;
 end;
 
 procedure TSimpleModel.Clear;

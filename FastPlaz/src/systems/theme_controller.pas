@@ -1579,7 +1579,8 @@ begin
       if tagstring_custom.Values['type'] = 'full' then
       begin
         ReplaceText := BaseURL + ReplaceText;
-        //ReplaceText := StringReplace( ReplaceText, '//', '/', [rfReplaceAll]);
+        ReplaceText := StringReplace( ReplaceText, '//', '/', [rfReplaceAll]);
+        ReplaceText := StringReplace( ReplaceText, 'http:/', 'http://', [rfReplaceAll]);
       end;
     end;
     '$theme'  : begin
