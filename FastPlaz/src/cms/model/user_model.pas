@@ -5,7 +5,7 @@ unit user_model;
 interface
 
 uses
-  common, security_util, database_lib,
+  common, security_util, database_lib, logutil_lib,
   Math, Classes, SysUtils;
 
 const
@@ -45,6 +45,11 @@ type
       const GroupID: integer = USER_GROUP_DEFAULT_ID): boolean;
     function AssignToGroup(const UserID: integer;
       const GroupName: string = USER_GROUP_DEFAULT_NAME): boolean;
+
+    function Activate(const UserID: integer): boolean;
+    function DeActivate(const UserID: integer): boolean;
+    function Suspend(const UserID: integer): boolean;
+    function SafeDelete(const UserID: integer; DeleteBy: integer = 0): boolean;
 
     function isActive(const UserID: integer): boolean;
     function isUserNameExists(const UserName: string): boolean;
@@ -113,7 +118,7 @@ begin
   if Save() then
   begin
     Result := LastInsertID;
-    AssignToGroup(Result, USER_GROUP_DEFAULT_ID);
+    //AssignToGroup(Result, USER_GROUP_DEFAULT_ID);
   end;
 
 end;
@@ -169,6 +174,48 @@ begin
     Result := AddUserToGroup(UserID, GroupName);
     Free;
   end;
+end;
+
+function TUserModel.Activate(const UserID: integer): boolean;
+begin
+  Result := False;
+  New;
+  SetFieldValue(USER_FIELDNAME_ACTIVATED, 1);
+  if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then
+  begin
+    AssignToGroup(UserID, USER_GROUP_DEFAULT_NAME);
+    Result := True;
+  end;
+end;
+
+function TUserModel.DeActivate(const UserID: integer): boolean;
+begin
+  Result := False;
+  New;
+  SetFieldValue(USER_FIELDNAME_ACTIVATED, 0);
+  if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then
+  begin
+    Result := True;
+  end;
+end;
+
+function TUserModel.Suspend(const UserID: integer): boolean;
+begin
+  Result := False;
+  New;
+  SetFieldValue(USER_FIELDNAME_ACTIVATED, 2);
+  if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then
+  begin
+    Result := True;
+  end;
+end;
+
+function TUserModel.SafeDelete(const UserID: integer; DeleteBy: integer): boolean;
+var
+  sql : string;
+begin
+  sql := 'UPDATE users SET deleted_date=now(), deleted_by='+i2s(DeleteBy)+' WHERE uid = ' + i2s(UserID);
+  Result := QueryExec( sql);
 end;
 
 function TUserModel.isActive(const UserID: integer): boolean;

@@ -82,7 +82,7 @@ end;
 function TUserUtil.GetPendingCount: integer;
 begin
   Result := 0;
-  if Find(['isnull( activated)']) then
+  if Find(['isnull( activated) OR activated=0']) then
     Result := RecordCount;
 end;
 
@@ -152,7 +152,7 @@ begin
     end;
   end;
   if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"',
-    USER_FIELDNAME_ACTIVATED + '=1'], USER_FIELDNAME_ID + ' desc') then
+    USER_FIELDNAME_ACTIVATED + '=1', 'isnull( deleted_by)'], USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
     with TSecurityUtil.Create do

@@ -1680,6 +1680,9 @@ begin
       HTMLUtil.ResetCSRF;
       ReplaceText := HTMLUtil.CSRF( tagstring_custom.Values['name']);
       end;
+    'loadtime' : begin
+      ReplaceText := GetDebugInfo( 'time');
+    end;
     'flashmessages' : begin
       s := FlashMessages;
       ReplaceText := '';
@@ -1703,6 +1706,12 @@ begin
       begin
         ReplaceText := HTMLUtil.ReCaptcha( tagstring_custom.Values['key'], tagstring_custom.Values['version']);
       end;
+    end;
+
+    //-- form control
+    'input' : begin
+      ReplaceText := HTMLUtil.AddInputLTE( tagstring_custom.Values['id'], tagstring_custom.Values['type'],
+        tagstring_custom.Values['label'], tagstring_custom.Values['value'], tagstring_custom.Values['placeholder']);
     end;
   end;
 

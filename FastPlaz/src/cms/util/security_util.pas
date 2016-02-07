@@ -13,6 +13,9 @@ const
   SALT_PREFIX = '8';
   PASSWORD_LENGTH_MIN = 5;
 
+  CSRFTOKEN_LENGTH = 12;
+  CSRFTOKEN_KEY = '_csrf_token_key';
+
 type
 
   { TSecurityUtil }
@@ -27,7 +30,7 @@ type
     function GenerateSaltedHash(const UnhasedData: string; SaltString: string;
       SaltDelimiter: string = SALT_DELIM): string;
 
-    function GenerateCsrfToken(const Force: boolean = True): string;
+    function GenerateCSRF(const FormID: string = ''): string;
   end;
 
 implementation
@@ -84,10 +87,9 @@ begin
     LowerCase(SHA256(saltString + UnhasedData));
 end;
 
-// prepare for csrf token
-function TSecurityUtil.GenerateCsrfToken(const Force: boolean): string;
+function TSecurityUtil.GenerateCSRF(const FormID: string): string;
 begin
-  Result := '';
+  Result := RandomString(CSRFTOKEN_LENGTH, FormID);
 end;
 
 end.
