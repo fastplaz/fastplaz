@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 const
-  {$include define_cms.inc}
+  {$include '../../../define_cms.inc'}
 
 
 type
