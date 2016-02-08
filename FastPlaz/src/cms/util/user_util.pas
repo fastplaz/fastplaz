@@ -152,7 +152,8 @@ begin
     end;
   end;
   if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"',
-    USER_FIELDNAME_ACTIVATED + '=1', 'isnull( deleted_by)'], USER_FIELDNAME_ID + ' desc') then
+    USER_FIELDNAME_ACTIVATED + '=1', 'isnull( deleted_by)'],
+    USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
     with TSecurityUtil.Create do

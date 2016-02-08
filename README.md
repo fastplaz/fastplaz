@@ -25,7 +25,7 @@ Email Features
 
 how to enable email support
 
-- open file define.inc
+- open file define_fastplaz.inc
 - add code :
 
 ```

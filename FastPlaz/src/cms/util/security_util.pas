@@ -6,7 +6,7 @@ interface
 
 uses
   fpcgi, common, hash_tools,
-  math, Classes, SysUtils;
+  Math, Classes, SysUtils;
 
 const
   SALT_DELIM = '$';

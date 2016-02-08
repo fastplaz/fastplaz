@@ -33,7 +33,6 @@ implementation
 uses
   common, fastplaz_handler, groupmembership_model;
 
-
 constructor TGroupModel.Create(const DefaultTableName: string = '');
 begin
   inherited Create(DefaultTableName); // table name = users
@@ -54,7 +53,8 @@ begin
   with TGroupMembershipModel.Create() do
   begin
     Result := Add(UserID, GroupID);
-    QueryExec( 'UPDATE groups SET nbuser=(nbuser+1) WHERE gid = ' + i2s(GroupID));
+    QueryExec('UPDATE groups SET nbuser=(nbuser+1) WHERE gid = ' + i2s(GroupID));
+
     Free;
   end;
 end;
