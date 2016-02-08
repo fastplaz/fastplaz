@@ -13,7 +13,7 @@ const
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
   USER_LOGIN_ATTEMPTS_MAX = 5;
-  {$include define_cms.inc}
+  {$include '../../../define_cms.inc'}
 
 type
 

@@ -9,17 +9,8 @@ uses
   Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util, user_model,
   database_lib, security_util, language_lib, mailer_lib;
 
-const
-  USER_URL_LOGIN = 'user-login';
-  USER_URL_LOGOUT = 'user-loogut';
-  USER_URL_DASHBOARD = 'user-dashboard';
-  USER_URL_CHANGEPASSWORD = 'user-changepassword';
-  USER_URL_REGISTER = 'user-register';
-  USER_URL_REGISTER_THANKYOU = 'user-registerthankyou';
-  USER_URL_LOSTPASSWORD = 'user-lostpassword';
-
-
-  {$include define_cms.inc}
+//const
+//  {$include '../../../define_cms.inc'}
 
 type
 
@@ -112,15 +103,13 @@ begin
 
   if not isValidCSRF then
   begin
-    ThemeUtil.FlashMessages := 'Security: Invalid CSRF Token';
+    ThemeUtil.FlashMessages := MSG_TOKEN_INVALID;
     Redirect(BaseURL);
   end;
 
   if not User.Login(_POST['data[username]'], _POST['data[password]']) then
   begin
-    ThemeUtil.FlashMessages :=
-      'Invalid UserName or Password ! <br>or your account is not active (' +
-      i2s(User.FailedLoginCount) + 'x)';
+    ThemeUtil.FlashMessages := Format( MSG_LOGIN_INVALID, [User.FailedLoginCount]);
     Redirect(BaseURL + USER_URL_LOGIN);
   end;
 
@@ -159,12 +148,12 @@ begin
     if (_POST['data[oldpassword]'] = '') or (_POST['data[password]'] = '') or
       (_POST['data[password2]'] = '') then
     begin
-      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, 'Please insert field correctly');
+      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_FIELD_INCORRECT);
     end;
 
     if _POST['data[password]'] <> _POST['data[password2]'] then
     begin
-      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, 'Invalid New Password');
+      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORDNEW_INVALID);
     end;
 
     userId := User.UserIdLoggedIn;
@@ -176,16 +165,16 @@ begin
       begin
         if not CheckSaltedHash(_POST['data[oldpassword]'], hashedPassword) then
         begin
-          Redirect(BaseURL + USER_URL_CHANGEPASSWORD, 'Invalid Password');
+          Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_INVALID);
         end;
 
         if User.ChangePassword(userId, _POST['data[password]']) then
         begin
-          Redirect(BaseURL + USER_URL_DASHBOARD, 'Your password updated.');
+          Redirect(BaseURL + USER_URL_DASHBOARD, MSG_PASSWORD_UPDATED);
         end
         else
         begin
-          Redirect(BaseURL + USER_URL_CHANGEPASSWORD, 'Failed change password');
+          Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_FAILED);
         end;
 
         Free;
@@ -273,25 +262,25 @@ begin
 
   if (email = '') or (pass1 = '') or (pass2 = '') then
   begin
-    Result := setOutput(1, 'Invalid Value');
+    Result := setOutput(1, MSG_VALUE_INVALID);
     Exit;
   end;
 
   if User.isEmailExists(email) then
   begin
-    Result := setOutput(2, 'User Exists');
+    Result := setOutput(2, MSG_USER_EXISTS);
     Exit;
   end;
 
   if pass1 <> pass2 then
   begin
-    Result := setOutput(3, 'Invalid Username or Password');
+    Result := setOutput(3, MSG_PASSWORD_INVALID);
     Exit;
   end;
 
   code := User.Add(email, pass1, nil);
   if code = 0 then
-    Result := setOutput(3, 'Failed to add user')
+    Result := setOutput(3, MSG_USER_ADD_FAILED)
   else
   begin
     Result := setOutput(0, 'OK', BaseURL + USER_URL_REGISTER_THANKYOU);

@@ -7,7 +7,7 @@ interface
 uses
   fpjson, logutil_lib, datetime_lib, security_util, mailer_lib,
   Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
-  database_lib, user_util, user_controller, user_model;
+  database_lib, user_util, user_model;
 
 const
   ADMIN_USER_ROUTE =
@@ -17,7 +17,7 @@ const
   ADMIN_USER_URL = 'admin-user-list';
   ADMIN_USER_PENDING_URL = 'admin-user-pending';
   ADMIN_USER_MENU_TITLE = 'User & Permission';
-  {$include define_cms.inc}
+  //{$include '../../../define_cms.inc'}
 
 type
 
@@ -108,18 +108,18 @@ begin
 
   if (email = '') or (pass1 = '') or (pass2 = '') then
   begin
-    Result := setOutput(1, 'Invalid Value..');
+    Result := setOutput(1, MSG_VALUE_INVALID);
     Exit;
   end;
   if pass1 <> pass2 then
   begin
-    Result := setOutput(3, 'Invalid assword');
+    Result := setOutput(3, MSG_PASSWORD_INVALID);
     Exit;
   end;
 
   if User.isEmailExists(email) then
   begin
-    Result := setOutput(2, 'User Exists');
+    Result := setOutput(2, MSG_USER_EXISTS);
     Exit;
   end;
 
@@ -128,10 +128,10 @@ begin
     params.Add(USER_FIELDNAME_ACTIVATED + '=1');
   code := User.Add(email, pass1, params);
   if code = 0 then
-    Result := setOutput(3, 'Failed to add user')
+    Result := setOutput(3, MSG_USER_ADD_FAILED)
   else
   begin
-    Result := setOutput(0, 'OK');
+    Result := setOutput(0, OK);
     if s2i(group) > 0 then
       User.AssignToGroup(code, s2i(group));
 
@@ -175,7 +175,7 @@ begin
     Result := setOutput(0, 'OK');
   end
   else
-    Result := setOutput(-1, 'Failed Delete User');
+    Result := setOutput(-1, MSG_USER_DELETE_FAILED);
 end;
 
 function TUserAdminModule.ResetPassword: string;
@@ -190,7 +190,7 @@ begin
     if User.ChangePassword(uid, _POST['password']) then
       Result := setOutput(0, 'OK', BaseURL + ADMIN_USER_URL)
     else
-      Result := setOutput(-1, 'Failed reset user''s password.');
+      Result := setOutput(-1, MSG_USER_RESETPASSWORD_FAILED);
 
     if _POST['sendemail'] = 'on' then
     begin
@@ -218,7 +218,7 @@ begin
 
 
     if not User.Find(uid) then
-      Redirect(BaseURL + 'admin-user-list', 'User Not Found');
+      Redirect(BaseURL + 'admin-user-list', MSG_USER_NOTEXISTS);
 
     ThemeUtil.Assign('uid', User['uid']);
     ThemeUtil.Assign('email', User['email']);
@@ -315,7 +315,7 @@ begin
 
   end
   else
-    Result := setOutput(-1, 'Failed to activate user.');
+    Result := setOutput(-1, MSG_USER_ACTIVATE_FAILED);
 end;
 
 function TUserAdminModule.DeActivate: string;
@@ -332,7 +332,7 @@ begin
     Result := setOutput(0, 'OK');
   end
   else
-    Result := setOutput(-1, 'Failed to deactivate user.');
+    Result := setOutput(-1, MSG_USER_DEACTIVATE_FAILED);
 end;
 
 function TUserAdminModule.Suspend: string;
@@ -359,7 +359,7 @@ begin
     Result := setOutput(0, 'OK');
   end
   else
-    Result := setOutput(-1, 'Failed to suspend user.');
+    Result := setOutput(-1, MSG_USER_SUSPEND_FAILED);
 end;
 
 procedure TUserAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
@@ -458,7 +458,7 @@ begin
 
   if not User.checkPermission('user', 'user', Level) then
   begin
-    Result := setOutput(1, 'No Permission');
+    Result := setOutput(1, MSG_NOPERMISSION);
     Exit;
   end;
 
@@ -468,13 +468,13 @@ begin
   uid := s2i(_POST['uid']);
   if uid = 0 then
   begin
-    Result := setOutput(1, 'Invalid ID');
+    Result := setOutput(1, MSG_ID_INVALID);
     Exit;
   end;
 
   if not User.Find(uid) then
   begin
-    Result := setOutput(1, 'User not exists');
+    Result := setOutput(1, MSG_USER_NOTEXISTS);
     Exit;
   end;
 
@@ -561,7 +561,7 @@ begin
       url := User['uid'];
       url := BaseURL + 'admin/user/view/' + url;
       regDate := DateTimeHuman(User[USER_FIELDNAME_REGDATE]);
-      loginDate := 'unknown';
+      loginDate := UNKNOWN;
       try
         loginDate := DateTimeHuman(User[USER_FIELDNAME_LASTLOGIN]);
       except
@@ -595,8 +595,7 @@ begin
 
   notif := TJSONObject.Create;
   items := TJSONArray.Create;
-  items.Add(HTMLUtil.AddNotif(0, 'You have ' + i2s(pendingUser) +
-    ' pending user', 'fa:fa-user', BaseURL + ADMIN_USER_PENDING_URL));
+  items.Add(HTMLUtil.AddNotif(0, Format( MSG_PENDINGUSER, [pendingUser]), 'fa:fa-user', BaseURL + ADMIN_USER_PENDING_URL));
   notif.Add('items', items);
   Result := (notif.AsJSON);
   notif.Free;

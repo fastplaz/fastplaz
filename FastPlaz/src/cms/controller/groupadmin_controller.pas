@@ -14,7 +14,7 @@ const
   ADMIN_GROUP_URL = 'admin-group-list';
   ADMIN_GROUP_TITLE = 'Groups';
   ADMIN_GROUP_DESCRIPTION = 'Administration';
-  {$include define_cms.inc}
+  //{$include '../../../define_cms.inc'}
 
 type
 

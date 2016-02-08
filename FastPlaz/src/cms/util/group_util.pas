@@ -11,7 +11,7 @@ uses
 const
   GROUP_TYPE_CORE = 0;
   GROUP_TYPE_PUBLIC = 1;
-  {$include define_cms.inc}
+  {$include '../../../define_cms.inc'}
 
 type
 

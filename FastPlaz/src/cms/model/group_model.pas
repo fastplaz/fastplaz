@@ -10,7 +10,7 @@ uses
 const
   GROUP_DEFAULT_ID = 1;
   GROUP_DEFAULTNAME = 'Users';
-  {$include define_cms.inc}
+  {$include '../../../define_cms.inc'}
 
 type
 
