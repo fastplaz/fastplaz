@@ -81,9 +81,10 @@ type
   TTagCallback = function(const ATagName: string;
     AParams: TStringList): string of object;
 
-  TOnMenu = function( RequestHeader : TRequest): string of object;
-  TOnSearch = function( Keyword: string; RequestHeader : TRequest): string of object;
-  TOnNotification = function( NotifType: string; RequestHeader : TRequest): string of object;
+  TOnMenu = function(RequestHeader: TRequest): string of object;
+  TOnSearch = function(Keyword: string; RequestHeader: TRequest): string of object;
+  TOnNotification = function(NotifType: string;
+    RequestHeader: TRequest): string of object;
 
   { TMyCustomWebModule }
 
@@ -115,7 +116,7 @@ type
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
   public
-    RouteRegex : String;
+    RouteRegex: string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -145,7 +146,7 @@ type
     property isAjax: boolean read GetIsAjax;
 
     property FlashMessages: string write SetFlashMessage;
-    property CSRFFailedCount : integer read GetCSRFFailedCount;
+    property CSRFFailedCount: integer read GetCSRFFailedCount;
 
     property CreateSession: boolean read FCreateSession write FCreateSession;
     property Session: TSessionController read GetSession;
@@ -153,32 +154,34 @@ type
 
     property TablePrefix: string read GetTablePrefix;
   end;
-  TMyCustomWebModuleClass = Class of TMyCustomWebModule;
+
+  TMyCustomWebModuleClass = class of TMyCustomWebModule;
 
   { TModuleLoadedItem }
 
-  TModuleLoadedItem = Class(TCollectionItem)
+  TModuleLoadedItem = class(TCollectionItem)
   private
     FModuleClass: TMyCustomWebModuleClass;
-    FModuleName: String;
+    FModuleName: string;
     FModuleStore: TMyCustomWebModule;
-    FSkipStreaming: Boolean;
-  Public
-    Property ModuleClass : TMyCustomWebModuleClass Read FModuleClass Write FModuleClass;
-    Property ModuleStore : TMyCustomWebModule read FModuleStore Write FModuleStore;
-    Property ModuleName : String Read FModuleName Write FModuleName;
-    Property SkipStreaming : Boolean Read FSkipStreaming Write FSkipStreaming;
+    FSkipStreaming: boolean;
+  public
+    property ModuleClass: TMyCustomWebModuleClass read FModuleClass write FModuleClass;
+    property ModuleStore: TMyCustomWebModule read FModuleStore write FModuleStore;
+    property ModuleName: string read FModuleName write FModuleName;
+    property SkipStreaming: boolean read FSkipStreaming write FSkipStreaming;
   end;
 
   { TModuleLoaded }
 
-  TModuleLoaded = Class(TCollection)
+  TModuleLoaded = class(TCollection)
   private
-    function GetModule(Index : Integer): TModuleLoadedItem;
-    procedure SetModule(Index : Integer; AValue: TModuleLoadedItem);
-  Public
-    Property Modules [Index : Integer]: TModuleLoadedItem Read GetModule Write SetModule; default;
-    Function IndexOfModule(const AModuleName : String) : Integer;
+    function GetModule(Index: integer): TModuleLoadedItem;
+    procedure SetModule(Index: integer; AValue: TModuleLoadedItem);
+  public
+    property Modules[Index: integer]: TModuleLoadedItem read GetModule write SetModule;
+      default;
+    function IndexOfModule(const AModuleName: string): integer;
   end;
 
   { TFastPlasAppandler }
@@ -201,10 +204,12 @@ type
     function Tag_InternalContent_Handler(const TagName: string;
       Params: TStringList): string;
 
-    procedure AddLoadModule( const ModuleName: string; ModuleClass: TMyCustomWebModuleClass; SkipStreaming: boolean = True);
-    function LoadModule( const ModuleName: string): TMyCustomWebModule;
+    procedure AddLoadModule(const ModuleName: string;
+      ModuleClass: TMyCustomWebModuleClass; SkipStreaming: boolean = True);
+    function LoadModule(const ModuleName: string): TMyCustomWebModule;
     procedure RegisterModule(const ModuleName: string;
-      ModuleClass: TMyCustomWebModuleClass; LoadOnStart:boolean = True; SkipStreaming: boolean = False);
+      ModuleClass: TMyCustomWebModuleClass; LoadOnStart: boolean = True;
+      SkipStreaming: boolean = False);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
     procedure DieRaise(const Fmt: string; const Args: array of const);
@@ -254,7 +259,7 @@ type
 
   TSERVER = class
   private
-    function GetValue( const variable: string): string;
+    function GetValue(const variable: string): string;
   public
     property Values[variable: string]: string read GetValue; default;
   end;
@@ -264,15 +269,15 @@ type
   TRoute = class
   private
     procedure Add(const ModuleName: string; const PatternURL: string;
-      ModuleClass: TMyCustomWebModuleClass; Method: string = ''; LoadOnStart: boolean = False;
-      SkipStreaming: boolean = True);
+      ModuleClass: TMyCustomWebModuleClass; Method: string = '';
+      LoadOnStart: boolean = False; SkipStreaming: boolean = True);
   public
     procedure Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleClass;
       Method: string = ''; LoadOnStart: boolean = False; SkipStreaming: boolean = True);
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
-procedure Redirect(const URL: string; const FlashMessage:string = '');
+procedure Redirect(const URL: string; const FlashMessage: string = '');
 
 procedure DisplayError(const Message: string; const Layout: string = 'error');
 procedure Debug(const Message: integer; const Key: string = '');
@@ -284,7 +289,7 @@ var
   Config: TMyConfig;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
-  ModuleLoaded : TModuleLoaded;
+  ModuleLoaded: TModuleLoaded;
   ModUtil: TModUtil;
   Route: TRoute;
   _GET: TGET;
@@ -495,20 +500,20 @@ end;
 
 { TModuleLoaded }
 
-function TModuleLoaded.GetModule(Index : Integer): TModuleLoadedItem;
+function TModuleLoaded.GetModule(Index: integer): TModuleLoadedItem;
 begin
   Result := TModuleLoadedItem(Items[Index]);
 end;
 
-procedure TModuleLoaded.SetModule(Index : Integer; AValue: TModuleLoadedItem);
+procedure TModuleLoaded.SetModule(Index: integer; AValue: TModuleLoadedItem);
 begin
-  Items[Index]:=AValue;
+  Items[Index] := AValue;
 end;
 
-function TModuleLoaded.IndexOfModule(const AModuleName: String): Integer;
+function TModuleLoaded.IndexOfModule(const AModuleName: string): integer;
 begin
-  Result:=Count-1;
-  While (Result>=0) and (CompareText(Modules[Result].ModuleName,AModuleName)<>0) do
+  Result := Count - 1;
+  while (Result >= 0) and (CompareText(Modules[Result].ModuleName, AModuleName) <> 0) do
     Dec(Result);
 end;
 
@@ -520,7 +525,7 @@ procedure TRoute.Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleCl
 var
   moduleNameReal: string;
 begin
-  if isRegex( ModuleName) then
+  if isRegex(ModuleName) then
   begin
     // next;
   end;
@@ -565,8 +570,8 @@ begin
   end;
   }
 
-//  if LoadOnStart then
-//    FastPlasAppandler.AddLoadModule( ModuleName, TMyCustomWebModuleClass(ModuleClass), SkipStreaming);
+  //  if LoadOnStart then
+  //    FastPlasAppandler.AddLoadModule( ModuleName, TMyCustomWebModuleClass(ModuleClass), SkipStreaming);
 
 end;
 
@@ -627,10 +632,11 @@ end;
 
 function TMyCustomWebModule.GetIsActive: boolean;
 var
-  i : integer;
+  i: integer;
 begin
   Result := False;
-  i := ModuleFactory.IndexOfModule( FastPlasAppandler.GetActiveModuleName( Application.Request));
+  i := ModuleFactory.IndexOfModule(FastPlasAppandler.GetActiveModuleName(
+    Application.Request));
   if i = -1 then
     Exit;
   if ClassName = ModuleFactory[i].ModuleClass.ClassName then
@@ -675,7 +681,7 @@ end;
 
 function TMyCustomWebModule.GetIsValidCSRF: boolean;
 var
-  i : integer;
+  i: integer;
 begin
   Result := False;
   if not isPost then
@@ -693,7 +699,7 @@ begin
   end
   else
   begin
-    i := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT])+1;
+    i := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT]) + 1;
     _SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT] := i;
   end;
 
@@ -910,7 +916,7 @@ end;
 
 function TSERVER.GetValue(const variable: string): string;
 begin
-  Result := GetEnvironmentVariable( variable);
+  Result := GetEnvironmentVariable(variable);
 end;
 
 
@@ -953,7 +959,7 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
 var
   S, pathInfo: string;
   I: integer;
-  reg : TRegExpr;
+  reg: TRegExpr;
 begin
 {
   Result := ARequest.QueryFields.Values[Application.ModuleVariable];
@@ -1032,9 +1038,9 @@ var
   s, pathInfo: string;
   i, j: integer;
   reg: TRegExpr;
-  m  : TCustomHTTPModule;
-  mi : TModuleItem;
-  mc : TCustomHTTPModuleClass;
+  m: TCustomHTTPModule;
+  mi: TModuleItem;
+  mc: TCustomHTTPModuleClass;
 begin
   InitializeFastPlaz(Sender);
   s := GetActiveModuleName(ARequest);
@@ -1100,9 +1106,9 @@ begin
   // Load Module @startup
   if ModuleLoaded.Count > 0 then
   begin
-    for i:=0 to ModuleLoaded.Count - 1 do
+    for i := 0 to ModuleLoaded.Count - 1 do
     begin
-      ModuleLoaded[i].ModuleStore := LoadModule( ModuleLoaded[i].ModuleName);
+      ModuleLoaded[i].ModuleStore := LoadModule(ModuleLoaded[i].ModuleName);
     end;
   end;
 
@@ -1112,7 +1118,7 @@ procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
 begin
   //Application.ShowException(E);
   //Application.Terminate;
-  LogUtil.Add( Sender.ClassName + ': ' + E.Message, 'exception');
+  LogUtil.Add(Sender.ClassName + ': ' + E.Message, 'exception');
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
@@ -1124,10 +1130,10 @@ end;
 procedure TFastPlasAppandler.AddLoadModule(const ModuleName: string;
   ModuleClass: TMyCustomWebModuleClass; SkipStreaming: boolean);
 var
-  i : integer;
-  mi : TModuleLoadedItem;
+  i: integer;
+  mi: TModuleLoadedItem;
 begin
-  i := ModuleLoaded.IndexOfModule( ModuleName);
+  i := ModuleLoaded.IndexOfModule(ModuleName);
   if i = -1 then
   begin
     mi := ModuleLoaded.Add as TModuleLoadedItem;
@@ -1140,16 +1146,15 @@ begin
   mi.SkipStreaming := SkipStreaming;
 end;
 
-function TFastPlasAppandler.LoadModule(const ModuleName: string
-  ): TMyCustomWebModule;
+function TFastPlasAppandler.LoadModule(const ModuleName: string): TMyCustomWebModule;
 var
-  m  : TCustomHTTPModule;
-  mi : TModuleItem;
-  mc : TCustomHTTPModuleClass;
-  i : integer;
+  m: TCustomHTTPModule;
+  mi: TModuleItem;
+  mc: TCustomHTTPModuleClass;
+  i: integer;
 begin
   Result := nil;
-  i := ModuleFactory.IndexOfModule( ModuleName);
+  i := ModuleFactory.IndexOfModule(ModuleName);
   if i <> -1 then
   begin
     mi := ModuleFactory[I];
@@ -1157,23 +1162,22 @@ begin
     m := FastPlasAppandler.FindModule(mc);
     if m = nil then
     begin
-      if assigned( mi) and mi.SkipStreaming then
-        M:=MC.CreateNew(Self)
+      if assigned(mi) and mi.SkipStreaming then
+        M := MC.CreateNew(Self)
       else
-        M:=MC.Create(Self);
+        M := MC.Create(Self);
       M.Name := ModuleName;
-      Result := TMyCustomWebModule( M);
+      Result := TMyCustomWebModule(M);
     end;
   end;
 end;
 
 procedure TFastPlasAppandler.RegisterModule(const ModuleName: string;
-  ModuleClass: TMyCustomWebModuleClass; LoadOnStart: boolean;
-  SkipStreaming: boolean);
+  ModuleClass: TMyCustomWebModuleClass; LoadOnStart: boolean; SkipStreaming: boolean);
 var
   I: integer;
   MI: TModuleItem;
-  mli : TModuleLoadedItem;
+  mli: TModuleLoadedItem;
 begin
   I := ModuleFactory.IndexOfModule(ModuleName);
   if (I = -1) then
@@ -1188,7 +1192,7 @@ begin
 
   if LoadOnStart then
   begin
-    AddLoadModule( ModuleName, ModuleClass, SkipStreaming);
+    AddLoadModule(ModuleName, ModuleClass, SkipStreaming);
   end; //-- LoadOnStart
 
 end;
@@ -1227,7 +1231,7 @@ initialization
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
-  ModuleLoaded := TModuleLoaded.Create( TModuleLoadedItem);
+  ModuleLoaded := TModuleLoaded.Create(TModuleLoadedItem);
   Route := TRoute.Create;
   ModUtil := TModUtil.Create;
   _DebugInfo := TStringList.Create;

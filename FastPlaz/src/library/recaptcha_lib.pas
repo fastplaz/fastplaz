@@ -104,11 +104,12 @@ begin
   if response = '' then
     Exit;
 
-  Result := verifyResponse(Application.EnvironmentVariable['REMOTE_ADDR'], response,
-    _POST['recaptcha_challenge_field']);
+  Result := verifyResponse(Application.EnvironmentVariable['REMOTE_ADDR'],
+    response, _POST['recaptcha_challenge_field']);
 end;
 
-function TReCaptcha.verifyResponse(const RemoteIP, ResponRecaptcha, Challenge: string): boolean;
+function TReCaptcha.verifyResponse(
+  const RemoteIP, ResponRecaptcha, Challenge: string): boolean;
 var
   s: string;
 begin
@@ -126,8 +127,9 @@ begin
       FErrorCodes := 'incorrect-captcha-sol';
       Exit;
     end;
-    s := _submitHttpPost(ReCaptcha_SiteVerifyUrl_v1, ['privatekey=' + FSecretKey, 'remoteip=' +
-      RemoteIP, 'challenge=' + Challenge, 'response=' + ResponRecaptcha]);
+    s := _submitHttpPost(ReCaptcha_SiteVerifyUrl_v1,
+      ['privatekey=' + FSecretKey, 'remoteip=' + RemoteIP, 'challenge=' +
+      Challenge, 'response=' + ResponRecaptcha]);
     with Explode(s, #10) do
     begin
       try
@@ -142,16 +144,14 @@ begin
   end //-- v1 - end
   else
   begin //-- v2
-    s := _submitHttpGet(ReCaptcha_SiteVerifyUrl_v2, ['secret=' + FSecretKey, 'remoteip=' +
-      RemoteIP, 'response=' + ResponRecaptcha, 'v=' + ReCaptcha_Version]);
+    s := _submitHttpGet(ReCaptcha_SiteVerifyUrl_v2,
+      ['secret=' + FSecretKey, 'remoteip=' + RemoteIP, 'response=' +
+      ResponRecaptcha, 'v=' + ReCaptcha_Version]);
 
     // TODO: processing v2
   end;
 end;
 
 end.
-
-
-
 
 

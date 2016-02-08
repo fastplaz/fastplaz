@@ -23,7 +23,8 @@ type
     destructor Destroy; override;
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
       URL: string = '');
-    procedure Add(const message: string; const ModName: string = ''; const isDie:boolean = false);
+    procedure Add(const message: string; const ModName: string = '';
+      const isDie: boolean = False);
   end;
 
 var
@@ -64,7 +65,7 @@ begin
       ForceDirectories(Dir);
   except
   end;
-  FileName := 'app-'+FormatDateTime('YYYYMMDD', Now)+'.log';
+  FileName := 'app-' + FormatDateTime('YYYYMMDD', Now) + '.log';
   FullName := dir + '/' + FileName;
 end;
 
@@ -110,11 +111,11 @@ begin
     except
     end;
     if isDie then
-      die( s);
+      die(s);
   except
     on E: Exception do
     begin
-      die( 'cannot logging: ' + E.Message);
+      die('cannot logging: ' + E.Message);
     end;
   end;
 end;
@@ -126,5 +127,4 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
-
 

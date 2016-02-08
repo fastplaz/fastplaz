@@ -37,7 +37,7 @@ type
     function GenerateSesionID: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
-    function GetInterval: Double;
+    function GetInterval: double;
     function GetIsExpired: boolean;
     function GetTimeOut: integer;
     function GetValue(variable: string): string;
@@ -56,15 +56,15 @@ type
     property TimeOut: integer read GetTimeOut write SetTimeOut;
     property LastAccess: TDateTime read FLastAccess;
 
-    property Interval: Double read GetInterval;
+    property Interval: double read GetInterval;
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
 
     function StartSession: boolean;
     procedure Clear;
-    procedure DeleteKey( const Key:string);
-    procedure EndSession( const Force:boolean = True);
+    procedure DeleteKey(const Key: string);
+    procedure EndSession(const Force: boolean = True);
     procedure Terminate;
     procedure ForceUpdate;
 
@@ -72,7 +72,7 @@ type
     function ReadInteger(const variable: string): integer;
 
     function _DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
-    function GetData( ) : string;
+    function GetData(): string;
   end;
 
 implementation
@@ -160,7 +160,7 @@ begin
   end;
 end;
 
-function TSessionController.GetInterval: Double;
+function TSessionController.GetInterval: double;
 begin
   Result := (((Now - LastAccess) + TDateTimeEpsilon) * SecsPerDay);
   if Result < 0 then
@@ -176,7 +176,7 @@ begin
   T := FIniFile.ReadInteger(_SESSION_SESSION, _SESSION_KEYTIMEOUT, FSessionTimeout);
   if T = 0 then
     Exit;
-  if ( Interval > T ) then
+  if (Interval > T) then
   begin
     Result := True;
     FIniFile.EraseSection(_SESSION_DATA);
@@ -267,11 +267,11 @@ end;
 
 function TSessionController.GetData: string;
 var
-  lst : TStringList;
+  lst: TStringList;
 begin
   lst := TStringList.Create;
-  FIniFile.GetStrings( lst);
-  Result :=  lst.Text;
+  FIniFile.GetStrings(lst);
+  Result := lst.Text;
   lst.Free;
 end;
 
@@ -332,7 +332,7 @@ begin
 
   if not DirectoryIsWritable(FSessionDir) then
   begin
-    LogUtil.Add( 'Can''t write session', 'sessions', true);
+    LogUtil.Add('Can''t write session', 'sessions', True);
   end;
 
   // init session
@@ -380,13 +380,13 @@ end;
 
 procedure TSessionController.DeleteKey(const Key: string);
 begin
-  FIniFile.DeleteKey( _SESSION_DATA, Key);
+  FIniFile.DeleteKey(_SESSION_DATA, Key);
 end;
 
 procedure TSessionController.EndSession(const Force: boolean);
 begin
   try
-    FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, false);
+    FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, False);
     FIniFile.EraseSection(_SESSION_DATA);
     if Force then
     begin

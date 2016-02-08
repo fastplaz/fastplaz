@@ -177,7 +177,7 @@ type
     function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
     procedure Clear;
     procedure AddFile(FileName: string; VarName: string = 'files[]');
-    procedure AddHeader(const HeaderKey, HeaderValue: String);
+    procedure AddHeader(const HeaderKey, HeaderValue: string);
     property FormData[variable: string]: string
       read GetPostFormData write SetPostFormData; default;
   published
@@ -534,9 +534,9 @@ begin
   FWorker.AddFile(FileName, VarName);
 end;
 
-procedure THTTPLib.AddHeader(const HeaderKey, HeaderValue: String);
+procedure THTTPLib.AddHeader(const HeaderKey, HeaderValue: string);
 begin
-  FWorker.HTTPClient.AddHeader( HeaderKey, HeaderValue);
+  FWorker.HTTPClient.AddHeader(HeaderKey, HeaderValue);
 end;
 
 function THTTPLib.Get: IHTTPResponse;
