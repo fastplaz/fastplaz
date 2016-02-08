@@ -109,7 +109,7 @@ begin
 
   if not User.Login(_POST['data[username]'], _POST['data[password]']) then
   begin
-    ThemeUtil.FlashMessages := Format( MSG_LOGIN_INVALID, [User.FailedLoginCount]);
+    ThemeUtil.FlashMessages := Format(MSG_LOGIN_INVALID, [User.FailedLoginCount]);
     Redirect(BaseURL + USER_URL_LOGIN);
   end;
 
@@ -197,7 +197,6 @@ begin
       Redirect(BaseURL + USER_URL_LOSTPASSWORD);
     end;
     if not User.isEmailExists(_POST['data[email]']) then
-
     begin
       ThemeUtil.FlashMessages := MSG_USERNAMEEMAIL_NOT_EXISTS;
     end

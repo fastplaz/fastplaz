@@ -12,7 +12,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="FastPlaz Library for CMS/Application"/>
-    <Files Count="16">
+    <Files Count="18">
       <Item1>
         <Filename Value="../FastPlaz/define_cms.inc"/>
         <Type Value="Include"/>
@@ -54,29 +54,37 @@
         <UnitName Value="grouppermission_model"/>
       </Item10>
       <Item11>
-        <Filename Value="../FastPlaz/src/cms/model/user_model.pas"/>
-        <UnitName Value="user_model"/>
+        <Filename Value="../FastPlaz/src/cms/model/modvar_model.pas"/>
+        <UnitName Value="modvar_model"/>
       </Item11>
       <Item12>
-        <Filename Value="../FastPlaz/src/cms/util/group_util.pas"/>
-        <UnitName Value="group_util"/>
+        <Filename Value="../FastPlaz/src/cms/model/user_model.pas"/>
+        <UnitName Value="user_model"/>
       </Item12>
       <Item13>
-        <Filename Value="../FastPlaz/src/cms/util/permission_util.pas"/>
-        <UnitName Value="permission_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/group_util.pas"/>
+        <UnitName Value="group_util"/>
       </Item13>
       <Item14>
-        <Filename Value="../FastPlaz/src/cms/util/security_util.pas"/>
-        <UnitName Value="security_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/modvar_util.pas"/>
+        <UnitName Value="modvar_util"/>
       </Item14>
       <Item15>
-        <Filename Value="../FastPlaz/src/cms/util/user_util.pas"/>
-        <UnitName Value="user_util"/>
+        <Filename Value="../FastPlaz/src/cms/util/permission_util.pas"/>
+        <UnitName Value="permission_util"/>
       </Item15>
       <Item16>
+        <Filename Value="../FastPlaz/src/cms/util/security_util.pas"/>
+        <UnitName Value="security_util"/>
+      </Item16>
+      <Item17>
+        <Filename Value="../FastPlaz/src/cms/util/user_util.pas"/>
+        <UnitName Value="user_util"/>
+      </Item17>
+      <Item18>
         <Filename Value="../FastPlaz/src/vendor/dcrypt/hash_tools.pas"/>
         <UnitName Value="hash_tools"/>
-      </Item16>
+      </Item18>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
