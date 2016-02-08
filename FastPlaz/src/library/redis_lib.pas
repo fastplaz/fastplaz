@@ -27,7 +27,7 @@ Redis.MasterPort: = '6378';
 unit redis_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 

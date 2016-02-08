@@ -10,6 +10,7 @@ uses
 const
   GROUP_DEFAULT_ID = 1;
   GROUP_DEFAULTNAME = 'Users';
+  {$include define_cms.inc}
 
 type
 
@@ -32,7 +33,6 @@ implementation
 uses
   common, fastplaz_handler, groupmembership_model;
 
-{$include define_group.inc}
 
 constructor TGroupModel.Create(const DefaultTableName: string = '');
 begin

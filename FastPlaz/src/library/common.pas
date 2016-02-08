@@ -189,7 +189,13 @@ end;
 
 function s2b(s: string): boolean;
 begin
-  Result := StrToBool( s);
+  Result := False;
+  try
+    Result := StrToBool( s);
+  except
+  end;
+  if s = 'on' then Result := True;
+  if s = 'required' then Result := True;
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;

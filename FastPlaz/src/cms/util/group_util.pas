@@ -11,6 +11,7 @@ uses
 const
   GROUP_TYPE_CORE = 0;
   GROUP_TYPE_PUBLIC = 1;
+  {$include define_cms.inc}
 
 type
 
@@ -29,8 +30,6 @@ implementation
 
 uses
   fastplaz_handler;
-
-{$include define_group.inc}
 
 { TGroupsUtil }
 

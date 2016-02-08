@@ -1,7 +1,7 @@
 unit fastplaz_handler;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 
