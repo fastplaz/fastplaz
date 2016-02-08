@@ -70,7 +70,7 @@ begin
   Result := False;
   if UserID = 0 then
   begin
-    UserID:= getLoggedInUserID;
+    UserID := getLoggedInUserID;
   end;
 
   Result := (getSecurityLevel(UserID, Component, Instance) >= Level);

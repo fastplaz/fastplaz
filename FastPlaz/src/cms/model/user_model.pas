@@ -212,10 +212,11 @@ end;
 
 function TUserModel.SafeDelete(const UserID: integer; DeleteBy: integer): boolean;
 var
-  sql : string;
+  sql: string;
 begin
-  sql := 'UPDATE users SET deleted_date=now(), deleted_by='+i2s(DeleteBy)+' WHERE uid = ' + i2s(UserID);
-  Result := QueryExec( sql);
+  sql := 'UPDATE users SET deleted_date=now(), deleted_by=' + i2s(
+    DeleteBy) + ' WHERE uid = ' + i2s(UserID);
+  Result := QueryExec(sql);
 end;
 
 function TUserModel.isActive(const UserID: integer): boolean;
