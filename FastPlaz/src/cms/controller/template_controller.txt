@@ -1,0 +1,105 @@
+unit TEMPLATE_controller;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util,
+  database_lib, security_util;
+
+const
+  TEMPLATE_ROUTE_REGEX = '^(template)/?$';
+  TEMPLATE_TITLE = 'Template';
+  TEMPLATE_DESCRIPTION = 'Template Controller';
+  TEMPLATE_URL = 'template';
+
+type
+
+  { TTemplateModule }
+
+  TTemplateModule = class(TMyCustomWebModule)
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
+      AResponse: TResponse; var Handled: boolean);
+  private
+    function Tag_ModInfo_Handler(const TagName: string;
+      Params: TStringList): string;
+    function Tag_MainContent_Handler(const TagName: string;
+      Params: TStringList): string;
+    procedure BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
+  public
+    User: TUsersUtil;
+    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
+    destructor Destroy; override;
+
+  end;
+
+implementation
+
+uses theme_controller, common, logutil_lib;
+
+constructor TTemplateModule.CreateNew(AOwner: TComponent; CreateMode: integer);
+begin
+  User := TUsersUtil.Create();
+  inherited CreateNew(AOwner, CreateMode);
+  OnRequest := @RequestHandler;
+  BeforeRequest := @BeforeRequestHandler;
+end;
+
+destructor TTemplateModule.Destroy;
+begin
+  inherited Destroy;
+  if Assigned(User) then
+    User.Free;
+end;
+
+procedure TTemplateModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
+begin
+  DataBaseInit;
+  LanguageInit;
+  QueryExec('SET CHARACTER SET utf8;');
+
+  if isAjax then
+  begin
+    echo('this is ajax call: ' + _POST['keyword']);
+    die;
+  end;
+
+  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
+  Tags['modinfo'] := @Tag_ModInfo_Handler;
+  Response.Content := ThemeUtil.Render();
+  Handled := True;
+end;
+
+function TTemplateModule.Tag_ModInfo_Handler(const TagName: string;
+  Params: TStringList): string;
+begin
+  Result := '';
+  case Params.Values['type'] of
+    'title': Result := TEMPLATE_TITLE;
+    'description': Result := TEMPLATE_DESCRIPTION;
+  end;
+end;
+
+function TTemplateModule.Tag_MainContent_Handler(const TagName: string;
+  Params: TStringList): string;
+var
+  action: string;
+begin
+  Result := 'Template ......';
+end;
+
+procedure TTemplateModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
+begin
+end;
+
+
+initialization
+  // -> http://yourdomainname/user
+  // The following line should be moved to a file "routes.pas"
+{
+  Add this to route.pas
+  Route.Add( TEMPLATE_ROUTE_REGEX, TTemplateModule);
+}
+end.
