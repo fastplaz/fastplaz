@@ -14,7 +14,7 @@
     <Description Value="FastPlaz Library for CMS/Application"/>
     <Files Count="16">
       <Item1>
-        <Filename Value="../FastPlaz/define.inc"/>
+        <Filename Value="../FastPlaz/define_cms.inc"/>
         <Type Value="Include"/>
       </Item1>
       <Item2>

@@ -22,7 +22,7 @@
     <Description Value="FastPlaz RunTime"/>
     <Files Count="23">
       <Item1>
-        <Filename Value="..\FastPlaz\define.inc"/>
+        <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
       </Item1>
       <Item2>

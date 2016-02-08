@@ -1,7 +1,7 @@
 unit mailer_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 
