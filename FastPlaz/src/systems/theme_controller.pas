@@ -1711,7 +1711,8 @@ begin
     //-- form control
     'input' : begin
       ReplaceText := HTMLUtil.AddInputLTE( tagstring_custom.Values['id'], tagstring_custom.Values['type'],
-        tagstring_custom.Values['label'], tagstring_custom.Values['value'], tagstring_custom.Values['placeholder']);
+        tagstring_custom.Values['label'], tagstring_custom.Values['value'], tagstring_custom.Values['placeholder'],
+        s2b( tagstring_custom.Values['required']), tagstring_custom.Values['button']);
     end;
   end;
 
