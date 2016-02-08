@@ -231,7 +231,8 @@ begin
 end;
 
 {$IFDEF XMAILER}
-procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
+procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer;
+  const AStatus: string);
 begin
   FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
 end;

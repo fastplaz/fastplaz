@@ -47,8 +47,12 @@ type
     function EndForm(): string;
     function AddInput(Options: array of string; Mandatory: boolean = False): string;
 
-    function AddInputLTE( InputID, InputType: string; LabelName: string = ''; Value:string = ''; Placeholder: string = ''; Required:boolean = True; ButtonLabel:string = ''): string;
-    function AddSelectLTE( InputID: string; LabelName: string = ''; Data: TSQLQuery = nil; IndexFieldName: string = 'id'; ValueFieldName: string = 'name'): string;
+    function AddInputLTE(InputID, InputType: string; LabelName: string = '';
+      Value: string = ''; Placeholder: string = ''; Required: boolean = True;
+      ButtonLabel: string = ''): string;
+    function AddSelectLTE(InputID: string; LabelName: string = '';
+      Data: TSQLQuery = nil; IndexFieldName: string = 'id';
+      ValueFieldName: string = 'name'): string;
 
     function AddField(TagName: string; Options: array of string): string;
     function AddButton(TagName: string; Options: array of string): string;
@@ -328,30 +332,32 @@ begin
 end;
 
 function THTMLUtil.AddInputLTE(InputID, InputType: string; LabelName: string;
-  Value: string; Placeholder: string; Required: boolean; ButtonLabel: string
-  ): string;
+  Value: string; Placeholder: string; Required: boolean; ButtonLabel: string): string;
 var
-  btnName : string;
+  btnName: string;
 begin
   Result := '<div class="form-group">';
   if InputType = 'checkbox' then
   begin
     Result := Result + '<div class="col-sm-offset-2 col-sm-9">';
     Result := Result + '<div class="checkbox">';
-    Result := Result + '<label><input id="'+InputID+'" name="'+InputID+'" type="checkbox"> '+LabelName+'</label>';
+    Result := Result + '<label><input id="' + InputID + '" name="' + InputID +
+      '" type="checkbox"> ' + LabelName + '</label>';
     Result := Result + '</div>';
     Result := Result + '</div>';
   end
   else
   begin
     if Value <> '' then
-      Value := ' value="'+Value+'" ';
-    Result := Result + '<label for="'+InputID+'" class="col-sm-2 control-label">'+LabelName+'</label>';
+      Value := ' value="' + Value + '" ';
+    Result := Result + '<label for="' + InputID + '" class="col-sm-2 control-label">' +
+      LabelName + '</label>';
     if InputType = 'password' then
       Result := Result + '<div class="col-sm-5 input-group input-group-sm">'
     else
       Result := Result + '<div class="col-sm-9 input-group input-group-sm">';
-    Result := Result + '<input id="'+InputID+'" name="'+InputID+'" type="'+InputType+'" class="form-control" '+Value+' placeholder="'+Placeholder+'" ';
+    Result := Result + '<input id="' + InputID + '" name="' + InputID +
+      '" type="' + InputType + '" class="form-control" ' + Value + ' placeholder="' + Placeholder + '" ';
     if Required then
       Result := Result + ' required>'
     else
@@ -361,8 +367,10 @@ begin
     if ButtonLabel <> '' then
     begin
       btnName := 'btn-' + ButtonLabel;
-      btnName := StringReplace( btnName, ' ', '', [rfReplaceAll]);
-      Result := Result + '<span class="input-group-btn"><button id="'+btnName+'" name="'+btnName+'" type="button" class="btn btn-info btn-flat">'+ButtonLabel+'</span></span>';
+      btnName := StringReplace(btnName, ' ', '', [rfReplaceAll]);
+      Result := Result + '<span class="input-group-btn"><button id="' +
+        btnName + '" name="' + btnName + '" type="button" class="btn btn-info btn-flat">' +
+        ButtonLabel + '</span></span>';
     end;
 
     Result := Result + '</div>';
@@ -373,8 +381,8 @@ end;
 function THTMLUtil.AddSelectLTE(InputID: string; LabelName: string;
   Data: TSQLQuery; IndexFieldName: string; ValueFieldName: string): string;
 var
-  html : TStringList;
-  index, value : string;
+  html: TStringList;
+  index, Value: string;
 begin
   Result := '';
   if Data = nil then
@@ -382,23 +390,24 @@ begin
 
   html := TStringList.Create;
   Data.First;
-  html.Add( '<DIV class="form-group">');
-  html.Add( '<LABEL FOR="'+InputID+'" class="col-sm-2 control-label">'+LabelName+'</LABEL>');
-  html.Add( '<DIV CLASS="col-sm-9 ">');
-  html.Add( '<SELECT id="'+InputID+'" name="'+InputID+'" class="form-control">');
-  html.Add( '<OPTION value="0">- NONE -</OPTION>');
+  html.Add('<DIV class="form-group">');
+  html.Add('<LABEL FOR="' + InputID + '" class="col-sm-2 control-label">' +
+    LabelName + '</LABEL>');
+  html.Add('<DIV CLASS="col-sm-9 ">');
+  html.Add('<SELECT id="' + InputID + '" name="' + InputID + '" class="form-control">');
+  html.Add('<OPTION value="0">- NONE -</OPTION>');
   repeat
     index := Data[IndexFieldName];
-    value := Data[ValueFieldName];
-    html.Add( '<OPTION value="'+index+'">'+value+'</OPTION>');
+    Value := Data[ValueFieldName];
+    html.Add('<OPTION value="' + index + '">' + Value + '</OPTION>');
     Data.Next;
   until Data.EOF;
-  html.Add( '</SELECT>');
-  html.Add( '</DIV>');
-  html.Add( '</DIV>');
+  html.Add('</SELECT>');
+  html.Add('</DIV>');
+  html.Add('</DIV>');
 
   Result := html.Text;
-  FreeAndNil( html);
+  FreeAndNil(html);
 end;
 
 function THTMLUtil.AddField(TagName: string; Options: array of string): string;

@@ -26,11 +26,13 @@ type
   { TInitializeModule }
 
   TInitializeModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
+      AResponse: TResponse; var Handled: boolean);
   private
     htaccess, ContentFile: TStringList;
     function InitializeApp: boolean;
-    function CreateDirCustom(const NewDir: string; CreateHtaccess: boolean = False): boolean;
+    function CreateDirCustom(const NewDir: string;
+      CreateHtaccess: boolean = False): boolean;
     function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
@@ -73,8 +75,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse;
-  var Handled: boolean);
+procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
 begin
   if FileExists('config/config.json') then
     Redirect(BaseURL);
@@ -144,7 +146,8 @@ begin
   Config.SetValue(_SYSTEM_SITENAME, _APP);
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
   Config.SetValue(_SYSTEM_BASEURL, '');
-  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'admin@' + widestring(GetEnvironmentVariable('SERVER_NAME')));
+  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'admin@' +
+    WideString(GetEnvironmentVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
   Config.SetValue(_SYSTEM_DEBUG, True);
@@ -153,21 +156,21 @@ begin
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   Config.SetValue(_SYSTEM_SESSION_TIMEOUT, 0);
 
-  Config.SetValue( format(_DATABASE_DRIVER, ['default']), 'MySQL 5.5');
-  Config.SetValue( format(_DATABASE_HOSTNAME, ['default']), 'localhost');
-  Config.SetValue( format(_DATABASE_PORT, ['default']), '');
-  Config.SetValue( format(_DATABASE_USERNAME, ['default']), 'your_username');
-  Config.SetValue( format(_DATABASE_PASSWORD, ['default']), 'your_password');
-  Config.SetValue( format(_DATABASE_DATABASENAME, ['default']), 'your_database');
-  Config.SetValue( format(_DATABASE_TABLE_PREFIX, ['default']), '');
-  Config.SetValue( format(_DATABASE_LIBRARY, ['default']), '../libs/win/libmysql.dll');
+  Config.SetValue(format(_DATABASE_DRIVER, ['default']), 'MySQL 5.5');
+  Config.SetValue(format(_DATABASE_HOSTNAME, ['default']), 'localhost');
+  Config.SetValue(format(_DATABASE_PORT, ['default']), '');
+  Config.SetValue(format(_DATABASE_USERNAME, ['default']), 'your_username');
+  Config.SetValue(format(_DATABASE_PASSWORD, ['default']), 'your_password');
+  Config.SetValue(format(_DATABASE_DATABASENAME, ['default']), 'your_database');
+  Config.SetValue(format(_DATABASE_TABLE_PREFIX, ['default']), '');
+  Config.SetValue(format(_DATABASE_LIBRARY, ['default']), '../libs/win/libmysql.dll');
 
-  Config.SetValue( format(_MAIL_MAILSERVER, ['default']), 'your.mail.server');
-  Config.SetValue( format(_MAIL_USERNAME, ['default']), 'your-username');
-  Config.SetValue( format(_MAIL_PASSWORD, ['default']), 'your-password');
-  Config.SetValue( format(_MAIL_SMTPPORT, ['default']), '465');
-  Config.SetValue( format(_MAIL_SSL, ['default']), True);
-  Config.SetValue( format(_MAIL_TLS, ['default']), True);
+  Config.SetValue(format(_MAIL_MAILSERVER, ['default']), 'your.mail.server');
+  Config.SetValue(format(_MAIL_USERNAME, ['default']), 'your-username');
+  Config.SetValue(format(_MAIL_PASSWORD, ['default']), 'your-password');
+  Config.SetValue(format(_MAIL_SMTPPORT, ['default']), '465');
+  Config.SetValue(format(_MAIL_SSL, ['default']), True);
+  Config.SetValue(format(_MAIL_TLS, ['default']), True);
 
   FreeAndNil(Config);
 
@@ -215,7 +218,8 @@ begin
   Result := True;
 end;
 
-function TInitializeModule.CreateDirCustom(const NewDir: string; CreateHtaccess: boolean): boolean;
+function TInitializeModule.CreateDirCustom(const NewDir: string;
+  CreateHtaccess: boolean): boolean;
 begin
   try
     Result := ForceDirectories(NewDir);
@@ -228,13 +232,14 @@ begin
   end;
 end;
 
-function TInitializeModule.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
+function TInitializeModule.Tag_MainContent_Handler(const TagName: string;
+  Params: TStringList): string;
 begin
   Result := '<h1>FastPlaz</h1>Application Structure successfully generated !!!';
 end;
 
 
 initialization
-  Route.Add('initialize', TMyCustomWebModuleClass( TInitializeModule));
+  Route.Add('initialize', TMyCustomWebModuleClass(TInitializeModule));
 
 end.

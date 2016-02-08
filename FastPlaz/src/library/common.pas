@@ -82,60 +82,64 @@ function i2s(pI: integer): string;
 function s2i(s: string): integer;
 function f2s(n: extended): string;
 function s2f(s: string): extended;
-function b2s( b: boolean): string;
-function s2b( s: string): boolean;
-function Implode(lst: TStringList; sep: string = ';'; prefix: string = ''; suffix: string = ''): string;
+function b2s(b: boolean): string;
+function s2b(s: string): boolean;
+function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
+  suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
-function isRegex( s:string): boolean;
+function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
 
 function SafeText(const SourceString: string): string;
-function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
-  IgnoreCase: boolean = False): string;
-function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
-  IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean = False): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetString(J: TJsonData; index: string): string;
-function JsonFormatter( JsonString:string):string;
-function IsJsonValid( JsonString:string):boolean;
+function JsonFormatter(JsonString: string): string;
+function IsJsonValid(JsonString: string): boolean;
 function HexToInt(HexStr: string): int64;
 
 function RandomString(PLen: integer; PrefixString: string = ''): string;
-function RandomString( MinLength, MaxLength: integer; LeadingCapital: boolean = true; UseUpper: boolean = true; UseLower: boolean = true; UseSpace: boolean = false;
-  UseNumber:boolean = false; UseSpecial: boolean = false; UseSeed:boolean = false; DontUse: string = ''):string;
-function EncodeQueryString( Data: array of string): string;
+function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = True;
+  UseUpper: boolean = True; UseLower: boolean = True; UseSpace: boolean = False;
+  UseNumber: boolean = False; UseSpecial: boolean = False;
+  UseSeed: boolean = False; DontUse: string = ''): string;
+function EncodeQueryString(Data: array of string): string;
 
 // php like function
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
 procedure echo(const Number: double);
 procedure pr(const Message: variant);
-procedure ta(const Message: variant; Width : integer = 800; Height : integer = 200);
+procedure ta(const Message: variant; Width: integer = 800; Height: integer = 200);
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
 procedure Die(const Message: TStringList); overload;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
-function CleanUrl( URL:string; Separator: string = '-'):string;
+function CleanUrl(URL: string; Separator: string = '-'): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
 
-function file_get_contents( TargetURL: string):string;
+function file_get_contents(TargetURL: string): string;
 
-function preg_match( const RegexExpression:string; SourceString:string):boolean;
-function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
+function preg_match(const RegexExpression: string; SourceString: string): boolean;
+function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
+  UseSubstitution: boolean = True): string;
 // php like function - end
 
-function isIPAddress( const IPAddress: string): boolean;
-function FastInfo():string;
+function isIPAddress(const IPAddress: string): boolean;
+function FastInfo(): string;
 
 implementation
 
@@ -165,7 +169,7 @@ begin
   try
     //Result := FloatToStr(n);
     //Result := FloatToStrF(n, ffCurrency, 8, 2);
-    Result := Format( '%.2f', [n]);
+    Result := Format('%.2f', [n]);
   except
   end;
 end;
@@ -191,11 +195,13 @@ function s2b(s: string): boolean;
 begin
   Result := False;
   try
-    Result := StrToBool( s);
+    Result := StrToBool(s);
   except
   end;
-  if s = 'on' then Result := True;
-  if s = 'required' then Result := True;
+  if s = 'on' then
+    Result := True;
+  if s = 'required' then
+    Result := True;
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -275,7 +281,8 @@ begin
   if Pos('.', lst[0]) <> 0 then
   begin
     lst.Insert(0, Copy(lst[0], 1, Pos('.', lst[0]) - 1));
-    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) - Pos('.', lst[1]));
+    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) -
+      Pos('.', lst[1]));
   end;
 
   Result := lst;
@@ -285,9 +292,12 @@ end;
 function isRegex(s: string): boolean;
 begin
   Result := False;
-  if Pos( '?', s) <> 0 then Result := True;
-  if Pos( '^', s) <> 0 then Result := True;
-  if Pos( '$', s) <> 0 then Result := True;
+  if Pos('?', s) <> 0 then
+    Result := True;
+  if Pos('^', s) <> 0 then
+    Result := True;
+  if Pos('$', s) <> 0 then
+    Result := True;
 end;
 
 function EchoError(const Fmt: string; const Args: array of const): string;
@@ -314,8 +324,8 @@ begin
   Result := s;
 end;
 
-function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
-  IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   NewPattern: string;
@@ -335,8 +345,8 @@ begin
   end;
 end;
 
-function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
-  IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   I: integer;
@@ -377,11 +387,13 @@ end;
 
 procedure ta(const Message: variant; Width: integer; Height: integer);
 begin
-  if Width = 0 then Width := 800;
-  echo( #13'<textarea style="width: '+i2s(Width)+'px !important; height: '+i2s(Height)+'px !important;">');
-  echo( #13'');
-  echo( string(Message));
-  echo( #13'</textarea>');
+  if Width = 0 then
+    Width := 800;
+  echo(#13'<textarea style="width: ' + i2s(Width) + 'px !important; height: ' +
+    i2s(Height) + 'px !important;">');
+  echo(#13'');
+  echo(string(Message));
+  echo(#13'</textarea>');
 end;
 
 procedure Die(const Number: integer);
@@ -416,21 +428,21 @@ const
   c_number = '0123456789';
   c_special = '~@#$%^*()_+-={}|][';
 var
-  rnd, chars : string;
-  i, len, clen : integer;
+  rnd, chars: string;
+  i, len, clen: integer;
 begin
-  chars:= '';
+  chars := '';
   if UseLower then
-    chars:= chars + c_lower;
+    chars := chars + c_lower;
   if UseUpper then
-    chars:= chars + c_upper;
+    chars := chars + c_upper;
   if UseNumber then
-    chars:= chars + c_number;
+    chars := chars + c_number;
   if UseSpecial then
-    chars:= chars + c_special;
+    chars := chars + c_special;
   if UseSpace then
   begin
-    for i:=0 to (Length( chars) mod 10) do
+    for i := 0 to (Length(chars) mod 10) do
       chars := chars + ' ';
   end;
   if DontUse <> '' then
@@ -439,19 +451,19 @@ begin
   end;
 
   Randomize;
-  len := RandomRange( MinLength, MaxLength);
-  clen := length( chars);
+  len := RandomRange(MinLength, MaxLength);
+  clen := length(chars);
   rnd := '';
   try
-    for i:=1 to len do
+    for i := 1 to len do
     begin
-      rnd := rnd + chars[ RandomRange( 1, clen)];
+      rnd := rnd + chars[RandomRange(1, clen)];
     end;
   except
   end;
 
   if LeadingCapital then
-    rnd[1] := upCase( rnd[1]);
+    rnd[1] := upCase(rnd[1]);
   Result := rnd;
 end;
 
@@ -572,25 +584,26 @@ begin
 end;
 
 function JsonFormatter(JsonString: string): string;
-// error line : VJSONParser.Scanner.CurRow;
+  // error line : VJSONParser.Scanner.CurRow;
 var
   VJSONData: TJSONData = nil;
   VJSONParser: TLocalJSONParser;
 begin
   Result := '';
-  JsonString := trim( JsonString);
+  JsonString := trim(JsonString);
   if JsonString = '' then
     Exit;
 
-  VJSONParser := TLocalJSONParser.Create( JsonString);
+  VJSONParser := TLocalJSONParser.Create(JsonString);
   try
     try
       VJSONParser.Strict := True;
       VJSONData := VJSONParser.Parse;
-      Result := VJSONData.FormatJSON([], 2);;
+      Result := VJSONData.FormatJSON([], 2);
+      ;
       VJSONData.Free;
     except
-      on E : Exception do
+      on E: Exception do
       begin
       end;
     end;
@@ -602,7 +615,7 @@ end;
 
 function IsJsonValid(JsonString: string): boolean;
 begin
-  if JsonFormatter( JsonString) = '' then
+  if JsonFormatter(JsonString) = '' then
     Result := False
   else
     Result := True;
@@ -636,7 +649,8 @@ begin
   Result := RetVar;
 end;
 
-function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string; Flags: TReplaceFlags): string;
+function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string;
+  Flags: TReplaceFlags): string;
 var
   i: integer;
 begin
@@ -669,8 +683,8 @@ end;
 function CleanUrl(URL: string; Separator: string): string;
 begin
   Result := LowerCase(Trim(URL));
-  Result := ReplaceAll(Result, [' ', ',', '?', '!', '.', '''', '+', '^',
-    '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], Separator);
+  Result := ReplaceAll(Result, [' ', ',', '?', '!', '.', '''', '+',
+    '^', '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], Separator);
   Result := ReplaceAll(Result, ['---', '--'], '-');
 end;
 
@@ -737,16 +751,16 @@ end;
 
 function file_get_contents(TargetURL: string): string;
 var
-  s : string;
+  s: string;
 begin
   Result := '';
-  With TFPHTTPClient.Create(Nil) do
+  with TFPHTTPClient.Create(nil) do
   begin
     try
-      s := Get( TargetURL);
+      s := Get(TargetURL);
       Result := s;
     except
-      on e : Exception do
+      on e: Exception do
       begin
         Result := e.Message;
       end;
@@ -756,28 +770,28 @@ begin
   end;
 end;
 
-function preg_match(const RegexExpression: string; SourceString: string
-  ): boolean;
+function preg_match(const RegexExpression: string; SourceString: string): boolean;
 begin
   Result := False;
   try
     with TRegExpr.Create do
     begin
       Expression := RegexExpression;
-      Result := Exec( SourceString);
+      Result := Exec(SourceString);
       Free;
     end;
   except
   end;
 end;
 
-function preg_replace(const RegexExpression, ReplaceString, SourceString: string; UseSubstitution: boolean): string;
+function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
+  UseSubstitution: boolean): string;
 begin
   try
     with TRegExpr.Create do
     begin
       Expression := RegexExpression;
-      Result := Replace( SourceString, ReplaceString, UseSubstitution);
+      Result := Replace(SourceString, ReplaceString, UseSubstitution);
       Free;
     end;
   except
@@ -787,27 +801,26 @@ end;
 
 function isIPAddress(const IPAddress: string): boolean;
 begin
-  result:= execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+  Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
 end;
 
 function FastInfo: string;
 var
   lst: TStringList;
-  s : string;
+  s: string;
 begin
   lst := TStringList.Create;
   Application.GetEnvironmentList(lst);
 
   s := '<pre><b>Your Server Info:</b><br>';
-//  s := #13#0'Target ' + {$i %FPCTARGET%};
-//  s := s + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
-//  s := s + #13#10'Target OS ' + {$i %FPCTARGETOS%};
+  s := s + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
+  s := s + #13#10'Target OS ' + {$i %FPCTARGETOS%};
   s := s + #13#10'FPC Version ' + {$i %FPCVERSION%};
   s := s + #13#10'Build Date ' + {$i %DATE%};
   s := s + #13#10#13;
 
-  lst.Text:= s + lst.Text;
-  result := lst.Text;
+  lst.Text := s + lst.Text;
+  Result := lst.Text;
   lst.Free;
 end;
 
@@ -815,7 +828,7 @@ initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
   AppData.debug := True;
   Config := TMyConfig.Create(nil);
-  Config.ValidateFile( 'config/config.json');
+  Config.ValidateFile('config/config.json');
 
 
 finalization

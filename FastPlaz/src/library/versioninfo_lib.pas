@@ -7,7 +7,6 @@ interface
 uses
   Classes, SysUtils, resource, versiontypes, versionresource;
 
-
 type
 
   TRVersion = record
@@ -15,7 +14,7 @@ type
     Minor: word;
     Revision: word;
     BuldNumber: word;
-    Version : string;
+    Version: string;
     FullVersion: string;
   end;
 
@@ -89,4 +88,5 @@ begin
 end;
 
 end.
+
 

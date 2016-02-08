@@ -40,7 +40,7 @@ procedure TDocsModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
   Tags['maincontent'] := @Tag_MainContent_Handler;
-  ThemeUtil.TrimWhiteSpace:= False;
+  ThemeUtil.TrimWhiteSpace := False;
   Response.Content := ThemeUtil.Render(@TagController);
   Handled := True;
 end;

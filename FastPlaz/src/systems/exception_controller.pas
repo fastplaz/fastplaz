@@ -32,17 +32,18 @@ except
   end;
 end;
 }
-procedure DumpExceptionCallStack( E: Exception);
+procedure DumpExceptionCallStack(E: Exception);
 var
-  I: Integer;
+  I: integer;
   Frames: PPointer;
   Report: string;
 begin
-  Report := '<pre>Program exception! ' + LineEnding +
-    'Stacktrace:' + LineEnding + LineEnding;
-  if E <> nil then begin
+  Report := '<pre>Program exception! ' + LineEnding + 'Stacktrace:' +
+    LineEnding + LineEnding;
+  if E <> nil then
+  begin
     Report := Report + 'Exception class: ' + E.ClassName + LineEnding +
-    'Message: ' + E.Message + LineEnding;
+      'Message: ' + E.Message + LineEnding;
   end;
   Report := Report + BackTraceStrFunc(ExceptAddr);
   Frames := ExceptFrames;
@@ -55,11 +56,9 @@ end;
 
 procedure DumpCallStack;
 var
-  I: Longint;
+  I: longint;
   prevbp: Pointer;
-  CallerFrame,
-  CallerAddress,
-  bp: Pointer;
+  CallerFrame, CallerAddress, bp: Pointer;
   Report: string;
 const
   MaxDepth = 20;
@@ -71,21 +70,22 @@ begin
   try
     prevbp := bp - 1;
     I := 0;
-    while bp > prevbp do begin
-       CallerAddress := get_caller_addr(bp);
-       CallerFrame := get_caller_frame(bp);
-       if (CallerAddress = nil) then
-         Break;
-       Report := Report + BackTraceStrFunc(CallerAddress) + LineEnding;
-       Inc(I);
-       if (I >= MaxDepth) or (CallerFrame = nil) then
-         Break;
-       prevbp := bp;
-       bp := CallerFrame;
-     end;
-   except
-     { prevent endless dump if an exception occured }
-   end;
+    while bp > prevbp do
+    begin
+      CallerAddress := get_caller_addr(bp);
+      CallerFrame := get_caller_frame(bp);
+      if (CallerAddress = nil) then
+        Break;
+      Report := Report + BackTraceStrFunc(CallerAddress) + LineEnding;
+      Inc(I);
+      if (I >= MaxDepth) or (CallerFrame = nil) then
+        Break;
+      prevbp := bp;
+      bp := CallerFrame;
+    end;
+  except
+    { prevent endless dump if an exception occured }
+  end;
   echo(Report);
 end;
 
