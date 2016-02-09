@@ -41,7 +41,7 @@ type
     property UserInfo[FieldName: string]: variant read GetUserInfo;
 
     function isLoggedIn: boolean;
-    function isHaveAdmin: boolean;
+    function isHaveAdmin( ComponentName, Instance: string): boolean;
     function Login(const UserEmail: string; const Password: string;
       RememberMe: boolean = False): boolean;
     function Logout: boolean;
@@ -70,8 +70,8 @@ begin
     Exit;
   if SessionController.IsExpired then
   begin
-    Logout;
-    Exit;
+    //Logout;
+    //Exit;
   end;
 
   uid := _SESSION['uid'];
@@ -125,11 +125,13 @@ begin
     Result := True;
 end;
 
-function TUserUtil.isHaveAdmin: boolean;
+function TUserUtil.isHaveAdmin(ComponentName, Instance: string): boolean;
 begin
-  // prepare for next feature
+  Result := checkPermission( ComponentName, Instance, ACCESS_ADMIN);
 
-  Result := True;
+  // still have bugs
+  // compare with this function
+  //   if checkPermission( 'example', '.*', ACCESS_ADMIN) then
 end;
 
 function TUserUtil.Login(const UserEmail: string; const Password: string;
@@ -158,7 +160,7 @@ begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
     with TSecurityUtil.Create do
     begin
-      if CheckSaltedHash(Password, hashedData) then
+      if CheckSaltedHash(UserEmail + Password, hashedData) then
       begin
         // save session
         i := Data[USER_FIELDNAME_ID];

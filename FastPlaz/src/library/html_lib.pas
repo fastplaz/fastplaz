@@ -337,6 +337,11 @@ var
   btnName: string;
 begin
   Result := '<div class="form-group">';
+  if InputType = 'hidden' then
+  begin
+    Result := '<input type="hidden" id="'+InputID+'" name="'+InputID+'" value="'+Value+'" >';
+    Exit;
+  end;
   if InputType = 'checkbox' then
   begin
     Result := Result + '<div class="col-sm-offset-2 col-sm-9">';
@@ -356,6 +361,8 @@ begin
       Result := Result + '<div class="col-sm-5 input-group input-group-sm">'
     else
       Result := Result + '<div class="col-sm-9 input-group input-group-sm">';
+    if InputType = 'email' then
+      Result := Result + '<span class="input-group-addon"><i class="fa fa-envelope"></i></span>';
     Result := Result + '<input id="' + InputID + '" name="' + InputID +
       '" type="' + InputType + '" class="form-control" ' + Value + ' placeholder="' + Placeholder + '" ';
     if Required then

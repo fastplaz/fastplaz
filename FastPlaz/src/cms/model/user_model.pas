@@ -84,9 +84,9 @@ begin
   end;
 
   if Password = '' then
-    saltedHash := FSecUtil.GenerateSaltedHash(FSecUtil.GeneratePassword)
+    saltedHash := FSecUtil.GenerateSaltedHash(Email + FSecUtil.GeneratePassword)
   else
-    saltedHash := FSecUtil.GenerateSaltedHash(Password);
+    saltedHash := FSecUtil.GenerateSaltedHash(Email + Password);
 
   New;
   SetFieldValue(USER_FIELDNAME_NAME, UserName);
@@ -121,13 +121,15 @@ end;
 function TUserModel.ChangePassword(const UserID: integer;
   const NewPassword: string): boolean;
 var
-  saltedHash: string;
+  email, saltedHash: string;
 begin
   Result := False;
-  saltedHash := FSecUtil.GenerateSaltedHash(NewPassword);
   if FindFirst([USER_FIELDNAME_ID + '="' + i2s(UserID) + '"'],
     USER_FIELDNAME_ID + ' desc') then
   begin
+    email := Value[USER_FIELDNAME_EMAIL];
+    saltedHash := FSecUtil.GenerateSaltedHash(email + NewPassword);
+
     New;
     SetFieldValue(USER_FIELDNAME_PASSWORD, saltedHash);
     if Save(USER_FIELDNAME_ID + '=' + i2s(UserID)) then

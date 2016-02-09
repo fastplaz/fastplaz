@@ -30,7 +30,7 @@ const
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
   __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ ]+)\]';
-  __CONDITIONAL_IF_VALUE = '([\.\$A-Za-z0-9=_ ]+)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  __CONDITIONAL_IF_VALUE = '([\.\$@A-Za-z0-9:=<">_\\/\-\n\r ]+)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
   __CONDITIONAL_IF_END = '\[/if\]';
 
   __HITS_FILENAME = 'hits.log';
@@ -403,7 +403,14 @@ begin
   except
   end;
 
-  // check from foreach-storage first
+  // check from varstring first
+  if FAssignVarStringMap.IndexOfName( varname) <> -1 then
+  begin
+    Result := FAssignVarStringMap.Values[ varname];
+    Exit;
+  end;
+
+  // check from foreach-storage
   try
     if assignVarMap[ ForeachTable_Keyname] <> nil then
     begin
@@ -1487,7 +1494,7 @@ procedure TThemeUtil.TagController(Sender: TObject; const TagString: String;
   TagParams: TStringList; out ReplaceText: String);
 var
   i : integer;
-  s, tagname, filter : string;
+  s, tagname, filter, value : string;
   tagstring_custom : TStringList;
   str, tag_with_filter : TStrings;
 begin
@@ -1710,8 +1717,15 @@ begin
 
     //-- form control
     'input' : begin
+      value := tagstring_custom.Values['value'];
+      //value := FAssignVarStringMap.Text;
+      if pos( '$', value) = 1 then
+      begin
+        if FAssignVarStringMap.IndexOfName( Copy( value, 2)) <> -1 then
+          value := FAssignVarStringMap.Values[ Copy( value, 2)];
+      end;
       ReplaceText := HTMLUtil.AddInputLTE( tagstring_custom.Values['id'], tagstring_custom.Values['type'],
-        tagstring_custom.Values['label'], tagstring_custom.Values['value'], tagstring_custom.Values['placeholder'],
+        tagstring_custom.Values['label'], value, tagstring_custom.Values['placeholder'],
         s2b( tagstring_custom.Values['required']), tagstring_custom.Values['button']);
     end;
   end;
@@ -1929,7 +1943,7 @@ begin
   end;
 
   //-- proccess conditional if
-  //html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
+  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   //-- proccess foreach
   if RenderType = rtSmarty then

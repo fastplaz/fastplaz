@@ -6,15 +6,16 @@ interface
 
 uses
   fpjson,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util, group_util, modvar_util,
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  user_util, group_util, modvar_util,
   database_lib, security_util, user_controller;
 
 const
-  ADMIN_GROUP_ROUTE_REGEX = '^(admin)-(group)-(list|view|add|edit|data)/?$';
+  ADMIN_GROUP_ROUTE_REGEX = '^(admin)-(group)-(list|view|add|edit|data|delete)/?$';
   ADMIN_GROUP_URL = 'admin-group-list';
   ADMIN_GROUP_TITLE = 'Groups';
   ADMIN_GROUP_DESCRIPTION = 'Administration';
-  //{$include '../../../define_cms.inc'}
+//{$include '../../../define_cms.inc'}
 
 type
 
@@ -24,6 +25,7 @@ type
     procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
+    function setOutput(code: integer; message: string; url: string = ''): string;
     function Tag_ModInfo_Handler(const TagName: string;
       Params: TStringList): string;
     function Tag_MainContent_Handler(const TagName: string;
@@ -41,6 +43,9 @@ type
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
 
+    function Add: string;
+    function Edit: string;
+    function Delete: string;
   end;
 
 implementation
@@ -68,6 +73,93 @@ begin
   inherited Destroy;
   if Assigned(Group) then
     Group.Free;
+end;
+
+function TGroupAdminModule.Add: string;
+var
+  groupId: integer;
+  groupName, description: string;
+begin
+  Result := '';
+  if not isPost then
+    Exit;
+
+  groupName := trim(_POST['name']);
+  description := trim(_POST['description']);
+  if (groupName = '') or (description = '') then
+  begin
+    Result := setOutput(1, MSG_VALUE_INVALID);
+    Exit;
+  end;
+
+  groupId := Group.Add(groupName, description);
+  if groupId = 0 then
+    Result := setOutput(3, MSG_GROUP_ADD_FAILED)
+  else
+  begin
+    Result := setOutput(0, OK);
+  end;
+end;
+
+function TGroupAdminModule.Edit: string;
+var
+  gid: integer;
+begin
+  if isPost then
+  begin
+    gid := s2i(_POST['id']);
+    if gid = 0 then
+      Result := setOutput(1, MSG_ID_INVALID);
+    if not Group.Find(gid) then
+      Result := setOutput(1, MSG_GROUP_NOTEXISTS);
+
+    Group[GROUP_FIELD_NAME] := _POST['name'];
+    Group[GROUP_FIELD_DESCRIPTION] := _POST['description'];
+    if Group.Save(GROUP_FIELD_ID + '=' + i2s(gid)) then
+      Result := setOutput(0, OK)
+    else
+      Result := setOutput(1, MSG_GROUP_EDIT_FAILED);
+  end
+  else
+  begin //-- GET
+    Result := '';
+    gid := s2i(_GET['id']);
+    if gid = 0 then
+      Redirect(BaseURL + 'admin-group-list');
+
+    if not Group.Find(gid) then
+      Redirect(BaseURL + 'admin-group-list', MSG_GROUP_NOTEXISTS);
+
+    ThemeUtil.Assign('id', Group['gid']);
+    ThemeUtil.Assign('name', Group['name']);
+    ThemeUtil.Assign('description', Group['description']);
+  end;
+
+end;
+
+function TGroupAdminModule.Delete: string;
+var
+  gid: integer;
+begin
+  Result := '';
+  if not isPost then
+    Exit;
+
+  gid := s2i(_POST['gid']);
+  if gid = 2 then
+  begin
+    Result := setOutput(-1, MSG_USER_DELETE_FAILED);
+    Exit;
+  end;
+
+  if Group.SafeDelete(gid, User.UserIdLoggedIn) then
+  begin
+    Result := setOutput(0, OK);
+  end
+  else
+  begin
+    Result := setOutput(-1, MSG_GROUP_DELETE_FAILED);
+  end;
 end;
 
 procedure TGroupAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
@@ -104,6 +196,29 @@ begin
   Handled := True;
 end;
 
+function TGroupAdminModule.setOutput(code: integer; message: string;
+  url: string): string;
+var
+  o, oData: TJSONObject;
+  csrf: string;
+begin
+  o := TJSONObject.Create();
+  o.Add('code', code);
+  o.Add('msg', message);
+  if url <> '' then
+    o.Add('url', url);
+  o.Add('loadtime', ThemeUtil.GetDebugInfo('time'));
+  with TSecurityUtil.Create do
+  begin
+    csrf := GenerateCSRF('usertable');
+    o.Add('token', csrf);
+    _SESSION[CSRFTOKEN_KEY] := csrf;
+    Free;
+  end;
+  Result := JsonFormatter(o.AsJSON);
+  FreeAndNil(o);
+end;
+
 function TGroupAdminModule.Tag_ModInfo_Handler(const TagName: string;
   Params: TStringList): string;
 begin
@@ -117,10 +232,21 @@ end;
 function TGroupAdminModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
-  Result := ThemeUtil.RenderFromContent(@TagController, Result,
-    'modules/groups/view/' + _REQUEST['$3'] + '.html');
+  Result := '';
+  case _GET['act'] of
+    'add': Result := Add;
+    'edit': Result := Edit;
+    'delete': Result := Delete;
+  end;
+
+  if not isPost then
+    Result := ThemeUtil.RenderFromContent(@TagController, Result,
+      'modules/groups/view/' + _REQUEST['$3'] + '.html');
   if isAjax then
+  begin
+    Response.ContentType := 'application/json';
     die(Result);
+  end;
 end;
 
 function TGroupAdminModule.Tag_GroupList_Handler(const TagName: string;
@@ -175,7 +301,7 @@ var
   index, limit, search, where: string;
   dataCount: integer;
 begin
-  where := '1=1';
+  where := '1=1 AND isnull( deleted_by) ';
   index := _GET['start'];
   limit := _GET['length'];
   search := _GET['search[value]'];
@@ -195,8 +321,8 @@ begin
   o.Add('draw', 0);
 
   sql := 'SELECT gid, name, gtype, description, state, nbuser, "" as action_col FROM groups u WHERE '
-    +
-    where + limit;
+    + where + ' ORDER BY name ' + limit;
+
   if QueryOpenToJson(sql, oData, False) then
   begin
     dataCount := oData['count'].AsInteger;
