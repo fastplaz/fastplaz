@@ -45,7 +45,7 @@ type
 
 implementation
 
-uses theme_controller, common, logutil_lib;
+uses theme_controller, common, logutil_lib, modvar_util;
 
 constructor TUserModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -138,7 +138,7 @@ end;
 function TUserModule.ChangePassword: string;
 var
   userId: integer;
-  hashedPassword: string;
+  email, hashedPassword: string;
 begin
   Result := '';
   if not User.isLoggedIn then
@@ -161,9 +161,10 @@ begin
     if User.FindFirst([USER_FIELDNAME_ID + '=' + i2s(userId)]) then
     begin
       hashedPassword := User[USER_FIELDNAME_PASSWORD];
+      email := User[USER_FIELDNAME_EMAIL];
       with TSecurityUtil.Create do
       begin
-        if not CheckSaltedHash(_POST['data[oldpassword]'], hashedPassword) then
+        if not CheckSaltedHash(email + _POST['data[oldpassword]'], hashedPassword) then
         begin
           Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_INVALID);
         end;
@@ -315,6 +316,8 @@ begin
   //if ARequest.PathInfo = '/user-dashbpard' then
   //  ThemeUtil.Layout := 'user-dashboard';
 
+  ThemeUtil.Assign('demo', ModVar['system/demo']);
+
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['usermenu'] := @Tag_UserMenu;
   Response.Content := ThemeUtil.Render();
@@ -364,7 +367,7 @@ function TUserModule.Tag_UserMenu(const TagName: string; Params: TStringList): s
 
 begin
   Result := '<b>this is user-menu</b>';
-  if User.isHaveAdmin then
+  if User.isHaveAdmin( 'user', '.*') then
     Result := Result + 'have admin';
 end;
 

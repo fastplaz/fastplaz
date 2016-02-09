@@ -52,11 +52,15 @@ MSG_ID_INVALID = 'Invalid ID';
 MSG_USER_EXISTS = 'User Exists';
 MSG_USER_NOTEXISTS = 'User Not exists';
 MSG_USER_ADD_FAILED = 'Failed to add user';
-MSG_USER_DELETE_FAILED = 'Failed Delete User';
+MSG_USER_DELETE_FAILED = 'Failed delete User';
 MSG_USER_ACTIVATE_FAILED = 'Failed to activate user.';
 MSG_USER_DEACTIVATE_FAILED = 'Failed to deactivate user.';
 MSG_USER_SUSPEND_FAILED = 'Failed to suspend user.';
 MSG_USER_RESETPASSWORD_FAILED = 'Failed reset user''s password.';
+MSG_GROUP_ADD_FAILED = 'Failed to add group';
+MSG_GROUP_EDIT_FAILED = 'Failed to edit group';
+MSG_GROUP_DELETE_FAILED = 'Failed delete group';
+MSG_GROUP_NOTEXISTS = 'Group Not exists';
 MSG_LOGIN_INVALID = 'Invalid UserName or Password ! <br>or your account is not active (%d times)';
 MSG_TOKEN_INVALID = 'Security: Invalid CSRF Token';
 MSG_PASSWORDNEW_INVALID = 'Invalid New Password';
@@ -67,5 +71,8 @@ MSG_FIELD_INCORRECT = 'Please insert field correctly';
 MSG_VALUE_INVALID = 'Invalid Value';
 MSG_NOPERMISSION = 'No Permission';
 MSG_PENDINGUSER = 'You have %d pending user(s)';
+MSG_DEMO_NORESETPASSWORD = 'Dont reset admin''s password at demo version.';
+MSG_DEMO_FAILEDDELETEUSERADMIN = 'Failed delete admin user';
+MSG_DEMO_FAILEDSUSPEND = 'Failed suspend admin user';
 
 

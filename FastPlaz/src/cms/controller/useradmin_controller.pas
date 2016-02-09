@@ -17,7 +17,7 @@ const
   ADMIN_USER_URL = 'admin-user-list';
   ADMIN_USER_PENDING_URL = 'admin-user-pending';
   ADMIN_USER_MENU_TITLE = 'User & Permission';
-  //{$include '../../../define_cms.inc'}
+//{$include '../../../define_cms.inc'}
 
 type
 
@@ -27,6 +27,7 @@ type
     procedure RequestHandler(Sender: TObject; ARequest: TRequest;
       AResponse: TResponse; var Handled: boolean);
   private
+    demo: boolean;
     function Tag_MainContent_Handler(const TagName: string;
       Params: TStringList): string;
     function Tag_ModInfo_Handler(const TagName: string;
@@ -59,7 +60,7 @@ type
 
 implementation
 
-uses theme_controller, common;
+uses theme_controller, common, modvar_util;
 
 constructor TUserAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -68,6 +69,8 @@ begin
   DataBaseInit;
   LanguageInit;
   QueryExec('SET CHARACTER SET utf8;');
+
+  demo := s2b(ModVar['system/demo']);
 
   User := TUserUtil.Create();
   OnRequest := @RequestHandler;
@@ -163,16 +166,19 @@ begin
   uid := s2i(_POST['uid']);
 
   //-- for demo only
-  if uid = 2 then
+  if demo then
   begin
-    Result := setOutput(-1, 'failed delete admin user');
-    exit;
+    if uid = 2 then
+    begin
+      Result := setOutput(-1, MSG_DEMO_FAILEDDELETEUSERADMIN);
+      exit;
+    end;
   end;
 
 
   if User.SafeDelete(uid, User.UserIdLoggedIn) then
   begin
-    Result := setOutput(0, 'OK');
+    Result := setOutput(0, OK);
   end
   else
     Result := setOutput(-1, MSG_USER_DELETE_FAILED);
@@ -211,10 +217,15 @@ begin
   begin // _GET
     uid := s2i(_GET['id']);
 
+    if uid < 2 then
+      Redirect(BaseURL + 'admin-user-list');
+
     //-- for demo only
-    if uid = 2 then
-      Redirect(BaseURL + 'admin-user-list',
-        'Dont reset admin''s password at demo version.');
+    if demo then
+    begin
+      if uid = 2 then
+        Redirect(BaseURL + 'admin-user-list', MSG_DEMO_NORESETPASSWORD);
+    end;
 
 
     if not User.Find(uid) then
@@ -347,10 +358,13 @@ begin
   uid := s2i(_POST['uid']);
 
   //-- for demo only
-  if uid = 2 then
+  if demo then
   begin
-    Result := setOutput(-1, 'failed suspend admin user');
-    exit;
+    if uid = 2 then
+    begin
+      Result := setOutput(-1, MSG_DEMO_FAILEDSUSPEND);
+      exit;
+    end;
   end;
 
 
@@ -502,8 +516,9 @@ begin
   subitems := TJSONObject.Create;
   o.Add('title', ADMIN_USER_MENU_TITLE);
   o.Add('icon', 'fa-user-secret');
-  o.Add('right-label', '<span class="label pull-right bg-yellow">' +
-    i2s(pending_user) + '</span>');
+  if pending_user > 0 then
+    o.Add('right-label', '<span class="label pull-right bg-yellow">' +
+      i2s(pending_user) + '</span>');
   if isActive then
     o.Add('active', 1);
 
@@ -518,9 +533,10 @@ begin
       subitems.Add('add', User.AddMenu('Add', 'fa:fa-plus',
         'admin-user-add', '', True, '#user-content'));
 
-    subitems.Add('pending', User.AddMenu('Pending', 'fa:fa-list',
-      ADMIN_USER_PENDING_URL, '<span class="label pull-right bg-yellow">' +
-      i2s(pending_user) + '</span>'));
+    if pending_user > 0 then
+      subitems.Add('pending', User.AddMenu('Pending', 'fa:fa-list',
+        ADMIN_USER_PENDING_URL, '<span class="label pull-right bg-yellow">' +
+        i2s(pending_user) + '</span>'));
     u.Add('items', subitems);
     items.Add(u);
   end;
@@ -595,7 +611,8 @@ begin
 
   notif := TJSONObject.Create;
   items := TJSONArray.Create;
-  items.Add(HTMLUtil.AddNotif(0, Format( MSG_PENDINGUSER, [pendingUser]), 'fa:fa-user', BaseURL + ADMIN_USER_PENDING_URL));
+  items.Add(HTMLUtil.AddNotif(0, Format(MSG_PENDINGUSER, [pendingUser]),
+    'fa:fa-user', BaseURL + ADMIN_USER_PENDING_URL));
   notif.Add('items', items);
   Result := (notif.AsJSON);
   notif.Free;

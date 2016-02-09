@@ -23,7 +23,7 @@ type
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
     function Add(Name: string; Description: string = '';
-      GroupType: integer = GROUP_TYPE_CORE; Prefix: string = ''): boolean;
+      GroupType: integer = GROUP_TYPE_CORE; Prefix: string = ''): integer;
   end;
 
 implementation
@@ -44,8 +44,9 @@ begin
 end;
 
 function TGroupsUtil.Add(Name: string; Description: string; GroupType: integer;
-  Prefix: string): boolean;
+  Prefix: string): integer;
 begin
+  Result := -1;
   New;
   SetFieldValue(GROUP_FIELD_NAME, Name);
   SetFieldValue(GROUP_FIELD_TYPE, GroupType);
@@ -56,7 +57,10 @@ begin
   SetFieldValue(GROUP_FIELD_NUMBERUSER_MAX, 0);
   SetFieldValue(GROUP_FIELD_LINK, 0);
   SetFieldValue(GROUP_FIELD_MASTER, 0);
-  Result := Save();
+  if Save() then
+  begin
+    Result := LastInsertID;
+  end;
 end;
 
 end.

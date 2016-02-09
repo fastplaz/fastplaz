@@ -26,6 +26,8 @@ type
       GroupID: integer = GROUP_DEFAULT_ID): boolean;
     function AddUserToGroup(UserID: integer;
       GroupName: string = GROUP_DEFAULTNAME): boolean;
+
+    function SafeDelete(const GroupID: integer; DeleteBy: integer = 0): boolean;
   end;
 
 implementation
@@ -36,6 +38,7 @@ uses
 constructor TGroupModel.Create(const DefaultTableName: string = '');
 begin
   inherited Create(DefaultTableName); // table name = users
+  primaryKey := 'gid';
 end;
 
 function TGroupModel.GetID(const GroupName: string): integer;
@@ -67,6 +70,16 @@ begin
   i := GetID(GroupName);
   if i > 0 then
     Result := AddUserToGroup(UserID, i);
+end;
+
+function TGroupModel.SafeDelete(const GroupID: integer; DeleteBy: integer): boolean;
+
+var
+  sql: string;
+begin
+  sql := 'UPDATE groups SET deleted_date=now(), deleted_by=' + i2s(
+    DeleteBy) + ' WHERE gid = ' + i2s(GroupID);
+  Result := QueryExec(sql);
 end;
 
 end.
