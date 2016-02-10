@@ -382,13 +382,21 @@ begin
   if not User.isLoggedIn then
   begin
     FreeAndNil(User);
-    Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
+    if not isAjax then
+      Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
+    FlashMessages := MSG_NOLOGIN_OR_SESSIONEXPIRED;
+    Response.Content := setOutput(ERR_REDIRECT, MSG_NOLOGIN_OR_SESSIONEXPIRED,
+      BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
+    Die;
   end;
 
   if not User.checkPermission('user', 'user', ACCESS_ADD) then
   begin
     FreeAndNil(User);
-    Redirect(BaseURL + 'admin');
+    if not isAjax then
+      Redirect(BaseURL + 'admin');
+    Response.Content := setOutput(ERR_REDIRECT, MSG_NOPERMISSION, BaseURL + 'admin');
+    Die;
   end;
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
@@ -612,7 +620,7 @@ begin
   notif := TJSONObject.Create;
   items := TJSONArray.Create;
   items.Add(HTMLUtil.AddNotif(0, Format(MSG_PENDINGUSER, [pendingUser]),
-    'fa:fa-user', BaseURL + ADMIN_USER_PENDING_URL));
+    'fa:fa-user', BaseURL + ADMIN_USER_URL));
   notif.Add('items', items);
   Result := (notif.AsJSON);
   notif.Free;

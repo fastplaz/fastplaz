@@ -9,8 +9,8 @@ uses
   Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util, user_model,
   database_lib, security_util, language_lib, mailer_lib;
 
-//const
-//  {$include '../../../define_cms.inc'}
+const
+  USER_ROUTE_REGEX = '^(user|member)-(login|logout|dashboard|lostpassword|register|registerthankyou|changepassword|list)/?$';
 
 type
 
