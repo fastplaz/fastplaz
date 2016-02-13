@@ -64,6 +64,7 @@ type
     property LastInsertID: LongInt read GetLastInsertID;
 
     function ParamByName(Const AParamName : String) : TParam;
+    function Exec( SQL:String): boolean;
 
     function All:boolean;
     function GetAll:boolean;
@@ -170,32 +171,34 @@ begin
   // back to app directory
   SetCurrentDir(ExtractFilePath(Application.ExeName));
 
-  DB_Connector.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [AppData.databaseRead]), 'localhost'));
-  DB_Connector.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
-  DB_Connector.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [AppData.databaseRead]), ''));
-  DB_Connector.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [AppData.databaseRead]), ''));
-  DB_Connector.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [AppData.databaseRead]), 'test'));
+  if not DB_Connector.Connected then
+  begin
+    DB_Connector.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [AppData.databaseRead]), 'localhost'));
+    DB_Connector.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
+    DB_Connector.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [AppData.databaseRead]), ''));
+    DB_Connector.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [AppData.databaseRead]), ''));
+    DB_Connector.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [AppData.databaseRead]), 'test'));
+    if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
+      DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
+    //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
-  if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
-    DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
-  //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
-
-  //log database
-
-  try
-    DB_Connector.Open;
-    AppData.databaseActive := True;
-  except
-    on E: Exception do
-    begin
-      if RedirecURL = '' then
+    try
+      DB_Connector.Open;
+      AppData.databaseActive := True;
+    except
+      on E: Exception do
       begin
-        DisplayError( 'Database Error: '+ E.Message)
-      end
-      else
-        Redirect( RedirecURL);
+        if RedirecURL = '' then
+        begin
+          DisplayError( 'Database Error: '+ E.Message)
+        end
+        else
+          Redirect( RedirecURL);
+      end;
     end;
-  end;
+  end;//-- if not DB_Connector.Connected then
+
+
 end;
 
 function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
@@ -726,6 +729,11 @@ end;
 function TSimpleModel.ParamByName(const AParamName: String): TParam;
 begin
   Result := Data.ParamByName( AParamName);
+end;
+
+function TSimpleModel.Exec(SQL: String): boolean;
+begin
+  Result := QueryExec( SQL);
 end;
 
 function TSimpleModel.All: boolean;

@@ -14,6 +14,8 @@ ACCESS_ADD = 600;
 ACCESS_DELETE = 700;
 ACCESS_ADMIN = 800;
 
+ERR_REDIRECT = 302;
+
 // Group
 GROUP_FIELD_ID = 'gid';
 GROUP_FIELD_NAME = 'name';
@@ -70,6 +72,8 @@ MSG_PASSWORD_FAILED = 'Failed change password';
 MSG_FIELD_INCORRECT = 'Please insert field correctly';
 MSG_VALUE_INVALID = 'Invalid Value';
 MSG_NOPERMISSION = 'No Permission';
+MSG_NOLOGIN = 'No Logged-in';
+MSG_NOLOGIN_OR_SESSIONEXPIRED = 'No Logged-in or session expired.';
 MSG_PENDINGUSER = 'You have %d pending user(s)';
 MSG_DEMO_NORESETPASSWORD = 'Dont reset admin''s password at demo version.';
 MSG_DEMO_FAILEDDELETEUSERADMIN = 'Failed delete admin user';
