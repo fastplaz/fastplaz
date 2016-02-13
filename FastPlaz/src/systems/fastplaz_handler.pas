@@ -65,6 +65,7 @@ type
     tablePrefix: string;
     SessionID: string;
     SessionDir: string;
+    SessionStorage: integer; // 1: file; 2 database
     hitStorage: string;
     databaseRead,
     databaseWrite: string;
@@ -320,6 +321,8 @@ begin
   if AppData.initialized then
     Exit;
   AppData.initialized := True;
+
+  //-- compatibility with old-style
   AppData.module := _GET['mod'];
   AppData.modtype := _GET['type'];
   AppData.func := _GET['func'];
@@ -351,8 +354,6 @@ begin
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
-  AppData.SessionDir := string(Config.GetValue(_SYSTEM_SESSION_DIR, ''));
-  AppData.hitStorage := string(Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
 
   if AppData.baseUrl = '' then
   begin
@@ -360,6 +361,7 @@ begin
       ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
   end;
 
+  AppData.hitStorage := string(Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
   try
     if AppData.hitStorage <> '' then
     begin
@@ -382,32 +384,35 @@ begin
     ThemeUtil := TThemeUtil.Create;
   end;
 
-  //LogUtil.registerError('auw');
-  //-- process the homepage
-  if AppData.module = '' then
-  begin
-
-  end;
-
   //-- session
+  AppData.SessionDir := string(Config.GetValue(_SYSTEM_SESSION_DIR, ''));
   if AppData.SessionDir <> '' then
     SessionController.SessionDir := AppData.SessionDir;
+  AppData.SessionStorage := _SESSION_STORAGE_FILE;
+  if string(Config.GetValue(_SYSTEM_SESSION_STORAGE, 'file')) = 'database' then
+    AppData.SessionStorage := _SESSION_STORAGE_DATABASE;
+  SessionController.Storage := AppData.SessionStorage;
+  if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
+  begin
+    DataBaseInit;
+  end;
+  SessionController.TimeOut := Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
   if not SessionController.StartSession then
   begin
     //SessionController.EndSession;
     //SessionController.StartSession;
   end;
-  SessionController.TimeOut :=
-    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
-  ;
-  //todo: auto clean-up session
   //-- session - end
+
+  //todo: auto clean-up session
+
 
   //-- language
 
   AppData.isReady := True;
   {$ifdef DEBUG}
-  LogUtil.Add('--== initialize: ' + Application.Request.PathInfo, 'init');
+  if AppData.debug and (AppData.debugLevel = 1) then
+    LogUtil.Add('--== initialize: ' + Application.Request.PathInfo, 'init');
   {$endif}
 end;
 

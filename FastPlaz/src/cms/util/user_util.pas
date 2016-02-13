@@ -30,6 +30,10 @@ type
     function GetPendingCount: integer;
     function GetUserInfo(FieldName: string): variant;
   public
+    Username : string;
+    Fullname : string;
+    Email : string;
+
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
     property UserIdLoggedIn: longint read getLoggedInUserID;
@@ -162,22 +166,35 @@ begin
     begin
       if CheckSaltedHash(UserEmail + Password, hashedData) then
       begin
-        // save session
-        i := Data[USER_FIELDNAME_ID];
-        _SESSION['uid'] := i;
-        _SESSION['name'] := Data[USER_FIELDNAME_NAME];
-        _SESSION['uname'] := Data[USER_FIELDNAME_USERNAME];
-        _SESSION['email'] := Data[USER_FIELDNAME_EMAIL];
-        _SESSION['rememberme'] := RememberMe;
-        SessionController.DeleteKey('failedlogin');
+        try
+          Fullname := Data[USER_FIELDNAME_NAME];
+          Username := Data[USER_FIELDNAME_USERNAME];
+          Email := Data[USER_FIELDNAME_EMAIL];
 
-        // save last login
-        Value[USER_FIELDNAME_LASTLOGIN] := now;
-        if not Save(USER_FIELDNAME_ID + '=' + i2s(i)) then
-        begin
+          // save session
+          i := Data[USER_FIELDNAME_ID];
+          _SESSION['uid'] := i;
+          _SESSION['name'] := Fullname;
+          _SESSION['uname'] := Username;
+          _SESSION['email'] := Email;
+          _SESSION['rememberme'] := RememberMe;
+          SessionController.DeleteKey('failedlogin');
 
+          // save last login
+          Value[USER_FIELDNAME_LASTLOGIN] := now;
+          if not Save(USER_FIELDNAME_ID + '=' + i2s(i)) then
+          begin
+
+          end;
+          Result := True;
+
+        except
+          on e:Exception do
+          begin
+            pr( 'login:'+e.Message);
+            die;
+          end;
         end;
-        Result := True;
       end;
       Free;
     end;
