@@ -410,6 +410,16 @@ begin
     Exit;
   end;
 
+  // check from 'assignto' tag :
+  // ex: [aItem.level assignto="level"]
+  if FTagAssign_Variable.IndexOfName( varname) <> -1 then
+  begin
+    Result := FTagAssign_Variable.Values[ varname];
+    vartmp := Explode( Result, '|');
+    Result := vartmp[1];
+    Exit;
+  end;
+
   // check from foreach-storage
   try
     if assignVarMap[ ForeachTable_Keyname] <> nil then
@@ -1067,6 +1077,7 @@ function TThemeUtil.ForeachProcessor_Table(TagProcessor: TReplaceTagEvent;
 var
   html, tmp : string;
   templateEngine : TFPTemplate;
+  i : integer;
 begin
   if ( AssignVar[KeyName] = nil) then
   begin
@@ -1074,8 +1085,14 @@ begin
   end;
 
   html := '';
+  i := 1;
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
+    ThemeUtil.Assign('foreach_index', i2s(i mod 2));
+    if (i mod 2) = 1 then
+      ThemeUtil.Assign('foreach_odd', 'odd')
+    else
+      ThemeUtil.Assign('foreach_odd', 'even');
 
     //tmp := RenderFromContent(@TagController, Content);
 
@@ -1095,6 +1112,7 @@ begin
     html := ConditionalIfProcessor( TagProcessor, html);
 
     TSQLQuery( assignVarMap[KeyName]^).Next;
+    i := i + 1;
   end;
   Result := html;
 end;
@@ -1295,6 +1313,7 @@ begin
   begin
     FTagAssign_Variable.Values[tagstring_custom.Values['assignto']]:='s|'
       + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    Exit;
   end;
   if tagstring_custom.Values['addassignto'] <> '' then
   begin

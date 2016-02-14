@@ -60,7 +60,7 @@ type
 
 implementation
 
-uses groupadmin_controller, theme_controller, common, modvar_util;
+uses groupadmin_controller, permissionadmin_controller, theme_controller, common, modvar_util;
 
 constructor TUserAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -528,7 +528,7 @@ begin
   if pending_user > 0 then
     o.Add('right-label', '<span class="label pull-right bg-yellow">' +
       i2s(pending_user) + '</span>');
-  if isActive or (ModuleActive = TGroupAdminModule.ClassName) then
+  if isActive or (ModuleActive = TPermissionAdminModule.ClassName) or (ModuleActive = TGroupAdminModule.ClassName) then
     o.Add('active', 1);
 
   if User.checkPermission('user', 'user', ACCESS_ADD) then

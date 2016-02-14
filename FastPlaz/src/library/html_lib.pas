@@ -364,7 +364,7 @@ begin
     if InputType = 'email' then
       Result := Result + '<span class="input-group-addon"><i class="fa fa-envelope"></i></span>';
     Result := Result + '<input id="' + InputID + '" name="' + InputID +
-      '" type="' + InputType + '" class="form-control" ' + Value + ' placeholder="' + Placeholder + '" ';
+      '" type="' + InputType + '" class="form-control EntTab" ' + Value + ' placeholder="' + Placeholder + '" ';
     if Required then
       Result := Result + ' required>'
     else
