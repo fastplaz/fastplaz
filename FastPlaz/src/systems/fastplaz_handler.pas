@@ -108,6 +108,7 @@ type
     function GetIsPost: boolean;
     function GetIsPut: boolean;
     function GetIsValidCSRF: boolean;
+    function getModuleActive: string;
     function GetSession: TSessionController;
     function GetSessionID: string;
     function GetTablePrefix: string;
@@ -118,6 +119,7 @@ type
 
   public
     RouteRegex: string;
+    VisibleModuleName : string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -138,6 +140,7 @@ type
     property OnSearch: TOnSearch read FOnSearch write FOnSearch;
     property OnNotification: TOnNotification read FOnNotification write FOnNotification;
 
+    property ModuleActive: string read getModuleActive;
     property isActive: boolean read GetIsActive;
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
@@ -711,6 +714,18 @@ begin
   SessionController.ForceUpdate;
 end;
 
+function TMyCustomWebModule.getModuleActive: string;
+var
+  i : integer;
+begin
+  Result := '';
+  i := ModuleFactory.IndexOfModule(FastPlasAppandler.GetActiveModuleName(
+    Application.Request));
+  if i = -1 then
+    Exit;
+  Result := ModuleFactory[i].ModuleClass.ClassName;
+end;
+
 function TMyCustomWebModule.GetSession: TSessionController;
 begin
   Result := SessionController;
@@ -757,6 +772,7 @@ begin
   FOnMenu := nil;
   FOnSearch := nil;
   FOnNotification := nil;
+  VisibleModuleName := ClassName;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then

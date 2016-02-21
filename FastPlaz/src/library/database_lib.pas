@@ -786,7 +786,6 @@ var
   _joinfield,
   _join : TStrings;
 begin
-  Clear;
   primaryKeyValue := '';
   Result := false;
   sWhere := '';

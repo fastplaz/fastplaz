@@ -55,6 +55,7 @@ uses theme_controller, common, logutil_lib;
 constructor TGroupAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
+  VisibleModuleName := 'groupadmin';
 
   DataBaseInit;
   LanguageInit;

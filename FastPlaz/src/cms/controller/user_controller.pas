@@ -91,12 +91,16 @@ begin
     doLogin
   else
   begin
+    _SESSION['url_redirect'] := _GET['url'];
+    ThemeUtil.Assign( 'url', _GET['url']);
     Result := ThemeUtil.RenderFromContent(@TagController, '',
       'modules/users/view/login.html');
   end;
 end;
 
 function TUserModule.DoLogin: string;
+var
+  urlRedirect : string;
 begin
   if not isPost then
     Exit;
@@ -113,10 +117,16 @@ begin
     Redirect(BaseURL + USER_URL_LOGIN);
   end;
 
-  if _GET['url'] = '' then
+  urlRedirect := '';
+  if _SESSION['url'] <> '' then
+    urlRedirect := _SESSION['url']
+  else
+    urlRedirect := _GET['url'];
+
+  if urlRedirect = '' then
     Redirect(BaseURL + USER_URL_DASHBOARD)
   else
-    Redirect(BaseURL + _GET['url']);
+    Redirect(BaseURL + urlRedirect);
 end;
 
 function TUserModule.Logout: string;
