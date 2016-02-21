@@ -114,6 +114,7 @@ function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = T
   UseNumber: boolean = False; UseSpecial: boolean = False;
   UseSeed: boolean = False; DontUse: string = ''): string;
 function EncodeQueryString(Data: array of string): string;
+function StripSlash(Const DataString: UnicodeString): UnicodeString;
 
 // php like function
 procedure echo(const Message: string);
@@ -487,6 +488,17 @@ begin
     end;
   end;
   Result := s;
+end;
+
+function StripSlash(const DataString: UnicodeString): UnicodeString;
+var
+  L : Integer;
+begin
+  L:=Length(DataString);
+  If (L>0) and (DataString[l]='/') then
+    Result:=Copy(DataString,1,L-1)
+  else
+    Result:=DataString;
 end;
 
 procedure Die(const Message: string);

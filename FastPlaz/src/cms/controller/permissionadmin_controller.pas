@@ -5,7 +5,6 @@ unit permissionadmin_controller;
 interface
 
 uses
-  fpjson,
   Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util,
   database_lib, security_util, permission_util;
 
@@ -75,6 +74,7 @@ begin
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
+
 
 function TPermissionAdminModule.UpdateSequence(const Order: string): string;
 const
