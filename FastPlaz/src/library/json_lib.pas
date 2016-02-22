@@ -25,6 +25,7 @@ type
     FKey: TJSONObject;
     FModified: boolean;
     function GetAsJSON: TJSONStringType;
+    function GetAsJSONFormated: TJSONStringType;
     function GetValue(PathString: string): variant;
     function GetValueArray(PathString: string): TJSONArray;
     procedure SetValue(PathString: string; AValue: variant);
@@ -44,6 +45,7 @@ type
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
     property AsJSON: TJSONStringType read GetAsJSON;
+    property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
     property Value[PathString: string]: variant read GetValue write SetValue; default;
     property ValueArray[PathString: string]: TJSONArray read GetValueArray write SetValueArray;
   end;
@@ -69,6 +71,11 @@ end;
 function TJSONUtil.GetAsJSON: TJSONStringType;
 begin
   Result := FJsonObject.AsJSON;
+end;
+
+function TJSONUtil.GetAsJSONFormated: TJSONStringType;
+begin
+  Result := JsonFormatter( AsJSON);
 end;
 
 procedure TJSONUtil.SetValueArray(PathString: string; AValue: TJSONArray);
