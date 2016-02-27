@@ -108,7 +108,7 @@ type
     procedure RollbackRetaining;
 
 
-    // SQL Generated
+    // SQL Builder
     function Select( FieldNames:string): TSimpleModel;
     function Where( Conditions:string): TSimpleModel;
     function Where( ConditionFormat:string; ConditionArgs: array of const): TSimpleModel;

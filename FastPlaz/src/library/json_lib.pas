@@ -17,17 +17,46 @@ uses
 
 type
 
+  { TJSONUtilItem }
+
+  TJSONUtilItem = class
+  private
+    FKey, FJSONData: TJSONObject;
+    function GetAsJSON: TJSONStringType;
+    function GetAsString: TJSONStringType;
+    function GetIsObject: boolean;
+    function GetItem(PathString: string): TJSONUtilItem;
+    procedure SetItem(PathString: string; AValue: TJSONUtilItem);
+
+    function FindObject(const PathString: UnicodeString; AllowCreate: boolean;
+      var ElementName: UnicodeString): TJSONObject;
+    function FindElement(const PathString: UnicodeString; CreateParent: boolean;
+      var ParentObject: TJSONObject; var ElementName: UnicodeString): TJSONData;
+
+  public
+    constructor Create(JSONData: TJSONObject);
+    destructor Destroy;
+    property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem; default;
+
+    property IsObject: boolean read GetIsObject;
+    property AsString: TJSONStringType read GetAsString;
+    property AsJSON: TJSONStringType read GetAsJSON;
+  end;
+
   { TJSONUtil }
 
   TJSONUtil = class
   private
+    FJsonItem: TJSONUtilItem;
     FJsonObject: TJSONObject;
     FKey: TJSONObject;
     FModified: boolean;
     function GetAsJSON: TJSONStringType;
     function GetAsJSONFormated: TJSONStringType;
+    function GetItem(PathString: string): TJSONUtilItem;
     function GetValue(PathString: string): variant;
     function GetValueArray(PathString: string): TJSONArray;
+    procedure SetItem(PathString: string; AValue: TJSONUtilItem);
     procedure SetValue(PathString: string; AValue: variant);
 
     function FindObject(const PathString: UnicodeString;
@@ -48,7 +77,10 @@ type
     property AsJSON: TJSONStringType read GetAsJSON;
     property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
     property Value[PathString: string]: variant read GetValue write SetValue; default;
-    property ValueArray[PathString: string]: TJSONArray read GetValueArray write SetValueArray;
+    property ValueArray[PathString: string]: TJSONArray
+      read GetValueArray write SetValueArray;
+
+    property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem;
   end;
 
 
@@ -57,14 +89,175 @@ implementation
 uses
   common;
 
-{ TJSONUtil }
+{ TJSONUtilItem }
 
-function TJSONUtil.GetValue(PathString: string): variant;
+function TJSONUtilItem.GetItem(PathString: string): TJSONUtilItem;
+var
+  o: TJSONObject;
+  El: TJSONData;
+  ElName: UnicodeString;
+  i : integer;
+begin
+  El := FindElement(StripSlash('/' + PathString), False, o, ElName);
+  if not Assigned(El) then
+  begin
+    i := o.IndexOfName(ElName);
+    Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
+    //Result := TJSONUtilItem.Create(TJSONObject(TJSONBoolean.Create(False)));
+    Exit;
+  end;
+  Result := TJSONUtilItem.Create(TJSONObject(El));
+end;
+
+function TJSONUtilItem.GetIsObject: boolean;
+begin
+  Result := (FJSONData.JSONType = jtObject);
+end;
+
+function TJSONUtilItem.GetAsString: TJSONStringType;
+begin
+  try
+    Result := FJSONData.AsString;
+  except
+    on E: Exception do
+    begin
+      Result := E.Message;
+    end;
+  end;
+end;
+
+function TJSONUtilItem.GetAsJSON: TJSONStringType;
+begin
+  Result := FJSONData.AsJSON;
+end;
+
+procedure TJSONUtilItem.SetItem(PathString: string; AValue: TJSONUtilItem);
 begin
 
 end;
 
+function TJSONUtilItem.FindObject(const PathString: UnicodeString;
+  AllowCreate: boolean; var ElementName: UnicodeString): TJSONObject;
+var
+  S, El: UnicodeString;
+  P, I: integer;
+  T: TJSonObject;
+begin
+  //  Writeln('Looking for : ', APath);
+  S := PathString;
+  if Pos('/', S) = 1 then
+    Result := FJSONData
+  else
+    Result := FKey;
+  repeat
+    P := Pos('/', S);
+    if (P <> 0) then
+    begin
+      // Only real paths, ignore double slash
+      if (P <> 1) then
+      begin
+        El := Copy(S, 1, P - 1);
+        if (Result.Count = 0) then
+          I := -1
+        else
+          I := Result.IndexOfName(El);
+        if (I = -1) then
+          // No element with this name.
+        begin
+          if AllowCreate then
+          begin
+            // Create new node.
+            T := Result;
+            Result := TJSonObject.Create;
+            T.Add(El, Result);
+          end
+          else
+            Result := nil;
+        end
+        else
+          // Node found, check if it is an object
+        begin
+          if (Result.Items[i].JSONtype = jtObject) then
+            Result := Result.Objects[el]
+          else
+          begin
+            //            Writeln(el,' type wrong');
+            if AllowCreate then
+            begin
+              //              Writeln('Creating ',el);
+              Result.Delete(I);
+              T := Result;
+              Result := TJSonObject.Create;
+              T.Add(El, Result);
+            end
+            else
+              Result := nil;
+          end;
+        end;
+      end;
+      Delete(S, 1, P);
+    end;
+  until (P = 0) or (Result = nil);
+  ElementName := S;
+end;
+
+function TJSONUtilItem.FindElement(const PathString: UnicodeString;
+  CreateParent: boolean; var ParentObject: TJSONObject;
+  var ElementName: UnicodeString): TJSONData;
+var
+  i: integer;
+begin
+  Result := nil;
+  ParentObject := FindObject(PathString, CreateParent, ElementName);
+  if Assigned(ParentObject) then
+  begin
+    //    Writeln('Found parent, looking for element:',ElementName);
+    i := ParentObject.IndexOfName(ElementName);
+    //    Writeln('Element index is',i);
+    if (i <> -1) and (ParentObject.items[i].JSONType <> jtObject) then
+      Result := ParentObject.Items[i];
+  end;
+end;
+
+constructor TJSONUtilItem.Create(JSONData: TJSONObject);
+begin
+  FJSONData := JSONData;
+  FKey := TJSONObject.Create;
+end;
+
+destructor TJSONUtilItem.Destroy;
+begin
+  FreeAndNil(FKey);
+end;
+
+{ TJSONUtil }
+
+function TJSONUtil.GetValue(PathString: string): variant;
+var
+  o: TJSONObject;
+  El: TJSONData;
+  ElName: UnicodeString;
+begin
+  Result := False;
+  El := FindElement(StripSlash(PathString), False, o, ElName);
+  if not Assigned(El) then
+    Exit;
+  if El.JSONType = jtString then
+    Result := El.AsString;
+  if El.JSONType = jtBoolean then
+    Result := El.AsBoolean;
+  if (El is TJSONIntegerNumber) then
+    Result := El.AsInteger;
+  if (El is TJSONFloatNumber) then
+    Result := El.AsFloat;
+end;
+
 function TJSONUtil.GetValueArray(PathString: string): TJSONArray;
+begin
+
+end;
+
+procedure TJSONUtil.SetItem(PathString: string; AValue: TJSONUtilItem);
 begin
 
 end;
@@ -76,7 +269,26 @@ end;
 
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
 begin
-  Result := JsonFormatter( AsJSON);
+  Result := JsonFormatter(AsJSON);
+end;
+
+function TJSONUtil.GetItem(PathString: string): TJSONUtilItem;
+var
+  o: TJSONObject;
+  El: TJSONData;
+  ElName: UnicodeString;
+  i: integer;
+begin
+  Result := nil;
+  El := FindElement(StripSlash(PathString), False, o, ElName);
+  if not Assigned(El) then
+  begin
+    i := o.IndexOfName(ElName);
+    Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
+    Exit;
+  end;
+  Result := TJSONUtilItem.Create(TJSONObject(El));
+
 end;
 
 procedure TJSONUtil.SetValueArray(PathString: string; AValue: TJSONArray);
