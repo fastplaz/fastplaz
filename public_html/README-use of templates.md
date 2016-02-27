@@ -6,7 +6,7 @@ syntax:
 ThemeUtil.View( TagControllerAddress, FileTemplate, Cache);
 ```
 
-usage:
+penggunaan:
 
 ```pascal
 
