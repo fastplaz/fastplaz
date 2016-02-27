@@ -30,6 +30,11 @@ type
     FSelectField : string;
     FJoinList : TStrings;
 
+    FScriptFieldNames,
+    FScriptWhere,
+    FScriptLimit,
+    FScriptOrderBy : string;
+
     primaryKeyValue : string;
     FGenFields : TStringList;
     function GetEOF: boolean;
@@ -47,6 +52,8 @@ type
 
     function GetFieldList: TStrings;
     function GetFieldValue( FieldName: String): Variant;
+
+    procedure GenerateScript;
   public
     FieldValueMap : TFieldValueMap;
     primaryKey : string;
@@ -100,6 +107,15 @@ type
     procedure Rollback;
     procedure RollbackRetaining;
 
+
+    // SQL Generated
+    function Select( FieldNames:string): TSimpleModel;
+    function Where( Conditions:string): TSimpleModel;
+    function Where( ConditionFormat:string; ConditionArgs: array of const): TSimpleModel;
+    function OrWhere( Conditions:string): TSimpleModel;
+    function OrderBy( FieldNames:string): TSimpleModel;
+    function Limit( LimitNumber:integer; Offset:integer=0): TSimpleModel;
+    function Open: Boolean;
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
@@ -556,8 +572,10 @@ begin
     if Data.RecordCount > 0 then
       Result := True;
   except
-    on E: Exception do begin
-      if AppData.debug then begin
+    on E: Exception do
+    begin
+      if ((AppData.debug) and (AppData.debugLevel <= 1)) then
+      begin
         LogUtil.add( E.Message, 'DB');
         LogUtil.add( Data.SQL.Text, 'DB');
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
@@ -679,6 +697,10 @@ constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKe
 var
   i : integer;
 begin
+  FScriptFieldNames := '';
+  FScriptWhere := '';
+  FScriptLimit := '';
+  FScriptOrderBy := '';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   FConnector := DB_Connector;
@@ -928,6 +950,7 @@ procedure TSimpleModel.New;
 begin
   if Assigned( FGenFields) then FGenFields.Clear;
   if Assigned( FieldValueMap) then FieldValueMap.Clear;
+  Data.SQL.Clear;
   primaryKeyValue:='';
   Close;
 end;
@@ -1116,6 +1139,89 @@ end;
 procedure TSimpleModel.RollbackRetaining;
 begin
   DB_Transaction.RollbackRetaining;
+end;
+
+procedure TSimpleModel.GenerateScript;
+begin
+  Clear;
+  Data.SQL.Text := 'SELECT ' + FScriptFieldNames;
+  Data.SQL.Add( 'FROM ' + FTableName);
+  if FScriptWhere <> '' then
+    Data.SQL.Add( 'WHERE ' + FScriptWhere);
+  if FScriptOrderBy <> '' then
+    Data.SQL.Add( 'ORDER BY ' + FScriptOrderBy);
+  if FScriptLimit <> '' then
+    Data.SQL.Add( FScriptLimit);
+end;
+
+function TSimpleModel.Select(FieldNames: string): TSimpleModel;
+begin
+  FScriptFieldNames := FieldNames;
+  FScriptWhere := '';
+  FScriptLimit := '';
+  FScriptOrderBy := '';
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Where(Conditions: string): TSimpleModel;
+begin
+  if FScriptWhere = '' then
+    FScriptWhere := Conditions
+  else
+    FScriptWhere := FScriptWhere + ' AND ' + Conditions;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Where(ConditionFormat: string;
+  ConditionArgs: array of const): TSimpleModel;
+begin
+  if FScriptWhere = '' then
+    FScriptWhere := Format( ConditionFormat, ConditionArgs)
+  else
+    FScriptWhere := FScriptWhere + ' AND ' + Format( ConditionFormat, ConditionArgs);
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.OrWhere(Conditions: string): TSimpleModel;
+begin
+  FScriptWhere := FScriptWhere + ' OR ' + Conditions;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.OrderBy(FieldNames: string): TSimpleModel;
+begin
+  FScriptOrderBy := FieldNames;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Limit(LimitNumber: integer; Offset: integer
+  ): TSimpleModel;
+begin
+  if LimitNumber > 0 then
+    FScriptLimit := 'LIMIT ' + i2s(LimitNumber);
+  if Offset > 0 then
+    FScriptLimit := FScriptLimit + ' OFFSET ' + i2s(Offset);
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Open: Boolean;
+begin
+  Result := False;
+  if Data.SQL.Text = '' then
+    Exit;
+  Result := _queryOpen;
+  Data.Last;
+  Data.First;
+  if (Data.RecordCount = 1) and (primaryKey <> '') then
+  begin
+    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+  end;
 end;
 
 initialization

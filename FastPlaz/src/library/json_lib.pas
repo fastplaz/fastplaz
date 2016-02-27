@@ -44,6 +44,7 @@ type
     destructor Destroy;
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
+    property Data: TJSONObject read FJsonObject;
     property AsJSON: TJSONStringType read GetAsJSON;
     property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
     property Value[PathString: string]: variant read GetValue write SetValue; default;

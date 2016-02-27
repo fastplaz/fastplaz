@@ -6,12 +6,16 @@ FastPlaz
 
 Requirement
 ---
-* fpc / free pascal compiler, version 2.6.4
+* fpc / free pascal compiler, version 3.0.0
 * fcl-web
 * lazarus (optional)
 
 
-Compile from Console
+Install Package
+---
+
+
+Compile App Example from Console
 ---
 ```
 fpc fastplaz.lpr @extra.cfg
