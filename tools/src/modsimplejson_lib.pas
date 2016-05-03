@@ -77,11 +77,14 @@ begin
   begin
     Add('type');
     Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
-    Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
     Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
     Add('    destructor Destroy; override;');
+    Add('');
+    Add('    procedure Get; override;');
+    Add('    procedure Post; override;');
     Add('  end;');
     Add('');
   end;
@@ -105,7 +108,7 @@ begin
       '.CreateNew(AOwner: TComponent; CreateMode: integer);');
     Add('Begin');
     Add('  inherited CreateNew(AOwner, CreateMode);');
-    Add('  OnRequest := @RequestHandler;');
+    //Add('  OnRequest := @RequestHandler;');
     Add('End;');
     Add('');
 
@@ -115,8 +118,9 @@ begin
     Add('End;');
     Add('');
 
-    Add('procedure ' + ModulTypeName +
-      '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    //Add('procedure ' + ModulTypeName + '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('// GET Method Handler');
+    Add('procedure ' + ModulTypeName + '.Get;');
     Add('var');
     Add('  o, response_json : TJSONObject;');
     Add('Begin');
@@ -133,7 +137,13 @@ begin
     Add('');
     Add('  Response.Content := response_json.AsJSON;');
     Add('  FreeAndNil( response_json);');
-    Add('  Handled := True;');
+    Add('End;');
+    Add('');
+
+    Add('// POST Method Handler');
+    Add('procedure ' + ModulTypeName + '.Post;');
+    Add('Begin');
+    Add('  Response.Content := '''';');
     Add('End;');
     Add('');
 

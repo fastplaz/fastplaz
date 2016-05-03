@@ -33,14 +33,21 @@ resourcestring
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
   __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
 
+  __Result_Default_Get = 'Default GET Result';
+  __Result_Default_Post = 'Default POST Result';
+  __Result_Default_Put = 'Default PUT Result';
+  __Result_Default_Delete = 'Default DELETE Result';
+  __Result_Default_Option = 'Default OPTION Result';
+  __Result_Default_Handler = 'Request Handler Default';
+
   __Content_Not_Found = 'Nothing Found';
   __Tag_Content_Not_Found = 'Tags Content "%s" Not Found';
 
   // methode
   ALL = '';
-  GET = 'GET';
-  POST = 'POST';
-  PUT = 'PUT';
+  METHOD_GET = 'GET';
+  METHOD_POST = 'POST';
+  METHOD_PUT = 'PUT';
   HEAD = 'HEAD';
   OPTIONS = 'OPTIONS';
 
@@ -117,12 +124,20 @@ type
     procedure SetFlashMessage(AValue: string);
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
+    procedure RequestHandlerDefault(Sender: TObject; ARequest: TRequest;
+      AResponse: TResponse; var Handled: boolean);
   public
     RouteRegex: string;
     VisibleModuleName : string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
+
+    procedure Get; virtual;
+    procedure Post; virtual;
+    procedure Put; virtual;
+    procedure Delete; virtual;
+    procedure Option; virtual;
 
     procedure LanguageInit;
 
@@ -669,21 +684,21 @@ end;
 function TMyCustomWebModule.GetIsGet: boolean;
 begin
   Result := False;
-  if Application.Request.Method = GET then
+  if Application.Request.Method = METHOD_GET then
     Result := True;
 end;
 
 function TMyCustomWebModule.GetIsPost: boolean;
 begin
   Result := False;
-  if Application.Request.Method = POST then
+  if Application.Request.Method = METHOD_POST then
     Result := True;
 end;
 
 function TMyCustomWebModule.GetIsPut: boolean;
 begin
   Result := False;
-  if Application.Request.Method = PUT then
+  if Application.Request.Method = METHOD_PUT then
     Result := True;
 end;
 
@@ -805,6 +820,11 @@ begin
     end;
   end;
 
+  if not Assigned(OnRequest) then
+  begin
+    OnRequest:= @RequestHandlerDefault;
+  end;//-- if not Assigned(OnRequest)
+
   if methodDefault = '' then
   begin
     AppData.isReady := True;
@@ -826,6 +846,63 @@ begin
       FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
     end;
   end;
+end;
+
+procedure TMyCustomWebModule.RequestHandlerDefault(Sender: TObject;
+  ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+begin
+  //AResponse.Content:= __Result_Default_Handler;
+  AResponse.Content := '';
+
+  case ARequest.Method of
+    'GET' : begin
+      Get;
+    end;
+    'POST' : begin
+      Post;
+    end;
+    'PUT' : begin
+      Put;
+    end;
+    'DELETE' : begin
+      Delete;
+    end;
+    'OPTION' : begin
+      Option;
+    end;
+
+    else
+      begin
+        AResponse.Content:= __Result_Default_Handler + ': ' + ARequest.Method;
+      end;
+  end;
+
+  Handled := True;
+end;
+
+procedure TMyCustomWebModule.Get;
+begin
+  Response.Content := __Result_Default_Get;
+end;
+
+procedure TMyCustomWebModule.Post;
+begin
+  Response.Content := __Result_Default_Post;
+end;
+
+procedure TMyCustomWebModule.Put;
+begin
+  Response.Content := __Result_Default_Put;
+end;
+
+procedure TMyCustomWebModule.Delete;
+begin
+  Response.Content := __Result_Default_Delete;
+end;
+
+procedure TMyCustomWebModule.Option;
+begin
+  Response.Content := __Result_Default_Option;
 end;
 
 procedure TMyCustomWebModule.LanguageInit;
