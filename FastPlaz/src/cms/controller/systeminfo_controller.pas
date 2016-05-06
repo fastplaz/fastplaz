@@ -17,8 +17,6 @@ type
   { TSystemInfoModule }
 
   TSystemInfoModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
   private
     User: TUserUtil;
     function Tag_ModInfo_Handler(const TagName: string;
@@ -30,7 +28,8 @@ type
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
 
-    function View: string;
+    procedure Get; override;
+    procedure Post; override;
   end;
 
 implementation
@@ -39,21 +38,7 @@ uses theme_controller, common;
 
 constructor TSystemInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
-  User := TUserUtil.Create();
-  if not User.isLoggedIn then
-  begin
-    FreeAndNil(User);
-    Redirect(BaseURL + USER_URL_LOGIN + '?url=admin-systeminfo');
-  end;
-
-  if not User.checkPermission('admin', 'systeminfo', ACCESS_ADD) then
-  begin
-    FreeAndNil(User);
-    Redirect(BaseURL + 'admin');
-  end;
-
   inherited CreateNew(AOwner, CreateMode);
-  OnRequest := @RequestHandler;
   BeforeRequest := @BeforeRequestHandler;
   ThemeUtil.Layout := 'admin';
 end;
@@ -64,21 +49,16 @@ begin
   inherited Destroy;
 end;
 
-function TSystemInfoModule.View: string;
+procedure TSystemInfoModule.Get;
 begin
-  Result := ThemeUtil.RenderFromContent(@TagController, '',
-    'modules/admin/view/systeminfo.html');
-  Result := Result + FastInfo;
-end;
-
-procedure TSystemInfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
-  AResponse: TResponse; var Handled: boolean);
-begin
-
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['modinfo'] := @Tag_ModInfo_Handler;
   Response.Content := ThemeUtil.Render();
-  Handled := True;
+end;
+
+procedure TSystemInfoModule.Post;
+begin
+  inherited Post;
 end;
 
 function TSystemInfoModule.Tag_ModInfo_Handler(const TagName: string;
@@ -94,12 +74,25 @@ end;
 function TSystemInfoModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
-  Result := View;
+  Result := ThemeUtil.RenderFromContent(@TagController, '',
+    'modules/admin/view/systeminfo.html');
+  Result := Result + FastInfo;
 end;
 
 procedure TSystemInfoModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
+  User := TUserUtil.Create();
+  if not User.isLoggedIn then
+  begin
+    FreeAndNil(User);
+    Redirect(BaseURL + USER_URL_LOGIN + '?url=admin-systeminfo');
+  end;
 
+  if not User.checkPermission('admin', 'systeminfo', ACCESS_ADD) then
+  begin
+    FreeAndNil(User);
+    Redirect(BaseURL + 'admin');
+  end;
 end;
 
 
