@@ -323,3 +323,38 @@ end;
 
 
 end.
+
+
+{
+  FORMAT MESSAGE FROM TELEGRAM
+
+  {
+    "ok":true,
+    "result":[
+      {
+        "update_id":00000000001,
+        "message":{
+          "message_id":263,
+          "from":{
+            "id":2222647,
+            "first_name":"firstname",
+            "last_name":"lastname",
+            "username":"username"
+          },
+          "chat":{
+            "id":123456,
+            "first_name":"firstname",
+            "last_name":"lastname",
+            "username":"username",
+            "type":"private"
+          },
+          "date":1462275476,
+          "text":"text message"
+        }
+      }
+    ]
+  }
+
+
+}
+

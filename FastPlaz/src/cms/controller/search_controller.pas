@@ -20,8 +20,6 @@ type
   { TSearchModule }
 
   TSearchModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
   private
     function Tag_ModInfo_Handler(const TagName: string;
       Params: TStringList): string;
@@ -34,6 +32,8 @@ type
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
 
+    procedure Get; override;
+    procedure Post; override;
   end;
 
 implementation
@@ -44,7 +44,6 @@ constructor TSearchModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   User := TUserUtil.Create();
   inherited CreateNew(AOwner, CreateMode);
-  OnRequest := @RequestHandler;
   BeforeRequest := @BeforeRequestHandler;
 end;
 
@@ -55,23 +54,19 @@ begin
     User.Free;
 end;
 
-procedure TSearchModule.RequestHandler(Sender: TObject; ARequest: TRequest;
-  AResponse: TResponse; var Handled: boolean);
+procedure TSearchModule.Get;
 begin
-  DataBaseInit;
-  LanguageInit;
-  QueryExec('SET CHARACTER SET utf8;');
-
-  if isAjax then
-  begin
-    echo(SearchToAllModule(_POST['keyword']));
-    die;
-  end;
-
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['modinfo'] := @Tag_ModInfo_Handler;
   Response.Content := ThemeUtil.Render();
-  Handled := True;
+end;
+
+procedure TSearchModule.Post;
+begin
+  if isAjax then
+  begin
+    Response.Content := SearchToAllModule(_POST['keyword']);
+  end;
 end;
 
 function TSearchModule.Tag_ModInfo_Handler(const TagName: string;
@@ -94,6 +89,9 @@ end;
 
 procedure TSearchModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
+  DataBaseInit;
+  LanguageInit;
+  QueryExec('SET CHARACTER SET utf8;');
 end;
 
 function TSearchModule.SearchToAllModule(KeyWord: string): string;
