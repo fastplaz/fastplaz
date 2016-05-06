@@ -10,16 +10,16 @@ uses
   database_lib, security_util, language_lib, mailer_lib;
 
 const
-  USER_ROUTE_REGEX = '^(user|member)-(login|logout|dashboard|lostpassword|register|registerthankyou|changepassword|list)/?$';
+  USER_ROUTE_REGEX =
+    '^(user|member)-(login|logout|dashboard|lostpassword|register|registerthankyou|changepassword|list)/?$';
 
 type
 
   { TUserModule }
 
   TUserModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
   private
+    action: string;
     function Tag_MainContent_Handler(const TagName: string;
       Params: TStringList): string;
     function Tag_UserMenu(const TagName: string; Params: TStringList): string;
@@ -41,6 +41,9 @@ type
     function DoRegister: string;
 
     procedure onLoginAttemps(Sender: TObject);
+
+    procedure Get; override;
+    procedure Post; override;
   end;
 
 implementation
@@ -58,7 +61,6 @@ begin
   User := TUserUtil.Create();
   User.LoginAttempsMax := 5;
   User.OnLoginAttemps := @onLoginAttemps;
-  OnRequest := @RequestHandler;
   BeforeRequest := @BeforeRequestHandler;
   Tags['userinfo'] := @Tag_UserInfo;
 end;
@@ -92,7 +94,7 @@ begin
   else
   begin
     _SESSION['url_redirect'] := _GET['url'];
-    ThemeUtil.Assign( 'url', _GET['url']);
+    ThemeUtil.Assign('url', _GET['url']);
     Result := ThemeUtil.RenderFromContent(@TagController, '',
       'modules/users/view/login.html');
   end;
@@ -100,7 +102,7 @@ end;
 
 function TUserModule.DoLogin: string;
 var
-  urlRedirect : string;
+  urlRedirect: string;
 begin
   if not isPost then
     Exit;
@@ -315,31 +317,25 @@ begin
   Redirect(BaseURL + USER_URL_LOGIN);
 end;
 
-
-procedure TUserModule.RequestHandler(Sender: TObject; ARequest: TRequest;
-  AResponse: TResponse; var Handled: boolean);
+procedure TUserModule.Get;
 begin
   if isAjax then
     Response.ContentType := 'application/json';
 
-  ThemeUtil.Layout := 'user';
   //if ARequest.PathInfo = '/user-dashbpard' then
   //  ThemeUtil.Layout := 'user-dashboard';
 
-  ThemeUtil.Assign('demo', ModVar['system/demo']);
-
-  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
-  Tags['usermenu'] := @Tag_UserMenu;
   Response.Content := ThemeUtil.Render();
-  Handled := True;
+end;
+
+procedure TUserModule.Post;
+begin
+  Response.Content := ThemeUtil.Render();
 end;
 
 function TUserModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
-var
-  action: string;
 begin
-  action := _GET['$2'];
   if TagName = 'maincontent' then
   begin
     case action of
@@ -374,10 +370,9 @@ begin
 end;
 
 function TUserModule.Tag_UserMenu(const TagName: string; Params: TStringList): string;
-
 begin
   Result := '<b>this is user-menu</b>';
-  if User.isHaveAdmin( 'user', '.*') then
+  if User.isHaveAdmin('user', '.*') then
     Result := Result + 'have admin';
 end;
 
@@ -388,7 +383,12 @@ end;
 
 procedure TUserModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
-  LogUtil.Add('before request', 'user');
+  action := _GET['$2'];
+  ThemeUtil.Layout := 'user';
+  ThemeUtil.Assign('demo', ModVar['system/demo']);  //<<--- demo parsing variable to 'view'
+
+  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
+  Tags['usermenu'] := @Tag_UserMenu;
 end;
 
 
