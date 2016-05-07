@@ -147,7 +147,6 @@ begin
 
   if not User.isLoggedIn then
   begin
-    FreeAndNil(User);
     if isPost then
       die('failed')
     else

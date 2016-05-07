@@ -72,6 +72,8 @@ end;
 destructor TGroupAdminModule.Destroy;
 begin
   inherited Destroy;
+  if Assigned(User) then
+    FreeAndNil(User);
   if Assigned(Group) then
     Group.Free;
 end;
@@ -168,13 +170,11 @@ procedure TGroupAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
 begin
   if not User.isLoggedIn then
   begin
-    FreeAndNil(User);
     Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_GROUP_URL);
   end;
 
   if not User.checkPermission('group', 'group', ACCESS_ADD) then
   begin
-    FreeAndNil(User);
     Redirect(BaseURL + 'admin');
   end;
 
