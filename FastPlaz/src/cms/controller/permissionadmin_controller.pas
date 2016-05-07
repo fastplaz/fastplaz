@@ -19,10 +19,8 @@ type
   { TPermissionAdminModule }
 
   TPermissionAdminModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
   private
-    function UpdateSequence( const Order:string):string;
+    function UpdateSequence(const Order: string): string;
     function Tag_LevelInfo_Handler(const TagName: string;
       Params: TStringList): string;
     function Tag_ModInfo_Handler(const TagName: string;
@@ -36,6 +34,8 @@ type
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
 
+    procedure Get; override;
+    procedure Post; override;
   end;
 
 implementation
@@ -49,7 +49,6 @@ begin
 
   User := TUserUtil.Create();
   Permission := TPermissionUtil.Create();
-  OnRequest := @RequestHandler;
   BeforeRequest := @BeforeRequestHandler;
 end;
 
@@ -61,38 +60,33 @@ begin
   inherited Destroy;
 end;
 
-procedure TPermissionAdminModule.RequestHandler(Sender: TObject;
-  ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+procedure TPermissionAdminModule.Get;
 begin
-  DataBaseInit;
-  LanguageInit;
-  QueryExec('SET CHARACTER SET utf8;');
-
-  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
-  Tags['modinfo'] := @Tag_ModInfo_Handler;
-  Tags['levelinfo'] := @Tag_LevelInfo_Handler;
   Response.Content := ThemeUtil.Render();
-  Handled := True;
 end;
 
+procedure TPermissionAdminModule.Post;
+begin
+  die(UpdateSequence(_POST['order']));
+end;
 
 function TPermissionAdminModule.UpdateSequence(const Order: string): string;
 const
   SQL_ORDER_UPDATE = 'UPDATE group_perms SET sequence=%d WHERE pid=%s';
 var
-  lst1, lst2 : TStrings;
-  sql : string;
-  i : integer;
+  lst1, lst2: TStrings;
+  sql: string;
+  i: integer;
 begin
   if Order = '' then
     Exit;
   Result := 'OK';
-  lst1 := Explode( Order, ',');
-  for i:=0 to lst1.Count-1 do
+  lst1 := Explode(Order, ',');
+  for i := 0 to lst1.Count - 1 do
   begin
-    lst2 := Explode( lst1[i], '-');
-    sql := Format( SQL_ORDER_UPDATE, [ i+2, lst2[1]]);
-    QueryExec( sql);
+    lst2 := Explode(lst1[i], '-');
+    sql := Format(SQL_ORDER_UPDATE, [i + 2, lst2[1]]);
+    QueryExec(sql);
     lst2.Free;
   end;
   lst1.Free;
@@ -136,23 +130,41 @@ var
 begin
   Result := '';
 
-  if isPost then
-  begin
-    die( UpdateSequence( _POST['order']) );
-  end;
-
   Permission.AddJoin('groups', 'gid', 'group_perms.gid', ['name']);
   Permission.Find(['1=1'], 'sequence');
   ThemeUtil.Assign('$Permission', @Permission.Data);
 
-  if not isPost then
-    Result := ThemeUtil.RenderFromContent(@TagController, Result,
-      'modules/permission/view/' + _REQUEST['$3'] + '.html');
+  Result := ThemeUtil.RenderFromContent(@TagController, Result,
+    'modules/permission/view/' + _REQUEST['$3'] + '.html');
 end;
 
 procedure TPermissionAdminModule.BeforeRequestHandler(Sender: TObject;
   ARequest: TRequest);
 begin
+  DataBaseInit;
+  LanguageInit;
+  QueryExec('SET CHARACTER SET utf8;');
+
+  if not User.isLoggedIn then
+  begin
+    FreeAndNil(User);
+    if isPost then
+      die('failed')
+    else
+      Redirect(BaseURL + USER_URL_LOGIN + '?url=admin-permission-list');
+  end;
+
+  if not User.checkPermission('permission', 'permission', ACCESS_EDIT) then
+  begin
+    if isPost then
+      die('no access')
+    else
+      Redirect(BaseURL);
+  end;
+
+  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
+  Tags['modinfo'] := @Tag_ModInfo_Handler;
+  Tags['levelinfo'] := @Tag_LevelInfo_Handler;
 end;
 
 initialization
