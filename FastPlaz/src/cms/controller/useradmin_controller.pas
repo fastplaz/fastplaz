@@ -72,7 +72,8 @@ begin
   LanguageInit;
   QueryExec('SET CHARACTER SET utf8;');
 
-  demo := s2b(ModVar['system/demo']);
+  // is demo ?
+  demo := ModVar['system/demo'];
 
   User := TUserUtil.Create();
   OnRequest := @RequestHandler;

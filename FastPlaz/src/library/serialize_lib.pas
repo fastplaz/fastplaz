@@ -15,7 +15,7 @@ function unserialize(const s: string): variant;
 
 implementation
 
-uses Variants, SysUtils;
+uses Variants, SysUtils, common;
 
 function unserialize(const s: string): variant;
 var
@@ -81,8 +81,8 @@ var
     j := i;
     while (j < l) and (s[j] in ['-', '0'..'9']) do
       Inc(j);
-    if j <> (i + 1) then
-      raise EConvertError.Create('not a boolean');
+    //if j <> (i + 1) then
+    //  raise EConvertError.Create('not a boolean');
     Result := s[i] = '1';
     i := j + 1;
   end;
@@ -119,6 +119,7 @@ begin
   i := 1;
   l := length(s);
   try
+    Result := varnull;
     if i < l then  // tokens are >1
       Result := consumefield;
   except

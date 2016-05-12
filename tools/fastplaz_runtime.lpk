@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>
-    <Files Count="25">
+    <Files Count="26">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -74,54 +74,58 @@
         <UnitName Value="recaptcha_lib"/>
       </Item13>
       <Item14>
-        <Filename Value="..\FastPlaz\src\library\versioninfo_lib.pas"/>
-        <UnitName Value="versioninfo_lib"/>
+        <Filename Value="..\FastPlaz\src\library\serialize_lib.pas"/>
+        <UnitName Value="serialize_lib"/>
       </Item14>
       <Item15>
-        <Filename Value="..\FastPlaz\src\model\session_model.pas"/>
-        <UnitName Value="session_model"/>
+        <Filename Value="..\FastPlaz\src\library\versioninfo_lib.pas"/>
+        <UnitName Value="versioninfo_lib"/>
       </Item15>
       <Item16>
-        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
-        <UnitName Value="docs_controller"/>
+        <Filename Value="..\FastPlaz\src\model\session_model.pas"/>
+        <UnitName Value="session_model"/>
       </Item16>
       <Item17>
-        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
-        <UnitName Value="error_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\docs_controller.pas"/>
+        <UnitName Value="docs_controller"/>
       </Item17>
       <Item18>
-        <Filename Value="..\FastPlaz\src\systems\exception_controller.pas"/>
-        <UnitName Value="exception_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\error_controller.pas"/>
+        <UnitName Value="error_controller"/>
       </Item18>
       <Item19>
-        <Filename Value="..\FastPlaz\src\systems\fastplaz_handler.pas"/>
-        <UnitName Value="fastplaz_handler"/>
+        <Filename Value="..\FastPlaz\src\systems\exception_controller.pas"/>
+        <UnitName Value="exception_controller"/>
       </Item19>
       <Item20>
-        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
-        <UnitName Value="info_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\fastplaz_handler.pas"/>
+        <UnitName Value="fastplaz_handler"/>
       </Item20>
       <Item21>
-        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
-        <UnitName Value="initialize_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\info_controller.pas"/>
+        <UnitName Value="info_controller"/>
       </Item21>
       <Item22>
-        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
-        <UnitName Value="module_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\initialize_controller.pas"/>
+        <UnitName Value="initialize_controller"/>
       </Item22>
       <Item23>
-        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
-        <UnitName Value="session_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\module_controller.pas"/>
+        <UnitName Value="module_controller"/>
       </Item23>
       <Item24>
-        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
-        <UnitName Value="theme_controller"/>
+        <Filename Value="..\FastPlaz\src\systems\session_controller.pas"/>
+        <UnitName Value="session_controller"/>
       </Item24>
       <Item25>
+        <Filename Value="..\FastPlaz\src\systems\theme_controller.pas"/>
+        <UnitName Value="theme_controller"/>
+      </Item25>
+      <Item26>
         <Filename Value="src\fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
-      </Item25>
+      </Item26>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

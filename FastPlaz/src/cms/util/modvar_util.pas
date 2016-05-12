@@ -16,7 +16,7 @@ unit modvar_util;
 interface
 
 uses
-  common, modvar_model,
+  common, modvar_model, serialize_lib,
   Classes, SysUtils;
 
 const
@@ -28,13 +28,13 @@ type
 
   TModvarUtil = class(TModvarModel)
   private
-    function GetValue(Name: string): string;
-    procedure SetValue(Name: string; AValue: string);
+    function GetValue(Name: string): variant;
+    procedure SetValue(Name: string; AValue: variant);
   public
     constructor Create(const DefaultTableName: string = '');
     destructor Destroy; override;
 
-    property Values[Name: string]: string read GetValue write SetValue; default;
+    property Values[Name: string]: variant read GetValue write SetValue; default;
   end;
 
 var
@@ -44,10 +44,11 @@ implementation
 
 { TModvarUtil }
 
-function TModvarUtil.GetValue(Name: string): string;
+function TModvarUtil.GetValue(Name: string): variant;
 var
   lst : TStrings;
-  modname, varname : string;
+  modname, varname, varvalue : string;
+  varresult : variant;
 begin
   Result := '';
   modname:= 'system';
@@ -58,14 +59,15 @@ begin
     modname:= lst[0];
     varname:= lst[1];
   end;
-  Result := GetCustom( modname, varname, '');
+  varvalue := GetCustom( modname, varname, '');
+  Result := unserialize( varvalue);
   FreeAndNil( lst);
 end;
 
-procedure TModvarUtil.SetValue(Name: string; AValue: string);
+procedure TModvarUtil.SetValue(Name: string; AValue: variant);
 var
   lst : TStrings;
-  modname, varname : string;
+  modname, varname, varvalue : string;
 begin
   modname:= 'system';
   varname := Name;
@@ -75,7 +77,8 @@ begin
     modname:= lst[0];
     varname:= lst[1];
   end;
-  SetCustom( modname, varname, AValue);
+  varvalue := serialize( AValue);
+  SetCustom( modname, varname, varvalue);
   FreeAndNil( lst);
 end;
 
