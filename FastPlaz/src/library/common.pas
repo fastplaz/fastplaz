@@ -83,6 +83,8 @@ function i2s(pI: integer): string;
 function s2i(s: string): integer;
 function f2s(n: extended): string;
 function s2f(s: string): extended;
+function b2i(b: boolean): integer;
+function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
@@ -183,6 +185,22 @@ begin
     TryStrToFloat(s, Result);
   except
   end;
+end;
+
+function b2i(b: boolean): integer;
+begin
+  if b then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+function b2is(b: boolean): string;
+begin
+  if b then
+    Result := '1'
+  else
+    Result := '0';
 end;
 
 function b2s(b: boolean): string;

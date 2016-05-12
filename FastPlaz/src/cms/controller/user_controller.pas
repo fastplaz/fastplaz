@@ -385,7 +385,7 @@ procedure TUserModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
   action := _GET['$2'];
   ThemeUtil.Layout := 'user';
-  ThemeUtil.Assign('demo', ModVar['system/demo']);  //<<--- demo parsing variable to 'view'
+  ThemeUtil.Assign('demo', b2is( ModVar['system/demo']));  //<<--- demo parsing variable to 'view'
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['usermenu'] := @Tag_UserMenu;

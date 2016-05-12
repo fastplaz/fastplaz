@@ -5,7 +5,7 @@ unit modvar_model;
 interface
 
 uses
-  common, database_lib,
+  common, database_lib, serialize_lib,
   Math, Classes, SysUtils;
 
 const
