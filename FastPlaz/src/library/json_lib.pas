@@ -12,7 +12,7 @@ unit json_lib;
 interface
 
 uses
-  fpjson, variants,
+  fpjson, variants, jsonparser,
   strutils, Classes, SysUtils;
 
 type
@@ -81,6 +81,8 @@ type
       read GetValueArray write SetValueArray;
 
     property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem;
+
+    procedure LoadFromJsonString( const JsonString: string);
   end;
 
 
@@ -566,6 +568,11 @@ begin
         Node.Delete(L);
     end;
   end;
+end;
+
+procedure TJSONUtil.LoadFromJsonString(const JsonString: string);
+begin
+  FJsonObject := TJSONObject( GetJSON( JsonString));
 end;
 
 end.
