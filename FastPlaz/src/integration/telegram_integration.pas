@@ -59,7 +59,7 @@ unit telegram_integration;
 interface
 
 uses
-  http_lib,
+  http_lib, fpjson, jsonparser,
   Classes, SysUtils;
 
 {$ifdef TELEGRAM_INTEGRATION}
@@ -72,17 +72,17 @@ type
   TTelegramIntegration = class(TInterfacedObject)
   private
     FIsSuccessfull: boolean;
+    FLastUpdateID: integer;
     FParseMode: string;
     FResultCode: integer;
     FResultText: string;
     FToken: string;
-    FUpdateID: integer;
     FURL: string;
     procedure setToken(AValue: string);
   public
     constructor Create;
 
-    function getUpdates(const LastUpdateID: integer = 0): boolean;
+    function getUpdates(const UpdateID: integer = 0): string;
     function GetMe: string;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
       const ReplyToMessageID: integer = 0): boolean;
@@ -93,8 +93,8 @@ type
     function SendContact(const ChatID: integer;
       FirstName, LastName, PhoneNumber: string): boolean;
   published
+    property LastUpdateID: integer read FLastUpdateID;
     property URL: string read FURL;
-    property UpdateID: integer read FUpdateID;
     property Token: string read FToken write setToken;
     property IsSuccessfull: boolean read FIsSuccessfull;
     property ParseMode: string read FParseMode write FParseMode;
@@ -107,6 +107,7 @@ implementation
 
 const
   TELEGRAM_BASEURL = 'https://api.telegram.org/bot%s/';
+  TELEGRAM_COMMAND_GETUPDATES = 'getUpdates';
   TELEGRAM_COMMAND_GETME = 'getMe';
   TELEGRAM_COMMAND_SENDMESSAGE = 'sendMessage?chat_id=%d&text=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
@@ -132,18 +133,51 @@ constructor TTelegramIntegration.Create;
 begin
   FURL := '';
   FParseMode := 'Markdown';
-  FUpdateID := 0;
+  FLastUpdateID := 0;
   FIsSuccessfull := False;
 end;
 
-function TTelegramIntegration.getUpdates(const LastUpdateID: integer): boolean;
+function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
+var
+  urlTarget, s : string;
+  j : TJSONData;
+  a : TJSONArray;
+  i : integer;
 begin
   FIsSuccessfull := False;
-  Result := False;
+  Result := '{"ok":false}';
+  FLastUpdateID := 0;
   if FURL = '' then
     Exit;
 
   //-- todo: manual get update from telegram
+  urlTarget := URL + TELEGRAM_COMMAND_GETUPDATES + '?offset=' + IntToStr( UpdateID);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      Result := FResultText;
+      FIsSuccessfull := IsSuccessfull;
+
+      j := GetJSON( FResultText);
+      i := TJSONObject( j).IndexOfName( 'result');
+      if i <> -1 then
+      begin
+        s := j.Items[i].AsJSON;
+        a := TJSONArray( j.Items[i]);
+        a := TJSONArray( a.Items[0]);
+        a := TJSONArray( a.Items[0]);
+        FLastUpdateID:= StrToInt64( a.AsJSON) + 1;
+      end;
+
+    except
+    end;
+    Free;
+  end;
 
 end;
 
