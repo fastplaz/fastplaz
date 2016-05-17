@@ -119,7 +119,8 @@ begin
   i := 1;
   l := length(s);
   try
-    Result := varnull;
+    //Result := varnull;
+    Result := '';
     if i < l then  // tokens are >1
       Result := consumefield;
   except
