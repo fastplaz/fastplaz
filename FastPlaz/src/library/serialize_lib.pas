@@ -69,7 +69,7 @@ var
     j := i;
     while (j < l) and (s[j] in ['-', '0'..'9']) do
       Inc(j);
-    Result := strtointdef(copy(s, i, j - i), 0);
+    Result := strtointdef(copy(s, i, j - i + 1), 0);
     i := j + 1;
   end;
 

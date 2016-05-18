@@ -10,11 +10,11 @@ uses
 
 const
   MODVAR_TABLE_NAME = 'module_vars';
-  MODVAR_PRIMARY_KEY = 'id';
+  MODVAR_PRIMARY_KEY = 'mvid';
   MODVAR_FIELD_MODULENAME = 'modname';
   MODVAR_FIELD_VARIABLE = 'name';
   MODVAR_FIELD_VALUE = 'value';
-  {$include '../../../define_cms.inc'}
+  { $include '../../../define_cms.inc'}
 
 type
 

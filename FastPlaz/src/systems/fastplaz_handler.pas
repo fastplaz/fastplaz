@@ -120,6 +120,7 @@ type
     function GetSessionID: string;
     function GetTablePrefix: string;
     function GetTag(const TagName: string): TTagCallback;
+    function GetTimeUsage: integer;
     function GetURI: string;
     procedure SetFlashMessage(AValue: string);
     procedure SetTag(const TagName: string; AValue: TTagCallback);
@@ -128,7 +129,7 @@ type
       AResponse: TResponse; var Handled: boolean);
   public
     RouteRegex: string;
-    VisibleModuleName : string;
+    VisibleModuleName: string;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
     destructor Destroy; override;
     procedure HandleRequest(ARequest: TRequest; AResponse: TResponse); override;
@@ -172,6 +173,7 @@ type
     property SessionID: string read GetSessionID;
 
     property TablePrefix: string read GetTablePrefix;
+    property TimeUsage: integer read GetTimeUsage;
   end;
 
   TMyCustomWebModuleClass = class of TMyCustomWebModule;
@@ -414,7 +416,8 @@ begin
   begin
     DataBaseInit;
   end;
-  SessionController.TimeOut := Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
+  SessionController.TimeOut :=
+    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
   if not SessionController.StartSession then
   begin
     //SessionController.EndSession;
@@ -731,7 +734,7 @@ end;
 
 function TMyCustomWebModule.getModuleActive: string;
 var
-  i : integer;
+  i: integer;
 begin
   Result := '';
   i := ModuleFactory.IndexOfModule(FastPlasAppandler.GetActiveModuleName(
@@ -760,6 +763,13 @@ function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
 begin
   if AppData.themeEnable then
     Result := ___TagCallbackMap[TagName];
+end;
+
+function TMyCustomWebModule.GetTimeUsage: integer;
+begin
+  StopTime:= _GetTickCount;
+  ElapsedTime:= StopTime - StartTime;
+  Result := ElapsedTime;
 end;
 
 function TMyCustomWebModule.GetURI: string;
@@ -822,7 +832,7 @@ begin
 
   if not Assigned(OnRequest) then
   begin
-    OnRequest:= @RequestHandlerDefault;
+    OnRequest := @RequestHandlerDefault;
   end;//-- if not Assigned(OnRequest)
 
   if methodDefault = '' then
@@ -855,26 +865,31 @@ begin
   AResponse.Content := '';
 
   case ARequest.Method of
-    'GET' : begin
+    'GET':
+    begin
       Get;
     end;
-    'POST' : begin
+    'POST':
+    begin
       Post;
     end;
-    'PUT' : begin
+    'PUT':
+    begin
       Put;
     end;
-    'DELETE' : begin
+    'DELETE':
+    begin
       Delete;
     end;
-    'OPTION' : begin
+    'OPTION':
+    begin
       Option;
     end;
 
     else
-      begin
-        AResponse.Content:= __Result_Default_Handler + ': ' + ARequest.Method;
-      end;
+    begin
+      AResponse.Content := __Result_Default_Handler + ': ' + ARequest.Method;
+    end;
   end;
 
   Handled := True;

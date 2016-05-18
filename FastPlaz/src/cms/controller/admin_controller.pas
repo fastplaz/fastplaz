@@ -5,9 +5,10 @@ unit admin_controller;
 interface
 
 uses
-  fphttp, fpjson, jsonparser,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  fphttp, fpjson, jsonparser, httpprotocol,
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, modvar_util,
   user_util, user_controller,
+  json_lib,
   database_lib, security_util;
 
 const
@@ -30,9 +31,8 @@ type
   { TAdminModule }
 
   TAdminModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
-      AResponse: TResponse; var Handled: boolean);
     function Tag_ModInfo_Handler(const TagName: string; Params: TStringList): string;
+    function Tag_ModVar_Handler(const TagName: string; Params: TStringList): string;
     function Tag_MenuAdmin(const TagName: string; Params: TStringList): string;
     function Tag_Notification(const TagName: string; Params: TStringList): string;
     function GenerateMenu(const JsonString: string): string;
@@ -41,13 +41,18 @@ type
 
     function DashboardAction: string;
     function GeneralSettingAction: string;
+    function GeneralSettingSaveAction: string;
 
     function OnMenuHandler(ARequest: TRequest): string;
   private
+    action: string;
     NotifCount: integer;
     function Tag_MainContent_Handler(const TagName: string;
       Params: TStringList): string;
     procedure BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
+
+    procedure Get; override;
+    procedure Post; override;
   public
     User: TUserUtil;
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
@@ -62,7 +67,6 @@ constructor TAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   User := TUserUtil.Create();
   inherited CreateNew(AOwner, CreateMode);
-  OnRequest := @RequestHandler;
   OnMenu := @OnMenuHandler;
   BeforeRequest := @BeforeRequestHandler;
   Tags['admin-menu'] := @Tag_MenuAdmin;
@@ -76,16 +80,6 @@ begin
     FreeAndNil(User);
 end;
 
-procedure TAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
-  AResponse: TResponse; var Handled: boolean);
-begin
-  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
-  Tags['modinfo'] := @Tag_ModInfo_Handler;
-  ThemeUtil.Layout := 'admin';
-  Response.Content := ThemeUtil.Render();
-  Handled := True;
-end;
-
 function TAdminModule.Tag_ModInfo_Handler(const TagName: string;
   Params: TStringList): string;
 begin
@@ -93,6 +87,24 @@ begin
   case Params.Values['type'] of
     'title': Result := ADMIN_DASHBOARD_TITLE;
     'description': Result := ADMIN_DASHBOARD_DESCRIPTION;
+  end;
+end;
+
+function TAdminModule.Tag_ModVar_Handler(const TagName: string;
+  Params: TStringList): string;
+begin
+  try
+    Result := ModVar[Params.Values['key']];
+    if Result = '' then
+      Result := Params.Values['default'];
+    if Params.Values['type'] = 'checkbox' then
+    begin
+      if Result = 'True' then
+        Result := 'checked'
+      else
+        Result := '';
+    end;
+  except
   end;
 end;
 
@@ -321,12 +333,35 @@ end;
 
 function TAdminModule.GeneralSettingAction: string;
 begin
+
   Result := '';
+end;
+
+function TAdminModule.GeneralSettingSaveAction: string;
+var
+  b: boolean;
+  i: integer;
+begin
+  // main setting
+  ModVar['system/sitename'] := _POST['sitename'];
+  ModVar['system/description'] := _POST['description'];
+  ModVar['system/admin_email'] := _POST['admin_email'];
+  ModVar['system/demo'] := s2b(_POST['demo']);
+
+  // error & debug
+  ModVar['system/redirect_if_error'] := s2b(_POST['redirect_if_error']);
+  ModVar['system/debug'] := s2b(_POST['debug']);
+  ModVar['system/error_url'] := string(_POST['error_url']);
+
+  // others
+  ModVar['system/ajax_timeout'] := s2i(_POST['ajax_timeout']);
+
+  Result := OK;
 end;
 
 function TAdminModule.OnMenuHandler(ARequest: TRequest): string;
 var
-  o, u, subitems: TJSONObject;
+  o, u, t, subitems: TJSONObject;
   items: TJSONArray;
 begin
   Result := '';
@@ -344,6 +379,20 @@ begin
     'admin?act=generalsettings'));
   items.Add(User.AddMenu('Mailer', 'fa:fa-circle-o', 'admin#'));
   items.Add(User.AddMenu('System Information', 'fa:fa-circle-o', 'admin-systeminfo'));
+
+
+  // Tools Menu
+  t := TJSONObject.Create;
+  t.Add('title', 'Tools');
+  t.Add('icon', 'fa-server');
+  subitems := TJSONObject.Create;
+  subitems.Add('cachecleanup', User.AddMenu('Cache Clean Up',
+    'fa:fa-trash', 'admin?act=cachecleanup', '', True, '#user-content'));
+  subitems.Add('sessioncleanup', User.AddMenu('Session Clean Up',
+    'fa:fa-trash', 'admin?act=sessioncleanup', '', True, '#user-content'));
+  t.Add('items', subitems);
+  items.Add(t);
+
 
   o.Add('items', items);
   Result := o.AsJSON;
@@ -383,6 +432,47 @@ begin
   begin
     Redirect(BaseURL + USER_URL_LOGIN + '?url=admin');
   end;
+  action := _GET['act'];
+  Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
+  Tags['modinfo'] := @Tag_ModInfo_Handler;
+  Tags['modvar'] := @Tag_ModVar_Handler;
+  ThemeUtil.Layout := 'admin';
+end;
+
+procedure TAdminModule.Get;
+begin
+  Response.Content := ThemeUtil.Render();
+end;
+
+procedure TAdminModule.Post;
+var
+  o: TJSONUtil;
+  csrf: string;
+begin
+  o := TJSONUtil.Create;
+  o['code'] := 500;
+
+  case action of
+    'generalsettings':
+    begin
+      if ((_POST['do'] = 'save') and (isAjax) and isValidCSRF) then
+      begin
+        csrf := HTMLUtil.CSRF( 'generalsettings', false);
+        o['data'] := GeneralSettingSaveAction;
+        o['token'] := csrf;
+        o['time'] := TimeUsage;
+        o['code'] := Int16( 0);
+      end;
+    end;
+    else
+    begin
+
+    end;
+  end;
+
+  Response.ContentType := 'application/json';
+  Response.Content := o.AsJSON;
+  o.Free;
 end;
 
 

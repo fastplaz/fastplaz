@@ -35,7 +35,7 @@ type
     destructor Destroy; override;
     property FormID: string read GetFormID;
     procedure ResetCSRF;
-    function CSRF(const FormIDDefault: string = ''): string;
+    function CSRF(const FormIDDefault: string = ''; AsHTML : boolean = true): string;
     function CheckCSRF(Force: boolean = True): boolean;
     function H1(const Content: string; Options: array of string): string;
     function H1(const Content: string): string;
@@ -230,9 +230,16 @@ begin
   SessionController.ForceUpdate;
 end;
 
-function THTMLUtil.CSRF(const FormIDDefault: string): string;
+function THTMLUtil.CSRF(const FormIDDefault: string; AsHTML: boolean): string;
 begin
-  Result := setCsrfTokenHtml(FormIDDefault);
+  if AsHTML then
+    Result := setCsrfTokenHtml(FormIDDefault)
+  else
+  begin
+    Result := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormIDDefault);
+    _SESSION[__HTML_CSRF_TOKEN_KEY] := Result;
+    SessionController.ForceUpdate;
+  end;
 end;
 
 function THTMLUtil.CheckCSRF(Force: boolean): boolean;
