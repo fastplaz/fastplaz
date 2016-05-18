@@ -892,6 +892,11 @@ begin
     end;
   end;
 
+  // add header TimeUsage
+  StopTime:= _GetTickCount;
+  ElapsedTime:= StopTime - StartTime;
+  Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));;
+
   Handled := True;
 end;
 
