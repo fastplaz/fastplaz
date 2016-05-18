@@ -386,10 +386,10 @@ begin
   t.Add('title', 'Tools');
   t.Add('icon', 'fa-server');
   subitems := TJSONObject.Create;
-  subitems.Add('cachecleanup', User.AddMenu('Cache Clean Up',
-    'fa:fa-trash', 'admin?act=cachecleanup', '', True, '#user-content'));
-  subitems.Add('sessioncleanup', User.AddMenu('Session Clean Up',
-    'fa:fa-trash', 'admin?act=sessioncleanup', '', True, '#user-content'));
+  subitems.Add('cachecleanup', User.AddMenu('Cache CleanUp',
+    'fa:fa-trash', 'admin?act=cachecleanup', '', True, 'section.content'));
+  subitems.Add('sessioncleanup', User.AddMenu('Session CleanUp',
+    'fa:fa-trash', 'admin?act=sessioncleanup', '', True, 'section.content'));
   t.Add('items', subitems);
   items.Add(t);
 
@@ -462,6 +462,7 @@ begin
         o['token'] := csrf;
         o['time'] := TimeUsage;
         o['code'] := Int16( 0);
+        Response.SetCustomHeader( 'TimeUsage', i2s( TimeUsage));
       end;
     end;
     else

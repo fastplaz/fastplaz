@@ -523,6 +523,10 @@ procedure Die(const Message: string);
 begin
   //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
   //raise EFPWebError.Create(Message);
+  StopTime:= _GetTickCount;
+  ElapsedTime:= StopTime - StartTime;
+
+  Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));;
   Application.Response.Contents.Add(Message);
   Application.Response.SendContent;
   Application.Terminate;
