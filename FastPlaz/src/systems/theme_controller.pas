@@ -18,7 +18,7 @@ uses
   fpWeb, Regex,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   RegExpr, db, sqldb,
-  common, fastplaz_handler, database_lib, datetime_lib,
+  common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
   Classes, SysUtils;
 
 const
@@ -1701,6 +1701,9 @@ begin
       end;
     'config' : begin
       ReplaceText:= Config[ tagstring_custom.Values['key']];
+      end;
+    'modvar' : begin
+      ReplaceText:= ModVar[ tagstring_custom.Values['key']];
       end;
     'csrf-token' : begin
       HTMLUtil.ResetCSRF;
