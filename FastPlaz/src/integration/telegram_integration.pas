@@ -86,11 +86,19 @@ type
     function GetMe: string;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
       const ReplyToMessageID: integer = 0): boolean;
+    function SendMessage(const ChatID: string = '0'; const Text: string = '';
+      const ReplyToMessageID: integer = 0): boolean;
+    function SendPhoto(const ChatID: string; const FileName: string;
+      const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
+      const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
+    function SendVideo(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVideo(const ChatID: integer; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendContact(const ChatID: integer;
+      FirstName, LastName, PhoneNumber: string): boolean;
+    function SendContact(const ChatID: string;
       FirstName, LastName, PhoneNumber: string): boolean;
   published
     property LastUpdateID: integer read FLastUpdateID;
@@ -139,10 +147,10 @@ end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
 var
-  urlTarget, s : string;
-  j : TJSONData;
-  a : TJSONArray;
-  i : integer;
+  urlTarget, s: string;
+  j: TJSONData;
+  a: TJSONArray;
+  i: integer;
 begin
   FIsSuccessfull := False;
   Result := '{"ok":false}';
@@ -151,7 +159,7 @@ begin
     Exit;
 
   //-- todo: manual get update from telegram
-  urlTarget := URL + TELEGRAM_COMMAND_GETUPDATES + '?offset=' + IntToStr( UpdateID);
+  urlTarget := URL + TELEGRAM_COMMAND_GETUPDATES + '?offset=' + IntToStr(UpdateID);
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -163,15 +171,15 @@ begin
       Result := FResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      j := GetJSON( FResultText);
-      i := TJSONObject( j).IndexOfName( 'result');
+      j := GetJSON(FResultText);
+      i := TJSONObject(j).IndexOfName('result');
       if i <> -1 then
       begin
         s := j.Items[i].AsJSON;
-        a := TJSONArray( j.Items[i]);
-        a := TJSONArray( a.Items[0]);
-        a := TJSONArray( a.Items[0]);
-        FLastUpdateID:= StrToInt64( a.AsJSON) + 1;
+        a := TJSONArray(j.Items[i]);
+        a := TJSONArray(a.Items[0]);
+        a := TJSONArray(a.Items[0]);
+        FLastUpdateID := StrToInt64(a.AsJSON) + 1;
       end;
 
     except
@@ -241,6 +249,25 @@ begin
   Result := FIsSuccessfull;
 end;
 
+function TTelegramIntegration.SendMessage(const ChatID: string;
+  const Text: string; const ReplyToMessageID: integer): boolean;
+begin
+  try
+    SendMessage(StrToInt(ChatID), Text, ReplyToMessageID);
+  except
+  end;
+end;
+
+function TTelegramIntegration.SendPhoto(const ChatID: string;
+  const FileName: string; const Caption: string;
+  const ReplyToMessageID: integer): boolean;
+begin
+  try
+    SendPhoto(StrToInt(ChatID), FileName, Caption, ReplyToMessageID);
+  except
+  end;
+end;
+
 function TTelegramIntegration.SendPhoto(const ChatID: integer;
   const FileName: string; const Caption: string;
   const ReplyToMessageID: integer): boolean;
@@ -279,6 +306,16 @@ begin
   end;
 
   Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.SendVideo(const ChatID: string;
+  const FileName: string; const Caption: string;
+  const ReplyToMessageID: integer): boolean;
+begin
+  try
+    SendVideo(StrToInt(ChatID), FileName, Caption, ReplyToMessageID);
+  except
+  end;
 end;
 
 function TTelegramIntegration.SendVideo(const ChatID: integer;
@@ -354,11 +391,18 @@ begin
 
 end;
 
+function TTelegramIntegration.SendContact(const ChatID: string;
+  FirstName, LastName, PhoneNumber: string): boolean;
+begin
+  try
+    SendContact(StrToInt(ChatID), FirstName, LastName, PhoneNumber);
+  except
+  end;
+end;
+
 
 
 end.
-
-
 {
   FORMAT MESSAGE FROM TELEGRAM
 
@@ -391,4 +435,6 @@ end.
 
 
 }
+
+
 

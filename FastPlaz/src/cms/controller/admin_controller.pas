@@ -403,7 +403,7 @@ function TAdminModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
 begin
 
-  case _GET['act'] of
+  case action of
     '': Result := DashboardAction;
     'generalsettings':
     begin
