@@ -20,7 +20,7 @@ unit solr_lib;
 
       while not EOF do
       begin
-        yourvariable := SOLR['yourfieldname']);
+        yourvariable := Field['yourfieldname'];
 
         Next;
       end;
@@ -91,7 +91,7 @@ type
 
     procedure First;
     procedure Next;
-    property Value[FieldName: string]: string read GetValue; default;
+    property Field[FieldName: string]: string read GetValue; default;
   published
     property URL: string read FURL;
     property Host: string read FHost write FHost;
