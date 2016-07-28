@@ -56,6 +56,8 @@ type
 
   TSOLRModel = class
   private
+    FDebugQuery: boolean;
+    FFields: string;
     FRowIndex: integer;
     FEOF: boolean;
     FFormat: string;
@@ -63,6 +65,7 @@ type
     FIndex: integer;
     FLimit: integer;
     FRecordCount: integer;
+    FSort: string;
     FSSL: boolean;
     FTotalCount: integer;
     httpResponse: IHTTPResponse;
@@ -80,10 +83,9 @@ type
     procedure GenerateDataset;
   public
     constructor Create;
-    constructor Create(const DefaultTableName: string; const pPrimaryKey: string);
     destructor Destroy; override;
     function Open: boolean;
-    function Open( SORLURL:string):boolean;
+    function Open(SORLURL: string): boolean;
     function ResultText: string;
     function ResultCode: integer;
 
@@ -102,6 +104,10 @@ type
     property Query: TStringList read FQuery write FQuery;
     property Index: integer read FIndex write FIndex;
     property Limit: integer read FLimit write FLimit;
+
+    property Sort: string read FSort write FSort;
+    property Fields: string read FFields write FFields;
+    property DebugQuery: boolean read FDebugQuery write FDebugQuery;
 
     property EOF: boolean read FEOF;
     property TotalCount: integer read FTotalCount;
@@ -127,10 +133,16 @@ begin
   Result := Result + 'wt=' + FFormat + '&';
   if FIndentation then
     Result := Result + 'indent=true&';
+  if FDebugQuery then
+    Result := Result + 'debugQuery=true&';
   if FIndex <> -1 then
     Result := Result + 'start=' + IntToStr(FIndex) + '&';
   if FLimit <> -1 then
     Result := Result + 'rows=' + IntToStr(FLimit) + '&';
+  if FSort <> '' then
+    Result := Result + 'sort=' + FSort + '&';
+  if FFields <> '' then
+    Result := Result + 'fl=' + FFields + '&';
 
   Result := Result + 'q=' + trim(FQuery.Text);
 end;
@@ -174,7 +186,6 @@ procedure TSOLRModel.GenerateDataset;
 var
   docs, item: TJSONData;
   i, j: integer;
-  s: string;
 begin
   docs := FResponseJSON.FindPath('response.docs');
   for i := 0 to docs.Count - 1 do
@@ -186,7 +197,7 @@ begin
     begin
       for j := 0 to item.Count - 1 do
       begin
-        s := TJSONObject(item).Names[j];
+        // fieldname := TJSONObject(item).Names[j];
 
         // TODO: save field name to dataset
 
@@ -197,15 +208,7 @@ begin
 
 end;
 
-
-
 constructor TSOLRModel.Create;
-begin
-  Create('', '');
-end;
-
-constructor TSOLRModel.Create(const DefaultTableName: string;
-  const pPrimaryKey: string);
 begin
   FSSL := False;
   FURL := '';
@@ -219,6 +222,7 @@ begin
 
   FIndex := -1;
   FLimit := -1;
+  FDebugQuery := False;
 
   init;
 end;
@@ -233,7 +237,7 @@ function TSOLRModel.Open: boolean;
 begin
   Result := False;
   FURL := GenerateURL;
-  Result := Open( FURL);
+  Result := Open(FURL);
 end;
 
 function TSOLRModel.Open(SORLURL: string): boolean;
@@ -243,7 +247,7 @@ begin
 
   with THTTPLib.Create do
   begin
-    URL := FURL;
+    URL := SORLURL;
     httpResponse := Get();
 
     if isValidResult then
@@ -275,13 +279,13 @@ end;
 
 procedure TSOLRModel.Next;
 begin
-  if FRowIndex = FRecordCount-1 then
+  if FRowIndex = FRecordCount - 1 then
   begin
-    FEOF:= True;
+    FEOF := True;
     Exit;
   end;
 
-  if FRowIndex < FRecordCount-1 then
+  if FRowIndex < FRecordCount - 1 then
     FRowIndex := FRowIndex + 1;
 end;
 
