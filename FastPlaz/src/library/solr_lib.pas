@@ -250,10 +250,13 @@ begin
     URL := SORLURL;
     httpResponse := Get();
 
-    if isValidResult then
+    if httpResponse.ResultCode = 200 then
     begin
-      GenerateDataset;
-      Result := True;
+      if isValidResult then
+      begin
+        GenerateDataset;
+        Result := True;
+      end;
     end;
 
     Free;
