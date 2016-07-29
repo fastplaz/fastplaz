@@ -193,6 +193,7 @@ begin
     item := docs.Items[i];
 
     // collect field name
+    {
     if i = 0 then
     begin
       for j := 0 to item.Count - 1 do
@@ -203,6 +204,7 @@ begin
 
       end;
     end;
+    }
 
   end; // i
 
@@ -254,7 +256,7 @@ begin
     begin
       if isValidResult then
       begin
-        GenerateDataset;
+        //GenerateDataset;
         Result := True;
       end;
     end;
