@@ -6,7 +6,7 @@ unit solr_lib;
   with TSOLRModel.Create do
   begin
     Host := 'localhost';
-    Post := '8389';
+    Port := '8389';
     Address := '/solr';
     Core := 'yourcorename';
     Query.Text := '*:*';
