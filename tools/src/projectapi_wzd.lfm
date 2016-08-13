@@ -1,0 +1,151 @@
+object fProjectAPIWizard: TfProjectAPIWizard
+  Left = 230
+  Height = 364
+  Top = 146
+  Width = 531
+  BorderStyle = bsDialog
+  Caption = 'Project API Wizard'
+  ClientHeight = 364
+  ClientWidth = 531
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '1.6.0.4'
+  object pnl_Top: TPanel
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 531
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 34
+    ClientWidth = 531
+    Color = 4210752
+    Font.Color = clWhite
+    ParentColor = False
+    ParentFont = False
+    TabOrder = 0
+    object lbl_Title: TLabel
+      Left = 6
+      Height = 22
+      Top = 4
+      Width = 248
+      Caption = 'FastPlaz API Project Wizard'
+      Font.Color = clWhite
+      Font.Height = -19
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object pnl_Button: TButtonPanel
+    Left = 6
+    Height = 30
+    Top = 328
+    Width = 519
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    OKButton.OnClick = OKButtonClick
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    CancelButton.OnClick = CancelButtonClick
+    TabOrder = 5
+    ShowButtons = [pbOK]
+  end
+  object Label1: TLabel
+    Left = 10
+    Height = 16
+    Top = 49
+    Width = 92
+    Caption = 'Project Name :'
+    ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 10
+    Height = 16
+    Top = 76
+    Width = 126
+    Caption = 'WebRoot Directory :'
+    ParentColor = False
+  end
+  object cbx_GenerateStructure: TCheckBox
+    Cursor = crHandPoint
+    Left = 152
+    Height = 18
+    Top = 100
+    Width = 251
+    Caption = 'Generate API Directory/Files Structure'
+    TabOrder = 3
+  end
+  object edt_ProjectName: TEdit
+    Left = 152
+    Height = 22
+    Top = 44
+    Width = 364
+    CharCase = ecLowerCase
+    TabOrder = 1
+    Text = 'fastplaz'
+  end
+  object edt_WebRootDir: TDirectoryEdit
+    Left = 152
+    Height = 22
+    Top = 72
+    Width = 364
+    ShowHidden = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    TabOrder = 2
+  end
+  object mem_Header: TMemo
+    Left = 156
+    Height = 77
+    Top = 140
+    Width = 360
+    Font.Height = -13
+    Font.Name = 'Courier New'
+    Lines.Strings = (
+      'AppID'
+      'ClientID'
+      'Token'
+      ''
+      ''
+      ''
+      ''
+    )
+    ParentFont = False
+    ScrollBars = ssAutoBoth
+    TabOrder = 4
+  end
+  object Label3: TLabel
+    Left = 10
+    Height = 16
+    Top = 120
+    Width = 146
+    Caption = 'Header that will parse :'
+    ParentColor = False
+  end
+  object mem: TMemo
+    Left = 16
+    Height = 88
+    Top = 224
+    Width = 500
+    Color = clBtnFace
+    Lines.Strings = (
+      'This wizard will generate API project.'
+      ''
+      'Type your project name,'
+      'and (optional), you can generate fastplaz api directory/files structure too.'
+      ''
+      ''
+      ''
+      ''
+      ''
+      ''
+    )
+    ReadOnly = True
+    TabOrder = 6
+  end
+end
