@@ -78,7 +78,8 @@ begin
     if edt_WebRootDir.Text <> '' then
     begin
       if edt_WebRootDir.Text <> GetUserDir then
-        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) + ProjectName + _APP_EXTENSION;
+        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) +
+          ProjectName + _APP_EXTENSION;
     end;
     isCreateStructure := cbx_GenerateStructure.Checked;
     Free;
@@ -118,7 +119,6 @@ begin
     Add('  Application.Initialize;');
     Add('  Application.Run;');
     Add('end.');
-
   end;
   {$ifdef windows}
   AProject.MainFile.SetSourceText(Source.Text, True);
@@ -156,7 +156,6 @@ begin
 end;
 
 function TProjectFastPlazDescriptor.CreateStartFiles(AProject: TLazProject): TModalResult;
-
 var
   Pkg: TIDEPackage;
   filename: string;
@@ -173,8 +172,8 @@ begin
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
 
   // open readme file
-  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator + 'docs' + DirectorySeparator +
-    'README-new project.txt';
+  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator +
+    'docs' + DirectorySeparator + 'README-new project.txt';
 
 
   if FileExists(filename) then

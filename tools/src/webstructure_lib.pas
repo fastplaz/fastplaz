@@ -59,6 +59,7 @@ begin
   Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
   fastplaz_package_dir := Pkg.DirectoryExpanded;
   ScanDirAndCopy(fastplaz_package_dir + DirectorySeparator + 'templates' +
+    DirectorySeparator + 'app' +
     DirectorySeparator + '*',
     TargetDirectory);
 
