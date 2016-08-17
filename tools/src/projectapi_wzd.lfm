@@ -1,12 +1,12 @@
 object fProjectAPIWizard: TfProjectAPIWizard
   Left = 230
-  Height = 364
+  Height = 349
   Top = 146
-  Width = 531
+  Width = 546
   BorderStyle = bsDialog
   Caption = 'Project API Wizard'
-  ClientHeight = 364
-  ClientWidth = 531
+  ClientHeight = 349
+  ClientWidth = 546
   OnCreate = FormCreate
   Position = poScreenCenter
   LCLVersion = '1.6.0.4'
@@ -14,11 +14,11 @@ object fProjectAPIWizard: TfProjectAPIWizard
     Left = 0
     Height = 34
     Top = 0
-    Width = 531
+    Width = 546
     Align = alTop
     BevelOuter = bvNone
     ClientHeight = 34
-    ClientWidth = 531
+    ClientWidth = 546
     Color = 4210752
     Font.Color = clWhite
     ParentColor = False
@@ -39,8 +39,8 @@ object fProjectAPIWizard: TfProjectAPIWizard
   object pnl_Button: TButtonPanel
     Left = 6
     Height = 30
-    Top = 328
-    Width = 519
+    Top = 313
+    Width = 534
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
     OKButton.OnClick = OKButtonClick
@@ -72,7 +72,7 @@ object fProjectAPIWizard: TfProjectAPIWizard
   end
   object cbx_GenerateStructure: TCheckBox
     Cursor = crHandPoint
-    Left = 152
+    Left = 168
     Height = 18
     Top = 100
     Width = 251
@@ -80,18 +80,18 @@ object fProjectAPIWizard: TfProjectAPIWizard
     TabOrder = 3
   end
   object edt_ProjectName: TEdit
-    Left = 152
+    Left = 168
     Height = 22
-    Top = 44
+    Top = 43
     Width = 364
     CharCase = ecLowerCase
     TabOrder = 1
     Text = 'fastplaz'
   end
   object edt_WebRootDir: TDirectoryEdit
-    Left = 152
+    Left = 168
     Height = 22
-    Top = 72
+    Top = 70
     Width = 364
     ShowHidden = False
     ButtonWidth = 23
@@ -100,21 +100,12 @@ object fProjectAPIWizard: TfProjectAPIWizard
     TabOrder = 2
   end
   object mem_Header: TMemo
-    Left = 156
+    Left = 168
     Height = 77
-    Top = 140
-    Width = 360
+    Top = 120
+    Width = 364
     Font.Height = -13
     Font.Name = 'Courier New'
-    Lines.Strings = (
-      'AppID'
-      'ClientID'
-      'Token'
-      ''
-      ''
-      ''
-      ''
-    )
     ParentFont = False
     ScrollBars = ssAutoBoth
     TabOrder = 4
@@ -128,16 +119,19 @@ object fProjectAPIWizard: TfProjectAPIWizard
     ParentColor = False
   end
   object mem: TMemo
-    Left = 16
+    Left = 10
     Height = 88
-    Top = 224
-    Width = 500
+    Top = 208
+    Width = 522
     Color = clBtnFace
     Lines.Strings = (
       'This wizard will generate API project.'
       ''
       'Type your project name,'
       'and (optional), you can generate fastplaz api directory/files structure too.'
+      ''
+      ''
+      ''
       ''
       ''
       ''

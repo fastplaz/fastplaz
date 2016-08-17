@@ -60,7 +60,7 @@ var
   isCreateStructure: boolean;
 begin
   ProjectName := 'fastplaz';
-  targetExecutable := '.' + DirectorySeparator;
+  targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
 
   with TfProjectWizard.Create(nil) do
   begin

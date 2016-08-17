@@ -55,6 +55,10 @@ end;
 procedure TfProjectAPIWizard.FormCreate(Sender: TObject);
 begin
   edt_ProjectName.Text := 'fastplazapi';
+  mem_Header.Clear;
+  mem_Header.Lines.Add( 'Authorization');
+  mem_Header.Lines.Add( 'ClientID');
+  mem_Header.Lines.Add( 'Token');
 end;
 
 end.

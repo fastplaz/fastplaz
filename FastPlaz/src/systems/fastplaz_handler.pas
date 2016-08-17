@@ -108,6 +108,7 @@ type
     function GetBaseURL: string;
     function GetCSRFFailedCount: integer;
     function GetEnvirontment(const KeyName: string): string;
+    function GetHeader(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
     function GetIsDelete: boolean;
@@ -144,6 +145,7 @@ type
 
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
+    property Header[const KeyName: string]: string read GetHeader;
 
     property Tags[const TagName: string]: TTagCallback read GetTag write SetTag; default;
     procedure TagController(Sender: TObject; const TagString: string;
@@ -654,6 +656,11 @@ end;
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
+end;
+
+function TMyCustomWebModule.GetHeader(const KeyName: string): string;
+begin
+  Result := GetEnvironmentVariable( KeyName);
 end;
 
 function TMyCustomWebModule.GetIsActive: boolean;

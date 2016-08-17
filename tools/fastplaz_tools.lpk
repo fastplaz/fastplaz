@@ -22,7 +22,7 @@
 for more information visit http://www.fastplaz.com
 "/>
     <Version Minor="1" Release="1"/>
-    <Files Count="16">
+    <Files Count="17">
       <Item1>
         <Filename Value="src\about_fastplaz.pas"/>
         <UnitName Value="about_fastplaz"/>
@@ -73,21 +73,25 @@ for more information visit http://www.fastplaz.com
         <UnitName Value="projectapi_lib"/>
       </Item12>
       <Item13>
-        <Filename Value="src\themestructure_wzd.pas"/>
-        <UnitName Value="themestructure_wzd"/>
+        <Filename Value="src\projectapi_wzd.pas"/>
+        <UnitName Value="projectapi_wzd"/>
       </Item13>
       <Item14>
-        <Filename Value="src\webstructure_lib.pas"/>
-        <UnitName Value="webstructure_lib"/>
+        <Filename Value="src\themestructure_wzd.pas"/>
+        <UnitName Value="themestructure_wzd"/>
       </Item14>
       <Item15>
-        <Filename Value="src\webstructure_wzd.pas"/>
-        <UnitName Value="webstructure_wzd"/>
+        <Filename Value="src\webstructure_lib.pas"/>
+        <UnitName Value="webstructure_lib"/>
       </Item15>
       <Item16>
+        <Filename Value="src\webstructure_wzd.pas"/>
+        <UnitName Value="webstructure_wzd"/>
+      </Item16>
+      <Item17>
         <Filename Value="src\webstructure_wzd.lfm"/>
         <Type Value="LFM"/>
-      </Item16>
+      </Item17>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
