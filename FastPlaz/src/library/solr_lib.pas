@@ -6,7 +6,7 @@ unit solr_lib;
   with TSOLRModel.Create do
   begin
     Host := 'localhost';
-    Post := '8389';
+    Port := '8389';
     Address := '/solr';
     Core := 'yourcorename';
     Query.Text := '*:*';
@@ -193,6 +193,7 @@ begin
     item := docs.Items[i];
 
     // collect field name
+    {
     if i = 0 then
     begin
       for j := 0 to item.Count - 1 do
@@ -203,6 +204,7 @@ begin
 
       end;
     end;
+    }
 
   end; // i
 
@@ -250,10 +252,13 @@ begin
     URL := SORLURL;
     httpResponse := Get();
 
-    if isValidResult then
+    if httpResponse.ResultCode = 200 then
     begin
-      GenerateDataset;
-      Result := True;
+      if isValidResult then
+      begin
+        //GenerateDataset;
+        Result := True;
+      end;
     end;
 
     Free;

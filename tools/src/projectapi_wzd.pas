@@ -1,4 +1,4 @@
-unit project_wzd;
+unit projectapi_wzd;
 
 {$mode objfpc}{$H+}
 
@@ -10,16 +10,18 @@ uses
 
 type
 
-  { TfProjectWizard }
+  { TfProjectAPIWizard }
 
-  TfProjectWizard = class(TForm)
+  TfProjectAPIWizard = class(TForm)
     cbx_GenerateStructure: TCheckBox;
     edt_ProjectName: TEdit;
     edt_WebRootDir: TDirectoryEdit;
     Label1: TLabel;
     Label2: TLabel;
+    Label3: TLabel;
     lbl_Title: TLabel;
     mem: TMemo;
+    mem_Header: TMemo;
     pnl_Button: TButtonPanel;
     pnl_Top: TPanel;
     procedure CancelButtonClick(Sender: TObject);
@@ -32,29 +34,32 @@ type
   end;
 
 var
-  fProjectWizard: TfProjectWizard;
+  fProjectAPIWizard: TfProjectAPIWizard;
 
 implementation
 
 {$R *.lfm}
 
-{ TfProjectWizard }
+{ TfProjectAPIWizard }
 
-procedure TfProjectWizard.OKButtonClick(Sender: TObject);
+procedure TfProjectAPIWizard.OKButtonClick(Sender: TObject);
 begin
   ModalResult := mrOk;
 end;
 
-procedure TfProjectWizard.CancelButtonClick(Sender: TObject);
+procedure TfProjectAPIWizard.CancelButtonClick(Sender: TObject);
 begin
   ModalResult := mrCancel;
 end;
 
-procedure TfProjectWizard.FormCreate(Sender: TObject);
+procedure TfProjectAPIWizard.FormCreate(Sender: TObject);
 begin
-  edt_ProjectName.Text := 'fastplaz';
+  edt_ProjectName.Text := 'fastplazapi';
+  mem_Header.Clear;
+  mem_Header.Lines.Add( 'Authorization');
+  mem_Header.Lines.Add( 'ClientID');
+  mem_Header.Lines.Add( 'Token');
 end;
-
 
 end.
 

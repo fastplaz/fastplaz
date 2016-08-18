@@ -10,9 +10,6 @@ uses
   IDEMsgIntf, LazIDEIntf, PackageIntf,
   Classes, SysUtils;
 
-const
-  CSS_WEBSTRUCTURE_FAILED = 'Failed create directory structure';
-
 type
 
   { TWebStructure }
@@ -31,6 +28,11 @@ type
 implementation
 
 uses fastplaz_tools_register;
+
+const
+  CSS_WEBSTRUCTURE_FAILED = 'Failed create directory structure';
+  CSS_APP_TEMPLATEFOLDER = 'app';
+
 
 { TWebStructure }
 
@@ -58,7 +60,9 @@ begin
 
   Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
   fastplaz_package_dir := Pkg.DirectoryExpanded;
-  ScanDirAndCopy(fastplaz_package_dir + DirectorySeparator + 'templates' +
+  ScanDirAndCopy(fastplaz_package_dir +
+    DirectorySeparator + 'templates' +
+    DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
     DirectorySeparator + '*',
     TargetDirectory);
 
@@ -71,7 +75,9 @@ begin
     s := DefaultBinaryFile;
   with TStringList.Create do
   begin
-    LoadFromFile(fastplaz_package_dir + 'templates' + DirectorySeparator + '.htaccess');
+    LoadFromFile(fastplaz_package_dir + 'templates' +
+      DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
+      DirectorySeparator + '.htaccess');
     Text := StringReplace(Text, 'your_binary_file', s, [rfReplaceAll]);
     try
       SaveToFile(TargetDirectory + DirectorySeparator + '.htaccess');
