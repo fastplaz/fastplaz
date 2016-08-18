@@ -26,11 +26,11 @@ type
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
     function GetUnitDirectives: string; virtual;
-    function GetInterfaceSource(
-      const Filename, SourceName, ResourceName: string): string;
+    function GetInterfaceSource(const Filename, SourceName,
+      ResourceName: string): string;
       override;
-    function GetImplementationSource(
-      const Filename, SourceName, ResourceName: string): string; override;
+    function GetImplementationSource(const Filename, SourceName,
+      ResourceName: string): string; override;
     function GetResourceSource(const ResourceName: string): string; override;
     function CreateSource(const Filename, SourceName, ResourceName: string): string;
       override;
@@ -44,8 +44,8 @@ type
   public
     constructor Create; override;
     function GetInterfaceUsesSection: string; override;
-    function GetImplementationSource(
-      const Filename, SourceName, ResourceName: string): string; override;
+    function GetImplementationSource(const Filename, SourceName,
+      ResourceName: string): string; override;
   end;
 
 implementation
@@ -199,7 +199,10 @@ begin
     Add('procedure ' + ModulTypeName +
       '.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);');
     Add('Begin');
-    Add('  Response.ContentType := ''application/json'';');
+    if IsAPI then
+    begin
+      Add('  Response.ContentType := ''application/json'';');
+    end;
     Add('End;');
     Add('');
 
@@ -221,8 +224,11 @@ begin
     Add('');
 
     Add('// POST Method Handler');
-    Add('// CURL example:');
-    Add('//   curl -X POST -H "Authorization: Basic dW5hbWU6cGFzc3dvcmQ=" "yourtargeturl"');
+    if IsAPI then
+    begin
+      Add('// CURL example:');
+      Add('//   curl -X POST -H "Authorization: Basic dW5hbWU6cGFzc3dvcmQ=" "yourtargeturl"');
+    end;
     Add('procedure ' + ModulTypeName + '.Post;');
     if IsAPI then
     begin
@@ -235,7 +241,7 @@ begin
       Add('');
       Add('  json[''code''] := Int16(0);');
       Add('  json[''data''] := ''yourdatahere'';');
-      Add('  Response.SetCustomHeader( ''ThisIsCustomHeader'', ''datacustomheader'');');
+      Add('  CustomHeader[ ''ThisIsCustomHeader''] := ''datacustomheader'';');
       Add('');
       Add('  //---');
       Add('  Response.Content := json.AsJSON;');
