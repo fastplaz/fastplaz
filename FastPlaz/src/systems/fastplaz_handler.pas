@@ -107,6 +107,7 @@ type
 
     function GetBaseURL: string;
     function GetCSRFFailedCount: integer;
+    function GetCustomHeader(const KeyName: string): string;
     function GetEnvirontment(const KeyName: string): string;
     function GetHeader(const KeyName: string): string;
     function GetIsActive: boolean;
@@ -123,6 +124,7 @@ type
     function GetTag(const TagName: string): TTagCallback;
     function GetTimeUsage: integer;
     function GetURI: string;
+    procedure SetCustomHeader(const KeyName: string; AValue: string);
     procedure SetFlashMessage(AValue: string);
     procedure SetTag(const TagName: string; AValue: TTagCallback);
 
@@ -146,6 +148,7 @@ type
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
     property Header[const KeyName: string]: string read GetHeader;
+    property CustomHeader[const KeyName: string]: string read GetCustomHeader write SetCustomHeader;
 
     property Tags[const TagName: string]: TTagCallback read GetTag write SetTag; default;
     procedure TagController(Sender: TObject; const TagString: string;
@@ -653,6 +656,11 @@ begin
   Result := s2i(_SESSION[__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT]);
 end;
 
+function TMyCustomWebModule.GetCustomHeader(const KeyName: string): string;
+begin
+  Response.GetCustomHeader( KeyName);
+end;
+
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
@@ -782,6 +790,12 @@ end;
 function TMyCustomWebModule.GetURI: string;
 begin
   Result := FastPlasAppandler.URI;
+end;
+
+procedure TMyCustomWebModule.SetCustomHeader(const KeyName: string;
+  AValue: string);
+begin
+  Response.SetCustomHeader( KeyName, AValue);
 end;
 
 procedure TMyCustomWebModule.SetFlashMessage(AValue: string);
