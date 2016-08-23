@@ -172,6 +172,7 @@ type
     destructor Destroy; override;
     function Get: IHTTPResponse;
     function Post: IHTTPResponse;
+    function Delete: IHTTPResponse;
     function UploadFile(Files: array of string;
       VarName: string = 'files[]'): IHTTPResponse;
     function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
@@ -325,6 +326,11 @@ begin
       begin
         prepareRequestBody;
         HTTPClient.Post(FURL, ResultStream);
+      end;
+      'DELETE':
+      begin
+        prepareRequestBody;
+        HTTPClient.Delete(FURL, ResultStream);
       end;
       'POST':
       begin
@@ -549,6 +555,11 @@ begin
   //HTTPClient.RequestBody := TStringStream.Create(PostFormData.Text);
 
   Result := CustomSubmit('FORMPOST');
+end;
+
+function THTTPLib.Delete: IHTTPResponse;
+begin
+  Result := CustomSubmit('DELETE');
 end;
 
 function THTTPLib.UploadFile(Files: array of string; VarName: string): IHTTPResponse;
