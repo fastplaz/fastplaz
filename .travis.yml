@@ -1,0 +1,12 @@
+language: pascal
+pascal:
+  - 'fpc-3.0.0'
+compiler:
+  - fpc
+before_script:
+  - ./clean-all.sh
+script:
+before_install:
+  - fpc -iV
+install:
+env:
