@@ -1,7 +1,7 @@
 program fastplaz;
 
 {$mode objfpc}{$H+}
-{$include define.inc}
+{$include define_fastplaz.inc}
 
 uses
   SysUtils, fpcgi, common, fastplaz_handler, database_lib, gettext,
