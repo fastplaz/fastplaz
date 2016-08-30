@@ -7,6 +7,6 @@ before_script:
   - ./clean-all.sh
 script:
 before_install:
-  - fpc -iV
+#  - fpc -iV
 install:
 env:
