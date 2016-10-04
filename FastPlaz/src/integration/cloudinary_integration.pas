@@ -1,7 +1,7 @@
 unit cloudinary_integration;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{ $ include ../../define.inc}
 
 interface
 
