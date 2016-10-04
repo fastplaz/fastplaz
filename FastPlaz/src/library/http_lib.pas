@@ -324,12 +324,14 @@ begin
       'GET': HTTPClient.Get(FURL, ResultStream);
       'FORMPOST':
       begin
-        prepareRequestBody;
+        if not Assigned( HTTPClient.RequestBody) then
+           prepareRequestBody;
         HTTPClient.Post(FURL, ResultStream);
       end;
       'DELETE':
       begin
-        prepareRequestBody;
+        if not Assigned( HTTPClient.RequestBody) then
+           prepareRequestBody;
         HTTPClient.Delete(FURL, ResultStream);
       end;
       'POST':
