@@ -1,7 +1,28 @@
 unit cloudinary_integration;
 
+{
+
+  // USAGE:
+  respon: IHTTPResponse;
+
+  with TCloudinaryIntegration.Create do
+  begin
+    URL := 'https://api.cloudinary.com/v1_1/youraccountname/image/upload';
+    ApiKey := 'yourapikey';
+    ApiSecret := 'yourapisecreat';
+    UploadPreset := 'theuploadpreset';
+
+    respon := UploadFile('/folder/folder/filename.png');
+
+
+    Free;
+  end;
+
+}
+
 {$mode objfpc}{$H+}
 { $ include ../../define.inc}
+{$DEFINE CLOUDINARY_INTEGRATION}
 
 interface
 
@@ -56,9 +77,6 @@ begin
   with THTTPLib.Create(URL) do
   begin
     ContentType := 'application/x-www-form-urlencoded';
-    //AddHeader('Connection', 'keep-alive');
-    //AddHeader('Cache-Control', 'no-cache');
-    //AddHeader('Accept', '*/*');
     if Public_Id = '' then
        FormData[ 'public_id'] := ChangeFileExt( ExtractFileName( FileName), '');
     FormData[ 'api_key'] := ( FApiKey);
