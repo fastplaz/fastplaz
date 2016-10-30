@@ -101,7 +101,7 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses common;');
+    Add('uses common, json_lib;');
     Add('');
 
     Add('constructor ' + ModulTypeName +
