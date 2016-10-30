@@ -12,7 +12,7 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   OnCreate = FormCreate
   Position = poScreenCenter
   SessionProperties = 'Top;Left'
-  LCLVersion = '1.2.6.0'
+  LCLVersion = '1.6.0.4'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
@@ -27,9 +27,9 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     TabOrder = 3
     object lbl_Title: TLabel
       Left = 6
-      Height = 25
+      Height = 22
       Top = 4
-      Width = 192
+      Width = 204
       Caption = 'Module Simple Wizard'
       Font.Height = -19
       ParentColor = False
@@ -38,8 +38,8 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   end
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 34
-    Top = 207
+    Height = 30
+    Top = 211
     Width = 395
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -56,15 +56,15 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   end
   object Label1: TLabel
     Left = 10
-    Height = 15
+    Height = 16
     Top = 49
-    Width = 82
+    Width = 95
     Caption = 'Module Name :'
     ParentColor = False
   end
   object edt_ModuleName: TEdit
     Left = 94
-    Height = 23
+    Height = 22
     Top = 46
     Width = 302
     OnChange = edt_ModuleNameChange
@@ -79,21 +79,22 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     Lines.Strings = (
       ''
       'This is Module Generator for FastPlaz'
+      ''
     )
     ReadOnly = True
     TabOrder = 4
   end
   object Label2: TLabel
     Left = 10
-    Height = 15
+    Height = 16
     Top = 76
-    Width = 59
+    Width = 70
     Caption = 'Permalink :'
     ParentColor = False
   end
   object edt_Permalink: TEdit
     Left = 94
-    Height = 23
+    Height = 22
     Top = 74
     Width = 302
     OnChange = edt_PermalinkChange
@@ -102,9 +103,9 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   end
   object lbl_URL: TLabel
     Left = 94
-    Height = 15
+    Height = 16
     Top = 104
-    Width = 148
+    Width = 178
     Caption = 'http://yourdomain/sample/'
     ParentColor = False
   end
