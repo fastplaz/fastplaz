@@ -1,0 +1,438 @@
+unit stemmingnazief_lib;
+
+{$mode objfpc}{$H+}
+
+{
+
+  Stemming Word based on Nazief & Adriani Method
+  include more than 28.000 word in indonesia
+
+  [x] USAGE
+
+  // stemming word
+  Stemming := TStemmingNazief.Create;
+  Stemming.LoadDictionaryFromFile('dictionary.csv');
+  StringVariable := Stemming.ParseWord( 'mencintai');
+
+  // sentences
+  // result in json
+  Stemming := TStemmingNazief.Create;
+  Stemming.LoadDictionaryFromFile('dictionary.csv');
+  StringVariable := Stemming.ParseSentence( 'kalimat dalam bahasa indonesia');
+
+
+}
+
+
+interface
+
+uses
+  RegExpr, Classes, SysUtils;
+
+const
+  STEMMINGNAZIEF_DICTIONARY_FILE = 'dictionary.csv';
+  STEMMINGNAZIEF_WORDTYPE: array [0..10] of string =
+    ('-', 'Adjektiva', 'Nomina', 'Pronomina', 'Verba', 'Adverbia',
+    'Numeralia', 'Interjeksi', 'Konjungsi', 'Preposisi', 'Partikel');
+
+type
+
+  { TStemmingNazief }
+
+  TStemmingNazief = class
+  private
+    FDictionary: TStringList;
+    FDictionaryFile: string;
+    FIsDictionaryLoaded: boolean;
+    FWordType: integer;
+    FWordTypeInString: string;
+
+    function _exist(Text: string): boolean;
+    function _delInflectionSuffixes(Text: string): string;
+    function _delDerivationSuffixes(Text: string): string;
+    function _delDerivationPrefix(Text: string): string;
+    function Explode(Str, Delimiter: string): TStrings;
+
+    // regex
+    function preg_match(const RegexExpression: string; SourceString: string): boolean;
+    function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
+      UseSubstitution: boolean): string;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure LoadDictionaryFromFile(FileName: string = STEMMINGNAZIEF_DICTIONARY_FILE);
+
+    function ParseWord(Text: string): string;
+    function ParseSentence(Text: string): string;
+  published
+    property WordType: integer read FWordType;
+    property WordTypeInString: string read FWordTypeInString;
+
+    property Dictionary: TStringList read FDictionary;
+    property DictionaryFile: string read FDictionaryFile write FDictionaryFile;
+    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded;
+  end;
+
+implementation
+
+{ TStemmingNazief }
+
+constructor TStemmingNazief.Create;
+begin
+  FIsDictionaryLoaded := False;
+  DictionaryFile := STEMMINGNAZIEF_DICTIONARY_FILE;
+
+  FDictionary := TStringList.Create;
+  Dictionary.NameValueSeparator := ',';
+  FWordType := 0;
+  FWordTypeInString := '';
+end;
+
+destructor TStemmingNazief.Destroy;
+begin
+  inherited Destroy;
+  FDictionary.Free;
+end;
+
+
+function TStemmingNazief._exist(Text: string): boolean;
+var
+  k, v, s: string;
+  i: integer;
+begin
+  Result := False;
+  FWordType := 0;
+  FWordTypeInString := '-';
+  if Text = '' then
+    Exit;
+
+  if Dictionary.IndexOfName(Text) = -1 then
+    Exit;
+
+  try
+    FWordType := StrToInt(Dictionary.Values[Text]);
+    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[FWordType];
+  except
+  end;
+  Result := True;
+
+  {
+  try
+    with TRegExpr.Create do
+    begin
+      //Expression := '^.*(' + Text + '),(.).*';
+      Expression := '^.*(' + Text + '),(.)\s';
+      if Exec(Dictionary.Text) then
+      begin
+        Result := True;
+        FWordType := StrToInt(Match[2]);
+        FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[FWordType];
+      end;
+      Free;
+    end;
+  except
+    Result := False;
+  end;
+  }
+
+end;
+
+function TStemmingNazief.preg_match(const RegexExpression: string;
+  SourceString: string): boolean;
+begin
+  Result := False;
+  try
+    with TRegExpr.Create do
+    begin
+      Expression := RegexExpression;
+      Result := Exec(SourceString);
+      Free;
+    end;
+  except
+  end;
+end;
+
+function TStemmingNazief.preg_replace(
+  const RegexExpression, ReplaceString, SourceString: string;
+  UseSubstitution: boolean): string;
+begin
+  try
+    with TRegExpr.Create do
+    begin
+      Expression := RegexExpression;
+      Result := Replace(SourceString, ReplaceString, UseSubstitution);
+      Free;
+    end;
+  except
+    Result := SourceString;
+  end;
+end;
+
+procedure TStemmingNazief.LoadDictionaryFromFile(FileName: string);
+begin
+  if not FIsDictionaryLoaded then
+  begin
+    if FileExists(FileName) then
+    begin
+      FDictionary.LoadFromFile(FileName);
+      FDictionary.NameValueSeparator := ',';
+      FIsDictionaryLoaded := True;
+    end;
+  end;
+end;
+
+// #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
+function TStemmingNazief._delInflectionSuffixes(Text: string): string;
+begin
+  Result := Text;
+  if preg_match('([km]u|nya|[kl]ah|pun)\Z', Text) then
+  begin
+    Result := preg_replace('([km]u|nya|[kl]ah|pun)\Z', '', Text, True);
+  end;
+end;
+
+//#3 - Remove Derivation suffix (-i, -an or -kan (-in))
+function TStemmingNazief._delDerivationSuffixes(Text: string): string;
+begin
+  Result := Text;
+  if preg_match('(i|an|in)\Z', Text) then
+  begin
+    Result := preg_replace('(i|an|in)\Z', '', Text, True);
+    if _exist(Result) then
+    begin
+      Exit;
+    end;
+    if preg_match('(kan)\Z', Text) then
+    begin
+      Result := preg_replace('(kan)\Z', '', Text, True);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    // todo: jk tidak ditemukan di kamus
+  end;
+
+end;
+
+//#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
+function TStemmingNazief._delDerivationPrefix(Text: string): string;
+begin
+  Result := Text;
+
+  // prefix: di-,ke-,se-
+  if preg_match('^(di|[ks]e)', Text) then
+  begin
+    Result := preg_replace('^(di|[ks]e)', '', Text, True);
+    if _exist(Result) then
+      Exit;
+    Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+
+    // prefix: diper-
+    if preg_match('^(diper)', Text) then
+    begin
+      Result := preg_replace('^(diper)', '', Text, True);
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    // prefix: keber- dan keter-
+    if preg_match('^(ke[bt]er)', Text) then
+    begin
+      Result := preg_replace('^(ke[bt]er)', '', Text, True);
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+  end; // if preg_match('^(di|[ks]e)', Text)
+
+
+  // prefix: te-,ter-, be-, ber-
+  if preg_match('^([bt]e)', Text) then
+  begin
+    Result := preg_replace('^([bt]e)', '', Text, True);
+    if _exist(Result) then
+      Exit;
+    Result := preg_replace('^([bt]e[lr])', '', Text, True);
+    if _exist(Result) then
+      Exit;
+    Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+  end;
+
+  // prefix: me- pe-
+  if preg_match('^([mp]e)', Text) then
+  begin
+    Result := preg_replace('^([mp]e)', '', Text, True);
+    if _exist(Result) then
+      Exit;
+    Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+
+    if preg_match('^(memper)', Text) then
+    begin
+      Result := preg_replace('^(memper)', '', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    if preg_match('^([mp]eng)', Text) then
+    begin
+      Result := preg_replace('^([mp]eng)', '', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+      Result := preg_replace('^([mp]eng)', 'k', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    if preg_match('^([mp]eny)', Text) then
+    begin
+      Result := preg_replace('^([mp]eny)', 's', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    if preg_match('^([mp]e[lr])', Text) then
+    begin
+      Result := preg_replace('^([mp]e[lr])', '', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    if preg_match('^([mp]en)', Text) then
+    begin
+      Result := preg_replace('^([mp]en)', 't', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+      Result := preg_replace('^([mp]en)', '', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+    if preg_match('^([mp]em)', Text) then
+    begin
+      Result := preg_replace('^([mp]em)', '', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+      Result := preg_replace('^([mp]em)', 'p', Text, True);
+      if _exist(Result) then
+        Exit;
+      Result := _delDerivationSuffixes(Result);
+      if _exist(Result) then
+        Exit;
+    end;
+
+  end; // if preg_match('^([mp]e)', Text)
+
+end;
+
+function TStemmingNazief.Explode(Str, Delimiter: string): TStrings;
+var
+  i: integer;
+  p: string;
+begin
+  Result := TStringList.Create;
+  while Pos(Delimiter, Str) <> 0 do
+  begin
+    p := '';
+    for i := 1 to Pos(Delimiter, Str) - 1 do
+      p := p + Str[i];
+    Result.Add(p);
+    //Delete(s,1,Pos(Delimiter,Str));
+    Delete(Str, 1, Pos(Delimiter, Str) + Length(Delimiter) - 1);
+  end;
+  //result.Add(s);
+  if (Length(Str) <> 0) then
+    Result.Add(Str);
+end;
+
+
+function TStemmingNazief.ParseWord(Text: string): string;
+begin
+  Result := Text;
+  if not IsDictionaryLoaded then
+    LoadDictionaryFromFile();
+
+  if _exist(Text) then
+    Exit;
+
+
+  //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
+  Result := _delInflectionSuffixes(Result);
+  if _exist(Result) then
+    Exit;
+
+  //#3 - Remove Derivation suffix (-i, -an or -kan)
+  Result := _delDerivationSuffixes(Result);
+  if _exist(Result) then
+    Exit;
+
+  //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
+  Result := _delDerivationPrefix(Result);
+
+end;
+
+function TStemmingNazief.ParseSentence(Text: string): string;
+var
+  str: TStrings;
+  return: TStringList;
+  i: integer;
+begin
+  str := Explode(Text, ' ');
+  return := TStringList.Create;
+
+  return.Add('[');
+  for i := 0 to str.Count - 1 do
+  begin
+    str[i] := ParseWord(str[i]);
+    return.Add('{');
+    return.Add('"word":"' + str[i] + '",');
+    return.Add('"wordtype":"' + WordTypeInString + '",');
+    return.Add('"type":"' + IntToStr(WordType) + '",');
+    return.Add('"score":"0"');
+    if i < str.Count - 1 then
+      return.Add('},')
+    else
+      return.Add('}');
+    ;
+  end;
+  return.Add(']');
+  Result := return.Text;
+
+  return.Free;
+  str.Free;
+end;
+
+
+end.

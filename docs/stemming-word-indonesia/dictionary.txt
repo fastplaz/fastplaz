@@ -1,0 +1,15 @@
+
+
+ 0 -
+ 1 Adjektiva
+ 2 Nomina
+ 3 Pronomina
+ 4 Verba
+ 5 Adverbia
+ 6 Numeralia
+ 7 Interjeksi
+ 8 Konjungsi
+ 9 Preposisi
+10 partikel
+
+
