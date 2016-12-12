@@ -7,7 +7,7 @@ unit fastplaz_extras;
 interface
 
 uses
-  fastplaz_extras_register, redis_lib, redis_controller;
+  fastplaz_extras_register, redis_lib, redis_controller, stemmingnazief_lib;
 
 implementation
 

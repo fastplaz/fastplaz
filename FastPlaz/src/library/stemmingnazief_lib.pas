@@ -212,7 +212,7 @@ begin
 
     // todo: jk tidak ditemukan di kamus
   end;
-
+  Result := Text;
 end;
 
 //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
@@ -379,13 +379,29 @@ end;
 
 
 function TStemmingNazief.ParseWord(Text: string): string;
+var
+  i : Double;
+  oldDecimalSeparator : char;
 begin
+  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
   Result := Text;
   if not IsDictionaryLoaded then
     LoadDictionaryFromFile();
 
   if _exist(Text) then
     Exit;
+
+  // if number
+  try
+    DefaultFormatSettings.DecimalSeparator := ',';
+    i := StrToFloat( Text);
+    FWordType := 6;
+    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[ WordType];
+    DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
+    Exit;
+  except
+  end;
+  DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
 
 
   //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
