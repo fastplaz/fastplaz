@@ -27,6 +27,7 @@ unit stemmingnazief_lib;
 interface
 
 uses
+  common,
   RegExpr, Classes, SysUtils;
 
 const
@@ -189,6 +190,10 @@ begin
   Result := Text;
   if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
   begin
+    if preg_match('(sekolah)\Z', Text) then // except: sekolah
+    begin
+      Exit;
+    end;
     Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
   end;
 end;
@@ -228,6 +233,9 @@ begin
     if _exist(Result) then
       Exit;
     Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+    Result := _delDerivationPrefix(Result);
     if _exist(Result) then
       Exit;
 
@@ -276,9 +284,10 @@ begin
     if _exist(Result) then
       Exit;
 
-    if preg_match('^(memper)', Text) then
+    // memperbarui, mempelajari
+    if preg_match('^(mempe[lr])', Text) then
     begin
-      Result := preg_replace('^(memper)', '', Text, True);
+      Result := preg_replace('^(mempe[lr])', '', Text, True);
       if _exist(Result) then
         Exit;
       Result := _delDerivationSuffixes(Result);
@@ -294,6 +303,12 @@ begin
       Result := _delDerivationSuffixes(Result);
       if _exist(Result) then
         Exit;
+      if Result = 'ebom' then //except: pengebom, mengebom
+      begin
+        Result := 'bom';
+        Exit;
+      end;
+
       Result := preg_replace('^([mp]eng)', 'k', Text, True);
       if _exist(Result) then
         Exit;

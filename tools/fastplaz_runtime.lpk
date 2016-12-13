@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>
-    <Files Count="28">
+    <Files Count="29">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -134,6 +134,10 @@
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item28>
+      <Item29>
+        <Filename Value="..\FastPlaz\src\library\stemmingnazief_lib.pas"/>
+        <UnitName Value="stemmingnazief_lib"/>
+      </Item29>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
