@@ -47,10 +47,11 @@ type
     FWordType: integer;
     FWordTypeInString: string;
 
-    function _exist(Text: string): boolean;
+    function _exist(Text: string; SkipCheck: boolean = False): boolean;
     function _delInflectionSuffixes(Text: string): string;
     function _delDerivationSuffixes(Text: string): string;
     function _delDerivationPrefix(Text: string): string;
+    function _pluralWord(Text: string): string;
     function Explode(Str, Delimiter: string): TStrings;
 
     // regex
@@ -96,7 +97,7 @@ begin
 end;
 
 
-function TStemmingNazief._exist(Text: string): boolean;
+function TStemmingNazief._exist(Text: string; SkipCheck: boolean): boolean;
 var
   k, v, s: string;
   i: integer;
@@ -182,13 +183,13 @@ begin
   end;
 end;
 
-// #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
+// #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, -tah, -nya)
 function TStemmingNazief._delInflectionSuffixes(Text: string): string;
 begin
   Result := Text;
-  if preg_match('([km]u|nya|[kl]ah|pun)\Z', Text) then
+  if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
   begin
-    Result := preg_replace('([km]u|nya|[kl]ah|pun)\Z', '', Text, True);
+    Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
   end;
 end;
 
@@ -357,6 +358,26 @@ begin
 
 end;
 
+function TStemmingNazief._pluralWord(Text: string): string;
+var
+  str: TStrings;
+begin
+  Result := Text;
+
+  // buku-bukunya
+  if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
+  begin
+    Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
+  end;
+
+  // berbalas-balasan -> balas
+  // meniru-nirukan
+
+  str := Explode(Result, '-');
+  Result := str[0];
+  str.Free;
+end;
+
 function TStemmingNazief.Explode(Str, Delimiter: string): TStrings;
 var
   i: integer;
@@ -380,11 +401,12 @@ end;
 
 function TStemmingNazief.ParseWord(Text: string): string;
 var
-  i : Double;
-  oldDecimalSeparator : char;
+  i: double;
+  oldDecimalSeparator: char;
 begin
-  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+  Text := LowerCase(Text);
   Result := Text;
+  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
   if not IsDictionaryLoaded then
     LoadDictionaryFromFile();
 
@@ -394,15 +416,22 @@ begin
   // if number
   try
     DefaultFormatSettings.DecimalSeparator := ',';
-    i := StrToFloat( Text);
+    i := StrToFloat(Text);
     FWordType := 6;
-    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[ WordType];
+    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[WordType];
     DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
     Exit;
   except
   end;
   DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
 
+  // if pluralWord
+  if preg_match('^(.*)-(.*)$', Text) then
+  begin
+    Result := _pluralWord(Text);
+    if _exist(Result) then
+      Exit;
+  end;
 
   //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
   Result := _delInflectionSuffixes(Result);
