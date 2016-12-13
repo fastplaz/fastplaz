@@ -190,11 +190,20 @@ begin
   Result := Text;
   if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
   begin
+    if Result = 'pelaku' then
+      Exit;
+    ;
     if preg_match('(sekolah)\Z', Text) then // except: sekolah
     begin
       Exit;
     end;
     Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
+
+    // pelangganmukah, pelakunyalah
+    if preg_match('([km]u|nya)\Z', Result) then
+    begin
+      Result := preg_replace('([km]u|nya)\Z', '', Result, True);
+    end;
   end;
 end;
 
@@ -270,6 +279,11 @@ begin
     if _exist(Result) then
       Exit;
     Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+
+    // berpelanggan, berpengalaman
+    Result := ParseWord(Result);
     if _exist(Result) then
       Exit;
   end;
