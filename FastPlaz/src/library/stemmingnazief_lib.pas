@@ -183,13 +183,13 @@ begin
   end;
 end;
 
-// #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
+// #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, -tah, -nya)
 function TStemmingNazief._delInflectionSuffixes(Text: string): string;
 begin
   Result := Text;
-  if preg_match('([km]u|nya|[kl]ah|pun)\Z', Text) then
+  if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
   begin
-    Result := preg_replace('([km]u|nya|[kl]ah|pun)\Z', '', Text, True);
+    Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
   end;
 end;
 
