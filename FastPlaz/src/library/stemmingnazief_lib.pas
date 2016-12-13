@@ -202,6 +202,8 @@ begin
     // pelangganmukah, pelakunyalah
     if preg_match('([km]u|nya)\Z', Result) then
     begin
+      if Result = 'buku' then
+         Exit;
       Result := preg_replace('([km]u|nya)\Z', '', Result, True);
     end;
   end;
