@@ -53,6 +53,7 @@ type
     function _delDerivationSuffixes(Text: string): string;
     function _delDerivationPrefix(Text: string): string;
     function _pluralWord(Text: string): string;
+    function _additionalRule(Text:string):string;
     function Explode(Str, Delimiter: string): TStrings;
 
     // regex
@@ -229,7 +230,7 @@ begin
 
     // todo: jk tidak ditemukan di kamus
   end;
-  Result := Text;
+  //Result := Text;
 end;
 
 //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
@@ -409,6 +410,22 @@ begin
   str.Free;
 end;
 
+function TStemmingNazief._additionalRule(Text: string): string;
+begin
+  Result := '';
+
+  // kupukul, kaupukul, kupadamkan
+  if preg_match('^(ku|kau)', Text) then
+  begin
+    Result := preg_replace('^(ku|kau)', '', Text, True);
+    Result := ParseWord( Result);
+    if FWordType = 0 then
+       Result := '';
+  end;
+
+
+end;
+
 function TStemmingNazief.Explode(Str, Delimiter: string): TStrings;
 var
   i: integer;
@@ -464,8 +481,13 @@ begin
       Exit;
   end;
 
+
+  Result := _additionalRule( Text);
+  if not (Result = '') then
+     Exit;
+
   //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
-  Result := _delInflectionSuffixes(Result);
+  Result := _delInflectionSuffixes(Text);
   if _exist(Result) then
     Exit;
 
