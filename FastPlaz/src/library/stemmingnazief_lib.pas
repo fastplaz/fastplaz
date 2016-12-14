@@ -180,6 +180,7 @@ begin
     begin
       FDictionary.LoadFromFile(FileName);
       FDictionary.NameValueSeparator := ',';
+      FDictionaryFile := FileName;
       FIsDictionaryLoaded := True;
     end;
   end;
@@ -459,14 +460,20 @@ begin
     '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '');
 
   Result := Text;
-  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+
   if not IsDictionaryLoaded then
-    LoadDictionaryFromFile();
+    LoadDictionaryFromFile(FDictionaryFile);
+  if not IsDictionaryLoaded then
+  begin
+    Result := '?';
+    Exit;
+  end;
 
   if _exist(Text) then
     Exit;
 
   // if number
+  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
   try
     DefaultFormatSettings.DecimalSeparator := ',';
     i := StrToFloat(Text);
