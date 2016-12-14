@@ -216,6 +216,7 @@ begin
   Result := Text;
   if preg_match('(i|an|in)\Z', Text) then
   begin
+
     Result := preg_replace('(i|an|in)\Z', '', Text, True);
     if _exist(Result) then
     begin
@@ -229,6 +230,7 @@ begin
     end;
 
     // todo: jk tidak ditemukan di kamus
+    Result := Text;
   end;
   //Result := Text;
 end;
