@@ -53,7 +53,7 @@ type
     function _delDerivationSuffixes(Text: string): string;
     function _delDerivationPrefix(Text: string): string;
     function _pluralWord(Text: string): string;
-    function _additionalRule(Text:string):string;
+    function _additionalRule(Text: string): string;
     function Explode(Str, Delimiter: string): TStrings;
 
     // regex
@@ -204,7 +204,7 @@ begin
     if preg_match('([km]u|nya)\Z', Result) then
     begin
       if Result = 'buku' then
-         Exit;
+        Exit;
       Result := preg_replace('([km]u|nya)\Z', '', Result, True);
     end;
   end;
@@ -405,7 +405,7 @@ begin
   end;
 
   // berbalas-balasan -> balas
-  // meniru-nirukan
+  // meniru-nirukan masih salah
   // bersenang-senang
 
   str := Explode(Result, '-');
@@ -421,11 +421,10 @@ begin
   if preg_match('^(ku|kau)', Text) then
   begin
     Result := preg_replace('^(ku|kau)', '', Text, True);
-    Result := ParseWord( Result);
+    Result := ParseWord(Result);
     if FWordType = 0 then
-       Result := '';
+      Result := '';
   end;
-
 
 end;
 
@@ -456,8 +455,8 @@ var
   oldDecimalSeparator: char;
 begin
   Text := LowerCase(Text);
-  Text := ReplaceAll(Text, [' ', ',', '?', '!', '.', '''', '+',
-    '^', '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '');
+  Text := ReplaceAll(Text, [' ', ',', '?', '!', '.', '''', '+', '^',
+    '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '');
 
   Result := Text;
   oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
@@ -483,14 +482,17 @@ begin
   if preg_match('^(.*)-(.*)$', Text) then
   begin
     Result := _pluralWord(Text);
+    Result := ParseWord(Result);
     if _exist(Result) then
       Exit;
+    Result := Text;
   end;
 
 
-  Result := _additionalRule( Result);
+  Result := _additionalRule(Result);
   if not (Result = '') then
-     Exit;
+    Exit;
+
 
   //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
   Result := _delInflectionSuffixes(Text);
