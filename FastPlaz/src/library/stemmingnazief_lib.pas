@@ -406,6 +406,7 @@ begin
 
   // berbalas-balasan -> balas
   // meniru-nirukan
+  // bersenang-senang
 
   str := Explode(Result, '-');
   Result := str[0];
@@ -487,7 +488,7 @@ begin
   end;
 
 
-  Result := _additionalRule( Text);
+  Result := _additionalRule( Result);
   if not (Result = '') then
      Exit;
 
