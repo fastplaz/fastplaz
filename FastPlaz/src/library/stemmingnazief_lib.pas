@@ -455,6 +455,9 @@ var
   oldDecimalSeparator: char;
 begin
   Text := LowerCase(Text);
+  Text := ReplaceAll(Text, [' ', ',', '?', '!', '.', '''', '+',
+    '^', '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '');
+
   Result := Text;
   oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
   if not IsDictionaryLoaded then
