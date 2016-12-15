@@ -62,9 +62,10 @@ type
       UseSubstitution: boolean): string;
 
   public
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
     procedure LoadDictionaryFromFile(FileName: string = STEMMINGNAZIEF_DICTIONARY_FILE);
+      virtual;
 
     function ParseWord(Text: string): string;
     function ParseSentence(Text: string): string;
