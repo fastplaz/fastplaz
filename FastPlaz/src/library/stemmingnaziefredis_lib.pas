@@ -23,7 +23,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    function Ping:boolean;
+    function Ping: boolean;
     procedure LoadDictionaryFromFile(FileName: string =
       _STEMMINGNAZIEF_DICTIONARY_REDISKEY);
       override;
@@ -57,18 +57,25 @@ begin
 end;
 
 procedure TStemmingNaziefRedis.LoadDictionaryFromFile(FileName: string);
+var
+  s: WideString;
 begin
   inherited LoadDictionaryFromFile;
   if IsDictionaryLoaded then
   begin
-    FRedis[KeyName] := Dictionary.Text;
+    s := UrlEncode(Dictionary.Text);
+    s := ReplaceAll(s, [' ', '?', '!', '.', '''', '+', '^', '"',
+      #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '|');
+    FRedis[KeyName] := s;
+    die('xxx');
   end;
 end;
 
 procedure TStemmingNaziefRedis.LoadDictionaryFromRedis(AKeyName: string);
 begin
   FKeyName := AKeyName;
-  Dictionary.Text := FRedis[AKeyName];
+  Dictionary.Text := UrlDecode(FRedis[AKeyName]);
+  IsDictionaryLoaded := True;
 end;
 
 end.

@@ -239,10 +239,10 @@ begin
   FLastMessage := '+OK';
   if FWriteToMaster then
   begin
-    RedisMaster.SendString('SET ' + Key + ' "' + AValue + '"');
+    RedisMaster.SendString('SET ' + Key + ' ''' + AValue + '''');
   end
   else
-    SendString('SET ' + Key + ' "' + AValue + '"');
+    SendString('SET ' + Key + ' ''' + AValue + '''');
 end;
 
 procedure TRedisLib.SetWriteToMaster(AValue: boolean);

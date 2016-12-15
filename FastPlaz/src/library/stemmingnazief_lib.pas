@@ -75,7 +75,7 @@ type
 
     property Dictionary: TStringList read FDictionary;
     property DictionaryFile: string read FDictionaryFile write FDictionaryFile;
-    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded;
+    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded write FIsDictionaryLoaded;
   end;
 
 implementation
