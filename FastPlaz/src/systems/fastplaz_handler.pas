@@ -241,22 +241,28 @@ type
     procedure DieRaise(const Fmt: string; const Args: array of const);
   end;
 
+  { TGET }
+
   TGET = class
   private
+    function GetCount: integer;
     function GetValue(const Name: string): string;
     procedure SetValue(const Name: string; AValue: string);
   public
     property Values[Name: string]: string read GetValue write SetValue; default;
+    property Count: integer read GetCount;
   end;
 
   { TPOST }
 
   TPOST = class
   private
+    function GetCount: integer;
     function GetValue(const Variable: string): string;
     procedure SetValue(const Variable: string; AValue: string);
   public
     property Values[variable: string]: string read GetValue write SetValue; default;
+    property Count: integer read GetCount;
   end;
 
   { TREQUESTVAR }
@@ -989,6 +995,11 @@ end;
 
 { TPOST }
 
+function TPOST.GetCount: integer;
+begin
+  Result := Application.Request.ContentFields.Count;
+end;
+
 function TPOST.GetValue(const Variable: string): string;
 var
   _l: TStringList;
@@ -1037,6 +1048,11 @@ begin
 end;
 
 { TGET }
+
+function TGET.GetCount: integer;
+begin
+  Result := Application.Request.QueryFields.Count;
+end;
 
 function TGET.GetValue(const Name: string): string;
 begin

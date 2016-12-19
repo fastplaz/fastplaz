@@ -241,6 +241,8 @@ var
   ElName: UnicodeString;
 begin
   Result := False;
+  if Pos( '/', PathString) <> 1 then
+    PathString:= '/' + PathString;
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
     Exit;

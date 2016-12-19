@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz Extras Library"/>
-    <Files Count="4">
+    <Files Count="3">
       <Item1>
         <Filename Value="src\fastplaz_extras_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -34,10 +34,6 @@
         <Filename Value="..\FastPlaz\src\systems\redis_controller.pas"/>
         <UnitName Value="redis_controller"/>
       </Item3>
-      <Item4>
-        <Filename Value="..\FastPlaz\src\library\stemmingnazief_lib.pas"/>
-        <UnitName Value="stemmingnazief_lib"/>
-      </Item4>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

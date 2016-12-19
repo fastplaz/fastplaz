@@ -27,6 +27,7 @@ unit stemmingnazief_lib;
 interface
 
 uses
+  common,
   RegExpr, Classes, SysUtils;
 
 const
@@ -52,6 +53,7 @@ type
     function _delDerivationSuffixes(Text: string): string;
     function _delDerivationPrefix(Text: string): string;
     function _pluralWord(Text: string): string;
+    function _additionalRule(Text: string): string;
     function Explode(Str, Delimiter: string): TStrings;
 
     // regex
@@ -60,9 +62,10 @@ type
       UseSubstitution: boolean): string;
 
   public
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
     procedure LoadDictionaryFromFile(FileName: string = STEMMINGNAZIEF_DICTIONARY_FILE);
+      virtual;
 
     function ParseWord(Text: string): string;
     function ParseSentence(Text: string): string;
@@ -72,7 +75,7 @@ type
 
     property Dictionary: TStringList read FDictionary;
     property DictionaryFile: string read FDictionaryFile write FDictionaryFile;
-    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded;
+    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded write FIsDictionaryLoaded;
   end;
 
 implementation
@@ -178,6 +181,7 @@ begin
     begin
       FDictionary.LoadFromFile(FileName);
       FDictionary.NameValueSeparator := ',';
+      FDictionaryFile := FileName;
       FIsDictionaryLoaded := True;
     end;
   end;
@@ -189,7 +193,22 @@ begin
   Result := Text;
   if preg_match('([km]u|nya|[klt]ah|pun)\Z', Text) then
   begin
+    if Result = 'pelaku' then
+      Exit;
+    ;
+    if preg_match('(sekolah)\Z', Text) then // except: sekolah
+    begin
+      Exit;
+    end;
     Result := preg_replace('([km]u|nya|[klt]ah|pun)\Z', '', Text, True);
+
+    // pelangganmukah, pelakunyalah
+    if preg_match('([km]u|nya)\Z', Result) then
+    begin
+      if Result = 'buku' then
+        Exit;
+      Result := preg_replace('([km]u|nya)\Z', '', Result, True);
+    end;
   end;
 end;
 
@@ -199,6 +218,7 @@ begin
   Result := Text;
   if preg_match('(i|an|in)\Z', Text) then
   begin
+
     Result := preg_replace('(i|an|in)\Z', '', Text, True);
     if _exist(Result) then
     begin
@@ -212,8 +232,9 @@ begin
     end;
 
     // todo: jk tidak ditemukan di kamus
+    Result := Text;
   end;
-  Result := Text;
+  //Result := Text;
 end;
 
 //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
@@ -228,6 +249,9 @@ begin
     if _exist(Result) then
       Exit;
     Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+    Result := _delDerivationPrefix(Result);
     if _exist(Result) then
       Exit;
 
@@ -264,6 +288,11 @@ begin
     Result := _delDerivationSuffixes(Result);
     if _exist(Result) then
       Exit;
+
+    // berpelanggan, berpengalaman
+    Result := ParseWord(Result);
+    if _exist(Result) then
+      Exit;
   end;
 
   // prefix: me- pe-
@@ -276,9 +305,10 @@ begin
     if _exist(Result) then
       Exit;
 
-    if preg_match('^(memper)', Text) then
+    // memperbarui, mempelajari
+    if preg_match('^(mempe[lr])', Text) then
     begin
-      Result := preg_replace('^(memper)', '', Text, True);
+      Result := preg_replace('^(mempe[lr])', '', Text, True);
       if _exist(Result) then
         Exit;
       Result := _delDerivationSuffixes(Result);
@@ -294,6 +324,12 @@ begin
       Result := _delDerivationSuffixes(Result);
       if _exist(Result) then
         Exit;
+      if Result = 'ebom' then //except: pengebom, mengebom
+      begin
+        Result := 'bom';
+        Exit;
+      end;
+
       Result := preg_replace('^([mp]eng)', 'k', Text, True);
       if _exist(Result) then
         Exit;
@@ -371,11 +407,27 @@ begin
   end;
 
   // berbalas-balasan -> balas
-  // meniru-nirukan
+  // meniru-nirukan masih salah
+  // bersenang-senang
 
   str := Explode(Result, '-');
   Result := str[0];
   str.Free;
+end;
+
+function TStemmingNazief._additionalRule(Text: string): string;
+begin
+  Result := '';
+
+  // kupukul, kaupukul, kupadamkan
+  if preg_match('^(ku|kau)', Text) then
+  begin
+    Result := preg_replace('^(ku|kau)', '', Text, True);
+    Result := ParseWord(Result);
+    if FWordType = 0 then
+      Result := '';
+  end;
+
 end;
 
 function TStemmingNazief.Explode(Str, Delimiter: string): TStrings;
@@ -405,15 +457,24 @@ var
   oldDecimalSeparator: char;
 begin
   Text := LowerCase(Text);
+  Text := ReplaceAll(Text, [' ', ',', '?', '!', '.', '''', '+', '^',
+    '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '');
+
   Result := Text;
-  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
+
   if not IsDictionaryLoaded then
-    LoadDictionaryFromFile();
+    LoadDictionaryFromFile(FDictionaryFile);
+  if not IsDictionaryLoaded then
+  begin
+    Result := '?';
+    Exit;
+  end;
 
   if _exist(Text) then
     Exit;
 
   // if number
+  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
   try
     DefaultFormatSettings.DecimalSeparator := ',';
     i := StrToFloat(Text);
@@ -429,12 +490,20 @@ begin
   if preg_match('^(.*)-(.*)$', Text) then
   begin
     Result := _pluralWord(Text);
+    Result := ParseWord(Result);
     if _exist(Result) then
       Exit;
+    Result := Text;
   end;
 
+
+  Result := _additionalRule(Result);
+  if not (Result = '') then
+    Exit;
+
+
   //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
-  Result := _delInflectionSuffixes(Result);
+  Result := _delInflectionSuffixes(Text);
   if _exist(Result) then
     Exit;
 
