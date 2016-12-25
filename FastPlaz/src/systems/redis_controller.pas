@@ -28,6 +28,7 @@ unit redis_controller;
 interface
 
 uses
+  cthreads,
   fpcgi, redis_lib, fastplaz_handler, common, Classes, SysUtils;
 
 const

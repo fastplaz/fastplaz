@@ -64,10 +64,10 @@ begin
   if IsDictionaryLoaded then
   begin
     s := UrlEncode(Dictionary.Text);
-    s := ReplaceAll(s, [' ', '?', '!', '.', '''', '+', '^', '"',
-      #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '|');
+    //s := ReplaceAll(s, [' ', '?', '!', '.', '''', '+', '^', '"',
+   //   #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], '|');
     FRedis[KeyName] := s;
-    die('xxx');
+    //die('xxx');
   end;
 end;
 

@@ -209,6 +209,7 @@ begin
     Add('{$mode objfpc}{$H+}');
     Add('');
     Add('uses');
+    Add('  cthreads,');
     Add('  fpcgi, sysutils, fastplaz_handler, common, main;');
     Add('');
     Add('{$R *.res}');
