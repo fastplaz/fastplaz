@@ -145,6 +145,7 @@ function preg_replace(const RegexExpression, ReplaceString, SourceString: string
 // php like function - end
 
 function isIPAddress(const IPAddress: string): boolean;
+function isEmail(const s: string): boolean;
 function FastInfo(): string;
 
 implementation
@@ -855,6 +856,11 @@ end;
 function isIPAddress(const IPAddress: string): boolean;
 begin
   Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+end;
+
+function isEmail(const s: string): boolean;
+begin
+  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
 end;
 
 function FastInfo: string;
