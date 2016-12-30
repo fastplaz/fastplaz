@@ -47,7 +47,6 @@ type
 
   TJSONUtil = class
   private
-    FJsonItem: TJSONUtilItem;
     FJsonObject: TJSONObject;
     FKey: TJSONObject;
     FModified: boolean;
@@ -82,7 +81,7 @@ type
 
     property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem;
 
-    procedure LoadFromJsonString( const JsonString: string);
+    procedure LoadFromJsonString(const JsonString: string);
   end;
 
 
@@ -98,12 +97,12 @@ var
   o: TJSONObject;
   El: TJSONData;
   ElName: UnicodeString;
-  i : integer;
+  i: integer;
 begin
   El := FindElement(StripSlash('/' + PathString), False, o, ElName);
   if not Assigned(El) then
   begin
-    i := o.IndexOfName(ElName);
+    i := o.IndexOfName(string(ElName));
     Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
     //Result := TJSONUtilItem.Create(TJSONObject(TJSONBoolean.Create(False)));
     Exit;
@@ -162,7 +161,7 @@ begin
         if (Result.Count = 0) then
           I := -1
         else
-          I := Result.IndexOfName(El);
+          I := Result.IndexOfName(string(El));
         if (I = -1) then
           // No element with this name.
         begin
@@ -171,7 +170,7 @@ begin
             // Create new node.
             T := Result;
             Result := TJSonObject.Create;
-            T.Add(El, Result);
+            T.Add(string(El), Result);
           end
           else
             Result := nil;
@@ -180,7 +179,7 @@ begin
           // Node found, check if it is an object
         begin
           if (Result.Items[i].JSONtype = jtObject) then
-            Result := Result.Objects[el]
+            Result := Result.Objects[string(el)]
           else
           begin
             //            Writeln(el,' type wrong');
@@ -190,7 +189,7 @@ begin
               Result.Delete(I);
               T := Result;
               Result := TJSonObject.Create;
-              T.Add(El, Result);
+              T.Add(string(El), Result);
             end
             else
               Result := nil;
@@ -214,7 +213,7 @@ begin
   if Assigned(ParentObject) then
   begin
     //    Writeln('Found parent, looking for element:',ElementName);
-    i := ParentObject.IndexOfName(ElementName);
+    i := ParentObject.IndexOfName(string(ElementName));
     //    Writeln('Element index is',i);
     if (i <> -1) and (ParentObject.items[i].JSONType <> jtObject) then
       Result := ParentObject.Items[i];
@@ -241,8 +240,8 @@ var
   ElName: UnicodeString;
 begin
   Result := '';
-  if Pos( '/', PathString) <> 1 then
-    PathString:= '/' + PathString;
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
     Exit;
@@ -287,7 +286,7 @@ begin
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
   begin
-    i := o.IndexOfName(ElName);
+    i := o.IndexOfName(string(ElName));
     Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
     Exit;
   end;
@@ -305,13 +304,13 @@ begin
   El := FindElement(StripSlash(PathString), True, o, ElName);
   if Assigned(El) and (not (El is TJSONArray)) then
   begin
-    I := O.IndexOfName(elName);
+    I := O.IndexOfName(string(elName));
     o.Delete(i);
     El := nil;
   end;
   if not Assigned(El) then
   begin
-    o.Add(ElName, AValue);
+    o.Add(string(ElName), AValue);
   end
   else
   begin
@@ -356,8 +355,8 @@ begin
   Exit;
 }
 
-  if Pos( '/', PathString) <> 1 then
-    PathString:= '/' + PathString;
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), True, o, ElName);
   case VarType(AValue) of
 
@@ -365,14 +364,14 @@ begin
     begin
       if Assigned(El) and (El.JSONType <> jtString) then
       begin
-        I := O.IndexOfName(elName);
+        I := O.IndexOfName(string(elName));
         o.Delete(i);
         El := nil;
       end;
       if not Assigned(El) then
       begin
         El := TJSONString.Create(AValue);
-        o.Add(ElName, El);
+        o.Add(string(ElName), El);
       end
       else
         El.AsString := AVAlue;
@@ -384,7 +383,7 @@ begin
     begin
       if Assigned(El) and (not (El is TJSONIntegerNumber)) then
       begin
-        I := o.IndexOfName(elName);
+        I := o.IndexOfName(string(elName));
         if (I <> -1) then // Normally not needed...
           o.Delete(i);
         El := nil;
@@ -392,7 +391,7 @@ begin
       if not Assigned(El) then
       begin
         El := TJSONIntegerNumber.Create(AValue);
-        o.Add(ElName, El);
+        o.Add(string(ElName), El);
       end
       else
         El.AsInteger := AValue;
@@ -402,14 +401,14 @@ begin
     begin
       if Assigned(El) and (not (El is TJSONFloatNumber)) then
       begin
-        I := o.IndexOfName(elName);
+        I := o.IndexOfName(string(elName));
         o.Delete(i);
         El := nil;
       end;
       if not Assigned(El) then
       begin
         El := TJSONFloatNumber.Create(AValue);
-        O.Add(ElName, El);
+        O.Add(string(ElName), El);
       end
       else
         El.AsFloat := AValue;
@@ -419,14 +418,14 @@ begin
     begin
       if Assigned(El) and (el.JSONType <> jtBoolean) then
       begin
-        I := O.IndexOfName(elName);
+        I := O.IndexOfName(string(elName));
         o.Delete(i);
         El := nil;
       end;
       if not Assigned(El) then
       begin
         El := TJSONBoolean.Create(AValue);
-        O.Add(ElName, El);
+        O.Add(string(ElName), El);
       end
       else
         El.AsBoolean := AValue;
@@ -442,6 +441,7 @@ function TJSONUtil.FindObject(const PathString: UnicodeString;
 var
   s: UnicodeString;
 begin
+  s := '';
   Result := FindObject(PathString, AllowCreate, s);
 end;
 
@@ -469,7 +469,7 @@ begin
         if (Result.Count = 0) then
           I := -1
         else
-          I := Result.IndexOfName(El);
+          I := Result.IndexOfName(string(El));
         if (I = -1) then
           // No element with this name.
         begin
@@ -478,7 +478,7 @@ begin
             // Create new node.
             T := Result;
             Result := TJSonObject.Create;
-            T.Add(El, Result);
+            T.Add(string(El), Result);
           end
           else
             Result := nil;
@@ -487,7 +487,7 @@ begin
           // Node found, check if it is an object
         begin
           if (Result.Items[i].JSONtype = jtObject) then
-            Result := Result.Objects[el]
+            Result := Result.Objects[string(el)]
           else
           begin
             //            Writeln(el,' type wrong');
@@ -497,7 +497,7 @@ begin
               Result.Delete(I);
               T := Result;
               Result := TJSonObject.Create;
-              T.Add(El, Result);
+              T.Add(string(El), Result);
             end
             else
               Result := nil;
@@ -530,7 +530,7 @@ begin
   if Assigned(ParentObject) then
   begin
     //    Writeln('Found parent, looking for element:',ElementName);
-    i := ParentObject.IndexOfName(ElementName);
+    i := ParentObject.IndexOfName(string(ElementName));
     //    Writeln('Element index is',i);
     if (i <> -1) and (ParentObject.items[i].JSONType <> jtObject) then
       Result := ParentObject.Items[i];
@@ -555,11 +555,12 @@ end;
 
 procedure TJSONUtil.DeletePath(const PathString: UnicodeString);
 var
-  P: string;
+  P: UnicodeString;
   L: integer;
   Node: TJSONObject;
   ElName: UnicodeString;
 begin
+  ElName := '';
   P := StripSlash(PathString);
   L := Length(P);
   if (L > 0) then
@@ -567,7 +568,7 @@ begin
     Node := FindObject(P, False, ElName);
     if Assigned(Node) then
     begin
-      L := Node.IndexOfName(ElName);
+      L := Node.IndexOfName(string(ElName));
       if (L <> -1) then
         Node.Delete(L);
     end;
@@ -576,7 +577,7 @@ end;
 
 procedure TJSONUtil.LoadFromJsonString(const JsonString: string);
 begin
-  FJsonObject := TJSONObject( GetJSON( JsonString));
+  FJsonObject := TJSONObject(GetJSON(JsonString));
 end;
 
 end.
