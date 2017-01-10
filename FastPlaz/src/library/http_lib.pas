@@ -304,10 +304,6 @@ begin
 end;
 
 procedure TWorkerHTTP.AddFile(FileName: string; VarName: string);
-var
-  S, Sep: string;
-  SS: TStringStream;
-  F: TFileStream;
 begin
   if not FileExists(FileName) then
     exit;

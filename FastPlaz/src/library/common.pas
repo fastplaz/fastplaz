@@ -110,6 +110,8 @@ function JsonFormatter(JsonString: string): string;
 function IsJsonValid(JsonString: string): boolean;
 function HexToInt(HexStr: string): int64;
 
+function WordNumber( s:string): integer;
+function isWord( s:string): boolean;
 function RandomString(PLen: integer; PrefixString: string = ''): string;
 function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = True;
   UseUpper: boolean = True; UseLower: boolean = True; UseSpace: boolean = False;
@@ -143,6 +145,8 @@ function preg_replace(const RegexExpression, ReplaceString, SourceString: string
 // php like function - end
 
 function isIPAddress(const IPAddress: string): boolean;
+function isEmail(const s: string): boolean;
+
 function FastInfo(): string;
 
 implementation
@@ -424,6 +428,22 @@ end;
 procedure Die(const Message: TStringList);
 begin
   Die('<pre>' + Message.Text + '</pre>');
+end;
+
+function WordNumber(s: string): integer;
+var
+  lst : TStrings;
+begin
+  lst := Explode( s, ' ');
+  Result := lst.Count;
+  lst.Free;
+end;
+
+function isWord(s: string): boolean;
+begin
+  Result := False;
+  if WordNumber( s) = 1 then
+    Result := True;
 end;
 
 function RandomString(PLen: integer; PrefixString: string): string;
@@ -837,6 +857,11 @@ end;
 function isIPAddress(const IPAddress: string): boolean;
 begin
   Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+end;
+
+function isEmail(const s: string): boolean;
+begin
+  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
 end;
 
 function FastInfo: string;
