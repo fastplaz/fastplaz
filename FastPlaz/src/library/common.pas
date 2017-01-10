@@ -146,6 +146,7 @@ function preg_replace(const RegexExpression, ReplaceString, SourceString: string
 
 function isIPAddress(const IPAddress: string): boolean;
 function isEmail(const s: string): boolean;
+
 function FastInfo(): string;
 
 implementation
