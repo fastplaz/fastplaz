@@ -1,5 +1,22 @@
 unit whois_integration;
 
+{
+  // USAGE:
+
+  Whois := TWhoisIntegration.Create;
+  if Whois.Find( 'yourdomain.com') then
+  begin
+    Result := 'Domain: ' + UpperCase( domainName)
+      + '\nRegistrar: ' + Whois.Registrar
+      + '\nStatus: ' + Whois.Status
+      + '\nUpdated Date: ' + Whois.UpdatedDate
+      + '\nCreation Date: ' + Whois.CreationDate
+      + '\nExpiration Date: ' + Whois.ExpiredDate
+      + '\nName Server: ' + Whois.NameServer;
+  end;
+  Whois.Free;
+
+}
 {$mode objfpc}{$H+}
 
 interface
