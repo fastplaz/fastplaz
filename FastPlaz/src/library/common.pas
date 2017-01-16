@@ -146,6 +146,7 @@ function preg_replace(const RegexExpression, ReplaceString, SourceString: string
 
 function isIPAddress(const IPAddress: string): boolean;
 function isEmail(const s: string): boolean;
+function isDomain(const s: string): boolean;
 
 function FastInfo(): string;
 
@@ -862,6 +863,12 @@ end;
 function isEmail(const s: string): boolean;
 begin
   Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
+end;
+
+function isDomain(const s: string): boolean;
+begin
+  //Result := execregexpr('(^(?!\-)(?:[a-zA-Z\d\-]{0,62}[a-zA-Z\d]\.){1,126}(?!\d+)[a-zA-Z\d]{1,63}$)', s);
+  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', s);
 end;
 
 function FastInfo: string;
