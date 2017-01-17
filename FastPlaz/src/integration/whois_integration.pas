@@ -22,20 +22,25 @@ unit whois_integration;
 interface
 
 uses
+  common,
   cthreads, Sockets, RegExpr,
   Classes, SysUtils;
 
 const
   WHOIS_DEFAULT_SERVER = '199.7.52.74'; // whois.internic.net
+  WHOIS_DEFAUL_SERVER_ID = '203.119.112.102'; // whois.pandi.or.id
   WHOIS_DEFAULT_PORT = 43;
   WHOIS_DEFAULT_TIMEOUT = 2500;
 
   _WHOIS_REGEX_REGISTRAR = 'Registrar: ([a-zA-Z0-9\ ,.\-]+)';
-  _WHOIS_REGEX_NAMESERVER = 'Name Server: ([a-zA-Z0-9.\-]+)';
+  _WHOIS_REGEX_REGISTRANT_NAME = 'Registrant Name:([a-zA-Z0-9\ ,.\-]+)';
+  _WHOIS_REGEX_REGISTRANT_EMAIL = 'Registrant Email:([a-zA-Z0-9\ ,.\-@]+)';
+  _WHOIS_REGEX_REGISTRAR_ORGANISATION = 'Registrar Organization:([a-zA-Z0-9\ ,.\-]+)';
+  _WHOIS_REGEX_NAMESERVER = 'Name Server:([a-zA-Z0-9.\ \-]+)';
   _WHOIS_REGEX_STATUS = 'Status: ([a-zA-Z0-9]+)';
-  _WHOIS_REGEX_UPDATEDDATE = 'Updated Date: ([a-zA-Z0-9\ \-,.]+)';
-  _WHOIS_REGEX_CREATEDDATE = 'Creation Date: ([a-zA-Z0-9\ \-,.]+)';
-  _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date: ([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_UPDATEDDATE = 'Updated Date:([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_CREATEDDATE = 'Creation Date:([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date:([a-zA-Z0-9\ \-,.]+)';
   _WHOIS_REGEX_NOTFOUND = 'No match for';
 
 type
@@ -61,6 +66,7 @@ type
     function getCreateDate: string;
     function getExpiredDate: string;
     function getNameServer: string;
+    function getRegistrant: string;
     function getRegistrar: string;
     function getStatus: string;
     function getUpdatedDate: string;
@@ -69,6 +75,7 @@ type
 
     function Connect: boolean;
     function sendString(Strings: string): boolean;
+    function isDomainID(DomainName: string): boolean;
   public
     constructor Create; virtual;
     destructor Destroy; virtual;
@@ -79,6 +86,7 @@ type
     property Data: TStringList read FData write FData;
 
     property Registrar: string read getRegistrar;
+    property Registrant: string read getRegistrant;
     property NameServer: string read getNameServer;
     property Status: string read getStatus;
     property CreationDate: string read getCreateDate;
@@ -140,12 +148,31 @@ begin
   end;
 end;
 
+function TWhoisIntegration.getRegistrant: string;
+begin
+  Result := '-';
+  regex.Expression := _WHOIS_REGEX_REGISTRANT_NAME;
+  if regex.Exec(FData.Text) then
+  begin
+    Result := regex.Match[1];
+    regex.Expression := _WHOIS_REGEX_REGISTRANT_EMAIL;
+    if regex.Exec(FData.Text) then
+      Result := Result + ' (' + regex.Match[1] + ')';
+  end;
+end;
+
 function TWhoisIntegration.getRegistrar: string;
 begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_REGISTRAR;
   if regex.Exec(FData.Text) then
-    Result := regex.Match[1];
+    Result := regex.Match[1]
+  else
+  begin
+    regex.Expression := _WHOIS_REGEX_REGISTRAR_ORGANISATION;
+    if regex.Exec(FData.Text) then
+      Result := regex.Match[1];
+  end;
 end;
 
 function TWhoisIntegration.getStatus: string;
@@ -246,6 +273,16 @@ begin
 
 end;
 
+function TWhoisIntegration.isDomainID(DomainName: string): boolean;
+var
+  i: integer;
+begin
+  Result := False;
+  i := Length(DomainName) - Pos('.id', DomainName);
+  if i = 2 then
+    Result := True;
+end;
+
 constructor TWhoisIntegration.Create;
 begin
   FServer := WHOIS_DEFAULT_SERVER;
@@ -269,6 +306,8 @@ end;
 function TWhoisIntegration.Find(DomainName: string): boolean;
 begin
   Result := False;
+  if isDomainID(DomainName) then
+    FServer := WHOIS_DEFAUL_SERVER_ID;
   if sendString(DomainName) then
   begin
     regex.Expression := _WHOIS_REGEX_NOTFOUND;
