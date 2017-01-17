@@ -22,7 +22,6 @@ unit whois_integration;
 interface
 
 uses
-  common,
   cthreads, Sockets, RegExpr,
   Classes, SysUtils;
 
