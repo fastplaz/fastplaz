@@ -36,6 +36,7 @@ const
   _WHOIS_REGEX_UPDATEDDATE = 'Updated Date: ([a-zA-Z0-9\ \-,.]+)';
   _WHOIS_REGEX_CREATEDDATE = 'Creation Date: ([a-zA-Z0-9\ \-,.]+)';
   _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date: ([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_NOTFOUND = 'No match for';
 
 type
 
@@ -270,8 +271,9 @@ begin
   Result := False;
   if sendString(DomainName) then
   begin
-
-    Result := True;
+    regex.Expression := _WHOIS_REGEX_NOTFOUND;
+    if not regex.Exec(FData.Text) then
+      Result := True;
   end;
 end;
 
