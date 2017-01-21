@@ -11,6 +11,7 @@ uses
   fphttpclient,
   //fphttpclient_with_ssl,
   RegExpr,
+  netdb, Sockets,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -147,6 +148,7 @@ function preg_replace(const RegexExpression, ReplaceString, SourceString: string
 function isIPAddress(const IPAddress: string): boolean;
 function isEmail(const s: string): boolean;
 function isDomain(const s: string): boolean;
+function GetHostNameIP( HostName: string): string;
 
 function FastInfo(): string;
 
@@ -869,6 +871,18 @@ function isDomain(const s: string): boolean;
 begin
   //Result := execregexpr('(^(?!\-)(?:[a-zA-Z\d\-]{0,62}[a-zA-Z\d]\.){1,126}(?!\d+)[a-zA-Z\d]{1,63}$)', s);
   Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', s);
+end;
+
+function GetHostNameIP(HostName: string): string;
+var
+  i: integer;
+  ans: array [1..10] of THostAddr;
+begin
+  Result := '';
+  i := ResolveName(HostName, ans);
+  if i = 0 then
+    Exit;
+  Result := HostAddrToStr(Ans[1]);
 end;
 
 function FastInfo: string;
