@@ -7,7 +7,7 @@ unit fastplaz_integration;
 interface
 
 uses
-  whois_integration, LazarusPackageIntf;
+  whois_integration, kamusibacor_integration, LazarusPackageIntf;
 
 implementation
 

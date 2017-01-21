@@ -9,11 +9,15 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="1">
+    <Files Count="2">
       <Item1>
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
       </Item1>
+      <Item2>
+        <Filename Value="kamusibacor_integration.pas"/>
+        <UnitName Value="kamusibacor_integration"/>
+      </Item2>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
@@ -29,5 +33,8 @@
     <PublishOptions>
       <Version Value="2"/>
     </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
   </Package>
 </CONFIG>
