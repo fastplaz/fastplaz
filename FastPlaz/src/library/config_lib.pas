@@ -69,6 +69,7 @@ var
   s: WideString;
   El : TJSONData;
 begin
+  Result := '';
   try
     El:=FindElement(StripSlash(KeyName),False);
     if El.JSONType = jtArray then
@@ -80,8 +81,8 @@ begin
       Result := El.AsString;
     end;
   except
-    on e: Exception do
-      die(e.Message);
+//    on e: Exception do
+//      die(e.Message);
   end;
 end;
 
