@@ -59,7 +59,8 @@ unit telegram_integration;
 interface
 
 uses
-  http_lib, fpjson, jsonparser,
+  common, http_lib, json_lib,
+  fpjson, jsonparser,
   Classes, SysUtils;
 
 {$ifdef TELEGRAM_INTEGRATION}
@@ -100,6 +101,8 @@ type
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
       FirstName, LastName, PhoneNumber: string): boolean;
+    function GetFile(FileID: string): string;
+    function DownloadFile(FilePath: string; TargetFile: string): boolean;
   published
     property LastUpdateID: integer read FLastUpdateID;
     property URL: string read FURL;
@@ -115,6 +118,7 @@ implementation
 
 const
   TELEGRAM_BASEURL = 'https://api.telegram.org/bot%s/';
+  TELEGRAM_FILEURL = 'https://api.telegram.org/file/bot%s/';
   TELEGRAM_COMMAND_GETUPDATES = 'getUpdates';
   TELEGRAM_COMMAND_GETME = 'getMe';
   TELEGRAM_COMMAND_SENDMESSAGE = 'sendMessage?chat_id=%d&text=%s&parse_mode=%s';
@@ -122,6 +126,7 @@ const
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDCONTACT =
     'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
+  TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
 
 var
   Response: IHTTPResponse;
@@ -397,6 +402,66 @@ begin
   try
     SendContact(StrToInt(ChatID), FirstName, LastName, PhoneNumber);
   except
+  end;
+end;
+
+// example result: "photo/file_2"
+function TTelegramIntegration.GetFile(FileID: string): string;
+var
+  s, urlTarget: string;
+  json: TJSONUtil;
+begin
+  Result := '';
+  urlTarget := URL + TELEGRAM_COMMAND_GETFILE + FileID;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      if FResultCode <> 200 then
+        Exit;
+    except
+    end;
+    Free;
+  end;
+
+  json := TJSONUtil.Create;
+  try
+    json.LoadFromJsonString(FResultText);
+    s := json['ok'];
+    Result := json['result/file_path'];
+  except
+  end;
+  json.Free;
+end;
+
+function TTelegramIntegration.DownloadFile(FilePath: string;
+  TargetFile: string): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  urlTarget := format(TELEGRAM_FILEURL, [FToken]) + FilePath;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FIsSuccessfull := IsSuccessfull;
+      if FResultCode = 200 then
+      begin
+        Response.ResultStream.SaveToFile(TargetFile);
+        Result := True;
+      end;
+    except
+    end;
+    Free;
   end;
 end;
 
