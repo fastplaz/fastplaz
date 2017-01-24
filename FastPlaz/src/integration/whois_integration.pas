@@ -29,12 +29,11 @@ unit whois_integration;
 interface
 
 uses
-  cthreads, Sockets, RegExpr,
+  cthreads, Sockets, RegExpr, fpjson, common,
   Classes, SysUtils;
 
 const
-  WHOIS_DEFAULT_SERVER = '199.7.52.74'; // whois.internic.net
-  WHOIS_DEFAUL_SERVER_ID = '203.119.112.102'; // whois.pandi.or.id
+  WHOIS_DEFAULT_SERVER = '';
   WHOIS_DEFAULT_PORT = 43;
   WHOIS_DEFAULT_TIMEOUT = 2500;
 
@@ -48,6 +47,8 @@ const
   _WHOIS_REGEX_CREATEDDATE = 'Creation Date:([a-zA-Z0-9\ \-,.]+)';
   _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date:([a-zA-Z0-9\ \-,.]+)';
   _WHOIS_REGEX_NOTFOUND = 'No match for';
+
+  _WHOIS_SERVER_LIST_FILENAME = 'files/whois-server-list.json';
 
 type
 
@@ -69,6 +70,8 @@ type
     SocketIn, SocketOut: Text;
     IpAddress: in_addr;
 
+    ServerList: TJSONData;
+
     function getCreateDate: string;
     function getExpiredDate: string;
     function getNameServer: string;
@@ -80,12 +83,14 @@ type
     procedure setServerAddress(AValue: string);
 
     function Connect: boolean;
-    function sendString(Strings: string): boolean;
+    function sendQuery(DomainName: string): boolean;
     function isDomainID(DomainName: string): boolean;
+    function getExtension(DomainName: string): string;
   public
     constructor Create; virtual;
     destructor Destroy; virtual;
     function Find(DomainName: string): boolean;
+    function LoadServerList: boolean;
 
     property Server: string read FServer write setServerAddress;
     property Port: string read FPort write setPort;
@@ -202,7 +207,8 @@ begin
   if FServer = AValue then
     Exit;
   FServer := AValue;
-  IpAddress := StrToNetAddr(AValue);
+  FServer := GetHostNameIP(FServer);
+  IpAddress := StrToNetAddr(FServer);
   if IpAddress.s_addr = 0 then
   begin
     FServer := WHOIS_DEFAULT_SERVER;
@@ -241,7 +247,7 @@ begin
 
 end;
 
-function TWhoisIntegration.sendString(Strings: string): boolean;
+function TWhoisIntegration.sendQuery(DomainName: string): boolean;
 var
   s: string;
 begin
@@ -258,7 +264,7 @@ begin
     Data.Clear;
     Reset(SocketIn);
     ReWrite(SocketOut);
-    WriteLn(SocketOut, Strings + #13);
+    WriteLn(SocketOut, DomainName + #13);
     Flush(SocketOut);
     //ReadLn(SocketIn, FLastMessage);
     //ReadLn(SocketIn, s);
@@ -289,6 +295,12 @@ begin
     Result := True;
 end;
 
+function TWhoisIntegration.getExtension(DomainName: string): string;
+begin
+  Result := '';
+  Result := Copy(DomainName, pos('.', DomainName) + 1);
+end;
+
 constructor TWhoisIntegration.Create;
 begin
   FServer := WHOIS_DEFAULT_SERVER;
@@ -307,14 +319,24 @@ destructor TWhoisIntegration.Destroy;
 begin
   FData.Free;
   regex.Free;
+
+  if Assigned(ServerList) then
+    ServerList.Free;
 end;
 
 function TWhoisIntegration.Find(DomainName: string): boolean;
+var
+  ext, notfound: string;
 begin
   Result := False;
-  if isDomainID(DomainName) then
-    FServer := WHOIS_DEFAUL_SERVER_ID;
-  if sendString(DomainName) then
+  ext := getExtension(DomainName);
+  try
+    Server := ServerList.GetPath(ext + '[0]').AsString;
+    notfound := ServerList.GetPath(ext + '[1]').AsString;
+  except
+    Server := WHOIS_DEFAULT_SERVER;
+  end;
+  if sendQuery(DomainName) then
   begin
     regex.Expression := _WHOIS_REGEX_NOTFOUND;
     if not regex.Exec(FData.Text) then
@@ -322,4 +344,26 @@ begin
   end;
 end;
 
+function TWhoisIntegration.LoadServerList: boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  if not FileExists(_WHOIS_SERVER_LIST_FILENAME) then
+    Exit;
+  lst := TStringList.Create;
+  lst.LoadFromFile(_WHOIS_SERVER_LIST_FILENAME);
+  try
+    ServerList := GetJSON(lst.Text);
+    Result := True;
+  except
+  end;
+end;
+
 end.
+
+
+{
+TODO: switch server whois
+https://github.com/regru/php-whois/blob/master/src/Phois/Whois/whois.servers.json
+}
