@@ -9,7 +9,7 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="3">
+    <Files Count="4">
       <Item1>
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
@@ -22,6 +22,10 @@
         <Filename Value="telegram_integration.pas"/>
         <UnitName Value="telegram_integration"/>
       </Item3>
+      <Item4>
+        <Filename Value="kamuskemdikbud_integration.pas"/>
+        <UnitName Value="kamuskemdikbud_integration"/>
+      </Item4>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
