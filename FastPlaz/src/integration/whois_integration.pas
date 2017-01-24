@@ -29,6 +29,7 @@ unit whois_integration;
 interface
 
 uses
+  logutil_lib,
   cthreads, Sockets, RegExpr, fpjson, common,
   Classes, SysUtils;
 
@@ -357,6 +358,9 @@ begin
     ServerList := GetJSON(lst.Text);
     Result := True;
   except
+    on E:Exception do
+    begin
+    end;
   end;
 end;
 

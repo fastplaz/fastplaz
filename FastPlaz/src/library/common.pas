@@ -877,12 +877,22 @@ function GetHostNameIP(HostName: string): string;
 var
   i: integer;
   ans: array [1..10] of THostAddr;
+  lst: TStrings;
 begin
   Result := '';
   i := ResolveName(HostName, ans);
   if i = 0 then
     Exit;
   Result := HostAddrToStr(Ans[1]);
+
+  lst := Explode( Result, '.');
+  Result := '';
+  for i := 3 downto 1 do
+  begin
+    Result := Result + lst[i] + '.';
+  end;
+  Result := Result + lst[0];
+  lst.Free;
 end;
 
 function FastInfo: string;
