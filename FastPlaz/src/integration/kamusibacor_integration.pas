@@ -8,7 +8,7 @@ file that was distributed with this source code.
 {
   // USAGE:
 
-  kamus := TKamusIntegration.Create;
+  kamus := TKamusIbacorIntegration.Create;
   kamus.Token := 'ibacortoken';
   Result := kamus.Find('gadis');
   kamus.Free;
@@ -26,9 +26,9 @@ uses
 
 type
 
-  { TKamusIntegration }
+  { TKamusIbacorIntegration }
 
-  TKamusIntegration = class(TInterfacedObject)
+  TKamusIbacorIntegration = class(TInterfacedObject)
   private
     FToken: string;
   public
@@ -48,19 +48,19 @@ const
 var
   Response: IHTTPResponse;
 
-{ TKamusIntegration }
+{ TKamusIbacorIntegration }
 
-constructor TKamusIntegration.Create;
+constructor TKamusIbacorIntegration.Create;
 begin
   FToken := '';
 end;
 
-destructor TKamusIntegration.Destroy;
+destructor TKamusIbacorIntegration.Destroy;
 begin
 
 end;
 
-function TKamusIntegration.Find(Text: string): string;
+function TKamusIbacorIntegration.Find(Text: string): string;
 var
   s: string;
   httpClient: THTTPLib;
