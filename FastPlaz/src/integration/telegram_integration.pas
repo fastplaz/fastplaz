@@ -59,7 +59,7 @@ unit telegram_integration;
 interface
 
 uses
-  common, http_lib, json_lib,
+  common, http_lib, json_lib, logutil_lib,
   fpjson, jsonparser,
   Classes, SysUtils;
 
@@ -460,6 +460,10 @@ begin
         Result := True;
       end;
     except
+      on E:Exception do
+      begin
+        LogUtil.Add( 'download: '+E.Message, 'telegram');
+      end;
     end;
     Free;
   end;
