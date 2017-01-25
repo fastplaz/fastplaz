@@ -59,7 +59,7 @@ unit telegram_integration;
 interface
 
 uses
-  common, http_lib, json_lib,
+  common, http_lib, json_lib, logutil_lib,
   fpjson, jsonparser,
   Classes, SysUtils;
 
@@ -236,7 +236,7 @@ begin
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE, [ChatID, Text, FParseMode]);
   if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
+    urlTarget := urlTarget + '&parse_mode=Markdown&reply_to_message_id=' + IntToStr(ReplyToMessageID);
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -460,6 +460,10 @@ begin
         Result := True;
       end;
     except
+      on E:Exception do
+      begin
+        LogUtil.Add( 'download: '+E.Message, 'telegram');
+      end;
     end;
     Free;
   end;
