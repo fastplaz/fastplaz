@@ -24,7 +24,7 @@ type
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
       URL: string = '');
     procedure Add(const message: string; const ModName: string = '';
-      const isDie: boolean = False);
+      const Skip: boolean = False);
   end;
 
 var
@@ -91,10 +91,12 @@ begin
 end;
 
 procedure TLogUtil.Add(const message: string; const ModName: string;
-  const isDie: boolean);
+  const Skip: boolean);
 var
   s: string;
 begin
+  if Skip then
+    Exit;
   try
     if ModName <> '' then
       s := ModName + ': ';
@@ -110,8 +112,6 @@ begin
       CloseFile(log_file);
     except
     end;
-    if isDie then
-      die(s);
   except
     on E: Exception do
     begin
