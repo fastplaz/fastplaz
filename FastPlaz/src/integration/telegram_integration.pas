@@ -236,7 +236,7 @@ begin
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE, [ChatID, Text, FParseMode]);
   if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
+    urlTarget := urlTarget + '&parse_mode=Markdown&reply_to_message_id=' + IntToStr(ReplyToMessageID);
   with THTTPLib.Create(urlTarget) do
   begin
     try
