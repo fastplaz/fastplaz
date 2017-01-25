@@ -6,11 +6,13 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 }
 {
+  get from KBBI KemDikBud
+  http://kbbi.kemdikbud.go.id/
+
   // USAGE:
 
   kamus := TKamusIntegration.Create;
-  kamus.Token := 'ibacortoken';
-  Result := kamus.Find('gadis');
+  Result := kamus.Find('kemerdekaan');
   kamus.Free;
 
 }
@@ -22,7 +24,7 @@ interface
 
 uses
   common, http_lib,
-  fpjson, cthreads, Classes, SysUtils;
+  RegExpr, fpjson, cthreads, Classes, SysUtils;
 
 type
 
@@ -42,8 +44,8 @@ implementation
 
 const
   _KAMUS_URL = 'http://kbbi.kemdikbud.go.id/entri/';
-  __TAG_START = '\<([\.\$A-Za-z0-9=_ "]+)\>';
-  __TAG_END = '\</([\.\$A-Za-z0-9=_ "]+)\>';
+  __TAG_START = '\<([\.\$A-Za-z0-9=_ :;\-"]+)\>';
+  __TAG_END = '\</([\.\$A-Za-z0-9=_ :;\-"]+)\>';
 
 
 var
@@ -65,6 +67,7 @@ var
   s, return, urlTarget: string;
   httpClient: THTTPLib;
   jsonData: TJSONData;
+  regex: TRegExpr;
 begin
   Result := '';
   Text := trim(LowerCase(Text));
@@ -80,28 +83,17 @@ begin
   if Response.ResultCode <> 200 then
     Exit;
 
-  return := copy(Response.ResultText, pos('<ol class="">', Response.ResultText) + 13);
-  return := copy(return, 1, pos('</ol>', return) - 1);
+  return := copy(Response.ResultText, pos('<hr />', Response.ResultText) + 6);
+  return := copy(return, 1, pos('<hr />', return) - 1);
 
-  s := Format('%s(.*?)%s', [__TAG_START, __TAG_END]);
-  //return:= preg_replace( __TAG_END, '', return, True);
+  return := StringReplace(return, '<li>', '<li>\n- ', [rfReplaceAll]);
+  return := preg_replace(
+    '\<span title="([\.\$A-Za-z0-9=_ :;\-"]+)">([\.\$A-Za-z0-9=_ :;\-"]+)</span>',
+    '', return, True);
+  return := preg_replace('\<.*?>', '', return, True);
+  return := ReplaceAll(return, ['   ', '  ', #13, #10], '', True);
 
-  return := StringReplace(return, '<li>', '- ', [rfReplaceAll]);
-  return := StringReplace(return, '</li>', '\n', [rfReplaceAll]);
-  return := preg_replace(s, '', return, True);
-  return := StringReplace(return, '</i>', '', [rfReplaceAll]);
-  return := StringReplace(return, '</font>', '', [rfReplaceAll]);
-  return := StringReplace(return, '   ', '', [rfReplaceAll]);
-  return := StringReplace(return, '  ', '', [rfReplaceAll]);
-  return := StringReplace(return, #13, '', [rfReplaceAll]);
-  return := StringReplace(return, #10, '', [rfReplaceAll]);
-  //return := StringReplace(return, '\n', #13, [rfReplaceAll]);
-
-  return := trim(return);
   Result := return;
 end;
 
 end.
-
-
-
