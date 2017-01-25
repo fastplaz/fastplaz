@@ -297,9 +297,13 @@ begin
 end;
 
 function TWhoisIntegration.getExtension(DomainName: string): string;
+var
+  lst: TStrings;
 begin
-  Result := '';
-  Result := Copy(DomainName, pos('.', DomainName) + 1);
+  lst := Explode(DomainName, '.');
+  Result := lst.ValueFromIndex[lst.Count - 1];
+  lst.Free;
+  //Result := Copy(DomainName, pos('.', DomainName) + 1);
 end;
 
 constructor TWhoisIntegration.Create;
@@ -358,7 +362,7 @@ begin
     ServerList := GetJSON(lst.Text);
     Result := True;
   except
-    on E:Exception do
+    on E: Exception do
     begin
     end;
   end;
