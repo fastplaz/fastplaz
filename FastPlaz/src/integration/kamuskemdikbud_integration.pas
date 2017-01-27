@@ -93,7 +93,8 @@ begin
   return := preg_replace('\<.*?>', '', return, True);
   return := ReplaceAll(return, ['   ', '  ', #13, #10], '', True);
 
-  Result := return;
+  if Pos( 'Entri tidak ditemukan', return) = 0 then
+    Result := return;
 end;
 
 end.
