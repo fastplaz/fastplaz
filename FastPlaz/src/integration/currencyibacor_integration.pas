@@ -11,6 +11,12 @@ unit currencyibacor_integration;
 {
   [x] USAGE
 
+  with TCurrencyIbacorIntegration.Create do
+  begin
+    Token := 'yourtoken;
+    Result := Converter( 'USD', 'IDR', 1));
+    Free;
+  end;
 
 }
 
@@ -62,8 +68,8 @@ var
   _url: string;
   _http: THTTPLib;
   _json: TJSONUtil;
-  d : double;
 begin
+  Result := '';
   if FToken = '' then
     Exit;
   _url := Format(_CURRENCY_IBACOR_URL, [FToken, FromCurrency, ToCurrency, Value]);
@@ -77,18 +83,12 @@ begin
     _json.LoadFromJsonString(Response.ResultText);
     if _json['status'] = 'success' then
     begin
-      d := s2f( _json['data/to/amount']);
       Result := UpperCase(FromCurrency) + ' ' + i2s(Value) + ' = ' +
         UpperCase(ToCurrency) + ' ';
-      //ThousandSeparator := '.';
-      //Result := Result + FormatFloat('###,##0', d);
       Result := Result + _json['data/to/amount'];
     end;
-
-    //Result := FormatFloat('###,##0', d);
-
-
   except
+    Result := '';
   end;
   _json.Free;
 
