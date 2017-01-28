@@ -88,6 +88,8 @@ function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
+function StringHumanToNominal( StrHuman: string):string;
+function StringHumanToFloat( StrHuman: string):double;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -229,6 +231,23 @@ begin
     Result := True;
   if s = 'required' then
     Result := True;
+end;
+
+function StringHumanToNominal(StrHuman: string): string;
+begin
+  Result := StrHuman;
+  Result := StringReplace( Result, 'ratus', '00', [rfReplaceAll]);
+  Result := StringReplace( Result, 'rb', '000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'ribu', '000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'jt', '000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'juta', '000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
+end;
+
+function StringHumanToFloat(StrHuman: string): double;
+begin
+  Result := s2f( StringHumanToNominal(StrHuman));
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
