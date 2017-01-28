@@ -8,7 +8,8 @@ interface
 
 uses
   whois_integration, kamusibacor_integration, telegram_integration, 
-  kamuskemdikbud_integration, resiibacor_integration, LazarusPackageIntf;
+  kamuskemdikbud_integration, resiibacor_integration, ombd_integration, 
+  LazarusPackageIntf;
 
 implementation
 

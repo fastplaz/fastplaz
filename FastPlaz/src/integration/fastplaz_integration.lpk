@@ -9,7 +9,7 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="5">
+    <Files Count="6">
       <Item1>
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
@@ -30,6 +30,10 @@
         <Filename Value="resiibacor_integration.pas"/>
         <UnitName Value="resiibacor_integration"/>
       </Item5>
+      <Item6>
+        <Filename Value="ombd_integration.pas"/>
+        <UnitName Value="ombd_integration"/>
+      </Item6>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
