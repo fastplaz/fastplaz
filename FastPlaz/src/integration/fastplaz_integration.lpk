@@ -9,7 +9,7 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="7">
+    <Files Count="8">
       <Item1>
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
@@ -38,6 +38,10 @@
         <Filename Value="currencyibacor_integration.pas"/>
         <UnitName Value="currencyibacor_integration"/>
       </Item7>
+      <Item8>
+        <Filename Value="clarifai_integration.pas"/>
+        <UnitName Value="clarifai_integration"/>
+      </Item8>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

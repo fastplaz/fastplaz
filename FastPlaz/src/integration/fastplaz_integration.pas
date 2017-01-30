@@ -9,7 +9,7 @@ interface
 uses
   whois_integration, kamusibacor_integration, telegram_integration, 
   kamuskemdikbud_integration, resiibacor_integration, ombd_integration, 
-  currencyibacor_integration, LazarusPackageIntf;
+  currencyibacor_integration, clarifai_integration, LazarusPackageIntf;
 
 implementation
 

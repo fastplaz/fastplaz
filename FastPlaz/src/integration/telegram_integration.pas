@@ -66,6 +66,10 @@ uses
 {$ifdef TELEGRAM_INTEGRATION}
 {$endif}
 
+const
+  TELEGRAM_FILEURL = 'https://api.telegram.org/file/bot%s/';
+
+
 type
 
   { TTelegramIntegration }
@@ -101,7 +105,7 @@ type
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
       FirstName, LastName, PhoneNumber: string): boolean;
-    function GetFile(FileID: string): string;
+    function GetFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
   published
     property LastUpdateID: integer read FLastUpdateID;
@@ -118,7 +122,6 @@ implementation
 
 const
   TELEGRAM_BASEURL = 'https://api.telegram.org/bot%s/';
-  TELEGRAM_FILEURL = 'https://api.telegram.org/file/bot%s/';
   TELEGRAM_COMMAND_GETUPDATES = 'getUpdates';
   TELEGRAM_COMMAND_GETME = 'getMe';
   TELEGRAM_COMMAND_SENDMESSAGE = 'sendMessage?chat_id=%d&text=%s&parse_mode=%s';
@@ -236,7 +239,8 @@ begin
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE, [ChatID, Text, FParseMode]);
   if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&parse_mode=Markdown&reply_to_message_id=' + IntToStr(ReplyToMessageID);
+    urlTarget := urlTarget + '&parse_mode=Markdown&reply_to_message_id=' +
+      IntToStr(ReplyToMessageID);
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -406,7 +410,7 @@ begin
 end;
 
 // example result: "photo/file_2"
-function TTelegramIntegration.GetFile(FileID: string): string;
+function TTelegramIntegration.GetFileURL(FileID: string): string;
 var
   s, urlTarget: string;
   json: TJSONUtil;
@@ -460,9 +464,9 @@ begin
         Result := True;
       end;
     except
-      on E:Exception do
+      on E: Exception do
       begin
-        LogUtil.Add( 'download: '+E.Message, 'telegram');
+        LogUtil.Add('download: ' + E.Message, 'telegram');
       end;
     end;
     Free;
@@ -504,6 +508,5 @@ end.
 
 
 }
-
 
 
