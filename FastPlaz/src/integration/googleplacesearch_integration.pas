@@ -122,6 +122,8 @@ begin
     end;
   end;
 
+  s := StringReplace( s, #13, '\n', [rfReplaceAll]);
+  s := StringReplace( s, #10, '\n', [rfReplaceAll]);
   Result := s;
 end;
 
