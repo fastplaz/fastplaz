@@ -25,7 +25,7 @@ interface
 
 uses
   fpjson,
-  common, json_lib, http_lib,
+  common, json_lib, http_lib, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -38,8 +38,8 @@ type
     FImageURL: string;
     FToken: string;
   public
-    constructor Create; virtual;
-    destructor Destroy; virtual;
+    constructor Create;
+    destructor Destroy;
 
     property Command: string read FCommand write FCommand;
     property ImageURL: string read FImageURL write FImageURL;
@@ -90,6 +90,10 @@ begin
       Response := Post;
       Result := Response.ResultText;
     except
+      on E:Exception do
+      begin
+        LogUtil.Add( E.Message, 'clarifai');
+      end;
     end;
 
     Free;
@@ -129,8 +133,11 @@ begin
       s := _jsonData.GetPath('results[0].result.tag.classes').AsJSON;
       Result := ReplaceAll(s, ['[', ']', '"'], '');
     end;
-
   except
+    on E:Exception do
+    begin
+      LogUtil.Add( E.Message, 'clarifai');
+    end;
   end;
   _jsonData.Free;
 end;
