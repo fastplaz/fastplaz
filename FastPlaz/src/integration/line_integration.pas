@@ -49,9 +49,12 @@ type
     procedure Reply(AReplyToken: string; AMessages: string);
     procedure Push(ATo: string; AMessages: string);
     procedure Send(ATo: string; AMessages: string);
+    procedure SendSticker(ATo: string; APackageID: string; AStickerID: string);
 
+    function isCanSend: boolean;
     function isJoinToGroup: boolean;
     function isMessage: boolean;
+    function isSticker: boolean;
     function isGroup: boolean;
     function isMentioned: boolean;
   end;
@@ -136,7 +139,7 @@ var
   _jsonString: TStringList;
   lst: TStringList;
 begin
-  if FToken = '' then
+  if not isCanSend then
     Exit;
   if (AReplyToken = '') or (AMessages = '') then
     Exit;
@@ -203,7 +206,7 @@ var
   _jsonString: TStringList;
   lst: TStringList;
 begin
-  if FToken = '' then
+  if not isCanSend then
     Exit;
   if (ATo = '') or (AMessages = '') then
     Exit;
@@ -223,6 +226,7 @@ begin
       _jsonString.Add('{');
       _jsonString.Add('"to":"' + ATo + '",');
       _jsonString.Add('"messages":[');
+      {
       for i := 0 to lst.Count - 1 do
       begin
         _jsonString.add('{');
@@ -232,6 +236,13 @@ begin
         if i <> lst.Count - 1 then
           _jsonString.Add(',');
       end;
+      }
+      _jsonString.add('{');
+      _jsonString.add('"type":"text",');
+      _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+      _jsonString.add('}');
+
+      //--
       _jsonString.Add(']');
       _jsonString.Add('}');
 
@@ -256,6 +267,63 @@ begin
   Push(ATo, AMessages);
 end;
 
+// packageID: 2000000
+// stickerID: 48000 47976 48076 48080
+procedure TLineIntegration.SendSticker(ATo: string; APackageID: string;
+  AStickerID: string);
+var
+  _jsonString: TStringList;
+begin
+  if not isCanSend then
+    Exit;
+  if (ATo = '') or (APackageID = '') or (AStickerID = '') then
+    Exit;
+
+  _jsonString := TStringList.Create;
+  with THTTPLib.Create(_LINE_PUSH_URL) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      AddHeader('Authorization', 'Bearer ' + FToken);
+
+
+      _jsonString.Add('{');
+      _jsonString.Add('"to":"' + UserID + '",');
+      _jsonString.Add('"messages":[');
+      _jsonString.add('{');
+      _jsonString.add('"type":"sticker",');
+      _jsonString.add('"packageId":"' + APackageID + '",');
+      _jsonString.add('"stickerId":"' + AStickerID + '"');
+      _jsonString.add('}');
+
+      //--
+      _jsonString.Add(']');
+      _jsonString.Add('}');
+
+      RequestBody := TStringStream.Create(_jsonString.Text);
+
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  _jsonString.Free;
+end;
+
+function TLineIntegration.isCanSend: boolean;
+begin
+  Result := False;
+  if FToken = '' then
+    Exit;
+  Result := True;
+end;
+
 function TLineIntegration.isJoinToGroup: boolean;
 begin
   Result := False;
@@ -271,6 +339,16 @@ begin
   Result := False;
   try
     if jsonData.GetPath('events[0].type').AsString = 'message' then
+      Result := True;
+  except
+  end;
+end;
+
+function TLineIntegration.isSticker: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].message.type').AsString = 'sticker' then
       Result := True;
   except
   end;
@@ -296,5 +374,6 @@ begin
 end;
 
 end.
+
 
 
