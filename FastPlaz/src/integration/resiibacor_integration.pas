@@ -91,8 +91,8 @@ var
   json: TJSONUtil;
 begin
   Result := '';
-  //if FToken = '' then
-  //  Exit;
+  if FToken = '' then
+    Exit;
   FVendor := UpperCase(FVendor);
   urlTarget := Format(_RESI_IBACOR_API, [FToken, FVendor, FCode]);
 

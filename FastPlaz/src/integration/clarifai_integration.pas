@@ -25,7 +25,7 @@ interface
 
 uses
   fpjson,
-  common, json_lib, http_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -104,9 +104,7 @@ end;
 function TClarifai.GetTagsAsString: string;
 var
   s: string;
-  _json: TJSONUtil;
   _jsonData: TJSONData;
-  _jArray: TJSONArray;
 begin
   Result := '';
   if FToken = '' then

@@ -68,6 +68,7 @@ var
   _url: string;
   _http: THTTPLib;
   _json: TJSONUtil;
+  _nominalFloat: double;
 begin
   Result := '';
   if FToken = '' then
@@ -85,7 +86,11 @@ begin
     begin
       Result := UpperCase(FromCurrency) + ' ' + i2s(Value) + ' = ' +
         UpperCase(ToCurrency) + ' ';
-      Result := Result + _json['data/to/amount'];
+
+      _nominalFloat:= s2f( _json['data/to/amount']);
+      DefaultFormatSettings.ThousandSeparator := '.';
+
+      Result := Result + FormatFloat('###,##0', _nominalFloat);
     end;
   except
     Result := '';
