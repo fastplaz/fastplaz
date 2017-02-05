@@ -7,10 +7,11 @@ unit fastplaz_integration;
 interface
 
 uses
-  whois_integration, kamusibacor_integration, telegram_integration, 
-  kamuskemdikbud_integration, resiibacor_integration, ombd_integration, 
-  currencyibacor_integration, clarifai_integration, 
-  googleplacesearch_integration, LazarusPackageIntf;
+  clarifai_integration, currencyibacor_integration, 
+  googleplacesearch_integration, kamusibacor_integration, 
+  kamuskemdikbud_integration, line_integration, ombd_integration, 
+  resiibacor_integration, telegram_integration, whois_integration, 
+  LazarusPackageIntf;
 
 implementation
 

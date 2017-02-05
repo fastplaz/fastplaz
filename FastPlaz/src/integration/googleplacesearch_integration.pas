@@ -46,7 +46,7 @@ implementation
 const
   _GOOGLE_PLACE_TEXTSEARCH_URL =
     'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&query=%s';
-  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/@%s/%s,%s';
+  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
 
 var
   Response: IHTTPResponse;
@@ -109,7 +109,7 @@ begin
       s := s + 'rating: ' + f2s(_json.GetPath('results[' + i2s(i) +
         '].rating').AsFloat) + #10;
 
-      _url := format( _GOOGLE_MAPS_URL, [_name, _lat, _lon]);
+      _url := format( _GOOGLE_MAPS_URL, [ UrlEncode(_name), _lat, _lon]);
       s := s + _url + #10;
 
       s := s + #10;
@@ -118,7 +118,6 @@ begin
   except
     on E:Exception do
     begin
-      s := s + E.Message;
     end;
   end;
 
