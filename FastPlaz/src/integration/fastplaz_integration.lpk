@@ -9,7 +9,7 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="10">
+    <Files Count="11">
       <Item1>
         <Filename Value="clarifai_integration.pas"/>
         <UnitName Value="clarifai_integration"/>
@@ -50,6 +50,10 @@
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
       </Item10>
+      <Item11>
+        <Filename Value="facebookmessenger_integration.pas"/>
+        <UnitName Value="facebookmessenger_integration"/>
+      </Item11>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
