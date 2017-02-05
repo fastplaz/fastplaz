@@ -11,7 +11,7 @@ uses
   googleplacesearch_integration, kamusibacor_integration, 
   kamuskemdikbud_integration, line_integration, ombd_integration, 
   resiibacor_integration, telegram_integration, whois_integration, 
-  LazarusPackageIntf;
+  facebookmessenger_integration, LazarusPackageIntf;
 
 implementation
 
