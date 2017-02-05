@@ -18,7 +18,7 @@ unit ombd_integration;
 interface
 
 uses
-  common, http_lib, json_lib,
+  common, http_lib, json_lib, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -86,6 +86,9 @@ begin
     Result := Result + '\nDirector: ' + _json['Director'];
     Result := Result + '\n_Plot: ' + _json['Plot'] + '_';
   except
+    on E:Exception do
+    begin
+    end;
   end;
 
 end;

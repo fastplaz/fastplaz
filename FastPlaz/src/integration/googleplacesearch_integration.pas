@@ -91,7 +91,6 @@ var
   s, _name, _lat, _lon, _url: string;
   i: integer;
   _json: TJSONData;
-  _jArray: TJSONArray;
 begin
   s := Search(Keyword);
   if s = '' then

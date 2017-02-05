@@ -15,12 +15,15 @@ type
 
   TLineIntegration = class(TInterfacedObject)
   private
+    FBotName: string;
     FIsSuccessfull: boolean;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
     FToken: string;
     jsonData: TJSONData;
+    function getGroupID: string;
+    function getGroupName: string;
     function getReplyToken: string;
     function getText: string;
     function getUserID: string;
@@ -29,6 +32,7 @@ type
     constructor Create;
     destructor Destroy;
 
+    property BotName: string read FBotName write FBotName;
     property Token: string read FToken write FToken;
     property RequestContent: string read FRequestContent write setRequestContent;
 
@@ -39,13 +43,17 @@ type
     property ReplyToken: string read getReplyToken;
     property Text: string read getText;
     property UserID: string read getUserID;
+    property GroupID: string read getGroupID;
+    property GroupName: string read getGroupName;
 
     procedure Reply(AReplyToken: string; AMessages: string);
     procedure Push(ATo: string; AMessages: string);
     procedure Send(ATo: string; AMessages: string);
 
-    function isMessage:boolean;
-    function isGroup:boolean;
+    function isJoinToGroup: boolean;
+    function isMessage: boolean;
+    function isGroup: boolean;
+    function isMentioned: boolean;
   end;
 
 
@@ -62,9 +70,10 @@ var
 
 procedure TLineIntegration.setRequestContent(AValue: string);
 begin
-  if FRequestContent=AValue then Exit;
-  FRequestContent:=AValue;
-  jsonData := GetJSON( AValue);
+  if FRequestContent = AValue then
+    Exit;
+  FRequestContent := AValue;
+  jsonData := GetJSON(AValue);
 end;
 
 function TLineIntegration.getReplyToken: string;
@@ -74,6 +83,22 @@ begin
     Result := jsonData.GetPath('events[0].replyToken').AsString;
   except
   end;
+end;
+
+function TLineIntegration.getGroupID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('events[0].source.groupId').AsString;
+  except
+  end;
+end;
+
+function TLineIntegration.getGroupName: string;
+begin
+  Result := getGroupID;
+
+  //TODO: get group real group name
 end;
 
 function TLineIntegration.getText: string;
@@ -131,6 +156,8 @@ begin
       _jsonString.Add('{');
       _jsonString.Add('"replyToken":"' + AReplyToken + '",');
       _jsonString.Add('"messages":[');
+
+      {
       for i := 0 to lst.Count - 1 do
       begin
         _jsonString.add('{');
@@ -140,8 +167,16 @@ begin
         if i <> lst.Count - 1 then
           _jsonString.Add(',');
       end;
+      }
+      _jsonString.add('{');
+      _jsonString.add('"type":"text",');
+      _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+      _jsonString.add('}');
+
+      //--
       _jsonString.Add(']');
       _jsonString.Add('}');
+
 
       RequestBody := TStringStream.Create(_jsonString.Text);
 
@@ -149,9 +184,11 @@ begin
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
-
-      die( FResultText);
     except
+      on E: Exception do
+      begin
+        LogUtil.Add('reply: ' + E.Message, 'LINE');
+      end;
     end;
     Free;
   end;
@@ -219,6 +256,16 @@ begin
   Push(ATo, AMessages);
 end;
 
+function TLineIntegration.isJoinToGroup: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].type').AsString = 'join' then
+      Result := True;
+  except
+  end;
+end;
+
 function TLineIntegration.isMessage: boolean;
 begin
   Result := False;
@@ -239,5 +286,15 @@ begin
   end;
 end;
 
+function TLineIntegration.isMentioned: boolean;
+begin
+  Result := False;
+  if pos('@' + LowerCase(FBotName), Text) > 0 then
+    Result := True;
+  if pos('Bot', Text) > 0 then    // force dectect as Bot  (____Bot)
+    Result := True;
+end;
+
 end.
+
 
