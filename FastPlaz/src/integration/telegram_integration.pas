@@ -76,23 +76,46 @@ type
 
   TTelegramIntegration = class(TInterfacedObject)
   private
+    FDebug: boolean;
+    FInvitedFullName: string;
+    FInvitedUserName: string;
+    FResultMessageID: string;
+    jsonData: TJSONData;
+
     FIsSuccessfull: boolean;
     FLastUpdateID: integer;
     FParseMode: string;
+    FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
     FToken: string;
     FURL: string;
+    function getChatID: string;
+    function getChatType: string;
+    function getFullName: string;
+    function getGroupName: string;
+    function getImageCaption: string;
+    function getIsGroup: boolean;
+    function getIsInvitation: boolean;
+    function getMessageID: string;
+    function getText: string;
+    function getUpdateID: integer;
+    function getUserID: string;
+    function getUserName: string;
+    procedure setRequestContent(AValue: string);
     procedure setToken(AValue: string);
   public
     constructor Create;
+    destructor Destroy;
 
     function getUpdates(const UpdateID: integer = 0): string;
     function GetMe: string;
+    function SendMessage(const ChatID: string = '0'; const Text: string = '';
+      const ReplyToMessageID: string = ''): boolean;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
       const ReplyToMessageID: integer = 0): boolean;
-    function SendMessage(const ChatID: string = '0'; const Text: string = '';
-      const ReplyToMessageID: integer = 0): boolean;
+    function EditMessage(const ChatID: string; MessageID: string;
+      Text: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
@@ -108,6 +131,24 @@ type
     function GetFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
   published
+    property Debug: boolean read FDebug write FDebug;
+    property RequestContent: string read FRequestContent write setRequestContent;
+    property Text: string read getText;
+    property UpdateID: integer read getUpdateID;
+    property MessageID: string read getMessageID;
+    property ChatID: string read getChatID;
+    property ChatType: string read getChatType;
+    property UserID: string read getUserID;
+    property UserName: string read getUserName;
+    property FullName: string read getFullName;
+    property GroupName: string read getGroupName;
+    property IsGroup: boolean read getIsGroup;
+    property ImageCaption: string read getImageCaption;
+    property IsInvitation: boolean read getIsInvitation;
+
+    property InvitedUserName: string read FInvitedUserName;
+    property InvitedFullName: string read FInvitedFullName;
+
     property LastUpdateID: integer read FLastUpdateID;
     property URL: string read FURL;
     property Token: string read FToken write setToken;
@@ -115,6 +156,7 @@ type
     property ParseMode: string read FParseMode write FParseMode;
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
+    property ResultMessageID: string read FResultMessageID;
 
   end;
 
@@ -124,7 +166,10 @@ const
   TELEGRAM_BASEURL = 'https://api.telegram.org/bot%s/';
   TELEGRAM_COMMAND_GETUPDATES = 'getUpdates';
   TELEGRAM_COMMAND_GETME = 'getMe';
-  TELEGRAM_COMMAND_SENDMESSAGE = 'sendMessage?chat_id=%d&text=%s&parse_mode=%s';
+  TELEGRAM_COMMAND_SENDMESSAGE =
+    'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
+  TELEGRAM_COMMAND_EDITMESSAGE =
+    'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDCONTACT =
@@ -145,17 +190,150 @@ begin
   FURL := format(TELEGRAM_BASEURL, [FToken]);
 end;
 
+procedure TTelegramIntegration.setRequestContent(AValue: string);
+begin
+  if FRequestContent = AValue then
+    Exit;
+  FRequestContent := AValue;
+  jsonData := GetJSON(AValue);
+end;
+
+function TTelegramIntegration.getText: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.text').AsString;
+    if Result = 'False' then
+      Result := '';
+  except
+  end;
+end;
+
+function TTelegramIntegration.getChatID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.chat.id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getChatType: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.chat.type').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getFullName: string;
+begin
+  Result := '';
+  try
+    Result := trim(jsonData.GetPath('message.from.first_name').AsString +
+      ' ' + jsonData.GetPath('message.from.last_name').AsString);
+    if Result = '' then
+      UserName;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getGroupName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.caption').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getImageCaption: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.chat.title').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getIsGroup: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  s := ChatType;
+  if ((s = 'group') or (s = 'supergroup')) then
+    Result := True;
+end;
+
+function TTelegramIntegration.getIsInvitation: boolean;
+begin
+  Result := False;
+  try
+    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
+    FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
+  except
+  end;
+
+  if FInvitedUserName <> '' then
+    Result := True;
+end;
+
+function TTelegramIntegration.getMessageID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.message_id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getUpdateID: integer;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath('update_id').AsInteger;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getUserID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.from.id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getUserName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.from.username').AsString;
+  except
+  end;
+end;
+
 constructor TTelegramIntegration.Create;
 begin
   FURL := '';
   FParseMode := 'Markdown';
   FLastUpdateID := 0;
   FIsSuccessfull := False;
+  FDebug := True;
+end;
+
+destructor TTelegramIntegration.Destroy;
+begin
+  if Assigned(jsonData) then
+    jsonData.Free;
 end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
 var
-  urlTarget, s: string;
+  urlTarget: string;
   j: TJSONData;
   a: TJSONArray;
   i: integer;
@@ -183,7 +361,6 @@ begin
       i := TJSONObject(j).IndexOfName('result');
       if i <> -1 then
       begin
-        s := j.Items[i].AsJSON;
         a := TJSONArray(j.Items[i]);
         a := TJSONArray(a.Items[0]);
         a := TJSONArray(a.Items[0]);
@@ -226,21 +403,25 @@ begin
 
 end;
 
-function TTelegramIntegration.SendMessage(const ChatID: integer;
-  const Text: string; const ReplyToMessageID: integer): boolean;
+function TTelegramIntegration.SendMessage(const ChatID: string;
+  const Text: string; const ReplyToMessageID: string): boolean;
 var
-  urlTarget: string;
+  s, urlTarget: string;
+  json: TJSONUtil;
 begin
+  Result := False;
   FResultCode := 0;
   FResultText := '';
+  FResultMessageID := '';
   FIsSuccessfull := False;
-  Result := False;
-  if (ChatID = 0) or (Text = '') or (FURL = '') then
+  if (ChatID = '') or (ChatID = '0') or (Text = '') or (FURL = '') then
     Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE, [ChatID, Text, FParseMode]);
-  if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&parse_mode=Markdown&reply_to_message_id=' +
-      IntToStr(ReplyToMessageID);
+
+  s := StringReplace(Text, '\n', #10, [rfReplaceAll]);
+  s := UrlEncode(s);
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE,
+    [ChatID, ReplyToMessageID, FParseMode, s]);
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -250,7 +431,19 @@ begin
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
+
+      json := TJSONUtil.Create;
+      json.LoadFromJsonString(FResultText);
+      FResultMessageID := json['result/message_id'];
+      json.Free;
+
+      Result := True;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
     Free;
   end;
@@ -258,13 +451,53 @@ begin
   Result := FIsSuccessfull;
 end;
 
-function TTelegramIntegration.SendMessage(const ChatID: string;
+function TTelegramIntegration.SendMessage(const ChatID: integer;
   const Text: string; const ReplyToMessageID: integer): boolean;
 begin
   try
-    SendMessage(StrToInt(ChatID), Text, ReplyToMessageID);
+    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID));
   except
   end;
+end;
+
+function TTelegramIntegration.EditMessage(const ChatID: string;
+  MessageID: string; Text: string): boolean;
+var
+  s, urlTarget: string;
+begin
+  Result := False;
+  FResultCode := 0;
+  FResultText := '';
+  FIsSuccessfull := False;
+  if (ChatID = '') or (ChatID = '0') or (Text = '') or (FURL = '') then
+    Exit;
+
+  s := StringReplace(Text, '\n', #10, [rfReplaceAll]);
+  s := UrlEncode(s);
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_EDITMESSAGE,
+    [ChatID, MessageID, FParseMode, s]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      Result := False;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
 end;
 
 function TTelegramIntegration.SendPhoto(const ChatID: string;
@@ -412,7 +645,7 @@ end;
 // example result: "photo/file_2"
 function TTelegramIntegration.GetFileURL(FileID: string): string;
 var
-  s, urlTarget: string;
+  urlTarget: string;
   json: TJSONUtil;
 begin
   Result := '';
@@ -436,7 +669,6 @@ begin
   json := TJSONUtil.Create;
   try
     json.LoadFromJsonString(FResultText);
-    s := json['ok'];
     Result := json['result/file_path'];
   except
   end;
@@ -508,5 +740,3 @@ end.
 
 
 }
-
-
