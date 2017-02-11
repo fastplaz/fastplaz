@@ -243,7 +243,7 @@ function TTelegramIntegration.getGroupName: string;
 begin
   Result := '';
   try
-    Result := jsonData.GetPath('message.caption').AsString;
+    Result := jsonData.GetPath('message.chat.title').AsString;
   except
   end;
 end;
@@ -252,7 +252,7 @@ function TTelegramIntegration.getImageCaption: string;
 begin
   Result := '';
   try
-    Result := jsonData.GetPath('message.chat.title').AsString;
+    Result := jsonData.GetPath('message.caption').AsString;
   except
   end;
 end;
