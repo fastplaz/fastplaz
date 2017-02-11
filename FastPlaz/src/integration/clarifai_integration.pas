@@ -6,6 +6,7 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 }
 unit clarifai_integration;
+
 {
   [x] USAGE
 
@@ -90,9 +91,9 @@ begin
       Response := Post;
       Result := Response.ResultText;
     except
-      on E:Exception do
+      on E: Exception do
       begin
-        LogUtil.Add( E.Message, 'clarifai');
+        LogUtil.Add(E.Message, 'clarifai');
       end;
     end;
 
@@ -130,11 +131,15 @@ begin
     begin
       s := _jsonData.GetPath('results[0].result.tag.classes').AsJSON;
       Result := ReplaceAll(s, ['[', ']', '"'], '');
+    end
+    else
+    begin
+      LogUtil.Add(s, 'CLARIFAI');
     end;
   except
-    on E:Exception do
+    on E: Exception do
     begin
-      LogUtil.Add( E.Message, 'clarifai');
+      LogUtil.Add(E.Message, 'CLARIFAI');
     end;
   end;
   _jsonData.Free;
