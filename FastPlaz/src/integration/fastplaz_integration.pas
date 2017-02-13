@@ -8,10 +8,10 @@ interface
 
 uses
   clarifai_integration, currencyibacor_integration, 
-  googleplacesearch_integration, kamusibacor_integration, 
-  kamuskemdikbud_integration, line_integration, ombd_integration, 
-  resiibacor_integration, telegram_integration, whois_integration, 
-  facebookmessenger_integration, LazarusPackageIntf;
+  facebookmessenger_integration, googleplacesearch_integration, 
+  kamusibacor_integration, kamuskemdikbud_integration, line_integration, 
+  ombd_integration, resiibacor_integration, telegram_integration, 
+  whois_integration, witai_integration, LazarusPackageIntf;
 
 implementation
 

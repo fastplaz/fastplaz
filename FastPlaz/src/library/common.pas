@@ -152,6 +152,8 @@ function isEmail(const s: string): boolean;
 function isDomain(const s: string): boolean;
 function GetHostNameIP( HostName: string): string;
 
+function Exec(const AExeName: string; const AParameter: array of string;
+  var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
 function FastInfo(): string;
 
 implementation
@@ -914,6 +916,76 @@ begin
   lst.Free;
 end;
 
+// example:
+//  Exec( 'executable-nya', ['parameternya'], lsS);
+function Exec(const AExeName: string; const AParameter: array of string;
+  var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
+var
+  p: TProcess;
+  i, exitstatus: integer;
+
+const
+  // not too small to avoid fragmentation when reading large files.
+  csi_EXECCOMMAND_READ_BYTES = 65536;
+
+  // helperfunction that does the bulk of the work.
+  function internalRuncommand(p: TProcess; var outputstring: string;
+  var exitstatus: integer; const AShowOptons: TShowWindowOptions = swoHIDE): integer;
+  var
+    numbytes, bytesread: integer;
+  begin
+    Result := -1;
+    try
+      try
+        p.Options := [poUsePipes, poWaitOnExit, poStderrToOutPut];
+        p.ShowWindow := AShowOptons;
+        bytesread := 0;
+        p.Execute;
+        while p.Running do
+        begin
+          Setlength(outputstring, BytesRead + csi_EXECCOMMAND_READ_BYTES);
+          NumBytes := p.Output.Read(outputstring[1 + bytesread],
+            csi_EXECCOMMAND_READ_BYTES);
+          if NumBytes > 0 then
+            Inc(BytesRead, NumBytes)
+          else
+            Sleep(100);
+        end;
+        repeat
+          Setlength(outputstring, BytesRead + csi_EXECCOMMAND_READ_BYTES);
+          NumBytes := p.Output.Read(outputstring[1 + bytesread],
+            csi_EXECCOMMAND_READ_BYTES);
+          if NumBytes > 0 then
+            Inc(BytesRead, NumBytes);
+        until NumBytes <= 0;
+        setlength(outputstring, BytesRead);
+        exitstatus := p.exitstatus;
+        Result := 0; // we came to here, document that.
+      except
+        on e: Exception do
+        begin
+          die( e.Message);
+          Result := 1;
+          setlength(outputstring, BytesRead);
+        end;
+      end;
+    finally
+      p.Free;
+    end;
+
+  end;
+
+begin
+  p := TProcess.Create(nil);
+  p.Executable := AExeName;
+  if high(AParameter) >= 0 then
+    for i := low(AParameter) to high(AParameter) do
+      p.Parameters.add(AParameter[i]);
+  Result := internalruncommand(p, AOutput, exitstatus, AShowOptons) = 0;
+  if exitstatus <> 0 then
+    Result := False;
+end;
+
 function FastInfo: string;
 var
   lst: TStringList;
@@ -933,6 +1005,8 @@ begin
   Result := lst.Text;
   lst.Free;
 end;
+
+
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
