@@ -80,6 +80,10 @@ type
     FInvitedFullName: string;
     FInvitedUserName: string;
     FResultMessageID: string;
+    FVoiceDuration: integer;
+    FVoiceID: string;
+    FVoiceSize: integer;
+    FVoiceType: string;
     jsonData: TJSONData;
 
     FIsSuccessfull: boolean;
@@ -97,6 +101,7 @@ type
     function getImageCaption: string;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
+    function getIsVoice: boolean;
     function getMessageID: string;
     function getText: string;
     function getUpdateID: integer;
@@ -128,7 +133,8 @@ type
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
       FirstName, LastName, PhoneNumber: string): boolean;
-    function GetFileURL(FileID: string): string;
+    function GetFilePath(FileID: string): string;
+    function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
   published
     property Debug: boolean read FDebug write FDebug;
@@ -157,6 +163,12 @@ type
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
     property ResultMessageID: string read FResultMessageID;
+
+    property IsVoice: boolean read getIsVoice;
+    property VoiceDuration: integer read FVoiceDuration;
+    property VoiceType: string read FVoiceType;
+    property VoiceID: string read FVoiceID;
+    property VoiceSize: integer read FVoiceSize;
 
   end;
 
@@ -278,6 +290,19 @@ begin
 
   if FInvitedUserName <> '' then
     Result := True;
+end;
+
+function TTelegramIntegration.getIsVoice: boolean;
+begin
+  Result := False;
+  try
+    FVoiceDuration := jsonData.GetPath('message.voice.duration').AsInteger;
+    FVoiceID := jsonData.GetPath('message.voice.file_id').AsString;
+    FVoiceType := jsonData.GetPath('message.voice.mime_type').AsString;
+    FVoiceSize := jsonData.GetPath('message.voice.file_size').AsInteger;
+    Result := True;
+  except
+  end;
 end;
 
 function TTelegramIntegration.getMessageID: string;
@@ -643,7 +668,7 @@ begin
 end;
 
 // example result: "photo/file_2"
-function TTelegramIntegration.GetFileURL(FileID: string): string;
+function TTelegramIntegration.GetFilePath(FileID: string): string;
 var
   urlTarget: string;
   json: TJSONUtil;
@@ -675,6 +700,12 @@ begin
   json.Free;
 end;
 
+function TTelegramIntegration.GetFullFileURL(FileID: string): string;
+begin
+  Result := GetFilePath(FileID);
+  Result := format(TELEGRAM_FILEURL, [Token]) + Result;
+end;
+
 function TTelegramIntegration.DownloadFile(FilePath: string;
   TargetFile: string): boolean;
 var
@@ -692,6 +723,8 @@ begin
       FIsSuccessfull := IsSuccessfull;
       if FResultCode = 200 then
       begin
+        if FileExists(TargetFile) then
+          DeleteFile(TargetFile);
         Response.ResultStream.SaveToFile(TargetFile);
         Result := True;
       end;

@@ -119,7 +119,6 @@ begin
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      die(FResultText);
     except
     end;
 
