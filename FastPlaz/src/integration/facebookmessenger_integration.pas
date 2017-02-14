@@ -23,8 +23,11 @@ type
     FToken: string;
 
     jsonData: TJSONData;
+    function getIsVoice: boolean;
+    function getMessageID: string;
     function getText: string;
     function getUserID: string;
+    function getVoiceURL: string;
     procedure setRequestContent(AValue: string);
   public
     constructor Create;
@@ -39,11 +42,16 @@ type
 
     property Text: string read getText;
     property UserID: string read getUserID;
+    property MessageID: string read getMessageID;
 
     procedure Send(ATo: string; AMessages: string);
 
     function isCanSend: boolean;
     function isMessage: boolean;
+
+    property IsVoice: boolean read getIsVoice;
+    property VoiceURL: string read getVoiceURL;
+    function DownloadVoiceTo( ATargetFile:string):boolean;
   end;
 
 
@@ -78,11 +86,40 @@ begin
   end;
 end;
 
+function TFacebookMessengerIntegration.getIsVoice: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
+      'audio' then
+      Result := True;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.getMessageID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('entry[0].messaging[0].message.mid').AsString;
+  except
+  end;
+end;
+
 function TFacebookMessengerIntegration.getUserID: string;
 begin
   Result := '';
   try
     Result := jsonData.GetPath('entry[0].messaging[0].sender.id').AsString;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.getVoiceURL: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.url').AsString;
   except
   end;
 end;
@@ -140,6 +177,41 @@ begin
   Result := False;
 
   // ...
+
+end;
+
+function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string
+  ): boolean;
+var
+  s: string;
+begin
+  Result := False;
+  if VoiceURL = '' then
+    Exit;
+
+  with THTTPLib.Create(VoiceURL) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FIsSuccessfull := IsSuccessfull;
+      if FResultCode = 200 then
+      begin
+        if FileExists(ATargetFile) then
+          DeleteFile(ATargetFile);
+        Response.ResultStream.SaveToFile(ATargetFile);
+        Result := True;
+      end;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add('VOICE-DL: ' + E.Message, 'FACEBOOK');
+      end;
+    end;
+    Free;
+  end;
 
 end;
 
