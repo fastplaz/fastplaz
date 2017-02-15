@@ -7,6 +7,23 @@ unit kawalpemilu_integration;
   Kode Province:
     dki jakarta: 25823
 
+  [x] USAGE
+
+  // textual information
+  with TKawalPemiluIntegration.Create do
+  begin
+    Result := ProvinceRealCountInfo(provinceCode);
+    Free;
+  end;
+
+  // full json data
+  with TKawalPemiluIntegration.Create do
+  begin
+    Result := ProvinceRealCount(provinceCode);
+    Free;
+  end;
+
+
 }
 
 {$mode objfpc}{$H+}
