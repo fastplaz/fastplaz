@@ -9,7 +9,7 @@
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="12">
+    <Files Count="13">
       <Item1>
         <Filename Value="clarifai_integration.pas"/>
         <UnitName Value="clarifai_integration"/>
@@ -58,6 +58,10 @@
         <Filename Value="witai_integration.pas"/>
         <UnitName Value="witai_integration"/>
       </Item12>
+      <Item13>
+        <Filename Value="kawalpemilu_integration.pas"/>
+        <UnitName Value="kawalpemilu_integration"/>
+      </Item13>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
