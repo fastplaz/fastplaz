@@ -132,7 +132,7 @@ begin
   end;
   }
 
-  Result := Result + #10#10'sumber: kawalpemilu';
+  Result := Result + #10#10'sumber: kawalpilkada';
   Result := Result + #10'_*jika ada perbedaan, mohon tetap mengacu pada situs resmi._';
   Result := StringReplace(Result, #10, '\n', [rfReplaceAll]);
 end;
