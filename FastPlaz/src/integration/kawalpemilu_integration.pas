@@ -46,6 +46,7 @@ type
     FResultText: string;
     jsonData: TJSONData;
     function getData(APath: string): string;
+    function getDataAsInteger(APath: string): integer;
   public
     constructor Create;
     destructor Destroy;
@@ -74,6 +75,15 @@ begin
   Result := '';
   try
     Result := jsonData.GetPath(APath).AsString;
+  except
+  end;
+end;
+
+function TKawalPemiluIntegration.getDataAsInteger(APath: string): integer;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath(APath).AsInteger;
   except
   end;
 end;
@@ -114,40 +124,65 @@ begin
 end;
 
 function TKawalPemiluIntegration.ProvinceRealCountInfo(AProvinceCode: string): string;
+var
+  suara1, suara2, suara3, total: integer;
+  percent1, percent2, percent3: double;
+  s: string;
+  paslon1, paslon2, paslon3: string;
 begin
   Result := ProvinceRealCount(AProvinceCode);
 
   if Result = '' then
     Exit;
 
-  Result := 'Update Real Count:';
-  Result := Result + #10 + getData('[1].jumlahTPSdilockHC') + ' dari ' +
-    getData('[1].jumlahTPS') + ' TPS';
+  if getData('[1].tahun') = '' then
+  begin
+    Result := 'Maaf, data belum tersedia.';
+    Exit;
+  end;
+
+  Result := 'Update Real Count: ' + getData('[1].nama');
+
+  Result := Result + #10#10 + 'Calon:```';
+  Result := Result + #10 + '1. ' + getData('[1].suaraKandidat.1.nama');
+  Result := Result + #10 + '2. ' + getData('[1].suaraKandidat.2.nama');
+  Result := Result + #10 + '3. ' + getData('[1].suaraKandidat.3.nama');
+  Result := Result + '```';
+
+  Result := Result + #10#10 + getData('[1].jumlahTPSdilockHC') +
+    ' dari ' + getData('[1].jumlahTPS') + ' TPS';
   Result := Result + #10 + 'Suara Sah: ' + getData('[1].suarasahHC');
   Result := Result + #10 + 'Suara Tidak Sah: ' + getData('[1].suaratidaksahHC');
 
 
+  // TPS
   Result := Result + #10 + '\n*Suara TPS:*';
-  Result := Result + #10 + 'Agus-Sylvi: ' + getData('[1].suaraKandidat.1.suaraTPS');
-  Result := Result + #10 + 'Ahok-Djarot: ' + getData('[1].suaraKandidat.2.suaraTPS');
-  Result := Result + #10 + 'Anies-Sandi: ' + getData('[1].suaraKandidat.3.suaraTPS');
+  suara1 := getDataAsInteger('[1].suaraKandidat.1.suaraTPS');
+  suara2 := getDataAsInteger('[1].suaraKandidat.2.suaraTPS');
+  suara3 := getDataAsInteger('[1].suaraKandidat.3.suaraTPS');
 
+  Result := Result + #10 + '1. ' + FormatFloat('###,##0', suara1);
+  Result := Result + #10 + '2. ' + FormatFloat('###,##0', suara2);
+  Result := Result + #10 + '3. ' + FormatFloat('###,##0', suara3);
+
+  // C1
   Result := Result + #10 + '\n*Verifikasi C1:*';
-  Result := Result + #10 + 'Agus-Sylvi: ' +
-    getData('[1].suaraKandidat.1.suaraVerifikasiC1');
-  Result := Result + #10 + 'Ahok-Djarot: ' +
-    getData('[1].suaraKandidat.2.suaraVerifikasiC1');
-  Result := Result + #10 + 'Anies-Sandi: ' +
-    getData('[1].suaraKandidat.3.suaraVerifikasiC1');
-
-  {
-  try
-    Result := jsonData.GetPath('[1].suaraKandidat').AsJSON;
-  except
-    on E : Exception do
-      die( E.Message);
+  suara1 := getDataAsInteger('[1].suaraKandidat.1.suaraVerifikasiC1');
+  suara2 := getDataAsInteger('[1].suaraKandidat.2.suaraVerifikasiC1');
+  suara3 := getDataAsInteger('[1].suaraKandidat.3.suaraVerifikasiC1');
+  total := suara1 + suara2 + suara3;
+  if total > 0 then
+  begin
+    percent1 := suara1 * 100 / total;
+    percent2 := suara2 * 100 / total;
+    percent3 := suara3 * 100 / total;
   end;
-  }
+  s := ' (' + FormatFloat('##,##0.00', percent1) + ')';
+  Result := Result + #10 + '1. ' + FormatFloat('##,##0', suara1) + s;
+  s := ' (' + FormatFloat('##,##0.00', percent2) + ')';
+  Result := Result + #10 + '2. ' + FormatFloat('##,##0', suara2) + s;
+  s := ' (' + FormatFloat('##,##0.00', percent3) + ')';
+  Result := Result + #10 + '3. ' + FormatFloat('##,##0', suara3) + s;
 
   Result := StringReplace(Result, #10, '\n', [rfReplaceAll]);
 end;

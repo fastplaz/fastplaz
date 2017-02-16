@@ -12,7 +12,8 @@ uses
   kamusibacor_integration, kamuskemdikbud_integration, 
   kawalpemilu_integration, line_integration, ombd_integration, 
   resiibacor_integration, telegram_integration, whois_integration, 
-  witai_integration, zomato_integration, LazarusPackageIntf;
+  witai_integration, zomato_integration, yandextranslate_integration, 
+  LazarusPackageIntf;
 
 implementation
 
