@@ -46,7 +46,7 @@ implementation
 const
   ZOMATO_API_URL = 'https://developers.zomato.com/api/v2.1/';
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%.10f,%.10f';
-  _GOOGLE_MAPS_DIRECTION = 'https://www.google.co.in/maps/dir//%.10f,%.10f';
+  _GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
 var
   Response: IHTTPResponse;
@@ -97,7 +97,6 @@ begin
   begin
     AddHeader('Cache-Control', 'no-cache');
     AddHeader('user-key', FKey);
-
     Response := Post;
     FResultCode := Response.ResultCode;
     FResultText := Response.ResultText;
