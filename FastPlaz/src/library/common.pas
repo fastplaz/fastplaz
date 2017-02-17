@@ -90,6 +90,8 @@ function b2s(b: boolean): string;
 function s2b(s: string): boolean;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
+function StringExists( ASubstring, AFullString:string):boolean;
+function WordExists( ASubstring, AFullString:string):boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -254,6 +256,17 @@ end;
 function StringHumanToFloat(StrHuman: string): double;
 begin
   Result := s2f( StringHumanToNominal(StrHuman));
+end;
+
+function StringExists(ASubstring, AFullString: string): boolean;
+begin
+  ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
+  Result := preg_match( '('+ASubstring+')', AFullString);
+end;
+
+function WordExists(ASubstring, AFullString: string): boolean;
+begin
+  Result := StringExists( ASubstring, AFullString);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
