@@ -96,15 +96,18 @@ begin
           if Response.ResultCode = 200 then
           begin
             jsonData := GetJSON(Response.ResultText);
-            Result := '*' + getData('data.nopol') + '*';
-            Result := Result + #10'Jenis:' + getData('data.kendaraan.jenis');
-            Result := Result + #10'Merk: ' + getData('data.kendaraan.merk');
-            Result := Result + #10'Type: ' + getData('data.kendaraan.type');
-            Result := Result + #10'Tahun:' + getData('data.kendaraan.tahun_pembuatan');
-            Result := Result + #10'Warna:' + getData('data.kendaraan.warna');
-            Result := Result + #10'Wilayah:' + getData('data.kendaraan.wilayah');
-            Result := Result + #10'*Jatuh Tempo PBK:' + getData('data.pkb.jatuh_tempo') + '*';
-            Result := Result + #10#10'_sumber:' + getData('sumber') + '_';
+            if getData('status') = 'success' then
+            begin
+              Result := '*' + getData('data.nopol') + '*';
+              Result := Result + #10'Jenis:' + getData('data.kendaraan.jenis');
+              Result := Result + #10'Merk: ' + getData('data.kendaraan.merk');
+              Result := Result + #10'Type: ' + getData('data.kendaraan.type');
+              Result := Result + #10'Tahun:' + getData('data.kendaraan.tahun_pembuatan');
+              Result := Result + #10'Warna:' + getData('data.kendaraan.warna');
+              Result := Result + #10'Wilayah:' + getData('data.kendaraan.wilayah');
+              Result := Result + #10'*Jatuh Tempo PKB:' + getData('data.pkb.jatuh_tempo') + '*';
+              Result := Result + #10#10'_sumber:' + getData('sumber') + '_';
+            end;
           end;
           Free;
         end;
