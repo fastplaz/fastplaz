@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="15">
+    <Files Count="16">
       <Item1>
         <Filename Value="clarifai_integration.pas"/>
         <UnitName Value="clarifai_integration"/>
@@ -65,13 +65,17 @@
         <UnitName Value="witai_integration"/>
       </Item13>
       <Item14>
-        <Filename Value="zomato_integration.pas"/>
-        <UnitName Value="zomato_integration"/>
-      </Item14>
-      <Item15>
         <Filename Value="yandextranslate_integration.pas"/>
         <UnitName Value="yandextranslate_integration"/>
+      </Item14>
+      <Item15>
+        <Filename Value="zomato_integration.pas"/>
+        <UnitName Value="zomato_integration"/>
       </Item15>
+      <Item16>
+        <Filename Value="ibacorpolicenumber_integration.pas"/>
+        <UnitName Value="ibacorpolicenumber_integration"/>
+      </Item16>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
