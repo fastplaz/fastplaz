@@ -1,5 +1,15 @@
 unit ibacorpolicenumber_integration;
 
+{
+  // USAGE:
+  with TPajakKendaraanIbacorIntegration.Create do
+  begin
+    Result := Find('policenumber');
+    Free;
+  end;
+
+}
+
 {$mode objfpc}{$H+}
 
 interface
@@ -93,7 +103,8 @@ begin
             Result := Result + #10'Tahun:' + getData('data.kendaraan.tahun_pembuatan');
             Result := Result + #10'Warna:' + getData('data.kendaraan.warna');
             Result := Result + #10'Wilayah:' + getData('data.kendaraan.wilayah');
-            Result := Result + #10 + getData('data.pkb.jatuh_tempo');
+            Result := Result + #10'*Jatuh Tempo PBK:' + getData('data.pkb.jatuh_tempo') + '*';
+            Result := Result + #10#10'_sumber:' + getData('sumber') + '_';
           end;
           Free;
         end;
