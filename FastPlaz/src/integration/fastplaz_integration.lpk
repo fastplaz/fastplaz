@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="18">
+    <Files Count="19">
       <Item1>
         <Filename Value="clarifai_integration.pas"/>
         <UnitName Value="clarifai_integration"/>
@@ -84,6 +84,10 @@
         <Filename Value="cognitivedomainspecific_integration.pas"/>
         <UnitName Value="cognitivedomainspecific_integration"/>
       </Item18>
+      <Item19>
+        <Filename Value="cognitiveanalyze_integration.pas"/>
+        <UnitName Value="cognitiveanalyze_integration"/>
+      </Item19>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

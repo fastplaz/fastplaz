@@ -13,7 +13,8 @@ uses
   kamuskemdikbud_integration, kawalpemilu_integration, line_integration, 
   ombd_integration, resiibacor_integration, telegram_integration, 
   whois_integration, witai_integration, yandextranslate_integration, 
-  zomato_integration, cognitivedomainspecific_integration, LazarusPackageIntf;
+  zomato_integration, cognitivedomainspecific_integration, 
+  cognitiveanalyze_integration, LazarusPackageIntf;
 
 implementation
 

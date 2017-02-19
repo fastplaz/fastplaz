@@ -1,4 +1,17 @@
 unit cognitivedomainspecific_integration;
+{
+  Cognitive Computer Vision Domain Specific
+
+  [x] USAGE
+  with TCognitiveDomainSpecific.Create do
+  begin
+    Token := 'yourcognitivetoken;
+    Model := 'celebrities';
+    Result := Scan('imageURL');
+    Free;
+  end;
+
+}
 
 {$mode objfpc}{$H+}
 
