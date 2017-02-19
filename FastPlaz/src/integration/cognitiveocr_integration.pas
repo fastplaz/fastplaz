@@ -64,7 +64,6 @@ const
 var
   Response: IHTTPResponse;
 
-
 { TCognitiveOCR }
 
 function TCognitiveOCR.generateURL: string;
