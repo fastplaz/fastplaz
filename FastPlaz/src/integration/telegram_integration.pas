@@ -288,6 +288,7 @@ begin
   except
   end;
 
+  LogUtil.Add('--- is invitation: ' + FInvitedUserName, 'INVITATION');
   if FInvitedUserName <> '' then
     Result := True;
 end;

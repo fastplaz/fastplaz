@@ -13,7 +13,7 @@ uses
   kawalpemilu_integration, line_integration, ombd_integration, 
   resiibacor_integration, telegram_integration, whois_integration, 
   witai_integration, yandextranslate_integration, zomato_integration, 
-  ibacorpolicenumber_integration, LazarusPackageIntf;
+  ibacorpolicenumber_integration, cognitive_ocr, LazarusPackageIntf;
 
 implementation
 

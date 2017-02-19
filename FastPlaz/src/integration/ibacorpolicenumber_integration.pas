@@ -99,13 +99,24 @@ begin
             if getData('status') = 'success' then
             begin
               Result := '*' + getData('data.nopol') + '*';
-              Result := Result + #10'Jenis:' + getData('data.kendaraan.jenis');
-              Result := Result + #10'Merk: ' + getData('data.kendaraan.merk');
-              Result := Result + #10'Type: ' + getData('data.kendaraan.type');
-              Result := Result + #10'Tahun:' + getData('data.kendaraan.tahun_pembuatan');
-              Result := Result + #10'Warna:' + getData('data.kendaraan.warna');
-              Result := Result + #10'Wilayah:' + getData('data.kendaraan.wilayah');
-              Result := Result + #10'*Jatuh Tempo PKB:' + getData('data.pkb.jatuh_tempo') + '*';
+              if getData('data.kendaraan.jenis') <> '' then
+                Result := Result + #10'Jenis:' + getData('data.kendaraan.jenis');
+              if getData('data.kendaraan.merk') <> '' then
+                Result := Result + #10'Merk: ' + getData('data.kendaraan.merk');
+              if getData('data.kendaraan.type') <> '' then
+                Result := Result + #10'Type: ' + getData('data.kendaraan.type');
+              if getData('data.kendaraan.tahun_pembuatan') <> '' then
+                Result := Result + #10'Tahun:' + getData('data.kendaraan.tahun_pembuatan');
+              if getData('data.kendaraan.warna') <> '' then
+                Result := Result + #10'Warna:' + getData('data.kendaraan.warna');
+              if getData('data.kendaraan.wilayah') <> '' then
+                Result := Result + #10'Wilayah:' + getData('data.kendaraan.wilayah');
+              if getData('data.pkb.jatuh_tempo') <> '' then
+                Result := Result + #10'*Jatuh Tempo PKB:' +
+                  getData('data.pkb.jatuh_tempo') + '*';
+              if getData('data.tg_akhir_pkb') <> '' then
+                Result := Result + #10'*Jatuh Tempo PKB:' +
+                  getData('data.tg_akhir_pkb') + '*';
               Result := Result + #10#10'_sumber:' + getData('sumber') + '_';
             end;
           end;
