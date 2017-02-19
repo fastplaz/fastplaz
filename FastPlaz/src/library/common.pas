@@ -110,6 +110,7 @@ function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
+function jsonGetData(AJsonData: TJsonData; APath: string): string;
 function jsonGetString(J: TJsonData; index: string): string;
 function JsonFormatter(JsonString: string): string;
 function IsJsonValid(JsonString: string): boolean;
@@ -664,6 +665,15 @@ begin
   end;
   if DOEOLN then
     echo(#13#10);
+end;
+
+function jsonGetData(AJsonData: TJsonData; APath: string): string;
+begin
+  Result := '';
+  try
+    Result := AJsonData.GetPath(APath).AsString;
+  except
+  end;
 end;
 
 function jsonGetString(J: TJsonData; index: string): string;
