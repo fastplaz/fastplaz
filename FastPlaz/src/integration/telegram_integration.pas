@@ -121,6 +121,9 @@ type
       const ReplyToMessageID: integer = 0): boolean;
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
+    function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
+      const ACaption:string = '';
+      const ReplyToMessageID: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
@@ -184,6 +187,7 @@ const
     'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
+  TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s&title=yesss';
   TELEGRAM_COMMAND_SENDCONTACT =
     'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
@@ -288,7 +292,7 @@ begin
   except
   end;
 
-  LogUtil.Add('--- is invitation: ' + FInvitedUserName, 'INVITATION');
+  LogUtil.Add('--- is invitation: ' + FInvitedUserName + ' ' + FInvitedFullName, 'INVITATION');
   if FInvitedUserName <> '' then
     Result := True;
 end;
@@ -519,6 +523,43 @@ begin
         if FDebug then
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
+    end;
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.SendAudio(const ChatID: string;
+  const AAudioURL: string; const ACaption: string;
+  const ReplyToMessageID: string): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  FResultCode := 0;
+  FResultText := '';
+  FIsSuccessfull := False;
+  if (ChatID = '') or (AAudioURL = '') then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDAUDIO,
+    [ChatID, ACaption, AAudioURL]);
+  if ReplyToMessageID <> '' then
+    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/x-www-form-urlencoded';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
+      FIsSuccessfull := IsSuccessfull;
+    except
     end;
     Free;
   end;
