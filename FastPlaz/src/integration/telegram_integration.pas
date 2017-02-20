@@ -292,7 +292,6 @@ begin
   except
   end;
 
-  LogUtil.Add('--- is invitation: ' + FInvitedUserName + ' ' + FInvitedFullName, 'INVITATION');
   if FInvitedUserName <> '' then
     Result := True;
 end;

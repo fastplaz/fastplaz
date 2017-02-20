@@ -45,13 +45,14 @@ type
     property MessageID: string read getMessageID;
 
     procedure Send(ATo: string; AMessages: string);
+    procedure SendAudio(ATo: string; AAudioURL: string);
 
     function isCanSend: boolean;
     function isMessage: boolean;
 
     property IsVoice: boolean read getIsVoice;
     property VoiceURL: string read getVoiceURL;
-    function DownloadVoiceTo( ATargetFile:string):boolean;
+    function DownloadVoiceTo(ATargetFile: string): boolean;
   end;
 
 
@@ -63,6 +64,8 @@ const
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
   _FACEBOOK_MESSENGER_SEND_JSON =
     '{ "recipient":{"id":"%s" }, "message":{ "text":"%s" }}';
+  _FACEBOOK_MESSENGER_SEND_AUDIO_JSON =
+    '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"audio","payload":{"url":"%s"}}}}';
 
 var
   Response: IHTTPResponse;
@@ -119,7 +122,8 @@ function TFacebookMessengerIntegration.getVoiceURL: string;
 begin
   Result := '';
   try
-    Result := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.url').AsString;
+    Result := jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].payload.url').AsString;
   except
   end;
 end;
@@ -161,7 +165,33 @@ begin
 
     Free;
   end;
+end;
 
+procedure TFacebookMessengerIntegration.SendAudio(ATo: string; AAudioURL: string);
+var
+  s: string;
+begin
+  if not isCanSend then
+    Exit;
+  if (ATo = '') or (AAudioURL = '') then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON, [ATo, AAudioURL]);
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
 end;
 
 function TFacebookMessengerIntegration.isCanSend: boolean;
@@ -180,8 +210,7 @@ begin
 
 end;
 
-function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string
-  ): boolean;
+function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
 var
   s: string;
 begin

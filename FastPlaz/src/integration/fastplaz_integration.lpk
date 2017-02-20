@@ -13,84 +13,84 @@
     <Description Value="Integration Package for FastPlaz"/>
     <Files Count="20">
       <Item1>
-        <Filename Value="clarifai_integration.pas"/>
-        <UnitName Value="clarifai_integration"/>
-      </Item1>
-      <Item2>
-        <Filename Value="cognitiveocr_integration.pas"/>
-        <UnitName Value="cognitiveocr_integration"/>
-      </Item2>
-      <Item3>
-        <Filename Value="currencyibacor_integration.pas"/>
-        <UnitName Value="currencyibacor_integration"/>
-      </Item3>
-      <Item4>
-        <Filename Value="facebookmessenger_integration.pas"/>
-        <UnitName Value="facebookmessenger_integration"/>
-      </Item4>
-      <Item5>
-        <Filename Value="googleplacesearch_integration.pas"/>
-        <UnitName Value="googleplacesearch_integration"/>
-      </Item5>
-      <Item6>
-        <Filename Value="ibacorpolicenumber_integration.pas"/>
-        <UnitName Value="ibacorpolicenumber_integration"/>
-      </Item6>
-      <Item7>
-        <Filename Value="kamusibacor_integration.pas"/>
-        <UnitName Value="kamusibacor_integration"/>
-      </Item7>
-      <Item8>
-        <Filename Value="kamuskemdikbud_integration.pas"/>
-        <UnitName Value="kamuskemdikbud_integration"/>
-      </Item8>
-      <Item9>
-        <Filename Value="kawalpemilu_integration.pas"/>
-        <UnitName Value="kawalpemilu_integration"/>
-      </Item9>
-      <Item10>
-        <Filename Value="line_integration.pas"/>
-        <UnitName Value="line_integration"/>
-      </Item10>
-      <Item11>
-        <Filename Value="ombd_integration.pas"/>
-        <UnitName Value="ombd_integration"/>
-      </Item11>
-      <Item12>
-        <Filename Value="resiibacor_integration.pas"/>
-        <UnitName Value="resiibacor_integration"/>
-      </Item12>
-      <Item13>
-        <Filename Value="telegram_integration.pas"/>
-        <UnitName Value="telegram_integration"/>
-      </Item13>
-      <Item14>
-        <Filename Value="whois_integration.pas"/>
-        <UnitName Value="whois_integration"/>
-      </Item14>
-      <Item15>
-        <Filename Value="witai_integration.pas"/>
-        <UnitName Value="witai_integration"/>
-      </Item15>
-      <Item16>
-        <Filename Value="yandextranslate_integration.pas"/>
-        <UnitName Value="yandextranslate_integration"/>
-      </Item16>
-      <Item17>
-        <Filename Value="zomato_integration.pas"/>
-        <UnitName Value="zomato_integration"/>
-      </Item17>
-      <Item18>
-        <Filename Value="cognitivedomainspecific_integration.pas"/>
-        <UnitName Value="cognitivedomainspecific_integration"/>
-      </Item18>
-      <Item19>
-        <Filename Value="cognitiveanalyze_integration.pas"/>
-        <UnitName Value="cognitiveanalyze_integration"/>
-      </Item19>
-      <Item20>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
+      </Item1>
+      <Item2>
+        <Filename Value="clarifai_integration.pas"/>
+        <UnitName Value="clarifai_integration"/>
+      </Item2>
+      <Item3>
+        <Filename Value="cognitiveanalyze_integration.pas"/>
+        <UnitName Value="cognitiveanalyze_integration"/>
+      </Item3>
+      <Item4>
+        <Filename Value="cognitivedomainspecific_integration.pas"/>
+        <UnitName Value="cognitivedomainspecific_integration"/>
+      </Item4>
+      <Item5>
+        <Filename Value="cognitiveocr_integration.pas"/>
+        <UnitName Value="cognitiveocr_integration"/>
+      </Item5>
+      <Item6>
+        <Filename Value="currencyibacor_integration.pas"/>
+        <UnitName Value="currencyibacor_integration"/>
+      </Item6>
+      <Item7>
+        <Filename Value="facebookmessenger_integration.pas"/>
+        <UnitName Value="facebookmessenger_integration"/>
+      </Item7>
+      <Item8>
+        <Filename Value="googleplacesearch_integration.pas"/>
+        <UnitName Value="googleplacesearch_integration"/>
+      </Item8>
+      <Item9>
+        <Filename Value="ibacorpolicenumber_integration.pas"/>
+        <UnitName Value="ibacorpolicenumber_integration"/>
+      </Item9>
+      <Item10>
+        <Filename Value="kamusibacor_integration.pas"/>
+        <UnitName Value="kamusibacor_integration"/>
+      </Item10>
+      <Item11>
+        <Filename Value="kamuskemdikbud_integration.pas"/>
+        <UnitName Value="kamuskemdikbud_integration"/>
+      </Item11>
+      <Item12>
+        <Filename Value="kawalpemilu_integration.pas"/>
+        <UnitName Value="kawalpemilu_integration"/>
+      </Item12>
+      <Item13>
+        <Filename Value="line_integration.pas"/>
+        <UnitName Value="line_integration"/>
+      </Item13>
+      <Item14>
+        <Filename Value="ombd_integration.pas"/>
+        <UnitName Value="ombd_integration"/>
+      </Item14>
+      <Item15>
+        <Filename Value="resiibacor_integration.pas"/>
+        <UnitName Value="resiibacor_integration"/>
+      </Item15>
+      <Item16>
+        <Filename Value="telegram_integration.pas"/>
+        <UnitName Value="telegram_integration"/>
+      </Item16>
+      <Item17>
+        <Filename Value="whois_integration.pas"/>
+        <UnitName Value="whois_integration"/>
+      </Item17>
+      <Item18>
+        <Filename Value="witai_integration.pas"/>
+        <UnitName Value="witai_integration"/>
+      </Item18>
+      <Item19>
+        <Filename Value="yandextranslate_integration.pas"/>
+        <UnitName Value="yandextranslate_integration"/>
+      </Item19>
+      <Item20>
+        <Filename Value="zomato_integration.pas"/>
+        <UnitName Value="zomato_integration"/>
       </Item20>
     </Files>
     <RequiredPkgs Count="2">
