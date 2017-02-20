@@ -72,7 +72,7 @@ var
   _url: string;
 begin
   Result := '';
-  _page := s2i(AAyat) div _ALQURANONLINE_AYAT_PER_PAGE;
+  _page := (s2i(AAyat) div _ALQURANONLINE_AYAT_PER_PAGE)+1;
   _url := Format(_ALQURANONLINE_URL, [ASurat, i2s(_page)]);
   Result := httpGET(_url);
 
@@ -82,7 +82,7 @@ begin
 
   // html per ayat
   FSurat := Copy(Result, Pos('<title>', Result) + 7);
-  FSurat := Copy(FSurat, 0, Pos('- alquran', FSurat) - 2) + ' ' + ASurat + ':' + AAyat;
+  FSurat := Copy(FSurat, 0, Pos('- alquran', FSurat) - 2);
 
   Result := Copy(Result, i);
   Result := Copy(Result, Pos('<', Result));

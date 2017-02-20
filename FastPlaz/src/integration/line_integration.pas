@@ -49,6 +49,7 @@ type
     procedure Reply(AReplyToken: string; AMessages: string);
     procedure Push(ATo: string; AMessages: string);
     procedure Send(ATo: string; AMessages: string);
+    procedure SendAudio(AUserID: string; AAudioURL: string);
     procedure SendSticker(ATo: string; APackageID: string; AStickerID: string);
 
     function isCanSend: boolean;
@@ -267,6 +268,51 @@ begin
   Push(ATo, AMessages);
 end;
 
+procedure TLineIntegration.SendAudio(AUserID: string; AAudioURL: string);
+var
+  _jsonString: TStringList;
+begin
+  if not isCanSend then
+    Exit;
+  if (AUserID = '') or (AAudioURL = '') then
+    Exit;
+
+  //try force https
+  AAudioURL := StringReplace(AAudioURL, 'http://', 'https://', [rfReplaceAll]);
+
+  _jsonString := TStringList.Create;
+  _jsonString.Text := '';
+  with THTTPLib.Create(_LINE_PUSH_URL) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      AddHeader('Authorization', 'Bearer ' + FToken);
+
+      _jsonString.Add('{');
+      _jsonString.Add('"to":"' + AUserID + '",');
+      _jsonString.Add('"messages":[');
+      _jsonString.Add('{"type": "audio", "originalContentUrl": "' +
+        AAudioURL + '", "duration": 240000}');
+      _jsonString.Add(']');
+      _jsonString.Add('}');
+
+      RequestBody := TStringStream.Create(_jsonString.Text);
+
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+
+  end;
+
+  _jsonString.Free;
+end;
+
 // packageID: 2000000
 // stickerID: 48000 47976 48076 48080
 procedure TLineIntegration.SendSticker(ATo: string; APackageID: string;
@@ -374,6 +420,5 @@ begin
 end;
 
 end.
-
 
 
