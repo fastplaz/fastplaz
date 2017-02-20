@@ -4,6 +4,13 @@ unit alquranindonesia_integration;
   Alquran Indonesia Online
   http://alquran-indonesia.com/index.php?surah=10&page=6
 
+  [x] USAGE
+  with TAlquranOnline.Create do
+  begin
+    Result := FindTerjemahan(1, 1);
+
+    Free;
+  end;
 
 }
 {$mode objfpc}{$H+}
@@ -170,7 +177,9 @@ var
   _html: UnicodeString;
 begin
   Result := '';
-  if s2i(ASurat) > 144 then
+  if (s2i(ASurat) > 144) or (s2i(ASurat) = 0) then
+    Exit;
+  if (s2i(AAyat) = 0) then
     Exit;
 
   _html := getHTML(ASurat, AAyat);
