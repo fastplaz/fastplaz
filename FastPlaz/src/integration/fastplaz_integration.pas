@@ -14,7 +14,8 @@ uses
   ombd_integration, resiibacor_integration, telegram_integration, 
   whois_integration, witai_integration, yandextranslate_integration, 
   zomato_integration, cognitivedomainspecific_integration, 
-  cognitiveanalyze_integration, LazarusPackageIntf;
+  cognitiveanalyze_integration, alquranindonesia_integration, 
+  LazarusPackageIntf;
 
 implementation
 

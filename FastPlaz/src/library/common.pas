@@ -125,6 +125,8 @@ function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = T
   UseSeed: boolean = False; DontUse: string = ''): string;
 function EncodeQueryString(Data: array of string): string;
 function StripSlash(Const DataString: UnicodeString): UnicodeString;
+function StripHTML(AHTML: UnicodeString): UnicodeString;
+function StripTags(AHTML: UnicodeString): UnicodeString;
 
 // php like function
 procedure echo(const Message: string);
@@ -580,6 +582,57 @@ begin
   else
     Result:=DataString;
 end;
+
+// http://www.festra.com/eng/snip12.htm
+function StripHTML(AHTML: UnicodeString): UnicodeString;
+var
+  TagBegin, TagEnd, TagLength: integer;
+begin
+  TagBegin := Pos('<', AHTML);      // search position of first <
+
+  while (TagBegin > 0) do
+  begin  // while there is a < in S
+    TagEnd := Pos('>', AHTML);              // find the matching >
+    TagLength := TagEnd - TagBegin + 1;
+    Delete(AHTML, TagBegin, TagLength);     // delete the tag
+    TagBegin := Pos('<', AHTML);            // search for next <
+  end;
+
+  Result := AHTML;
+end;
+
+function StripTags(AHTML: UnicodeString): UnicodeString;
+var
+  Len: Integer;
+
+  function ReadUntil(const ReadFrom: Integer; const C: Char): Integer;
+  var
+    j: Integer;
+  begin
+    for j := ReadFrom to Len do
+      if (AHTML[j] = C) then
+      begin
+        Result := j;
+        Exit;
+      end;
+    Result := Len+1;
+  end;
+
+var
+  i, APos: Integer;
+begin
+  Len := Length(AHTML);
+  i := 0;
+  Result := '';
+  while (i <= Len) do
+  begin
+    Inc(i);
+    APos := ReadUntil(i, '<');
+    Result := Result + Copy(AHTML, i, APos-i);
+    i := ReadUntil(APos+1, '>');
+  end;
+end;
+
 
 procedure Die(const Message: string);
 begin

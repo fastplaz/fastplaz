@@ -123,7 +123,7 @@ begin
     _tags := _tags + ' ' + s;
     i := i + 1;
   until s = '';
-  _tags := StringReplace(trim(_tags), ' ', ',', [rfReplaceAll]);
+  _tags := StringReplace(trim(_tags), ' ', ', ', [rfReplaceAll]);
   if _tags <> '' then
     Result := Result + _tags + '.'#10;
 
