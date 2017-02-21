@@ -46,6 +46,8 @@ type
 
     procedure Send(ATo: string; AMessages: string);
     procedure SendAudio(ATo: string; AAudioURL: string);
+    procedure SendImage(ATo: string; AImageURL: string);
+    procedure AskLocation(ATo: string);
 
     function isCanSend: boolean;
     function isMessage: boolean;
@@ -60,12 +62,17 @@ type
 implementation
 
 const
+  _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
   _FACEBOOK_MESSENGER_SEND_URL =
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
   _FACEBOOK_MESSENGER_SEND_JSON =
     '{ "recipient":{"id":"%s" }, "message":{ "text":"%s" }}';
   _FACEBOOK_MESSENGER_SEND_AUDIO_JSON =
     '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"audio","payload":{"url":"%s"}}}}';
+  _FACEBOOK_MESSENGER_SEND_IMAGE_JSON =
+    '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"image","payload":{"url":"%s"}}}}';
+  _FACEBOOK_MESSENGER_ASK_LOCATION =
+    '{"recipient": {"id": "%s"},"message": {"text": "%s","quick_replies": [{"content_type": "location"}]}}';
 
 var
   Response: IHTTPResponse;
@@ -190,6 +197,60 @@ begin
     except
     end;
 
+    Free;
+  end;
+end;
+
+procedure TFacebookMessengerIntegration.SendImage(ATo: string; AImageURL: string);
+var
+  s: string;
+begin
+  if not isCanSend then
+    Exit;
+  if (ATo = '') or (AImageURL = '') then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      s := Format(_FACEBOOK_MESSENGER_SEND_IMAGE_JSON, [ATo, AImageURL]);
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+end;
+
+procedure TFacebookMessengerIntegration.AskLocation(ATo: string);
+var
+  s: string;
+begin
+  if not isCanSend then
+    Exit;
+  if (ATo = '') or (FToken = '') then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      s := Format(_FACEBOOK_MESSENGER_ASK_LOCATION,
+        [ATo, _FACEBOOK_MSG_SHARE_LOCATION]);
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
     Free;
   end;
 end;
