@@ -98,6 +98,7 @@ begin
     urlTarget:=urlTarget + '&lat=' + FloatToStr(ALat);
     urlTarget:=urlTarget + '&lon=' + FloatToStr(ALon);
   end;
+  LogUtil.Add( urlTarget, 'ZOMATO');
   with THTTPLib.Create(urlTarget) do
   begin
     AddHeader('Cache-Control', 'no-cache');
