@@ -93,6 +93,11 @@ begin
 
   urlTarget := ZOMATO_API_URL + 'search?count=' + i2s(ACount) +
     '&radius=2000&q=' + UrlEncode(AKeyword);
+  if (ALat<>0)and(ALon<>0) then
+  begin
+    urlTarget:=urlTarget + '&lat=' + FloatToStr(ALat);
+    urlTarget:=urlTarget + '&lon=' + FloatToStr(ALon);
+  end;
   with THTTPLib.Create(urlTarget) do
   begin
     AddHeader('Cache-Control', 'no-cache');
