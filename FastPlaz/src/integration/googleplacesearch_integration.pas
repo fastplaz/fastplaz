@@ -20,7 +20,7 @@ interface
 
 uses
   fpjson,
-  common, json_lib, http_lib,
+  common, json_lib, http_lib, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -73,6 +73,7 @@ begin
     Exit;
 
   _url := format(_GOOGLE_PLACE_TEXTSEARCH_URL, [FKey, UrlEncode(Keyword)]);
+  LogUtil.Add(_url, 'GOOGLEPLACE');
   with THTTPLib.Create(_url) do
   begin
     try
@@ -102,27 +103,29 @@ begin
     for i := 0 to 3 do
     begin
       _name := _json.GetPath('results[' + i2s(i) + '].name').AsString;
-      _lat := Format('%.16f', [_json.GetPath('results[' + i2s(i) + '].geometry.location.lat').AsFloat]);
-      _lon := Format('%.16f', [_json.GetPath('results[' + i2s(i) + '].geometry.location.lng').AsFloat]);
+      _lat := Format('%.16f', [_json.GetPath('results[' + i2s(i) +
+        '].geometry.location.lat').AsFloat]);
+      _lon := Format('%.16f', [_json.GetPath('results[' + i2s(i) +
+        '].geometry.location.lng').AsFloat]);
       s := s + '*' + _name + '*'#10;
       s := s + _json.GetPath('results[' + i2s(i) + '].formatted_address').AsString + #10;
       s := s + 'rating: ' + f2s(_json.GetPath('results[' + i2s(i) +
         '].rating').AsFloat) + #10;
 
-      _url := format( _GOOGLE_MAPS_URL, [ UrlEncode(_name), _lat, _lon]);
+      _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
       s := s + _url + #10;
 
       s := s + #10;
     end;
 
   except
-    on E:Exception do
+    on E: Exception do
     begin
     end;
   end;
 
-  s := StringReplace( s, #13, '\n', [rfReplaceAll]);
-  s := StringReplace( s, #10, '\n', [rfReplaceAll]);
+  s := StringReplace(s, #13, '\n', [rfReplaceAll]);
+  s := StringReplace(s, #10, '\n', [rfReplaceAll]);
   Result := s;
 end;
 
