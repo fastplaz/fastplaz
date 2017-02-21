@@ -79,6 +79,9 @@ type
     FDebug: boolean;
     FInvitedFullName: string;
     FInvitedUserName: string;
+    FLocationLatitude: double;
+    FLocationLongitude: double;
+    FLocationName: string;
     FResultMessageID: string;
     FVoiceDuration: integer;
     FVoiceID: string;
@@ -101,6 +104,7 @@ type
     function getImageCaption: string;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
+    function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
     function getText: string;
@@ -167,7 +171,12 @@ type
     property ResultText: string read FResultText;
     property ResultMessageID: string read FResultMessageID;
 
+    property LocationLatitude:double read FLocationLatitude;
+    property LocationLongitude:double read FLocationLongitude;
+    property LocationName:string read FLocationName;
+
     property IsVoice: boolean read getIsVoice;
+    property IsLocation: boolean read getIsLocation;
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -294,6 +303,19 @@ begin
 
   if FInvitedUserName <> '' then
     Result := True;
+end;
+
+function TTelegramIntegration.getIsLocation: boolean;
+begin
+  Result := False;
+  try
+    FLocationLatitude := jsonData.GetPath('message.location.latitude').AsFloat;
+    FLocationLongitude := jsonData.GetPath('message.location.longitude').AsFloat;
+    Result := True;
+    FLocationName := jsonData.GetPath('message.venue.title').AsString + ', '
+      + jsonData.GetPath('message.venue.address').AsString;
+  except
+  end;
 end;
 
 function TTelegramIntegration.getIsVoice: boolean;
