@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="20">
+    <Files Count="21">
       <Item1>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -57,41 +57,45 @@
         <UnitName Value="kamuskemdikbud_integration"/>
       </Item11>
       <Item12>
-        <Filename Value="kawalpemilu_integration.pas"/>
-        <UnitName Value="kawalpemilu_integration"/>
+        <Filename Value="kamussunda_integration.pas"/>
+        <UnitName Value="kamussunda_integration"/>
       </Item12>
       <Item13>
-        <Filename Value="line_integration.pas"/>
-        <UnitName Value="line_integration"/>
+        <Filename Value="kawalpemilu_integration.pas"/>
+        <UnitName Value="kawalpemilu_integration"/>
       </Item13>
       <Item14>
-        <Filename Value="ombd_integration.pas"/>
-        <UnitName Value="ombd_integration"/>
+        <Filename Value="line_integration.pas"/>
+        <UnitName Value="line_integration"/>
       </Item14>
       <Item15>
-        <Filename Value="resiibacor_integration.pas"/>
-        <UnitName Value="resiibacor_integration"/>
+        <Filename Value="ombd_integration.pas"/>
+        <UnitName Value="ombd_integration"/>
       </Item15>
       <Item16>
-        <Filename Value="telegram_integration.pas"/>
-        <UnitName Value="telegram_integration"/>
+        <Filename Value="resiibacor_integration.pas"/>
+        <UnitName Value="resiibacor_integration"/>
       </Item16>
       <Item17>
-        <Filename Value="whois_integration.pas"/>
-        <UnitName Value="whois_integration"/>
+        <Filename Value="telegram_integration.pas"/>
+        <UnitName Value="telegram_integration"/>
       </Item17>
       <Item18>
-        <Filename Value="witai_integration.pas"/>
-        <UnitName Value="witai_integration"/>
+        <Filename Value="whois_integration.pas"/>
+        <UnitName Value="whois_integration"/>
       </Item18>
       <Item19>
-        <Filename Value="yandextranslate_integration.pas"/>
-        <UnitName Value="yandextranslate_integration"/>
+        <Filename Value="witai_integration.pas"/>
+        <UnitName Value="witai_integration"/>
       </Item19>
       <Item20>
+        <Filename Value="yandextranslate_integration.pas"/>
+        <UnitName Value="yandextranslate_integration"/>
+      </Item20>
+      <Item21>
         <Filename Value="zomato_integration.pas"/>
         <UnitName Value="zomato_integration"/>
-      </Item20>
+      </Item21>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

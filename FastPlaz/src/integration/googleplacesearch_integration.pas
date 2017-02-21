@@ -26,9 +26,9 @@ uses
 type
 
 
-  { TGooglePlace }
+  { TGooglePlaceIntegration }
 
-  TGooglePlace = class(TInterfacedObject)
+  TGooglePlaceIntegration = class(TInterfacedObject)
   private
     FKey: string;
   public
@@ -36,8 +36,8 @@ type
     destructor Destroy; virtual;
 
     property Key: string read FKey write FKey;
-    function Search(Keyword: string): string;
-    function SearchAsText(Keyword: string): string;
+    function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
+    function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
   end;
 
 
@@ -52,19 +52,19 @@ const
 var
   Response: IHTTPResponse;
 
-{ TGooglePlace }
+{ TGooglePlaceIntegration }
 
-constructor TGooglePlace.Create;
+constructor TGooglePlaceIntegration.Create;
 begin
 
 end;
 
-destructor TGooglePlace.Destroy;
+destructor TGooglePlaceIntegration.Destroy;
 begin
 
 end;
 
-function TGooglePlace.Search(Keyword: string): string;
+function TGooglePlaceIntegration.Search(Keyword: string; ALat: double; ALon: double): string;
 var
   _url: string;
 begin
@@ -73,6 +73,10 @@ begin
     Exit;
 
   _url := format(_GOOGLE_PLACE_TEXTSEARCH_URL, [FKey, UrlEncode(Keyword)]);
+  if (ALat <> 0) and (ALon <> 0) then
+  begin
+    _url := _url + '&location=' + FloatToStr(ALat) + ',' + FloatToStr(ALon);
+  end;
   LogUtil.Add(_url, 'GOOGLEPLACE');
   with THTTPLib.Create(_url) do
   begin
@@ -88,13 +92,15 @@ begin
   end;
 end;
 
-function TGooglePlace.SearchAsText(Keyword: string): string;
+function TGooglePlaceIntegration.SearchAsText(Keyword: string; ALat: double; ALon: double): string;
+
+
 var
   s, _name, _lat, _lon, _url: string;
   i: integer;
   _json: TJSONData;
 begin
-  s := Search(Keyword);
+  s := Search(Keyword, ALat, ALon);
   if s = '' then
     Exit;
   try
