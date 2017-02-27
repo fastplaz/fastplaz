@@ -1,5 +1,4 @@
 unit bmkg_integration;
-
 {
   INFO GEMPA dari BMKG
 
