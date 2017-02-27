@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="23">
+    <Files Count="24">
       <Item1>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -104,6 +104,10 @@
         <Filename Value="zomato_integration.pas"/>
         <UnitName Value="zomato_integration"/>
       </Item23>
+      <Item24>
+        <Filename Value="apixu_integration.pas"/>
+        <UnitName Value="apixu_integration"/>
+      </Item24>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

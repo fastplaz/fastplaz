@@ -4,6 +4,14 @@ unit openweathermap_integration;
   OPEN WEATHER MAP
   http://openweathermap.org/
 
+  [x] USAGE
+  with TOpenWeatherMapIntegration.Create do
+  begin
+    Result := WeatherAsJson('jakarta,id');
+
+    Free;
+  end;
+
 }
 {$mode objfpc}{$H+}
 
@@ -22,6 +30,7 @@ type
   private
     FKey: string;
     FLanguage: string;
+    FMode: string;
     FResultCode: integer;
     FResultText: string;
     FUnits: string;
@@ -38,6 +47,7 @@ type
     property Key: string read FKey write FKey;
     property Language: string read FLanguage write FLanguage;
     property Units: string read FUnits write FUnits;
+    property Mode: string read FMode write FMode;
     property Data[AVariable: string]: string read getValue;
 
     function GetData(AVariable: string): variant;
@@ -50,7 +60,7 @@ implementation
 const
   _OPENWEATHERMAP_API = 'http://api.openweathermap.org/data/2.5/';
   _OPENWEATHERMAP_API_WEATHER =
-    'http://api.openweathermap.org/data/2.5/weather?appid=%s&lang=%s&units=%s&q=%s';
+    'http://api.openweathermap.org/data/2.5/weather?appid=%s&lang=%s&units=%s&mode=%s&q=%s';
 
 var
   Response: IHTTPResponse;
@@ -71,6 +81,7 @@ constructor TOpenWeatherMapIntegration.Create;
 begin
   FLanguage := 'id';
   FUnits := 'metrics';
+  FMode := 'json';
 end;
 
 destructor TOpenWeatherMapIntegration.Destroy;
@@ -81,7 +92,7 @@ end;
 
 function TOpenWeatherMapIntegration.GetData(AVariable: string): variant;
 begin
-  die( VarType(AVariable));
+  die(VarType(AVariable));
   try
     case VarType(AVariable) of
       varstring:
@@ -115,7 +126,8 @@ begin
   Result := '';
   if FKey = '' then
     Exit;
-  urlTarget := Format(_OPENWEATHERMAP_API_WEATHER, [FKey, FLanguage, FUnits, ACityName]);
+  urlTarget := Format(_OPENWEATHERMAP_API_WEATHER, [FKey, FLanguage,
+    FUnits, FMode, ACityName]);
   with THTTPLib.Create(urlTarget) do
   begin
     //AddHeader('Cache-Control', 'no-cache');
@@ -124,7 +136,8 @@ begin
     FResultText := Response.ResultText;
     if FResultCode = 200 then
     begin
-      jsonData := GetJSON(FResultText);
+      if FMode = 'json' then
+        jsonData := GetJSON(FResultText);
       Result := FResultText;
     end;
     Free;
