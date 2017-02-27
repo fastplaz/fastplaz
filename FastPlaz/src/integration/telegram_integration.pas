@@ -132,6 +132,8 @@ type
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
+    function SendPhotoFromURL(const ChatID: string; const AImageURL: string;
+      const Caption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendVideo(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVideo(const ChatID: integer; const FileName: string;
@@ -625,6 +627,44 @@ begin
       FormData['chat_id'] := IntToStr(ChatID);
       FormData['caption'] := Caption;
       AddFile(FileName, 'photo');
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.SendPhotoFromURL(const ChatID: string;
+  const AImageURL: string; const Caption: string; const ReplyToMessageID: string
+  ): boolean;
+var
+  urlTarget: string;
+begin
+  FResultCode := 0;
+  FResultText := '';
+  FIsSuccessfull := False;
+  Result := False;
+  if (ChatID = '') or (AImageURL = '') or (FURL = '') then
+    Exit;
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [ s2i( ChatID), Caption, FParseMode]);
+  if ReplyToMessageID <> '' then
+    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/x-www-form-urlencoded';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      FormData['chat_id'] := ChatID;
+      FormData['caption'] := Caption;
+      FormData['photo'] := AImageURL;
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
