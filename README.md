@@ -1,15 +1,50 @@
 
-FastPlaz
-===
+# FastPlaz
+
 **[FastPlaz](http://www.fastplaz.com)** adalah satu satu web framework dengan menggunakan bahasa  free pascal  . Dibuat sedemikian rupa sehingga requirement server yang diperlukan pun sederhana dan minimal, dan bahkan bisa di  compile  langsung dari console/terminal tanpa memerlukan ide/editor  Lazarus  . Cukup dengan menggunakan  apache  biasa seperti di shared hosting, fastplaz sudah bisa langsung digunakan.
 
-INTEGRATION
----
+## INTEGRATION
+
 - BMKG - Badan Meteorologi Klimatologi Dan Geofisika
+- Terjemahan Al Quran
+- Pajak Kendaraan
+- Office 365
+- Mata Uang
+- Resi Paket/Kurir
+
+Networking / Infrastruktur
+
+- WHOIS Domain
+- Newrelic
+- Image Cloudinary
+
+Entertainment & Kuliner
+
+- IMDB Movie Info
+- Sprout Video
+- Zomato
+
+Bahasa
+
+- International Language
+- Kamus Besar Bahasa Indonesia
+- Bahasa Lokal (sunda)
+
+Geo Lokasi
+
+- Google GEO Location
+
+Messenger
+
+- Telegram
+- Facebook
+- Line
+- Slack
 
 
-Requirement
----
+
+## Requirement
+
 * fpc / free pascal compiler, version 3.0.0
 * fcl-web
 * lazarus (optional)
