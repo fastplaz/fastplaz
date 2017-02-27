@@ -12,10 +12,11 @@ uses
   cognitiveocr_integration, currencyibacor_integration, 
   facebookmessenger_integration, googleplacesearch_integration, 
   ibacorpolicenumber_integration, kamusibacor_integration, 
-  kamuskemdikbud_integration, kawalpemilu_integration, line_integration, 
-  ombd_integration, resiibacor_integration, telegram_integration, 
-  whois_integration, witai_integration, yandextranslate_integration, 
-  zomato_integration, kamussunda_integration, LazarusPackageIntf;
+  kamuskemdikbud_integration, kamussunda_integration, kawalpemilu_integration, 
+  line_integration, ombd_integration, resiibacor_integration, 
+  telegram_integration, whois_integration, witai_integration, 
+  yandextranslate_integration, zomato_integration, bmkg_integration, 
+  LazarusPackageIntf;
 
 implementation
 
