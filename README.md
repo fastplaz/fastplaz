@@ -30,9 +30,11 @@ Bahasa
 - Kamus Besar Bahasa Indonesia
 - Bahasa Lokal (sunda)
 
-Geo Lokasi
+Geo Lokasi & Cuaca
 
 - Google GEO Location
+- OpenWeatherMap
+- Apixu
 
 Messenger
 
