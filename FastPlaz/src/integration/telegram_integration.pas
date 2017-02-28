@@ -142,6 +142,8 @@ type
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
       FirstName, LastName, PhoneNumber: string): boolean;
+    function SendDocument(const ChatID: string; const AFile: string;
+      const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
@@ -199,6 +201,7 @@ const
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s&title=yesss';
+  TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDCONTACT =
     'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
@@ -768,6 +771,45 @@ begin
     SendContact(StrToInt(ChatID), FirstName, LastName, PhoneNumber);
   except
   end;
+end;
+
+function TTelegramIntegration.SendDocument(const ChatID: string;
+  const AFile: string; const ACaption: string; const ReplyToMessageID: string
+  ): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  FResultCode := 0;
+  FResultText := '';
+  FIsSuccessfull := False;
+  if (ChatID = '') or (AFile = '') then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDDOCUMENT,
+    [ChatID, ACaption, FParseMode]);
+  if ReplyToMessageID <> '' then
+    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/x-www-form-urlencoded';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      //FormData['caption'] := Caption;
+      AddFile(AFile, 'document');
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
 end;
 
 // example result: "photo/file_2"
