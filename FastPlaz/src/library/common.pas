@@ -12,6 +12,7 @@ uses
   //fphttpclient_with_ssl,
   RegExpr,
   netdb, Sockets,
+  zipper, FileUtil, strutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -108,6 +109,7 @@ function ReplaceAll(const Subject: string; const OldPatterns: array of string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
+function ZipFolder(APath: string; ATarget: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
@@ -672,6 +674,53 @@ begin
     FileClose(fHandle);
     DeleteFile(TempFilename);
   end;
+end;
+
+function ZipFolder(APath: string; ATarget: string): boolean;
+var
+  i: integer;
+  szPathEntry: string;
+  _Zipper: TZipper;
+  _FileList: TStringList;
+  _ZEntries: TZipFileEntries;
+begin
+  Result := False;
+  if not DirectoryExists(APath) then
+    Exit;
+
+  _Zipper := TZipper.Create;
+  _ZEntries := TZipFileEntries.Create(TZipFileEntry);
+  _Zipper.Filename := ATarget;
+  _FileList := TStringList.Create;
+
+  // relative directory
+  i := RPos(PathDelim, ChompPathDelim(APath));
+  szPathEntry := LeftStr(APath, i);
+
+  try
+    _FileList := FindAllFiles(APath);
+    for i := 0 to _FileList.Count - 1 do
+    begin
+      // Make sure the RelativeDirectory files are not in the root of the ZipFile
+      _ZEntries.AddFileEntry(_FileList[i], CreateRelativePath(_FileList[i],
+        szPathEntry));
+    end;
+
+    if (_ZEntries.Count > 0) then
+    begin
+      _Zipper.ZipFiles(_ZEntries);
+      Result := True;
+    end;
+  except
+    on E: Exception do
+    begin
+      //LogUtil.Add(E.Message + ': ' + APath, 'ZIP');
+    end;
+  end;
+
+  _ZEntries.Free;
+  _FileList.Free;
+  _Zipper.Free;
 end;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
