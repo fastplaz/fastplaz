@@ -166,7 +166,8 @@ function FastInfo(): string;
 
 implementation
 
-uses language_lib;
+uses
+  logutil_lib, language_lib;
 
 function i2s(pI: integer): string;
 begin
@@ -681,6 +682,7 @@ function ScanFolder(const APath: String; AWildCard: string): TStringList;
 var
   sPath: string;
   rec : TSearchRec;
+  tmpLst: TStringList;
 begin
   Result := TStringList.Create;
   sPath := IncludeTrailingPathDelimiter(APath);
@@ -698,8 +700,11 @@ begin
         // item is a directory
         if (rec.Name <> '.') and (rec.Name <> '..') then
         begin
-          if trim( ScanFolder(sPath + rec.Name).Text) <> '' then
-            Result.Add( trim( ScanFolder(sPath + rec.Name).Text));
+          tmpLst := ScanFolder(sPath + rec.Name);
+          if tmpLst.Count > 0 then
+          begin
+            Result.AddStrings( tmpLst);
+          end;
         end;
       end
       else
@@ -749,7 +754,7 @@ begin
   except
     on E: Exception do
     begin
-      //LogUtil.Add(E.Message + ': ' + APath, 'ZIP');
+      LogUtil.Add( APath + ': ' + E.Message, 'ZIP');
     end;
   end;
 
