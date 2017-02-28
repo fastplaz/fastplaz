@@ -12,7 +12,7 @@ uses
   //fphttpclient_with_ssl,
   RegExpr,
   netdb, Sockets,
-  zipper, FileUtil, strutils,
+  zipper, strutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -109,6 +109,7 @@ function ReplaceAll(const Subject: string; const OldPatterns: array of string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
+function ScanFolder(const APath: String; AWildCard:string = '*'):TStringList;
 function ZipFolder(APath: string; ATarget: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
@@ -676,13 +677,48 @@ begin
   end;
 end;
 
+function ScanFolder(const APath: String; AWildCard: string): TStringList;
+var
+  sPath: string;
+  rec : TSearchRec;
+begin
+  Result := TStringList.Create;
+  sPath := IncludeTrailingPathDelimiter(APath);
+  if FindFirst(sPath + AWildCard, faAnyFile, rec) = 0 then
+  begin
+    repeat
+      // TSearchRec.Attr contain basic attributes (directory, hidden,
+      // system, etc). TSearchRec only supports a subset of all possible
+      // info. TSearchRec.FindData contains everything that the OS
+      // reported about the item during the search, if you need to
+      // access more detailed information...
+
+      if (rec.Attr and faDirectory) <> 0 then
+      begin
+        // item is a directory
+        if (rec.Name <> '.') and (rec.Name <> '..') then
+        begin
+          if trim( ScanFolder(sPath + rec.Name).Text) <> '' then
+            Result.Add( trim( ScanFolder(sPath + rec.Name).Text));
+        end;
+      end
+      else
+      begin
+        // item is a file
+        Result.Add( IncludeTrailingPathDelimiter( APath) + rec.Name);
+      end;
+    until FindNext(rec) <> 0;
+    FindClose(rec);
+  end;end;
+
 function ZipFolder(APath: string; ATarget: string): boolean;
 var
   i: integer;
-  szPathEntry: string;
+  s, szPathEntry: string;
   _Zipper: TZipper;
   _FileList: TStringList;
   _ZEntries: TZipFileEntries;
+
 begin
   Result := False;
   if not DirectoryExists(APath) then
@@ -691,19 +727,18 @@ begin
   _Zipper := TZipper.Create;
   _ZEntries := TZipFileEntries.Create(TZipFileEntry);
   _Zipper.Filename := ATarget;
-  _FileList := TStringList.Create;
 
   // relative directory
-  i := RPos(PathDelim, ChompPathDelim(APath));
-  szPathEntry := LeftStr(APath, i);
+  szPathEntry := ExcludeTrailingPathDelimiter(APath);
+  szPathEntry := IncludeTrailingPathDelimiter(ExtractFileDir( szPathEntry));
 
   try
-    _FileList := FindAllFiles(APath);
+    _FileList := ScanFolder(APath);
     for i := 0 to _FileList.Count - 1 do
     begin
+      s := StringReplace( _FileList[i], szPathEntry, '', [rfReplaceAll]);
       // Make sure the RelativeDirectory files are not in the root of the ZipFile
-      _ZEntries.AddFileEntry(_FileList[i], CreateRelativePath(_FileList[i],
-        szPathEntry));
+      _ZEntries.AddFileEntry(_FileList[i], s);
     end;
 
     if (_ZEntries.Count > 0) then
