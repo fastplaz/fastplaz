@@ -199,9 +199,9 @@ begin
 
   Result := Result + #10'rata-rata: ' +
     Trim(StripTags(getContent('<span class="sal_num">', '</span>', AHTML)));
-  Result := Result + #10'min: ' +
+  Result := Result + #10'gaji terendah ' +
     Trim(StripTags(getContent('<span class="min_num">', '</span>', AHTML)));
-  Result := Result + #10'max: ' +
+  Result := Result + ' dan tertinggi ' +
     Trim(StripTags(getContent('<span class="max_num">', '</span>', AHTML)));
 end;
 
