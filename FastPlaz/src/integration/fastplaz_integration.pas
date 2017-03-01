@@ -7,16 +7,16 @@ unit fastplaz_integration;
 interface
 
 uses
-  alquranindonesia_integration, bmkg_integration, clarifai_integration, 
-  cognitiveanalyze_integration, cognitivedomainspecific_integration, 
-  cognitiveocr_integration, currencyibacor_integration, 
-  facebookmessenger_integration, googleplacesearch_integration, 
-  ibacorpolicenumber_integration, kamusibacor_integration, 
-  kamuskemdikbud_integration, kamussunda_integration, kawalpemilu_integration, 
-  line_integration, ombd_integration, openweathermap_integration, 
-  resiibacor_integration, telegram_integration, whois_integration, 
-  witai_integration, yandextranslate_integration, zomato_integration, 
-  apixu_integration, LazarusPackageIntf;
+  alquranindonesia_integration, apixu_integration, bmkg_integration, 
+  clarifai_integration, cognitiveanalyze_integration, 
+  cognitivedomainspecific_integration, cognitiveocr_integration, 
+  currencyibacor_integration, facebookmessenger_integration, 
+  googleplacesearch_integration, ibacorpolicenumber_integration, 
+  jobplanet_integration, kamusibacor_integration, kamuskemdikbud_integration, 
+  kamussunda_integration, kawalpemilu_integration, line_integration, 
+  ombd_integration, openweathermap_integration, resiibacor_integration, 
+  telegram_integration, whois_integration, witai_integration, 
+  yandextranslate_integration, zomato_integration, LazarusPackageIntf;
 
 implementation
 
