@@ -4,16 +4,28 @@ unit jobplanet_integration;
   JOBPLANET INDONESIA
   https://id.jobplanet.com.
 
-  info [perusahaan]
-  review [perusahaan]
-  gaji [perusahaan]
-  interview [perusahaan]
-  loker [perusahaan]
-
   [x] contoh respon;
   rata2 gaji di rumah123.com adalah xxx.
   dengan gaji terendah xxx dan tertinggi xxx.
   yuk lihat detailnya di https://id.jobplanet.com/companies/48679/info/pt-web-marketing-indonesia-rumah123com
+
+  [x] USAGE
+
+  with TJobPlanetIntegration.Create do
+  begin
+    keyword := 'nama perusahaan';
+    Result := Info(keyword);
+
+    Result := Review(keyword);
+
+    Result := Vacancies(keyword);
+
+    Result := Salaries(keyword);
+
+    Result := Interview(keyword);
+
+    Free;
+  end;
 
 }
 {$mode objfpc}{$H+}
@@ -43,6 +55,8 @@ type
     function getInfoFromHTML(AHTML: string): string;
     function getReviewFromHTML(AHTML: string): string;
     function getSalariesFromHTML(AHTML: string): string;
+    function getInterviewFromHTML(AHTML: string): string;
+
   public
     constructor Create;
     destructor Destroy;
@@ -57,6 +71,7 @@ type
     function Info(ACompany: string): string;
     function Review(ACompany: string): string;
     function Salaries(ACompany: string): string;
+    function Interview(ACompany: string): string;
     function Vacancies(ATitle: string): string;
   end;
 
@@ -211,6 +226,50 @@ begin
     Trim(StripTags(getContent('<span class="max_num">', '</span>', AHTML)));
 end;
 
+function TJobPlanetIntegration.getInterviewFromHTML(AHTML: string): string;
+var
+  i: integer;
+  s, html: string;
+begin
+  s := '<li class="viewInterviews">';
+  i := pos(s, AHTML);
+  if i > 1 then
+  begin
+    Result := copy(AHTML, i + Length(s));
+    s := '<span class="num notranslate">';
+    i := pos(s, Result);
+    Result := copy(Result, i + Length(s));
+    Result := Copy(Result, 0, pos('</span>', Result) - 1);
+    Result := trim(Result);
+    if Result <> '' then
+      Result := 'Ditemukan ' + Result + ' interview.'#10;
+  end;
+
+  Result := Result + 'Tingkat kesulitan interview: ' +
+    getContent('<span class="vib_num">', '</span>', AHTML) +
+    ' dari skala 5 (' + getContent('<span class="vib_txt lev_3">',
+    '</span>', AHTML) + ')'#10;
+  Result := Result + #10'Pengalaman interview:'#10'Positif: ' +
+    Trim(StripTags(getContent('<th class="txt_pos">Positif</th>',
+    '</td>', AHTML))) + #10;
+  Result := Result + 'Negatif: ' +
+    Trim(StripTags(getContent('<th class="txt_neg">Negatif</th>',
+    '</td>', AHTML))) + #10;
+  Result := Result + 'Sedang: ' +
+    Trim(StripTags(getContent('<th class="txt_nor">Sedang</th>', '</td>', AHTML))) + #10;
+
+  s := #10'Pengalaman Interview:'#10 +
+    Trim(StripTags(getContent('<div class="content_body_ty1">',
+    '<div class="now_box">', AHTML))) + #10;
+  s := StringReplace(s, '&quot;', '', [rfReplaceAll]);
+  s := StringReplace(s, '    ', '', [rfReplaceAll]);
+  s := StringReplace(s, '   ', '', [rfReplaceAll]);
+  s := StringReplace(s, '  ', '', [rfReplaceAll]);
+  s := StringReplace(s, #10#10#10, #10, [rfReplaceAll]);
+
+  Result := Result + s;
+end;
+
 constructor TJobPlanetIntegration.Create;
 begin
   FCountry := 'id';
@@ -282,6 +341,29 @@ begin
 
   Result := getHTML(_url);
   Result := getSalariesFromHTML(Result);
+  Result := Result + _JOBPLANET_MSG_INFODETIL + _url;
+end;
+
+function TJobPlanetIntegration.Interview(ACompany: string): string;
+var
+  _url: string;
+begin
+  Result := _JOBPLANET_MSG_NOTFOUND;
+
+  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
+  Result := getCompanyList(Result);
+  if FCompanyList.Count <> 1 then
+  begin
+    if FCompanyList.Count > 1 then
+    begin
+    end;
+    Exit;
+  end;
+
+  _url := StringReplace(FCompanyList.ValueFromIndex[0], '/info/',
+    '/interviews/', [rfReplaceAll]);
+  Result := getHTML(_url);
+  Result := getInterviewFromHTML(Result);
   Result := Result + _JOBPLANET_MSG_INFODETIL + _url;
 end;
 
