@@ -16,7 +16,8 @@ uses
   kamussunda_integration, kawalpemilu_integration, line_integration, 
   ombd_integration, openweathermap_integration, resiibacor_integration, 
   telegram_integration, whois_integration, witai_integration, 
-  yandextranslate_integration, zomato_integration, LazarusPackageIntf;
+  yandextranslate_integration, zomato_integration, bca_integration, 
+  LazarusPackageIntf;
 
 implementation
 
