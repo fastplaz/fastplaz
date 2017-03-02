@@ -66,7 +66,7 @@ const
   _JOBPLANET_URL = 'https://id.jobplanet.com';
   _JOBPLANET_SEARCH_URL = 'https://id.jobplanet.com/search?category=&query=';
   _JOBPLANET_VACANCYSEARCH_URL =
-    'https://id.jobplanet.com/lowongan/search?order_by=score&query=';
+    'https://id.jobplanet.com/lowongan/search?query=';
 
   _JOBPLANET_MSG_NOTFOUND = 'Informasi tidak tersedia ...';
   _JOBPLANET_MSG_TINGKATKEPUASAN = #10'Tingkat Kepuasan : ';
@@ -221,7 +221,7 @@ function TJobPlanetIntegration.Info(ACompany: string): string;
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + ACompany);
+  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -240,7 +240,7 @@ function TJobPlanetIntegration.Review(ACompany: string): string;
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + ACompany);
+  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -261,7 +261,7 @@ var
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + ACompany);
+  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -284,7 +284,7 @@ var
   i: integer;
   s, html, tmp, _url: string;
 begin
-  _url := _JOBPLANET_VACANCYSEARCH_URL + ATitle;
+  _url := _JOBPLANET_VACANCYSEARCH_URL + UrlEncode(ATitle);
   html := getHTML(_url);
   s := StripTags(getContent(
     '<span class="result_count">Total Lowongan Kerja <span class="num">',
