@@ -96,8 +96,14 @@ end;
 
 function TJobPlanetIntegration.getContent(AStartString, AStopString: string;
   AText: string): string;
+var
+  i: integer;
 begin
-  Result := copy(AText, pos(AStartString, AText) + Length(AStartString));
+  Result := '';
+  i := pos(AStartString, AText);
+  if i = 0 then
+    Exit;
+  Result := copy(AText, i + Length(AStartString));
   Result := Copy(Result, 0, pos(AStopString, Result) - 1);
 end;
 
@@ -115,7 +121,7 @@ begin
   try
     with TRegExpr.Create do
     begin
-      Expression := '(<div class="result_card ">)';
+      Expression := '(<div class="result_card )';
       if Exec(Result) then
       begin
         FCompanyCount := 1;
@@ -137,8 +143,7 @@ begin
 
     // company name
     s := 'class="tit">';
-    _companyName := Copy(Result, Pos(s, Result) + Length(s));
-    _companyName := copy(_companyName, 0, Pos('</a>', _companyName) - 1);
+    _companyName := getContent(s, '</a>', Result);
 
     // url
     s := '<a href="';
@@ -163,8 +168,9 @@ begin
   _tingkatKepuasan := getContent(
     '<span class="val_starmark" style="width:78.0%;"><span class="alt_txt">',
     '</span>', AHTML);
-  _tingkatKepuasan := _JOBPLANET_MSG_TINGKATKEPUASAN + _tingkatKepuasan +
-    ' dari skala 5';
+  if _tingkatKepuasan <> '' then
+    _tingkatKepuasan := _JOBPLANET_MSG_TINGKATKEPUASAN + _tingkatKepuasan +
+      ' dari skala 5';
 
   _info := _title + #10#10 + _description + #10 + _tingkatKepuasan;
 
