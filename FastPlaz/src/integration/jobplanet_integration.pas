@@ -240,9 +240,14 @@ begin
     i := pos(s, Result);
     Result := copy(Result, i + Length(s));
     Result := Copy(Result, 0, pos('</span>', Result) - 1);
-    Result := trim(Result);
-    if Result <> '' then
-      Result := 'Ditemukan ' + Result + ' interview.'#10;
+    s := trim(Result);
+    if s <> '' then
+      Result := 'Ditemukan ' + s + ' interview.'#10;
+    if (s = '0') or (s = '') then
+    begin
+      Result := 'Belum ada data interview di perusahaan ini';
+      Exit;
+    end;
   end;
 
   Result := Result + 'Tingkat kesulitan interview: ' +
@@ -250,13 +255,14 @@ begin
     ' dari skala 5 (' + getContent('<span class="vib_txt lev_3">',
     '</span>', AHTML) + ')'#10;
   Result := Result + #10'Pengalaman interview:'#10'Positif: ' +
-    Trim(StripTags(getContent('<th class="txt_pos">Positif</th>',
-    '</td>', AHTML))) + '%'#10;
+    Trim(StripTags(getContent('<th class="txt_pos">Positif</th>', '</td>', AHTML))) +
+    '%'#10;
   Result := Result + 'Negatif: ' +
-    Trim(StripTags(getContent('<th class="txt_neg">Negatif</th>',
-    '</td>', AHTML))) + '%'#10;
+    Trim(StripTags(getContent('<th class="txt_neg">Negatif</th>', '</td>', AHTML))) +
+    '%'#10;
   Result := Result + 'Sedang: ' +
-    Trim(StripTags(getContent('<th class="txt_nor">Sedang</th>', '</td>', AHTML))) + '%'#10;
+    Trim(StripTags(getContent('<th class="txt_nor">Sedang</th>', '</td>', AHTML))) +
+    '%'#10;
 
   s := #10'Pengalaman Interview:'#10 +
     Trim(StripTags(getContent('<div class="content_body_ty1">',
