@@ -251,12 +251,12 @@ begin
     '</span>', AHTML) + ')'#10;
   Result := Result + #10'Pengalaman interview:'#10'Positif: ' +
     Trim(StripTags(getContent('<th class="txt_pos">Positif</th>',
-    '</td>', AHTML))) + #10;
+    '</td>', AHTML))) + '%'#10;
   Result := Result + 'Negatif: ' +
     Trim(StripTags(getContent('<th class="txt_neg">Negatif</th>',
-    '</td>', AHTML))) + #10;
+    '</td>', AHTML))) + '%'#10;
   Result := Result + 'Sedang: ' +
-    Trim(StripTags(getContent('<th class="txt_nor">Sedang</th>', '</td>', AHTML))) + #10;
+    Trim(StripTags(getContent('<th class="txt_nor">Sedang</th>', '</td>', AHTML))) + '%'#10;
 
   s := #10'Pengalaman Interview:'#10 +
     Trim(StripTags(getContent('<div class="content_body_ty1">',
