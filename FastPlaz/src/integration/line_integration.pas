@@ -51,6 +51,8 @@ type
     procedure Send(ATo: string; AMessages: string);
     procedure SendAudio(AUserID: string; AAudioURL: string);
     procedure SendSticker(ATo: string; APackageID: string; AStickerID: string);
+    function GetContent(AMessageID: string; ATargetFile: string): boolean;
+    function GetContent(AMessageID: string): boolean;
 
     function isCanSend: boolean;
     function isJoinToGroup: boolean;
@@ -66,6 +68,8 @@ implementation
 const
   _LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
   _LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
+  _LINE_GETCONTENT_URL = 'https://api.line.me/v2/bot/message/%s/content';
+  _LINE_PATH_TEMP_DEFAULT = 'ztemp/cache/';
 
 var
   Response: IHTTPResponse;
@@ -362,6 +366,47 @@ begin
   _jsonString.Free;
 end;
 
+function TLineIntegration.GetContent(AMessageID: string; ATargetFile: string): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if (AMessageID = '') or (FToken = '') then
+    Exit;
+
+  urlTarget := Format(_LINE_GETCONTENT_URL, [AMessageID]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Authorization', 'Bearer ' + FToken);
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FIsSuccessfull := IsSuccessfull;
+      if FResultCode = 200 then
+      begin
+        if FileExists(ATargetFile) then
+          DeleteFile(ATargetFile);
+        Response.ResultStream.SaveToFile(ATargetFile);
+        Result := True;
+      end;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add('download: ' + E.Message, 'LINE');
+      end;
+    end;
+    Free;
+  end;
+end;
+
+function TLineIntegration.GetContent(AMessageID: string): boolean;
+begin
+  Result := GetContent(AMessageID, _LINE_PATH_TEMP_DEFAULT + trim(AMessageID) + '.bin');
+end;
+
 function TLineIntegration.isCanSend: boolean;
 begin
   Result := False;
@@ -420,5 +465,6 @@ begin
 end;
 
 end.
+
 
 

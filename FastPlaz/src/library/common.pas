@@ -89,9 +89,10 @@ function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
+function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
-function StringExists( ASubstring, AFullString:string):boolean;
+function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
@@ -244,6 +245,18 @@ begin
     Result := True;
 end;
 
+function StringCut(AStartString, AStopString: string; AText: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  i := pos(AStartString, AText);
+  if i = 0 then
+    Exit;
+  Result := copy(AText, i + Length(AStartString));
+  Result := Copy(Result, 0, pos(AStopString, Result) - 1);
+end;
+
 function StringHumanToNominal(StrHuman: string): string;
 begin
   Result := StrHuman;
@@ -265,7 +278,7 @@ begin
   Result := s2f( StringHumanToNominal(StrHuman));
 end;
 
-function StringExists(ASubstring, AFullString: string): boolean;
+function StringsExists(ASubstring, AFullString: string): boolean;
 begin
   ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
   Result := preg_match( '('+ASubstring+')', AFullString);
@@ -273,7 +286,7 @@ end;
 
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
-  Result := StringExists( ASubstring, AFullString);
+  Result := StringsExists( ASubstring, AFullString);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -389,11 +402,8 @@ const
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
     '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`'
     );
-var
-  s: string;
 begin
-  s := ReplaceAll(SourceString, NotAllowed, '-');
-  Result := s;
+  Result := ReplaceAll(SourceString, NotAllowed, '-');
 end;
 
 function ReplaceAll(const Subject: string;
