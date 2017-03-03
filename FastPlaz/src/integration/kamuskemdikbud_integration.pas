@@ -43,7 +43,7 @@ type
 implementation
 
 const
-  _KAMUS_URL = 'http://kbbi.kemdikbud.go.id/entri/';
+  _KAMUS_URL = 'https://kbbi.kemdikbud.go.id/entri/';
   __TAG_START = '\<([\.\$A-Za-z0-9=_ :;\-"]+)\>';
   __TAG_END = '\</([\.\$A-Za-z0-9=_ :;\-"]+)\>';
 
