@@ -48,6 +48,7 @@ type
     FCountry: string;
     FResultCode: integer;
     FResultText: string;
+    FURL: string;
 
     function getHTML(AURL: string): string;
     function getContent(AStartString, AStopString: string; AText: string): string;
@@ -67,6 +68,7 @@ type
     property CompanyCount: integer read FCompanyCount write FCompanyCount;
     property CompanyList: TStringList read FCompanyList write FCompanyList;
     property Country: string read FCountry write FCountry;
+    property URL: string read FURL write FURL;
 
     function Info(ACompany: string): string;
     function Review(ACompany: string): string;
@@ -279,8 +281,9 @@ end;
 constructor TJobPlanetIntegration.Create;
 begin
   FCountry := 'id';
-  CompanyCount := 0;
+  FCompanyCount := 0;
   FCompanyList := TStringList.Create;
+  FURL := '';
 end;
 
 destructor TJobPlanetIntegration.Destroy;
@@ -292,7 +295,8 @@ function TJobPlanetIntegration.Info(ACompany: string): string;
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
+  FURL := _JOBPLANET_SEARCH_URL + UrlEncode(ACompany);
+  Result := getHTML(FURL);
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -311,7 +315,8 @@ function TJobPlanetIntegration.Review(ACompany: string): string;
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
+  FURL := _JOBPLANET_SEARCH_URL + UrlEncode(ACompany);
+  Result := getHTML(FURL);
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -332,7 +337,8 @@ var
 begin
   Result := _JOBPLANET_MSG_NOTFOUND;
 
-  Result := getHTML(_JOBPLANET_SEARCH_URL + UrlEncode(ACompany));
+  FURL := _JOBPLANET_SEARCH_URL + UrlEncode(ACompany);
+  Result := getHTML(FURL);
   Result := getCompanyList(Result);
   if FCompanyList.Count <> 1 then
   begin
@@ -376,10 +382,10 @@ end;
 function TJobPlanetIntegration.Vacancies(ATitle: string): string;
 var
   i: integer;
-  s, html, tmp, _url: string;
+  s, html, tmp: string;
 begin
-  _url := _JOBPLANET_VACANCYSEARCH_URL + UrlEncode(ATitle);
-  html := getHTML(_url);
+  FURL := _JOBPLANET_VACANCYSEARCH_URL + UrlEncode(ATitle);
+  html := getHTML(FURL);
   s := StripTags(getContent(
     '<span class="result_count">Total Lowongan Kerja <span class="num">',
     '</span></span>', html));
@@ -392,12 +398,12 @@ begin
     html := copy(html, pos(s, html) + Length(s));
     s := '<p class="company_name"><button class="btn_open">';
     html := copy(html, pos(s, html) + Length(s));
-    tmp := tmp + '- ' + Copy(html, 0, pos('</button>', html) - 1) + #10;
+    tmp := tmp + '- ' + StripTags(Copy(html, 0, pos('</button>', html) - 1)) + #10;
   end;
   tmp := Trim(tmp);
 
   Result := Result + tmp;
-  Result := Result + _JOBPLANET_MSG_INFODETIL + _url;
+  Result := Result + _JOBPLANET_MSG_INFODETIL + FURL;
 end;
 
 end.
