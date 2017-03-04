@@ -101,6 +101,7 @@ function ExplodeTags(TagString: string): TStringList;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
+function DateTimeToISO8601( ADateTime:TDateTime):string;
 
 function SafeText(const SourceString: string): string;
 function ReplaceAll(const Subject: string;
@@ -394,6 +395,11 @@ end;
 function _GetTickCount: DWord;
 begin
   Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
+end;
+
+function DateTimeToISO8601(ADateTime: TDateTime): string;
+begin
+  Result := FormatDateTime('YYYY-mm-dd"T"H:nn:ss'+'+07:00', ADateTime);;
 end;
 
 function SafeText(const SourceString: string): string;
