@@ -12,7 +12,7 @@ uses
   //fphttpclient_with_ssl,
   RegExpr,
   netdb, Sockets,
-  zipper, strutils,
+  zipper, strutils, dateutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -89,9 +89,10 @@ function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
+function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
-function StringExists( ASubstring, AFullString:string):boolean;
+function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
@@ -100,6 +101,8 @@ function ExplodeTags(TagString: string): TStringList;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
+function DateTimeToISO8601( ADateTime:TDateTime): string;
+function ISO8601ToDateTime( AString:string; AOffsetHours:integer = 7): TDateTime;
 
 function SafeText(const SourceString: string): string;
 function ReplaceAll(const Subject: string;
@@ -244,6 +247,18 @@ begin
     Result := True;
 end;
 
+function StringCut(AStartString, AStopString: string; AText: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  i := pos(AStartString, AText);
+  if i = 0 then
+    Exit;
+  Result := copy(AText, i + Length(AStartString));
+  Result := Copy(Result, 0, pos(AStopString, Result) - 1);
+end;
+
 function StringHumanToNominal(StrHuman: string): string;
 begin
   Result := StrHuman;
@@ -265,7 +280,7 @@ begin
   Result := s2f( StringHumanToNominal(StrHuman));
 end;
 
-function StringExists(ASubstring, AFullString: string): boolean;
+function StringsExists(ASubstring, AFullString: string): boolean;
 begin
   ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
   Result := preg_match( '('+ASubstring+')', AFullString);
@@ -273,7 +288,7 @@ end;
 
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
-  Result := StringExists( ASubstring, AFullString);
+  Result := StringsExists( ASubstring, AFullString);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -383,17 +398,36 @@ begin
   Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
 end;
 
+function DateTimeToISO8601(ADateTime: TDateTime): string;
+begin
+  Result := FormatDateTime('YYYY-mm-dd"T"HH:nn:ss'+'+0700', ADateTime);;
+end;
+
+function ISO8601ToDateTime(AString: string; AOffsetHours: integer): TDateTime;
+var
+  tmpFormatSettings: TFormatSettings;
+begin
+  Result := now;
+
+  AString := copy( AString,0,10) + ' ' + copy(AString,12,8);
+  tmpFormatSettings := FormatSettings;
+  tmpFormatSettings.DateSeparator := '-';
+  tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd';
+  try
+    Result := StrToDateTime( AString, tmpFormatSettings);
+    Result := IncHour(Result, AOffsetHours); // GMT+7
+  except
+  end;
+end;
+
 function SafeText(const SourceString: string): string;
 const
   NotAllowed: array[1..24] of string =
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
     '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`'
     );
-var
-  s: string;
 begin
-  s := ReplaceAll(SourceString, NotAllowed, '-');
-  Result := s;
+  Result := ReplaceAll(SourceString, NotAllowed, '-');
 end;
 
 function ReplaceAll(const Subject: string;
@@ -813,6 +847,7 @@ function jsonGetData(AJsonData: TJsonData; APath: string): string;
 begin
   Result := '';
   try
+    APath := StringReplace( APath, '/', '.', [rfReplaceAll]);
     Result := AJsonData.GetPath(APath).AsString;
   except
   end;
