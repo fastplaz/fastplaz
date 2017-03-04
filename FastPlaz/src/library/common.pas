@@ -12,7 +12,7 @@ uses
   //fphttpclient_with_ssl,
   RegExpr,
   netdb, Sockets,
-  zipper, strutils,
+  zipper, strutils, dateutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -101,7 +101,8 @@ function ExplodeTags(TagString: string): TStringList;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
-function DateTimeToISO8601( ADateTime:TDateTime):string;
+function DateTimeToISO8601( ADateTime:TDateTime): string;
+function ISO8601ToDateTime( AString:string; AOffsetHours:integer = 7): TDateTime;
 
 function SafeText(const SourceString: string): string;
 function ReplaceAll(const Subject: string;
@@ -399,7 +400,24 @@ end;
 
 function DateTimeToISO8601(ADateTime: TDateTime): string;
 begin
-  Result := FormatDateTime('YYYY-mm-dd"T"H:nn:ss'+'+07:00', ADateTime);;
+  Result := FormatDateTime('YYYY-mm-dd"T"HH:nn:ss'+'+0700', ADateTime);;
+end;
+
+function ISO8601ToDateTime(AString: string; AOffsetHours: integer): TDateTime;
+var
+  tmpFormatSettings: TFormatSettings;
+begin
+  Result := now;
+
+  AString := copy( AString,0,10) + ' ' + copy(AString,12,8);
+  tmpFormatSettings := FormatSettings;
+  tmpFormatSettings.DateSeparator := '-';
+  tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd';
+  try
+    Result := StrToDateTime( AString, tmpFormatSettings);
+    Result := IncHour(Result, AOffsetHours); // GMT+7
+  except
+  end;
 end;
 
 function SafeText(const SourceString: string): string;
@@ -829,6 +847,7 @@ function jsonGetData(AJsonData: TJsonData; APath: string): string;
 begin
   Result := '';
   try
+    APath := StringReplace( APath, '/', '.', [rfReplaceAll]);
     Result := AJsonData.GetPath(APath).AsString;
   except
   end;
