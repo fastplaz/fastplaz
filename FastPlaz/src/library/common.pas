@@ -92,6 +92,7 @@ function s2b(s: string): boolean;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
+function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
@@ -278,6 +279,69 @@ end;
 function StringHumanToFloat(StrHuman: string): double;
 begin
   Result := s2f( StringHumanToNominal(StrHuman));
+end;
+
+// [x] example
+//   TheDate := StringHumanToDate('17 agustus 15');
+function StringHumanToDate(AStringHuman: string): TDateTime;
+var
+  i: integer;
+  s: string;
+  lst: TStrings;
+  FS: TFormatSettings;
+
+  function LongToShortMonth( AStr:string):string;
+  var
+    i: integer;
+  begin
+
+    Result := AStr;
+    for i := 1 to 12 do
+    begin
+      Result := StringReplace( Result, FS.LongMonthNames[i], FS.ShortMonthNames[i], [rfReplaceAll]);
+    end;
+
+    Result := StringReplace( Result, 'januari', 'jan', [rfReplaceAll]);
+    Result := StringReplace( Result, 'februari', 'feb', [rfReplaceAll]);
+    Result := StringReplace( Result, 'maret', 'mar', [rfReplaceAll]);
+    Result := StringReplace( Result, 'april', 'apr', [rfReplaceAll]);
+    Result := StringReplace( Result, 'mei', 'may', [rfReplaceAll]);
+    Result := StringReplace( Result, 'juni', 'jun', [rfReplaceAll]);
+    Result := StringReplace( Result, 'juli', 'jul', [rfReplaceAll]);
+    Result := StringReplace( Result, 'agustus', 'aug', [rfReplaceAll]);
+    Result := StringReplace( Result, 'september', 'sep', [rfReplaceAll]);
+    Result := StringReplace( Result, 'oktober', 'oct', [rfReplaceAll]);
+    Result := StringReplace( Result, 'november', 'nov', [rfReplaceAll]);
+    Result := StringReplace( Result, 'desember', 'dec', [rfReplaceAll]);
+  end;
+
+begin
+  Result := Today;
+  FS := DefaultFormatSettings;
+  FS.DateSeparator := ' ';
+  FS.ShortDateFormat := 'dd mmm yyyy';
+
+  if WordNumber(AStringHuman) = 1 then
+  begin
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('mmm yyyy',Now);
+  end;
+  if WordNumber(AStringHuman) = 2 then
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('yyyy',Now);
+  if WordNumber(AStringHuman) > 2 then
+  begin
+    i := LastDelimiter( ' ', AStringHuman);
+    if ( Length(AStringHuman) - i) = 2 then
+    begin
+      AStringHuman := Copy(AStringHuman,0,i) + '20' + Copy(AStringHuman,i+1);
+    end;
+    AStringHuman := LongToShortMonth( AStringHuman);
+    try
+      Result := ScanDateTime('dd mmm yyyy', AStringHuman, FS);
+    except
+      Result := Today;
+    end;
+  end;
+
 end;
 
 function StringsExists(ASubstring, AFullString: string): boolean;
