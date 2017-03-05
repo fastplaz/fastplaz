@@ -323,10 +323,10 @@ begin
 
   if WordNumber(AStringHuman) = 1 then
   begin
-    // if is numerik
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('mmm yyyy',Now);
   end;
   if WordNumber(AStringHuman) = 2 then
-    AStringHuman:= AStringHuman + ' ' + FormatDateTime('yyyy',Now);
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('yyyy',Now);
   if WordNumber(AStringHuman) > 2 then
   begin
     i := LastDelimiter( ' ', AStringHuman);
