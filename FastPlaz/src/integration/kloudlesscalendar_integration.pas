@@ -76,6 +76,9 @@ implementation
 const
   _KLAUDLESS_API_URL = 'https://api.kloudless.com';
   _KLAUDLESS_CALENDAR_EVENTLIST_URL = '/v1/accounts/%s/cal/calendars/%s/events/';
+  _KLAUDLESS_NUMBER = '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣🔟';
+  _PAGAR = '️⃣';
+  _BINTANG = '*️⃣';
 
 var
   Response: IHTTPResponse;
@@ -197,7 +200,7 @@ begin
     startTime := ISO8601ToDateTime(s, 7);
     s := lst[1];
     endTime := ISO8601ToDateTime(s, 7);
-    s := '*' + FormatDateTime('d MMM YY', startTime) + '*';
+    s := '🗓' + '*' + FormatDateTime('d MMM YY', startTime) + '*';
     if s <> tgl then
     begin
       tgl := s;
