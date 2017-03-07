@@ -14,7 +14,8 @@ uses
   googleplacesearch_integration, ibacorpolicenumber_integration, 
   jobplanet_integration, kamusibacor_integration, kamuskemdikbud_integration, 
   kamussunda_integration, kawalpemilu_integration, 
-  kloudlesscalendar_integration, line_integration, ombd_integration, 
+  kloudlesscalendar_integration, line_integration, 
+  maskofajadwalshalat_integration, ombd_integration, 
   openweathermap_integration, resiibacor_integration, telegram_integration, 
   whois_integration, witai_integration, yandextranslate_integration, 
   zomato_integration, LazarusPackageIntf;
