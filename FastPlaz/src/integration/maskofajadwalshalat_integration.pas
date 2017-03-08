@@ -1,4 +1,5 @@
 unit maskofajadwalshalat_integration;
+
 {
   [x] USAGE
 
@@ -10,6 +11,9 @@ unit maskofajadwalshalat_integration;
     CityList.LoadFromFile('files/shalat-citylist.txt');
 
     Result := Find('city name');
+
+    Result := Find('city name', Tomorrow);
+
     Free;
   end;
 
@@ -85,7 +89,7 @@ begin
   if FCityList.Count = 0 then
     Exit;
 
-  for i:= 0 to FCityList.Count-1 do
+  for i := 0 to FCityList.Count - 1 do
   begin
     if LowerCase(FCityList.ValueFromIndex[i]) = LowerCase(ACityName) then
     begin
@@ -179,18 +183,14 @@ begin
     Exit;
 
   s := FormatDateTime('d', ADateTime);
-  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/'+s+'/2');
-  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/'+s+'/5');
-  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/'+s+'/6');
-  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/'+s+'/7');
-  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/'+s+'/8');
+  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/' + s + '/2');
+  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/' + s + '/5');
+  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/' + s + '/6');
+  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/' + s + '/7');
+  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/' + s + '/8');
 
   Result := Trim(Result);
 end;
 
 end.
-
-
-
-
 
