@@ -99,7 +99,7 @@ begin
   if FKey = '' then
     Exit;
 
-  urlTarget := Format(_APIXU_API_URL, [FKey, ACityName]);
+  urlTarget := Format(_APIXU_API_URL, [FKey, UrlEncode(ACityName)]);
   with THTTPLib.Create(urlTarget) do
   begin
     //AddHeader('Cache-Control', 'no-cache');
