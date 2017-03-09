@@ -76,6 +76,9 @@ type
   TTelegramIntegration = class(TInterfacedObject)
   private
     FDebug: boolean;
+    FImageID: string;
+    FImagePath: string;
+    FImageURL: string;
     FInvitedFullName: string;
     FInvitedUserName: string;
     FLocationLatitude: double;
@@ -147,6 +150,8 @@ type
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
     function GroupMemberCount(AGroupID: string): integer;
     function GroupAdminList(AGroupID: string): string;
+
+    function isImage(ADetail: boolean = False): boolean;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -160,7 +165,6 @@ type
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
     property IsGroup: boolean read getIsGroup;
-    property ImageCaption: string read getImageCaption;
     property IsInvitation: boolean read getIsInvitation;
 
     property InvitedUserName: string read FInvitedUserName;
@@ -185,6 +189,11 @@ type
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
     property VoiceSize: integer read FVoiceSize;
+
+    property ImageID: string read FImageID;
+    property ImageURL: string read FImageURL;
+    property ImagePath: string read FImagePath;
+    property ImageCaption: string read getImageCaption;
 
   end;
 
@@ -324,6 +333,7 @@ begin
   except
   end;
 end;
+
 
 function TTelegramIntegration.getIsVoice: boolean;
 begin
@@ -909,9 +919,9 @@ begin
   if FResultCode <> 200 then
     Exit;
 
-  jsonData := GetJSON( FResultText);
-  s := jsonGetData(jsonData,'result');
-  Result := s2i( s);
+  jsonData := GetJSON(FResultText);
+  s := jsonGetData(jsonData, 'result');
+  Result := s2i(s);
 end;
 
 function TTelegramIntegration.GroupAdminList(AGroupID: string): string;
@@ -951,6 +961,43 @@ begin
     Result := copy(Result, 0, length(Result) - 1);
   except
   end;
+end;
+
+function TTelegramIntegration.isImage(ADetail: boolean): boolean;
+begin
+  Result := False;
+
+  FImageID := '';
+  FImageURL := '';
+  FImagePath := '';
+  try
+    FImageID := jsonData.GetPath('message.photo[2].file_id').AsString;
+  except
+    try
+      FImageID := jsonData.GetPath('message.photo[1].file_id').AsString;
+    except
+      try
+        FImageID := jsonData.GetPath('message.photo[0].file_id').AsString;
+      except
+        on e: Exception do
+        begin
+        end;
+      end;
+    end;
+  end;
+
+  if FImageID = '' then
+    Exit;
+
+  Result := True;
+  if not ADetail then
+    Exit;
+
+  FImagePath:= GetFilePath( FImageID);
+  if FImagePath = '' then
+    Exit;
+
+  FImageURL := format(TELEGRAM_FILEURL, [FToken]) + FImagePath;
 end;
 
 

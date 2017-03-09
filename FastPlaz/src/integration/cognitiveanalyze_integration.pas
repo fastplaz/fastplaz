@@ -123,7 +123,18 @@ begin
     _tags := _tags + ' ' + s;
     i := i + 1;
   until s = '';
-  _tags := StringReplace(trim(_tags), ' ', ', ', [rfReplaceAll]);
+  _tags := trim( _tags);
+  if _tags = '' then
+  begin
+    i := 0;
+    repeat
+      s := getData('description.tags[' + i2s(i) + ']');
+      _tags := _tags + ' ' + s;
+      i := i + 1;
+    until s = '';
+  end;
+  _tags := trim( StringReplace(trim(_tags), ' ', ', ', [rfReplaceAll]));
+
   if _tags <> '' then
     Result := Result + _tags + '.'#10;
 
