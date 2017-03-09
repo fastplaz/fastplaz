@@ -74,7 +74,7 @@ begin
   if Text = '' then
     Exit;
 
-  urlTarget := _KAMUS_URL + Text;
+  urlTarget := _KAMUS_URL + UrlEncode(Text);
   httpClient := THTTPLib.Create;
   httpClient.URL := urlTarget;
   Response := httpClient.Get;
