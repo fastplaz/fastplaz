@@ -69,7 +69,6 @@ uses
 const
   TELEGRAM_FILEURL = 'https://api.telegram.org/file/bot%s/';
 
-
 type
 
   { TTelegramIntegration }
@@ -126,8 +125,7 @@ type
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
-      const ACaption:string = '';
-      const ReplyToMessageID: string = ''): boolean;
+      const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
@@ -147,6 +145,8 @@ type
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
+    function GroupMemberCount(AGroupID: string): integer;
+    function GroupAdminList(AGroupID: string): string;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -175,9 +175,9 @@ type
     property ResultText: string read FResultText;
     property ResultMessageID: string read FResultMessageID;
 
-    property LocationLatitude:double read FLocationLatitude;
-    property LocationLongitude:double read FLocationLongitude;
-    property LocationName:string read FLocationName;
+    property LocationLatitude: double read FLocationLatitude;
+    property LocationLongitude: double read FLocationLongitude;
+    property LocationName: string read FLocationName;
 
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
@@ -205,6 +205,8 @@ const
   TELEGRAM_COMMAND_SENDCONTACT =
     'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
+  TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
+  TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
 
 var
   Response: IHTTPResponse;
@@ -317,8 +319,8 @@ begin
     FLocationLatitude := jsonData.GetPath('message.location.latitude').AsFloat;
     FLocationLongitude := jsonData.GetPath('message.location.longitude').AsFloat;
     Result := True;
-    FLocationName := jsonData.GetPath('message.venue.title').AsString + ', '
-      + jsonData.GetPath('message.venue.address').AsString;
+    FLocationName := jsonData.GetPath('message.venue.title').AsString +
+      ', ' + jsonData.GetPath('message.venue.address').AsString;
   except
   end;
 end;
@@ -644,8 +646,8 @@ begin
 end;
 
 function TTelegramIntegration.SendPhotoFromURL(const ChatID: string;
-  const AImageURL: string; const Caption: string; const ReplyToMessageID: string
-  ): boolean;
+  const AImageURL: string; const Caption: string;
+  const ReplyToMessageID: string): boolean;
 var
   urlTarget: string;
 begin
@@ -655,7 +657,8 @@ begin
   Result := False;
   if (ChatID = '') or (AImageURL = '') or (FURL = '') then
     Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [ s2i( ChatID), Caption, FParseMode]);
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO,
+    [s2i(ChatID), Caption, FParseMode]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
@@ -774,8 +777,7 @@ begin
 end;
 
 function TTelegramIntegration.SendDocument(const ChatID: string;
-  const AFile: string; const ACaption: string; const ReplyToMessageID: string
-  ): boolean;
+  const AFile: string; const ACaption: string; const ReplyToMessageID: string): boolean;
 var
   urlTarget: string;
 begin
@@ -880,6 +882,74 @@ begin
       end;
     end;
     Free;
+  end;
+end;
+
+function TTelegramIntegration.GroupMemberCount(AGroupID: string): integer;
+var
+  i: integer;
+  s, urlTarget: string;
+begin
+  Result := 0;
+  urlTarget := URL + TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT + AGroupID;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  if FResultCode <> 200 then
+    Exit;
+
+  jsonData := GetJSON( FResultText);
+  s := jsonGetData(jsonData,'result');
+  Result := s2i( s);
+end;
+
+function TTelegramIntegration.GroupAdminList(AGroupID: string): string;
+var
+  i: integer;
+  s, urlTarget: string;
+begin
+  Result := '';
+  urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  if FResultCode <> 200 then
+    Exit;
+
+  try
+    jsonData := GetJSON(FResultText);
+    i := 0;
+    s := jsonGetData(jsonData, 'result[0]/user/username');
+    repeat
+      if s <> '' then
+        Result := Result + s + ',';
+      i := i + 1;
+      s := jsonGetData(jsonData, 'result[' + i2s(i) + ']/user/username');
+    until s = '';
+    Result := copy(Result, 0, length(Result) - 1);
+  except
   end;
 end;
 
