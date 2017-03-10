@@ -37,17 +37,22 @@ type
   private
     FCommand: string;
     FImageURL: string;
+    FResultCode: integer;
+    FResultText: string;
     FToken: string;
   public
     constructor Create;
     destructor Destroy;
 
+    property ResultCode: integer read FResultCode;
+    property ResultText: string read FResultText;
+
     property Command: string read FCommand write FCommand;
     property ImageURL: string read FImageURL write FImageURL;
     property Token: string read FToken write FToken;
 
-    function GetTags: string;
-    function GetTagsAsString: string;
+    function GetTags(ADownloadFile: boolean = False): string;
+    function GetTagsAsString(ADownloadFile: boolean = False): string;
   end;
 
 implementation
@@ -70,13 +75,22 @@ begin
 
 end;
 
-function TClarifai.GetTags: string;
+function TClarifai.GetTags(ADownloadFile: boolean): string;
 var
-  _url: string;
+  _url, tmpFile: string;
 begin
   Result := '';
   if (FImageURL = '') or (FToken = '') then
     Exit;
+
+  if ADownloadFile then
+  begin
+    tmpFile := _CACHE_PATH + UrlEncode(FImageURL) + '.jpg';
+    if not DownloadFile(FImageURL, tmpFile) then
+    begin
+      Exit;
+    end;
+  end;
 
   _url := _CLARIFAI_URL + 'tag/';
   with THTTPLib.Create(_url) do
@@ -85,10 +99,15 @@ begin
       //ContentType := 'application/x-www-form-urlencoded';
       //AddHeader('Cache-Control', 'no-cache');
       AddHeader('Authorization', 'Bearer ' + FToken);
-      FormData['url'] := trim(FImageURL);
       FormData['t'] := '-';
+      if ADownloadFile then
+        AddFile(tmpFile, 'encoded_data')
+      else
+        FormData['url'] := trim(FImageURL);
 
       Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
       Result := Response.ResultText;
     except
       on E: Exception do
@@ -100,9 +119,11 @@ begin
     Free;
   end;
 
+  if FileExists(tmpFile) then
+    DeleteFile(tmpFile);
 end;
 
-function TClarifai.GetTagsAsString: string;
+function TClarifai.GetTagsAsString(ADownloadFile: boolean): string;
 var
   s: string;
   _jsonData: TJSONData;
@@ -110,7 +131,7 @@ begin
   Result := '';
   if FToken = '' then
     Exit;
-  s := GetTags;
+  s := GetTags(ADownloadFile);
   if s = '' then
     Exit;
 
