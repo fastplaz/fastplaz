@@ -35,6 +35,7 @@ type
     FDetails: string;
     FFeatures: string;
     FImageURL: string;
+    FTagCharacter: string;
     FToken: string;
     jsonData: TJSONData;
     function generateURL: string;
@@ -48,6 +49,7 @@ type
     property Details: string read FDetails write FDetails;
     property ImageURL: string read FImageURL write FImageURL;
     property Caption: string read FCaption;
+    property TagCharacter: string read FTagCharacter write FTagCharacter;
 
     function Analyze: string;
     function Analyze(AImageURL: string): string;
@@ -84,6 +86,7 @@ begin
   FFeatures := 'Description,Faces,Categories,Tags,Adult';
   FDetails := 'celebrities';
   FCaption := '';
+  FTagCharacter := ',';
 end;
 
 destructor TCognitiveAnalyze.Destroy;
@@ -133,7 +136,7 @@ begin
       i := i + 1;
     until s = '';
   end;
-  _tags := trim( StringReplace(trim(_tags), ' ', ', ', [rfReplaceAll]));
+  _tags := trim( StringReplace(trim(_tags), ' ', FTagCharacter + ' ', [rfReplaceAll]));
 
   if _tags <> '' then
     Result := Result + _tags + '.'#10;
