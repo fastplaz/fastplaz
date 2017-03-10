@@ -68,6 +68,8 @@ const
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
 
+  _CACHE_PATH = 'ztemp/cache/';
+
 type
   TStringArray = array of string;
 
@@ -115,6 +117,7 @@ function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 function ScanFolder(const APath: String; AWildCard:string = '*'):TStringList;
 function ZipFolder(APath: string; ATarget: string): boolean;
+function DownloadFile(const AURL: String;  const AFilePath: String):boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
@@ -859,6 +862,27 @@ begin
   _ZEntries.Free;
   _FileList.Free;
   _Zipper.Free;
+end;
+
+function DownloadFile(const AURL: String; const AFilePath: String): boolean;
+begin
+  Result := False;
+  if (AURL='') or (AFilePath='') then
+    Exit;
+  if FileExists(AFilePath) then
+    DeleteFile(AFilePath);
+  with TFPHTTPClient.Create(nil) do
+  begin
+    try
+      Get(AURL,AFilePath);
+      Result := True;
+    except
+      on E: Exception do
+      begin
+      end;
+    end;
+    Free;
+  end;
 end;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
