@@ -126,7 +126,7 @@ begin
     _tags := _tags + ' ' + s;
     i := i + 1;
   until s = '';
-  _tags := trim( _tags);
+  _tags := trim(_tags);
   if _tags = '' then
   begin
     i := 0;
@@ -136,10 +136,10 @@ begin
       i := i + 1;
     until s = '';
   end;
-  _tags := trim( StringReplace(trim(_tags), ' ', FTagCharacter + ' ', [rfReplaceAll]));
+  _tags := trim(StringReplace(trim(_tags), ' ', ' ' + FTagCharacter, [rfReplaceAll]));
 
   if _tags <> '' then
-    Result := Result + _tags + '.'#10;
+    Result := Result + '#' + _tags + '.'#10;
 
   FCaption := getData('description.captions[0].text');
 end;
