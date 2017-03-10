@@ -16,6 +16,9 @@ type
   TFacebookMessengerIntegration = class(TInterfacedObject)
   private
     FBotName: string;
+    FImageCaption: string;
+    FImageID: string;
+    FImageURL: string;
     FIsSuccessfull: boolean;
     FRequestContent: string;
     FResultCode: integer;
@@ -51,10 +54,16 @@ type
 
     function isCanSend: boolean;
     function isMessage: boolean;
+    function isImage(ADetail: boolean = False): boolean;
 
     property IsVoice: boolean read getIsVoice;
     property VoiceURL: string read getVoiceURL;
     function DownloadVoiceTo(ATargetFile: string): boolean;
+
+  published
+    property ImageID: string read FImageID;
+    property ImageURL: string read FImageURL;
+    property ImageCaption: string read FImageCaption;
   end;
 
 
@@ -269,6 +278,21 @@ begin
 
   // ...
 
+end;
+
+function TFacebookMessengerIntegration.isImage(ADetail: boolean): boolean;
+begin
+  Result := False;
+  FImageURL := '';
+  try
+    if jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
+      'image' then
+      Result := True;
+    FImageURL := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.url').AsString;
+    FImageCaption := jsonData.GetPath('entry[0].messaging[0].message.text').AsString;
+    FImageID := jsonData.GetPath('entry[0].messaging[0].message.mid').AsString;
+  except
+  end;
 end;
 
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
