@@ -262,8 +262,14 @@ begin
       AddHeader('Authorization', 'Bearer ' + FToken);
       RequestBody := TStringStream.Create(jsonParameter.AsJSON);
       Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
 
-      Die(Response.ResultText);
+      if FResultCode = 200 then
+      begin
+
+        Result := True;
+      end;
 
     except
     end;
