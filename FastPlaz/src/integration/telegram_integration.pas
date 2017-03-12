@@ -236,7 +236,10 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue);
+  try
+    jsonData := GetJSON(AValue);
+  except
+  end;
 end;
 
 function TTelegramIntegration.getText: string;
