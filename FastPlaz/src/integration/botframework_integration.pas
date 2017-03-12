@@ -118,6 +118,7 @@ end;
 function TMSBotFrameworkIntegration.getServiceURL: string;
 begin
   Result := jsonGetData(jsonData, 'serviceUrl');
+  Result := IncludeTrailingBackslash( Result);
 end;
 
 function TMSBotFrameworkIntegration.getText: string;
