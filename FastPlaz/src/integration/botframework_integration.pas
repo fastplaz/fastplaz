@@ -1,4 +1,5 @@
 unit botframework_integration;
+
 {
 
   [x] USAGE:
@@ -60,7 +61,7 @@ type
     function GetTokenAsJson: string;
     function isPing: boolean;
 
-    function ReplyMessage( AText:string):boolean;
+    function ReplyMessage(AText: string): boolean;
   published
     property RequestContent: string read FRequestContent write setRequestContent;
     property IsSuccessfull: boolean read FIsSuccessfull;
@@ -74,16 +75,16 @@ type
     property TokenType: string read FTokenType;
     property TokenExpiresIn: integer read FTokenExpiresIn;
 
-    property Text:string read getText;
+    property Text: string read getText;
     property MessageType: string read getMessageType;
-    property MessageID:string read getMessageID;
-    property ChannelID:string read getChannelID;
-    property UserID:string read getUserID;
-    property UserName:string read getUserName;
-    property RecipientID:string read getRecipientID;
-    property RecipientName:string read getRecipientName;
-    property ConversationID:string read getConversationID;
-    property ServiceURL:string read getServiceURL;
+    property MessageID: string read getMessageID;
+    property ChannelID: string read getChannelID;
+    property UserID: string read getUserID;
+    property UserName: string read getUserName;
+    property RecipientID: string read getRecipientID;
+    property RecipientName: string read getRecipientName;
+    property ConversationID: string read getConversationID;
+    property ServiceURL: string read getServiceURL;
   end;
 
 
@@ -122,6 +123,7 @@ end;
 function TMSBotFrameworkIntegration.getText: string;
 begin
   Result := jsonGetData(jsonData, 'text');
+  Result := Trim(Result);
 end;
 
 function TMSBotFrameworkIntegration.getUserID: string;
@@ -241,7 +243,7 @@ begin
   Result := False;
 
   // https://directline.botframework.com/v3/conversations/{conversationsID}/activities/{activitesID}
-  urlTarget:= ServiceURL + 'v3/conversations/'+ConversationID+'/activities/' + MessageID;
+  urlTarget := ServiceURL + 'v3/conversations/' + ConversationID + '/activities/' + MessageID;
 
   jsonParameter := TJSONUtil.Create;
   jsonParameter['type'] := 'message';
@@ -268,11 +270,7 @@ begin
 
     Free;
   end;
-
-
-  die( jsonParameter.AsJSONFormated);
 end;
 
 end.
-
 
