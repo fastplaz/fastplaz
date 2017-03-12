@@ -35,11 +35,14 @@ type
 
   TClarifai = class(TInterfacedObject)
   private
+    FClientID: string;
+    FClientSecret: string;
     FCommand: string;
     FImageURL: string;
     FResultCode: integer;
     FResultText: string;
     FToken: string;
+    procedure SetImageURL(AValue: string);
   public
     constructor Create;
     destructor Destroy;
@@ -48,11 +51,16 @@ type
     property ResultText: string read FResultText;
 
     property Command: string read FCommand write FCommand;
-    property ImageURL: string read FImageURL write FImageURL;
+    property ImageURL: string read FImageURL write SetImageURL;
     property Token: string read FToken write FToken;
 
     function GetTags(ADownloadFile: boolean = False): string;
     function GetTagsAsString(ADownloadFile: boolean = False): string;
+    function RequestTokenAsJson: string;
+    function RequestToken: string;
+  published
+    property ClientID: string read FClientID write FClientID;
+    property ClientSecret: string read FClientSecret write FClientSecret;
   end;
 
 implementation
@@ -65,9 +73,18 @@ var
 
 { TClarifai }
 
+procedure TClarifai.SetImageURL(AValue: string);
+begin
+  if FImageURL = AValue then
+    Exit;
+  FImageURL := Trim(AValue);
+end;
+
 constructor TClarifai.Create;
 begin
-
+  FToken := '';
+  FClientID := '';
+  FClientSecret := '';
 end;
 
 destructor TClarifai.Destroy;
@@ -99,11 +116,11 @@ begin
       //ContentType := 'application/x-www-form-urlencoded';
       //AddHeader('Cache-Control', 'no-cache');
       AddHeader('Authorization', 'Bearer ' + FToken);
-      FormData['t'] := '-';
       if ADownloadFile then
         AddFile(tmpFile, 'encoded_data')
       else
         FormData['url'] := trim(FImageURL);
+      FormData['t'] := '-';
 
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -166,13 +183,66 @@ begin
   _jsonData.Free;
 end;
 
+{
+curl -X POST "https://api.clarifai.com/v1/token/" \
+    -d "client_id={client_id}" \
+    -d "client_secret={client_secret}" \
+    -d "grant_type=client_credentials"
+}
+function TClarifai.RequestTokenAsJson: string;
+var
+  urlTarget: string;
+begin
+  Result := '';
+  if (FClientID = '') or (FClientSecret = '') then
+    Exit;
+
+  urlTarget := _CLARIFAI_URL + 'token/';
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      //AddHeader('Authorization', 'Bearer ' + FToken);
+      FormData['client_id'] := FClientID;
+      FormData['client_secret'] := FClientSecret;
+      FormData['grant_type'] := 'client_credentials';
+      FormData['client_type'] := 'confidential';
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      Result := Response.ResultText;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add(E.Message, 'clarifai');
+      end;
+    end;
+
+    Free;
+  end;
+end;
+
+function TClarifai.RequestToken: string;
+var
+  s: string;
+  _jsonData: TJSONData;
+begin
+  Result := '';
+  s := RequestTokenAsJson;
+  if s = '' then
+    Exit;
+  try
+    _jsonData := GetJSON(s);
+    Result := _jsonData.GetPath('access_token').AsString;
+  finally
+  end;
+end;
+
 end.
 {
 CURL Manual:
 
 curl "https://api.clarifai.com/v1/tag/"   -X POST --data-urlencode "url=https://samples.clarifai.com/metro-north.jpg"   -H "Authorization: Bearer tokenkey"
 }
-
 
 
 
