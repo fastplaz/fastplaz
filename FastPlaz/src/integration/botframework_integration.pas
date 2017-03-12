@@ -60,6 +60,9 @@ type
     function GetToken: string;
     function GetTokenAsJson: string;
     function isPing: boolean;
+    function isGroup: boolean;
+    function isMentioned: boolean;
+    function isInvitation: boolean;
 
     function ReplyMessage(AText: string): boolean;
   published
@@ -234,6 +237,30 @@ begin
   Result := False;
   if MessageType = 'ping' then
     Result := True;
+end;
+
+function TMSBotFrameworkIntegration.isGroup: boolean;
+begin
+  Result := False;
+  if jsonGetData(jsonData, 'conversation/name') <> '' then
+    Result := True;
+end;
+
+function TMSBotFrameworkIntegration.isMentioned: boolean;
+begin
+  Result := False;
+  if jsonGetData(jsonData, 'entities[0]/mentioned/name') = 'carik' then
+    Result := True;
+end;
+
+function TMSBotFrameworkIntegration.isInvitation: boolean;
+begin
+  Result := False;
+  if MessageType = 'conversationUpdate' then
+  begin
+    if jsonGetData(jsonData, 'membersAdded') = 'carik' then
+      Result := True;
+  end;
 end;
 
 function TMSBotFrameworkIntegration.ReplyMessage(AText: string): boolean;
