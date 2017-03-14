@@ -23,7 +23,7 @@ unit currencyibacor_integration;
 interface
 
 uses
-  common, http_lib, json_lib, fpjson,
+  common, http_lib, json_lib, fpjson, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -32,6 +32,7 @@ type
 
   TCurrencyIbacorIntegration = class
   private
+    FDebug: boolean;
     FToken: string;
   public
     constructor Create;
@@ -39,6 +40,8 @@ type
 
     property Token: string read FToken write FToken;
     function Converter(FromCurrency, ToCurrency: string; Value: integer): string;
+  published
+    property Debug: boolean read FDebug write FDebug;
   end;
 
 implementation
@@ -54,12 +57,11 @@ var
 
 constructor TCurrencyIbacorIntegration.Create;
 begin
-
+  FDebug := False;
 end;
 
 destructor TCurrencyIbacorIntegration.Destroy;
 begin
-
 end;
 
 function TCurrencyIbacorIntegration.Converter(FromCurrency, ToCurrency: string;
@@ -87,13 +89,18 @@ begin
       Result := UpperCase(FromCurrency) + ' ' + i2s(Value) + ' = ' +
         UpperCase(ToCurrency) + ' ';
 
-      _nominalFloat:= s2f( _json['data/to/amount']);
+      _nominalFloat := s2f(_json['data/to/amount']);
       DefaultFormatSettings.ThousandSeparator := '.';
 
       Result := Result + FormatFloat('###,##0', _nominalFloat);
     end;
   except
-    Result := '';
+    on E: Exception do
+    begin
+      Result := '';
+      if FDebug then
+        LogUtil.Add(E.Message, 'IBACOR');
+    end;
   end;
   _json.Free;
 
