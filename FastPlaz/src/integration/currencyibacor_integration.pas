@@ -34,6 +34,7 @@ type
   private
     FDebug: boolean;
     FToken: string;
+    jsonData: TJSONData;
   public
     constructor Create;
     destructor Destroy;
@@ -62,6 +63,8 @@ end;
 
 destructor TCurrencyIbacorIntegration.Destroy;
 begin
+  if Assigned(jsonData) then
+    jsonData.Free;
 end;
 
 function TCurrencyIbacorIntegration.Converter(FromCurrency, ToCurrency: string;
@@ -69,7 +72,6 @@ function TCurrencyIbacorIntegration.Converter(FromCurrency, ToCurrency: string;
 var
   _url: string;
   _http: THTTPLib;
-  _json: TJSONUtil;
   _nominalFloat: double;
 begin
   Result := '';
@@ -81,29 +83,35 @@ begin
   Response := _http.Get;
   _http.Free;
 
-  _json := TJSONUtil.Create;
+  if Response.ResultCode <> 200 then
+  begin
+    LogUtil.Add(Response.ResultText, 'IBACOR');
+    Result := '';
+    Exit;
+  end;
+
   try
-    _json.LoadFromJsonString(Response.ResultText);
-    if _json['status'] = 'success' then
+    jsonData := GetJSON( Response.ResultText);
+    if jsonGetData(jsonData, 'status') = 'success' then
     begin
       Result := UpperCase(FromCurrency) + ' ' + i2s(Value) + ' = ' +
         UpperCase(ToCurrency) + ' ';
 
-      _nominalFloat := s2f(_json['data/to/amount']);
+      _nominalFloat:= s2f( jsonGetData(jsonData, 'data/to/amount'));
       DefaultFormatSettings.ThousandSeparator := '.';
-
-      Result := Result + FormatFloat('###,##0', _nominalFloat);
+      Result := Result + FormatFloat('###,#0', _nominalFloat);
     end;
   except
     on E: Exception do
     begin
       Result := '';
       if FDebug then
+      begin
         LogUtil.Add(E.Message, 'IBACOR');
+        LogUtil.Add(Response.ResultText, 'IBACOR');
+      end;
     end;
   end;
-  _json.Free;
-
 end;
 
 end.
