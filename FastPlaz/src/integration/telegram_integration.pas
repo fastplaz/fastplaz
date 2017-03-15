@@ -576,6 +576,8 @@ function TTelegramIntegration.SendAudio(const ChatID: string;
   const ReplyToMessageID: string): boolean;
 var
   urlTarget: string;
+  json: TJSONUtil;
+  errorCode: integer;
 begin
   Result := False;
   FResultCode := 0;
@@ -598,6 +600,16 @@ begin
       Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
+
+      json := TJSONUtil.Create;
+      json.LoadFromJsonString(FResultText);
+      errorCode := json['error_code'];
+      json.Free;
+
+      if errorCode <> 200 then
+      begin
+        LogUtil.Add(urlTarget, 'TAUDIO');
+      end;
 
       FIsSuccessfull := IsSuccessfull;
     except
@@ -996,7 +1008,7 @@ begin
   if not ADetail then
     Exit;
 
-  FImagePath:= GetFilePath( FImageID);
+  FImagePath := GetFilePath(FImageID);
   if FImagePath = '' then
     Exit;
 
