@@ -17,6 +17,9 @@ type
   private
     FBotName: string;
     FIsSuccessfull: boolean;
+    FLocationLatitude: double;
+    FLocationLongitude: double;
+    FLocationName: string;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -24,6 +27,7 @@ type
     jsonData: TJSONData;
     function getGroupID: string;
     function getGroupName: string;
+    function getMessageID: string;
     function getReplyToken: string;
     function getText: string;
     function getUserID: string;
@@ -57,9 +61,19 @@ type
     function isCanSend: boolean;
     function isJoinToGroup: boolean;
     function isMessage: boolean;
+    function isLocation: boolean;
+    function isAudio: boolean;
+    function isVoice: boolean;
     function isSticker: boolean;
     function isGroup: boolean;
     function isMentioned: boolean;
+
+    function DownloadFile(AMessageID: string; ATargetPath: string): boolean;
+  published
+    property MessageID:string read getMessageID;
+    property LocationLatitude: double read FLocationLatitude;
+    property LocationLongitude: double read FLocationLongitude;
+    property LocationName: string read FLocationName;
   end;
 
 
@@ -107,6 +121,15 @@ begin
   Result := getGroupID;
 
   //TODO: get group real group name
+end;
+
+function TLineIntegration.getMessageID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('events[0].message.id').AsString;
+  except
+  end;
 end;
 
 function TLineIntegration.getText: string;
@@ -404,7 +427,7 @@ end;
 
 function TLineIntegration.GetContent(AMessageID: string): boolean;
 begin
-  Result := GetContent(AMessageID, _LINE_PATH_TEMP_DEFAULT + trim(AMessageID) + '.bin');
+  Result := GetContent(AMessageID, _LINE_PATH_TEMP_DEFAULT + trim(AMessageID) + '.msg');
 end;
 
 function TLineIntegration.isCanSend: boolean;
@@ -435,6 +458,36 @@ begin
   end;
 end;
 
+function TLineIntegration.isLocation: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].message.type').AsString = 'location' then
+    begin
+      Result := True;
+      FLocationLatitude := jsonData.GetPath('events[0].message.latitude').AsFloat;
+      FLocationLongitude := jsonData.GetPath('events[0].message.longitude').AsFloat;
+      FLocationName := jsonData.GetPath('events[0].message.title').AsString;
+    end;
+  except
+  end;
+end;
+
+function TLineIntegration.isAudio: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].message.type').AsString = 'audio' then
+      Result := True;
+  except
+  end;
+end;
+
+function TLineIntegration.isVoice: boolean;
+begin
+  Result := isAudio;
+end;
+
 function TLineIntegration.isSticker: boolean;
 begin
   Result := False;
@@ -462,6 +515,12 @@ begin
     Result := True;
   if pos('Bot', Text) > 0 then    // force dectect as Bot  (____Bot)
     Result := True;
+end;
+
+function TLineIntegration.DownloadFile(AMessageID: string;
+  ATargetPath: string): boolean;
+begin
+  Result := GetContent(AMessageID, ATargetPath);
 end;
 
 end.

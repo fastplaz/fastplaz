@@ -63,6 +63,7 @@ type
     function isGroup: boolean;
     function isMentioned: boolean;
     function isInvitation: boolean;
+    function isIncomingCall: boolean;
 
     function ReplyMessage(AText: string): boolean;
   published
@@ -261,6 +262,13 @@ begin
     if jsonGetData(jsonData, 'membersAdded') = 'carik' then
       Result := True;
   end;
+end;
+
+function TMSBotFrameworkIntegration.isIncomingCall: boolean;
+begin
+  Result := False;
+  if jsonGetData(jsonData, 'callState') = 'incoming' then
+    Result := True;
 end;
 
 function TMSBotFrameworkIntegration.ReplyMessage(AText: string): boolean;
