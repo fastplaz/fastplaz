@@ -30,7 +30,12 @@ type
 
   TGooglePlaceIntegration = class(TInterfacedObject)
   private
+    FAddress: string;
+    FCount: integer;
     FKey: string;
+    FLatitude: double;
+    FLongitude: double;
+    FTitle: string;
   public
     constructor Create; virtual;
     destructor Destroy; virtual;
@@ -38,6 +43,12 @@ type
     property Key: string read FKey write FKey;
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
+  published
+    property Count: integer read FCount write FCount;
+    property Title: string read FTitle write FTitle;
+    property Address: string read FAddress write FAddress;
+    property Latitude: double read FLatitude write FLatitude;
+    property Longitude: double read FLongitude write FLongitude;
   end;
 
 
@@ -56,7 +67,7 @@ var
 
 constructor TGooglePlaceIntegration.Create;
 begin
-
+  FCount := 0;
 end;
 
 destructor TGooglePlaceIntegration.Destroy;
@@ -64,7 +75,8 @@ begin
 
 end;
 
-function TGooglePlaceIntegration.Search(Keyword: string; ALat: double; ALon: double): string;
+function TGooglePlaceIntegration.Search(Keyword: string; ALat: double;
+  ALon: double): string;
 var
   _url: string;
 begin
@@ -92,8 +104,8 @@ begin
   end;
 end;
 
-function TGooglePlaceIntegration.SearchAsText(Keyword: string; ALat: double; ALon: double): string;
-
+function TGooglePlaceIntegration.SearchAsText(Keyword: string;
+  ALat: double; ALon: double): string;
 
 var
   s, _name, _lat, _lon, _url: string;
@@ -105,9 +117,21 @@ begin
     Exit;
   try
     _json := GetJSON(s);
+    FCount := _json.GetPath('results').Count;
     s := '';
-    for i := 0 to 3 do
+    if FCount > 4 then
+      FCount := 4;
+    for i := 0 to FCount - 1 do
     begin
+      if FCount = 1 then
+      begin
+        FTitle := jsonGetData(_json, 'results[' + i2s(i) + '].name');
+        FAddress := jsonGetData(_json, 'results[' + i2s(i) + '].formatted_address');
+        FLatitude := _json.GetPath('results[' + i2s(i) +
+          '].geometry.location.lat').AsFloat;
+        FLongitude := _json.GetPath('results[' + i2s(i) +
+          '].geometry.location.lng').AsFloat;
+      end;
       _name := _json.GetPath('results[' + i2s(i) + '].name').AsString;
       _lat := Format('%.16f', [_json.GetPath('results[' + i2s(i) +
         '].geometry.location.lat').AsFloat]);

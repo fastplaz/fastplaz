@@ -139,6 +139,8 @@ type
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVideo(const ChatID: integer; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
+    function SendVenue(const ChatID: string; const AName: string;
+      const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''): boolean;
     function SendContact(const ChatID: integer;
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
@@ -211,6 +213,8 @@ const
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
   TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
+  //https://api.telegram.org/bot307478661:AAF9DGtgoASYsVF6KwHm7qhimXq8cHGIxTk/sendVenue?chat_id=2222647&latitude=-6.228018&longitude=106.82453&title=suatu%20tempat&address=alamatnya
+  TELEGRAM_COMMAND_SENDVENUE = 'sendVenue?chat_id=%s&title=%s&address=%s&latitude=%f&longitude=%f&parse_mode=%s';
   TELEGRAM_COMMAND_SENDCONTACT =
     'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
@@ -758,6 +762,46 @@ begin
 
   Result := FIsSuccessfull;
 
+end;
+
+function TTelegramIntegration.SendVenue(const ChatID: string;
+  const AName: string; const AAddress: string; ALatitude, ALongitude: double;
+  const ReplyToMessageID: string): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  FResultCode := 0;
+  FResultText := '';
+  FIsSuccessfull := False;
+
+  if (ChatID = '') or (ALatitude = 0) or ( ALongitude=0) then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDVENUE,
+    [ChatID, AName, AAddress, ALatitude, ALongitude, FParseMode]);
+
+  if ReplyToMessageID <> '' then
+    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/x-www-form-urlencoded';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
+      if FResultCode = 200 then
+        FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
 end;
 
 
