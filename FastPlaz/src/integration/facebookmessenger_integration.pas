@@ -6,7 +6,7 @@ interface
 
 uses
   common, http_lib, json_lib, logutil_lib,
-  fpjson,
+  fpjson, strutils,
   Classes, SysUtils;
 
 type
@@ -71,7 +71,7 @@ type
 implementation
 
 const
-  _FACEBOOK_MSG_MAXLENGTH = 365;
+  _FACEBOOK_MSG_MAXLENGTH = 635;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
   _FACEBOOK_MESSENGER_SEND_URL =
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
@@ -158,6 +158,7 @@ end;
 
 procedure TFacebookMessengerIntegration.Send(ATo: string; AMessages: string);
 var
+  posSplit: integer;
   s: string;
 begin
   if not isCanSend then
@@ -165,9 +166,13 @@ begin
   if (ATo = '') or (AMessages = '') then
     Exit;
 
+  posSplit := 0;
+  s := AMessages;
   if Length(AMessages) > _FACEBOOK_MSG_MAXLENGTH then
   begin
-    AMessages := Copy(AMessages, 0, _FACEBOOK_MSG_MAXLENGTH) + ' ...';
+    s := Copy(AMessages, 0, _FACEBOOK_MSG_MAXLENGTH);
+    posSplit := RPos(' ', s);
+    s := Copy(s, 0, posSplit) + '...';
   end;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
@@ -175,12 +180,23 @@ begin
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(AMessages)]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
+
+      if FResultCode = 200 then
+      begin
+        if posSplit > 0 then
+        begin
+          s := '...' + Copy(AMessages, posSplit);
+          if Length(s) > _FACEBOOK_MSG_MAXLENGTH then
+            s := Copy(s, 0, _FACEBOOK_MSG_MAXLENGTH) + ' ...';
+          Send(ATo, s);
+        end;
+      end;
 
     except
     end;
