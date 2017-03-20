@@ -71,6 +71,7 @@ type
 implementation
 
 const
+  _FACEBOOK_MSG_MAXLENGTH = 365;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
   _FACEBOOK_MESSENGER_SEND_URL =
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
@@ -164,6 +165,11 @@ begin
   if (ATo = '') or (AMessages = '') then
     Exit;
 
+  if Length(AMessages) > _FACEBOOK_MSG_MAXLENGTH then
+  begin
+    AMessages := Copy(AMessages, 0, _FACEBOOK_MSG_MAXLENGTH) + ' ...';
+  end;
+
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
   begin
     try
@@ -197,7 +203,8 @@ begin
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON, [ATo, StringToJSONString(AAudioURL)]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON,
+        [ATo, StringToJSONString(AAudioURL)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -288,7 +295,8 @@ begin
     if jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
       'image' then
       Result := True;
-    FImageURL := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.url').AsString;
+    FImageURL := jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].payload.url').AsString;
     FImageCaption := jsonData.GetPath('entry[0].messaging[0].message.text').AsString;
     FImageID := jsonData.GetPath('entry[0].messaging[0].message.mid').AsString;
   except

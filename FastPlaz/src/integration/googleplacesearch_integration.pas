@@ -35,6 +35,8 @@ type
     FKey: string;
     FLatitude: double;
     FLongitude: double;
+    FResultCode: integer;
+    FResultText: string;
     FTitle: string;
   public
     constructor Create; virtual;
@@ -44,6 +46,9 @@ type
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
   published
+    property ResultCode: integer read FResultCode;
+    property ResultText: string read FResultText;
+
     property Count: integer read FCount write FCount;
     property Title: string read FTitle write FTitle;
     property Address: string read FAddress write FAddress;
@@ -95,6 +100,9 @@ begin
     try
       //AddHeader('Cache-Control', 'no-cache');
       Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
       if Response.ResultCode <> 200 then
         Exit;
       Result := Response.ResultText;
