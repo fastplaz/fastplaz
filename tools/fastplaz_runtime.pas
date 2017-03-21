@@ -13,7 +13,7 @@ uses
   modvar_model, session_model, docs_controller, error_controller, 
   exception_controller, fastplaz_handler, info_controller, 
   initialize_controller, module_controller, session_controller, 
-  theme_controller, modvar_util, fastplaz_runtime_register;
+  theme_controller, modvar_util, fastplaz_runtime_register, rss_lib;
 
 implementation
 

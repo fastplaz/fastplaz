@@ -91,6 +91,7 @@ function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
+function StreamToString(AStream: TStream): string;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
@@ -101,6 +102,7 @@ function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
+function isEmpty(AString: string): boolean;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
@@ -249,6 +251,26 @@ begin
     Result := True;
   if s = 'required' then
     Result := True;
+end;
+
+function StreamToString(AStream: TStream): string;
+var
+  SS: TStringStream;
+begin
+  if AStream <> nil then
+  begin
+    SS := TStringStream.Create('');
+    try
+      SS.CopyFrom(AStream, 0);  // No need to position at 0 nor provide size
+      Result := SS.DataString;
+    finally
+      SS.Free;
+    end;
+  end
+  else
+  begin
+    Result := '';
+  end;
 end;
 
 function StringCut(AStartString, AStopString: string; AText: string): string;
@@ -440,6 +462,13 @@ begin
   end;
 
   Result := lst;
+end;
+
+function isEmpty(AString: string): boolean;
+begin
+  Result := False;
+  if AString = '' then
+    Result := True;
 end;
 
 // maybe is regex ?
