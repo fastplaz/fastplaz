@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>
-    <Files Count="30">
+    <Files Count="31">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -142,6 +142,10 @@
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item30>
+      <Item31>
+        <Filename Value="..\FastPlaz\src\library\rss_lib.pas"/>
+        <UnitName Value="rss_lib"/>
+      </Item31>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
