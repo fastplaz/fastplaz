@@ -178,14 +178,32 @@ begin
   while Assigned(item) do
   begin
     jItem := TJSONObject.Create;
-    jItem.Strings['title'] := getTagValue(item, 'title');
+    jItem.Strings['title'] := Trim(getTagValue(item, 'title'));
     jItem.Strings['link'] := getTagValue(item, 'link');
 
+    // get media
     media := item.FindNode('media:content');
     if Assigned(media) then
     begin
       jItem.Strings['image'] := media.Attributes.GetNamedItem('url').TextContent;
     end;
+    if jItem.Strings['image'] = '' then
+    begin
+      media := item.FindNode('enclosure');
+      if Assigned(media) then
+      begin
+        jItem.Strings['image'] := media.Attributes.GetNamedItem('url').TextContent;
+      end;
+    end;
+    if jItem.Strings['image'] = '' then
+    begin
+      media := item.FindNode('image');
+      if Assigned(media) then
+      begin
+        jItem.Strings['image'] := getTagValue(media, 'url');
+      end;
+    end;
+    //-- get media - end
 
     jItem.Strings['description'] := getTagValue(item, 'description');
     jArray.Add( jItem);
