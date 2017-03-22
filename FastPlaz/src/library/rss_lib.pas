@@ -183,6 +183,7 @@ begin
 
     // get media
     media := item.FindNode('media:content');
+    jItem.Strings['image'] := '';
     if Assigned(media) then
     begin
       jItem.Strings['image'] := media.Attributes.GetNamedItem('url').TextContent;
