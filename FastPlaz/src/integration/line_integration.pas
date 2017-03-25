@@ -146,7 +146,8 @@ type
     procedure Send(ATo: string; AMessages: string);
     procedure SendAudio(AUserID: string; AAudioURL: string);
     procedure SendSticker(ATo: string; APackageID: string; AStickerID: string);
-    procedure SendLocation(AUserID: string; AName:string; AAddress:string; ALatitude:double; ALongitude:double);
+    procedure SendLocation(AUserID: string; AName: string; AAddress: string;
+      ALatitude: double; ALongitude: double);
     function GetContent(AMessageID: string; ATargetFile: string): boolean;
     function GetContent(AMessageID: string): boolean;
 
@@ -548,7 +549,7 @@ begin
       _jsonString.Add('"to":"' + AUserID + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "audio", "originalContentUrl": "' +
-        AAudioURL + '", "duration": 240000}');
+        StringToJSONString(Trim(AAudioURL)) + '", "duration": 240000}');
       _jsonString.Add(']');
       _jsonString.Add('}');
 
@@ -623,7 +624,7 @@ var
 begin
   if not isCanSend then
     Exit;
-  if (AUserID = '') or (ALatitude = 0) or ( ALongitude=0) then
+  if (AUserID = '') or (ALatitude = 0) or (ALongitude = 0) then
     Exit;
 
   _jsonString := TStringList.Create;

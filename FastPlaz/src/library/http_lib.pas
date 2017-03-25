@@ -120,6 +120,7 @@ type
     FMethod: string;
     FURL: string;
     HTTPClient: TFPHTTPClient;
+    function GetRequestHeaders: string;
     function getResponseHeaders: string;
     function getResponseStatusCode: integer;
     function getURL: string;
@@ -140,6 +141,7 @@ type
     property Method: string read FMethod write FMethod;
     property ResponseStatusCode: integer read getResponseStatusCode;
     property ResponseHeaders: string read getResponseHeaders;
+    property RequestHeaders:string read GetRequestHeaders;
     property IsSuccessfull: boolean read FIsSuccesfull;
   end;
 
@@ -156,6 +158,7 @@ type
     function GetCookies: TStrings;
     function GetPostFormData(variable: string): string;
     function getIsSuccessfull: boolean;
+    function GetRequestHeaders: string;
     function getStreamSize: int64;
     function getURL: string;
     procedure SetCookies(AValue: TStrings);
@@ -189,6 +192,7 @@ type
     property Size: int64 read getStreamSize;
     property IsSuccessfull: boolean read getIsSuccessfull;
     property OnSyncStatus: TNotifyEvent read FOnSyncStatus write FOnSyncStatus;
+    property RequestHeaders: string read GetRequestHeaders;
   end;
 
 
@@ -207,6 +211,11 @@ end;
 function TWorkerHTTP.getResponseHeaders: string;
 begin
   Result := HTTPClient.ResponseHeaders.Text;
+end;
+
+function TWorkerHTTP.GetRequestHeaders: string;
+begin
+  Result := HTTPClient.RequestHeaders.Text;
 end;
 
 function TWorkerHTTP.getResponseStatusCode: integer;
@@ -451,6 +460,11 @@ end;
 function THTTPLib.getIsSuccessfull: boolean;
 begin
   Result := FWorker.IsSuccessfull;
+end;
+
+function THTTPLib.GetRequestHeaders: string;
+begin
+  Result := FWorker.RequestHeaders;
 end;
 
 procedure THTTPLib.setURL(AValue: string);
