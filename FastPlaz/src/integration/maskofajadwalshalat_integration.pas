@@ -25,7 +25,7 @@ interface
 
 uses
   common, http_lib, json_lib, logutil_lib,
-  fpjson, jsonparser, dateutils,
+  fpjson, jsonparser, dateutils, fphttpclient,
   Classes, SysUtils;
 
 type
@@ -66,7 +66,8 @@ type
 implementation
 
 const
-  _MASKOFA_JADWALSHALAT_URL = 'http://api.maskofa.com/jadwal-shalat-bulanan.html';
+  _MASKOFA_JADWALSHALAT_URL = 'http://api.maskofa.com/jadwal-shalat.html';
+  _MASKOFA_JADWALSHALAT_BULANAN_URL = 'http://api.maskofa.com/jadwal-shalat-bulanan.html';
   _MASKOFA_JADWALSHALAT_CITYIDDEFAULT = 310; // jakarta selatan
 
 var
@@ -104,23 +105,51 @@ end;
 
 function TMasKofaJadwalShalatIntegration.getData(ACityID: integer;
   ADateTime: TDate): boolean;
+var
+  s: string;
+  http : TFPHTTPClient;
 begin
   Result := False;
 
+  http := TFPHTTPClient.Create(nil);
+  try
+    s := 'user=' + FUsername;
+    s := s + '&pass=' + FPassword;
+    s := s + '&sesid=' + FSessionID;
+    s := s + '&kota=' + i2s(ACityID);
+    s := s + '&bulan=' + i2s(MonthOf(ADateTime));
+    s := s + '&tahun=' + i2s(YearOf(ADateTime));
+    s := http.FormPost( _MASKOFA_JADWALSHALAT_BULANAN_URL, s);
+    if http.ResponseStatusCode = 200 then
+    begin
+      jsonData := GetJSON(s);
+      if jsonGetData(jsonData, 'status') = 'success' then
+      begin
+        Result := True;
+      end;
+    end;
+  except
+  end;
+
+  http.Free;
+
+  {
   with THTTPLib.Create(_MASKOFA_JADWALSHALAT_URL) do
   begin
     try
       AddHeader('Cache-Control', 'no-cache');
+      AddHeader('Content-Type','application/x-www-form-urlencoded');
       FormData['user'] := FUsername;
       FormData['pass'] := FPassword;
       FormData['sesid'] := FSessionID;
       FormData['kota'] := i2s(ACityID);
-      FormData['bulanan'] := i2s(MonthOf(ADateTime));
+      FormData['bulan'] := i2s(MonthOf(ADateTime));
       FormData['tahun'] := i2s(YearOf(ADateTime));
 
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
+
       FIsSuccessfull := IsSuccessfull;
       if FResultCode = 200 then
       begin
@@ -134,6 +163,7 @@ begin
     end;
     Free;
   end;
+  }
 end;
 
 constructor TMasKofaJadwalShalatIntegration.Create;
@@ -183,11 +213,11 @@ begin
     Exit;
 
   s := FormatDateTime('d', ADateTime);
-  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/' + s + '/2');
-  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/' + s + '/5');
-  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/' + s + '/6');
-  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/' + s + '/7');
-  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/' + s + '/8');
+  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/' + s + '/Shubuh');
+  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/' + s + '/Dzuhur');
+  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/' + s + '/Ashr');
+  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/' + s + '/Maghrib');
+  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/' + s + '/Isya');
 
   Result := Trim(Result);
 end;
