@@ -156,6 +156,7 @@ type
     function isMessage: boolean;
     function isLocation: boolean;
     function isAudio: boolean;
+    function isImage: boolean;
     function isVoice: boolean;
     function isSticker: boolean;
     function isGroup: boolean;
@@ -753,6 +754,16 @@ begin
   Result := False;
   try
     if jsonData.GetPath('events[0].message.type').AsString = 'audio' then
+      Result := True;
+  except
+  end;
+end;
+
+function TLineIntegration.isImage: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].message.type').AsString = 'image' then
       Result := True;
   except
   end;
