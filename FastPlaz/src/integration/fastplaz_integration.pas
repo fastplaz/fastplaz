@@ -18,7 +18,7 @@ uses
   maskofajadwalshalat_integration, ombd_integration, 
   openweathermap_integration, resiibacor_integration, telegram_integration, 
   whois_integration, witai_integration, yandextranslate_integration, 
-  zomato_integration, LazarusPackageIntf;
+  zomato_integration, ibacortrainschedule_integration, LazarusPackageIntf;
 
 implementation
 
