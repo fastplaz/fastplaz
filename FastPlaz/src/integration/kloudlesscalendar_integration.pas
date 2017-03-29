@@ -176,10 +176,11 @@ begin
   end;
 
   _eventList := TStringList.Create;
+  AFilter := UpperCase( AFilter);
   for i := 0 to FEventCountTotal - 1 do
   begin
     s := jsonGetData(jsonData, 'objects[' + i2s(i) + '].name');
-    if Pos( AFilter, s) = 0 then
+    if Pos( AFilter, UpperCase(s)) = 0 then
       Continue;
 
     s := jsonGetData(jsonData, 'objects[' + i2s(i) + '].id') + '#' + s;
