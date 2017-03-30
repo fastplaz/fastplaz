@@ -107,6 +107,7 @@ type
   TLineIntegration = class(TInterfacedObject)
   private
     FBotName: string;
+    FDebug: boolean;
     FIsSuccessfull: boolean;
     FLocationLatitude: double;
     FLocationLongitude: double;
@@ -164,6 +165,7 @@ type
 
     function DownloadFile(AMessageID: string; ATargetPath: string): boolean;
   published
+    property Debug:boolean read FDebug write FDebug;
     property MessageID: string read getMessageID;
     property LocationLatitude: double read FLocationLatitude;
     property LocationLongitude: double read FLocationLongitude;
@@ -386,7 +388,7 @@ end;
 
 constructor TLineIntegration.Create;
 begin
-
+  FDebug := False;
 end;
 
 destructor TLineIntegration.Destroy;
@@ -557,12 +559,14 @@ begin
         urlAudio := copy(urlAudio, 0, 999);
         urlAudio := copy(urlAudio, 0, RPos('_', urlAudio) - 1);
       end;
+      if FDebug then
+        LogUtil.Add( urlAudio, 'LINE_AUDIO');
 
       _jsonString.Add('{');
       _jsonString.Add('"to":"' + AUserID + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "audio", "originalContentUrl": "' +
-        urlAudio + '", "duration": 240000}');
+        urlAudio + '", "duration": ' + i2s(Length(urlAudio) * 120) + '}');
       _jsonString.Add(']');
       _jsonString.Add('}');
 
