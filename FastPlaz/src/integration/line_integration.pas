@@ -547,16 +547,16 @@ begin
       //AddHeader('Accept', '*/*');
       AddHeader('Authorization', 'Bearer ' + FToken);
 
-      urlAudio := ReplaceAll(AAudioURL, [ '*', '$', '#', '>', '<', ''''], '');
-      urlAudio := StringReplace( urlAudio, '\n', '._', [rfReplaceAll]);
-      urlAudio := StringReplace( urlAudio, #10, '._', [rfReplaceAll]);
+      urlAudio := ReplaceAll(AAudioURL, ['*', '$', '#', '>', '<', ''''], '');
+      urlAudio := StringReplace(urlAudio, '\n', '._', [rfReplaceAll]);
+      urlAudio := StringReplace(urlAudio, #10, '._', [rfReplaceAll]);
 
       urlAudio := StringToJSONString(Trim(urlAudio));
       if Length(urlAudio) > 999 then
       begin
         urlAudio := copy(urlAudio, 0, 999);
+        urlAudio := copy(urlAudio, 0, RPos('_', urlAudio) - 1);
       end;
-      urlAudio := copy( urlAudio, 0, RPos('_', urlAudio)-1);
 
       _jsonString.Add('{');
       _jsonString.Add('"to":"' + AUserID + '",');
