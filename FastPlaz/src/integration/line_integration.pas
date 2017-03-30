@@ -54,7 +54,7 @@ interface
 
 uses
   common, http_lib, json_lib, logutil_lib,
-  fpjson,
+  fpjson, strutils,
   Classes, SysUtils;
 
 type
@@ -526,6 +526,7 @@ end;
 
 procedure TLineIntegration.SendAudio(AUserID: string; AAudioURL: string);
 var
+  urlAudio: string;
   _jsonString: TStringList;
 begin
   if not isCanSend then
@@ -546,11 +547,22 @@ begin
       //AddHeader('Accept', '*/*');
       AddHeader('Authorization', 'Bearer ' + FToken);
 
+      urlAudio := ReplaceAll(AAudioURL, [ '*', '$', '#', '>', '<', ''''], '');
+      urlAudio := StringReplace( urlAudio, '\n', '._', [rfReplaceAll]);
+      urlAudio := StringReplace( urlAudio, #10, '._', [rfReplaceAll]);
+
+      urlAudio := StringToJSONString(Trim(urlAudio));
+      if Length(urlAudio) > 999 then
+      begin
+        urlAudio := copy(urlAudio, 0, 999);
+      end;
+      urlAudio := copy( urlAudio, 0, RPos('_', urlAudio)-1);
+
       _jsonString.Add('{');
       _jsonString.Add('"to":"' + AUserID + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "audio", "originalContentUrl": "' +
-        StringToJSONString(Trim(AAudioURL)) + '", "duration": 240000}');
+        urlAudio + '", "duration": 240000}');
       _jsonString.Add(']');
       _jsonString.Add('}');
 
