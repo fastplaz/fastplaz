@@ -142,23 +142,28 @@ begin
 
   ACityName := StringReplace(UpperCase(ACityName), ' ', '', [rfReplaceAll]);
   AStationName := StringReplace(UpperCase(AStationName), ' ', '', [rfReplaceAll]);
-  for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
-  begin
-    s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
-    s := StringReplace(s, ' ', '', [rfReplaceAll]);
-    if s = ACityName then
+  try
+    for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
     begin
-      for j := 0 to jsonData.GetPath('data.stasiun[' + i2s(i) + '].list').Count - 1 do
+      s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
+      s := StringReplace(s, ' ', '', [rfReplaceAll]);
+      if s = ACityName then
       begin
-        s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/list[' + i2s(j) + ']/name');
-        s := StringReplace(s, ' ', '', [rfReplaceAll]);
-        if Pos(AStationName, s)>0 then
+        for j := 0 to jsonData.GetPath('data.stasiun[' + i2s(i) + '].list').Count - 1 do
         begin
-          Result := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/list[' + i2s(j) + ']/value');
+          s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/list[' +
+            i2s(j) + ']/name');
+          s := StringReplace(s, ' ', '', [rfReplaceAll]);
+          if Pos(AStationName, s) > 0 then
+          begin
+            Result := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) +
+              ']/list[' + i2s(j) + ']/value');
+          end;
         end;
+        exit;
       end;
-      exit;
     end;
+  except
   end;
 end;
 
@@ -173,13 +178,16 @@ begin
     if not getStationData then
       exit;
 
-  for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
-  begin
-    s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
-    if s = UpperCase(ACityName) then
+  try
+    for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
     begin
-      Result := True;
+      s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
+      if s = UpperCase(ACityName) then
+      begin
+        Result := True;
+      end;
     end;
+  except
   end;
 
 end;
@@ -197,21 +205,25 @@ begin
 
   ACityName := StringReplace(UpperCase(ACityName), ' ', '', [rfReplaceAll]);
   Result := '';
-  for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
-  begin
-    s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
-    s := StringReplace(s, ' ', '', [rfReplaceAll]);
-    if s = ACityName then
+  try
+    for i := 0 to jsonData.GetPath('data.stasiun').Count - 1 do
     begin
-      for j := 0 to jsonData.GetPath('data.stasiun[' + i2s(i) + '].list').Count - 1 do
+      s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/kota');
+      s := StringReplace(s, ' ', '', [rfReplaceAll]);
+      if s = ACityName then
       begin
-        s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/list[' + i2s(j) + ']/name');
-        s := StringReplace(s, ' ', '', [rfReplaceAll]);
-        Result := Result + s + #10;
+        for j := 0 to jsonData.GetPath('data.stasiun[' + i2s(i) + '].list').Count - 1 do
+        begin
+          s := jsonGetData(jsonData, 'data/stasiun[' + i2s(i) + ']/list[' +
+            i2s(j) + ']/name');
+          s := StringReplace(s, ' ', '', [rfReplaceAll]);
+          Result := Result + s + #10;
+        end;
+        Result := Trim(Result);
+        exit;
       end;
-      Result := Trim(Result);
-      exit;
     end;
+  except
   end;
 end;
 

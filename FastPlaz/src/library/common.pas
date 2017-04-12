@@ -11,7 +11,8 @@ uses
   fphttpclient,
   //fphttpclient_with_ssl,
   RegExpr,
-  netdb, Sockets,
+  //netdb,
+  resolve,
   zipper, strutils, dateutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
@@ -1216,12 +1217,26 @@ begin
 end;
 
 function GetHostNameIP(HostName: string): string;
+{
 var
   i: integer;
   ans: array [1..10] of THostAddr;
   lst: TStrings;
+}
 begin
   Result := '';
+  with THostResolver.Create(nil) do
+  begin
+    try
+      if NameLookup( HostName ) then
+      begin
+        Result := Trim( AddressAsString);
+      end;
+    except
+    end;
+    Free;
+  end;
+{
   i := ResolveName(HostName, ans);
   if i = 0 then
     Exit;
@@ -1235,6 +1250,7 @@ begin
   end;
   Result := Result + lst[0];
   lst.Free;
+}
 end;
 
 // example:

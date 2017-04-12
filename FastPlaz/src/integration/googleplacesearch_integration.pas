@@ -120,6 +120,7 @@ var
   i: integer;
   _json: TJSONData;
 begin
+  Result := '';
   s := Search(Keyword, ALat, ALon);
   if s = '' then
     Exit;
