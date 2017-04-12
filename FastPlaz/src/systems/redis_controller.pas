@@ -28,7 +28,9 @@ unit redis_controller;
 interface
 
 uses
+  {$IFNDEF Windows}
   cthreads,
+  {$ENDIF}
   fpcgi, redis_lib, fastplaz_handler, common, Classes, SysUtils;
 
 const

@@ -20,6 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>
+    <Version Minor="2" Release="476"/>
     <Files Count="31">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
