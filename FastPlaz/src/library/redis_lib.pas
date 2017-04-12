@@ -42,7 +42,7 @@ uses
   {$ifdef synapse}
   blcksock,
   {$endif}
-  {$ifndef win32} cthreads, {$endif}
+  {$IFNDEF Windows} cthreads, {$ENDIF}
   Classes, SysUtils;
 
 const
