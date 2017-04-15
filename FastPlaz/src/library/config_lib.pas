@@ -66,7 +66,6 @@ end;
 
 function TMyConfig.GetConfigValue(KeyName: WideString): variant;
 var
-  s: WideString;
   El : TJSONData;
 begin
   Result := '';

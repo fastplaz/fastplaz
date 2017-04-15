@@ -69,7 +69,7 @@ uses
   fphttpclient,
   {$if fpc_fullversion >= 20701}
   //ghashmap,
-  fgl,
+  //fgl,
   {$else fpc_fullversion >= 20701}
   fgl,
   {$endif fpc_fullversion >= 20701}

@@ -377,7 +377,7 @@ begin
   DB_Connector_Write.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [ConnectionName]), 'test'));
 
   if Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), '') <> '' then
-    DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), ''));
+    DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( UTF8Decode(format( _DATABASE_PORT, [ConnectionName])), ''));
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database

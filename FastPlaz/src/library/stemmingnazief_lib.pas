@@ -101,9 +101,6 @@ end;
 
 
 function TStemmingNazief._exist(Text: string; SkipCheck: boolean): boolean;
-var
-  k, v, s: string;
-  i: integer;
 begin
   Result := False;
   FWordType := 0;

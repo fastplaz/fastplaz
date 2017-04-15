@@ -156,21 +156,21 @@ begin
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   Config.SetValue(_SYSTEM_SESSION_TIMEOUT, 0);
 
-  Config.SetValue(format(_DATABASE_DRIVER, ['default']), 'MySQL 5.5');
-  Config.SetValue(format(_DATABASE_HOSTNAME, ['default']), 'localhost');
-  Config.SetValue(format(_DATABASE_PORT, ['default']), '');
-  Config.SetValue(format(_DATABASE_USERNAME, ['default']), 'your_username');
-  Config.SetValue(format(_DATABASE_PASSWORD, ['default']), 'your_password');
-  Config.SetValue(format(_DATABASE_DATABASENAME, ['default']), 'your_database');
-  Config.SetValue(format(_DATABASE_TABLE_PREFIX, ['default']), '');
-  Config.SetValue(format(_DATABASE_LIBRARY, ['default']), '../libs/win/libmysql.dll');
+  Config.SetValue(UTF8Decode(format(_DATABASE_DRIVER, ['default'])), 'MySQL 5.5');
+  Config.SetValue(UTF8Decode(format(_DATABASE_HOSTNAME, ['default'])), 'localhost');
+  Config.SetValue(UTF8Decode(format(_DATABASE_PORT, ['default'])), '');
+  Config.SetValue(UTF8Decode(format(_DATABASE_USERNAME, ['default'])), 'your_username');
+  Config.SetValue(UTF8Decode(format(_DATABASE_PASSWORD, ['default'])), 'your_password');
+  Config.SetValue(UTF8Decode(format(_DATABASE_DATABASENAME, ['default'])), 'your_database');
+  Config.SetValue(UTF8Decode(format(_DATABASE_TABLE_PREFIX, ['default'])), '');
+  Config.SetValue(UTF8Decode(format(_DATABASE_LIBRARY, ['default'])), '../libs/win/libmysql.dll');
 
-  Config.SetValue(format(_MAIL_MAILSERVER, ['default']), 'your.mail.server');
-  Config.SetValue(format(_MAIL_USERNAME, ['default']), 'your-username');
-  Config.SetValue(format(_MAIL_PASSWORD, ['default']), 'your-password');
-  Config.SetValue(format(_MAIL_SMTPPORT, ['default']), '465');
-  Config.SetValue(format(_MAIL_SSL, ['default']), True);
-  Config.SetValue(format(_MAIL_TLS, ['default']), True);
+  Config.SetValue(UTF8Decode(format(_MAIL_MAILSERVER, ['default'])), 'your.mail.server');
+  Config.SetValue(UTF8Decode(format(_MAIL_USERNAME, ['default'])), 'your-username');
+  Config.SetValue(UTF8Decode(format(_MAIL_PASSWORD, ['default'])), 'your-password');
+  Config.SetValue(UTF8Decode(format(_MAIL_SMTPPORT, ['default'])), '465');
+  Config.SetValue(UTF8Decode(format(_MAIL_SSL, ['default'])), True);
+  Config.SetValue(UTF8Decode(format(_MAIL_TLS, ['default'])), True);
 
   FreeAndNil(Config);
 

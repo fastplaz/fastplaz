@@ -323,7 +323,6 @@ end;
 function TSessionController.StringVarToJson(Source: string): string;
 var
   str: TStringList;
-  sessStr: string;
   i: integer;
   sessObj: TJSONObject;
   items: TJSONObject;
@@ -345,6 +344,7 @@ end;
 
 function TSessionController.JsonToStringVar(JSON: string): string;
 begin
+  Result := '';
 
 end;
 

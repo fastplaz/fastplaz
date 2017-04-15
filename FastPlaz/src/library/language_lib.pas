@@ -24,7 +24,6 @@ function __(str: string; AutoCreate: boolean): string;
 var
   //  strl : TStringList;
   po_file: string;
-  i: integer;
 begin
   Result := str;
   po_file := 'locale' + DirectorySeparator + 'fastplaz.' + LANG + '.po';

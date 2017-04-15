@@ -575,11 +575,11 @@ end;
 procedure TRoute.Add(const ModuleName: string; const PatternURL: string;
   ModuleClass: TMyCustomWebModuleClass; Method: string; LoadOnStart: boolean;
   SkipStreaming: boolean);
-var
-  i: integer;
-  mi: TModuleItem;
-  mc: TCustomHTTPModuleClass;
-  m: TCustomHTTPModule;
+//var
+  //i: integer;
+  //mi: TModuleItem;
+  //mc: TCustomHTTPModuleClass;
+  //m: TCustomHTTPModule;
 begin
   if not Assigned(MethodMap) then
     MethodMap := TStringList.Create;
@@ -1112,9 +1112,8 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
   end;
 
 var
-  S, pathInfo: string;
-  I: integer;
-  reg: TRegExpr;
+  S: string;
+  //reg: TRegExpr;
 begin
 {
   Result := ARequest.QueryFields.Values[Application.ModuleVariable];
@@ -1193,9 +1192,9 @@ var
   s, pathInfo: string;
   i, j: integer;
   reg: TRegExpr;
-  m: TCustomHTTPModule;
-  mi: TModuleItem;
-  mc: TCustomHTTPModuleClass;
+  //m: TCustomHTTPModule;
+  //mi: TModuleItem;
+  //mc: TCustomHTTPModuleClass;
 begin
   InitializeFastPlaz(Sender);
   s := GetActiveModuleName(ARequest);
@@ -1332,7 +1331,6 @@ procedure TFastPlasAppandler.RegisterModule(const ModuleName: string;
 var
   I: integer;
   MI: TModuleItem;
-  mli: TModuleLoadedItem;
 begin
   I := ModuleFactory.IndexOfModule(ModuleName);
   if (I = -1) then
