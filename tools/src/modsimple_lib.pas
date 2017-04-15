@@ -108,7 +108,9 @@ end;
 function TFileDescDefaultModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, html_lib, database_lib';
+  if not IsAPI then
+    Result := Result + ', html_lib';
+  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, database_lib';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;
@@ -237,6 +239,10 @@ begin
       Add('  authstring : string;');
       Add('Begin');
       Add('  authstring := Header[''Authorization''];');
+      Add('  if authstring <> ''YourAuthKey'' then');
+      Add('  begin');
+      Add('    //');
+      Add('  end;');
       Add('  json := TJSONUtil.Create;');
       Add('');
       Add('  json[''code''] := Int16(0);');

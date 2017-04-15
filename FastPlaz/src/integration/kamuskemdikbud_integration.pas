@@ -23,8 +23,11 @@ unit kamuskemdikbud_integration;
 interface
 
 uses
+  {$IFNDEF Windows}
+  cthreads,
+  {$ENDIF}
   common, http_lib,
-  RegExpr, fpjson, cthreads, Classes, SysUtils;
+  RegExpr, fpjson, Classes, SysUtils;
 
 type
 
