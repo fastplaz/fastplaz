@@ -21,8 +21,11 @@ unit kamusibacor_integration;
 interface
 
 uses
+  {$IFNDEF Windows}
+  cthreads,
+  {$ENDIF}
   common, http_lib,
-  fpjson, cthreads, Classes, SysUtils;
+  fpjson, Classes, SysUtils;
 
 type
 

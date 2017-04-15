@@ -29,8 +29,14 @@ unit whois_integration;
 interface
 
 uses
+  {$IFNDEF Windows}
+  cthreads,
+  {$ENDIF}
   logutil_lib,
-  cthreads, Sockets, RegExpr, fpjson, common,
+  {$IFNDEF Windows}
+  cthreads,
+  {$ENDIF}
+  Sockets, RegExpr, fpjson, common,
   Classes, SysUtils;
 
 const

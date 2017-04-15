@@ -100,14 +100,14 @@ begin
     Add('{$mode objfpc}{$H+}');
     Add('');
     Add('uses');
-    Add('  cthreads,');
+    Add('  {$IFNDEF Windows}cthreads,{$ENDIF}');
     Add('  fpcgi, sysutils, fastplaz_handler, common, main;');
     Add('');
     Add('{$R *.res}');
     Add('');
     Add('begin');
     Add('  Application.Title := string( Config.GetValue(_SYSTEM_SITENAME, _APP));');
-    Add('  Application.Email := string( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME'')));');
+    Add('  Application.Email := string( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,UTF8Decode(''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''))));');
     Add('  Application.DefaultModuleName := string( Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main''));');
     Add('  Application.ModuleVariable := string( Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod''));');
     Add('  Application.AllowDefaultModule := True;');
