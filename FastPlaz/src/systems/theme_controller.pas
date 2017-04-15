@@ -15,7 +15,7 @@ uses
   {$ifdef GREYHOUND}
   ghSQL, ghSQLdbLib,
   {$endif}
-  fpWeb, Regex,
+  fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   RegExpr, db, sqldb,
   common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
@@ -1075,7 +1075,7 @@ end;
 function TThemeUtil.ForeachProcessor_Table(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
-  html, tmp : string;
+  html : string;
   templateEngine : TFPTemplate;
   i : integer;
 begin
@@ -1120,7 +1120,7 @@ end;
 function TThemeUtil.ForeachProcessor_Dataset(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
-  html, tmp : string;
+  html : string;
   templateEngine : TFPTemplate;
 begin
   if ( AssignVar[KeyName] = nil) then

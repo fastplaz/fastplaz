@@ -12,8 +12,7 @@ unit json_lib;
 interface
 
 uses
-  fpjson, variants, jsonparser,
-  strutils, Classes, SysUtils;
+  fpjson, variants, jsonparser, Classes, SysUtils;
 
 type
 
@@ -35,7 +34,7 @@ type
 
   public
     constructor Create(JSONData: TJSONObject);
-    destructor Destroy;
+    destructor Destroy; override;
     property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem; default;
 
     property IsObject: boolean read GetIsObject;
@@ -69,7 +68,7 @@ type
     procedure SetValueArray(PathString: string; AValue: TJSONArray);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
     property Data: TJSONObject read FJsonObject;
