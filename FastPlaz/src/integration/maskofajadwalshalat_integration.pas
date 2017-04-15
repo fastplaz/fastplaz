@@ -24,7 +24,7 @@ unit maskofajadwalshalat_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, logutil_lib,
   fpjson, jsonparser, dateutils, fphttpclient,
   Classes, SysUtils;
 
@@ -66,12 +66,10 @@ type
 implementation
 
 const
-  _MASKOFA_JADWALSHALAT_URL = 'http://api.maskofa.com/jadwal-shalat.html';
+  //_MASKOFA_JADWALSHALAT_URL = 'http://api.maskofa.com/jadwal-shalat.html';
   _MASKOFA_JADWALSHALAT_BULANAN_URL = 'http://api.maskofa.com/jadwal-shalat-bulanan.html';
   _MASKOFA_JADWALSHALAT_CITYIDDEFAULT = 310; // jakarta selatan
 
-var
-  Response: IHTTPResponse;
 
 { TMasKofaJadwalShalatIntegration }
 

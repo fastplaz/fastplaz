@@ -28,7 +28,7 @@ type
     FToken: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property Token: string read FToken write FToken;
     property ContentType: string read FContentType write FContentType;

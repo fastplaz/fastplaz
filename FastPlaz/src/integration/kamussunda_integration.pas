@@ -23,7 +23,7 @@ unit kamussunda_integration;
 interface
 
 uses
-  common, json_lib, http_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   Classes, SysUtils;
 
 type

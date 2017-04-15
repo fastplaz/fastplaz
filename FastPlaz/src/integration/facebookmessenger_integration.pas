@@ -5,7 +5,7 @@ unit facebookmessenger_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, strutils,
   Classes, SysUtils;
 
@@ -154,6 +154,7 @@ destructor TFacebookMessengerIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited;
 end;
 
 procedure TFacebookMessengerIntegration.Send(ATo: string; AMessages: string);
@@ -320,8 +321,6 @@ begin
 end;
 
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
-var
-  s: string;
 begin
   Result := False;
   if VoiceURL = '' then

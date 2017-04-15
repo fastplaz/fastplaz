@@ -5,7 +5,7 @@ unit ibacortrainschedule_integration;
 interface
 
 uses
-  http_lib, json_lib, fpjson, common,
+  http_lib, fpjson, common,
   Classes, SysUtils;
 
 type
@@ -23,7 +23,7 @@ type
     function getStationData: boolean;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function DateKey(AIndex: integer): string;
     function CityKey(ACityName: string): string;
@@ -230,7 +230,7 @@ end;
 function TIbacorTrainScheduleController.Schedule(ADateKey, AFromKey,
   ADestinationKey: string): string;
 begin
-
+  Result := '';
 end;
 
 function TIbacorTrainScheduleController.ScheduleStationToStation(

@@ -23,7 +23,7 @@ unit kloudlesscalendar_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, jsonparser, dateutils,
   Classes, SysUtils;
 
@@ -76,9 +76,9 @@ implementation
 const
   _KLAUDLESS_API_URL = 'https://api.kloudless.com';
   _KLAUDLESS_CALENDAR_EVENTLIST_URL = '/v1/accounts/%s/cal/calendars/%s/events/';
-  _KLAUDLESS_NUMBER = '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣🔟';
-  _PAGAR = '️⃣';
-  _BINTANG = '*️⃣';
+  //_KLAUDLESS_NUMBER = '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣🔟';
+  //_PAGAR = '️⃣';
+  //_BINTANG = '*️⃣';
 
 var
   Response: IHTTPResponse;

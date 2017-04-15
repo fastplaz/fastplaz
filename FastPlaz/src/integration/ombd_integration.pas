@@ -29,7 +29,7 @@ type
   private
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function Find(MovieTitle: string): string;
   end;

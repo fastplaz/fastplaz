@@ -23,7 +23,7 @@ unit currencyibacor_integration;
 interface
 
 uses
-  common, http_lib, json_lib, fpjson, logutil_lib,
+  common, http_lib, fpjson, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -37,7 +37,7 @@ type
     jsonData: TJSONData;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property Token: string read FToken write FToken;
     function Converter(FromCurrency, ToCurrency: string; Value: integer): string;
@@ -65,6 +65,7 @@ destructor TCurrencyIbacorIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TCurrencyIbacorIntegration.Converter(FromCurrency, ToCurrency: string;

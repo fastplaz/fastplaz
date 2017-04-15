@@ -53,7 +53,7 @@ unit line_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, strutils,
   Classes, SysUtils;
 
@@ -228,8 +228,6 @@ begin
 end;
 
 constructor TLineTemplateMessage.Create(ATemplateType: string);
-var
-  s: string;
 begin
   if ATemplateType = '' then
     ATemplateType := 'buttons';
@@ -399,7 +397,6 @@ end;
 
 procedure TLineIntegration.Reply(AReplyToken: string; AMessages: string);
 var
-  i: integer;
   _jsonString: TStringList;
   lst: TStringList;
 begin
@@ -466,7 +463,6 @@ end;
 
 procedure TLineIntegration.Push(ATo: string; AMessages: string; AISJSON: boolean);
 var
-  i: integer;
   _jsonString: TStringList;
   lst: TStringList;
 begin

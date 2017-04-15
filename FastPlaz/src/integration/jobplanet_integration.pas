@@ -33,7 +33,7 @@ unit jobplanet_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, jsonparser, variants, RegExpr,
   Classes, SysUtils;
 
@@ -231,7 +231,7 @@ end;
 function TJobPlanetIntegration.getInterviewFromHTML(AHTML: string): string;
 var
   i: integer;
-  s, html: string;
+  s: string;
 begin
   s := '<li class="viewInterviews">';
   i := pos(s, AHTML);
