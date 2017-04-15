@@ -58,9 +58,9 @@ end;
 
 procedure TStemmingNaziefRedis.LoadDictionaryFromFile(FileName: string);
 var
-  s: WideString;
+  s: string;
 begin
-  inherited LoadDictionaryFromFile;
+  inherited LoadDictionaryFromFile( FileName);
   if IsDictionaryLoaded then
   begin
     s := UrlEncode(Dictionary.Text);

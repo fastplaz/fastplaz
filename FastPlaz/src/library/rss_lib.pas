@@ -49,7 +49,7 @@ type
     function getTagValue(const ANode: TDOMNode; const ATagName: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function LoadFromURL(AURL: string): boolean;
     function LoadFromStream(AStream: TStream): boolean;
@@ -142,8 +142,6 @@ end;
 
 function TRSSReaderLib.LoadFromStream(AStream: TStream): boolean;
 var
-  s: string;
-  strBytes: TBytes;
   imgNode: TDOMNode;
 begin
   Result := False;
@@ -186,14 +184,14 @@ begin
     jItem.Strings['image'] := '';
     if Assigned(media) then
     begin
-      jItem.Strings['image'] := media.Attributes.GetNamedItem('url').TextContent;
+      jItem.Strings['image'] := string( media.Attributes.GetNamedItem('url').TextContent);
     end;
     if jItem.Strings['image'] = '' then
     begin
       media := item.FindNode('enclosure');
       if Assigned(media) then
       begin
-        jItem.Strings['image'] := media.Attributes.GetNamedItem('url').TextContent;
+        jItem.Strings['image'] := string( media.Attributes.GetNamedItem('url').TextContent);
       end;
     end;
     if jItem.Strings['image'] = '' then
