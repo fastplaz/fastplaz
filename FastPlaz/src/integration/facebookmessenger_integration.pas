@@ -11,6 +11,16 @@ uses
 
 type
 
+  { TFacebookTemplateMessage }
+
+  TFacebookTemplateMessage = class
+  private
+  public
+    constructor Create;
+    destructor Destroy;
+  published
+  end;
+
   { TFacebookMessengerIntegration }
 
   TFacebookMessengerIntegration = class(TInterfacedObject)
@@ -86,6 +96,18 @@ const
 
 var
   Response: IHTTPResponse;
+
+{ TFacebookTemplateMessage }
+
+constructor TFacebookTemplateMessage.Create;
+begin
+
+end;
+
+destructor TFacebookTemplateMessage.Destroy;
+begin
+
+end;
 
 { TFacebookMessengerIntegration }
 

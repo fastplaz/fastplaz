@@ -23,6 +23,7 @@ uses common;
 function __(str: string; AutoCreate: boolean): string;
 var
   //  strl : TStringList;
+  i: integer;
   po_file: string;
 begin
   Result := str;

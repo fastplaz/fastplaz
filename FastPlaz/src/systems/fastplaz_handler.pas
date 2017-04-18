@@ -1056,10 +1056,10 @@ end;
 
 function TGET.GetValue(const Name: string): string;
 begin
+  Result := '';
   if Application.Request.QueryFields.IndexOfName(Name) = -1 then
-    Result := ''
-  else
-    Result := _CleanVar(Application.Request.QueryFields.Values[Name]);
+    Exit;
+  Result := _CleanVar(Application.Request.QueryFields.Values[Name]);
 end;
 
 procedure TGET.SetValue(const Name: string; AValue: string);
