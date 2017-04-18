@@ -131,6 +131,7 @@ destructor TCognitiveOCR.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TCognitiveOCR.Scan: string;

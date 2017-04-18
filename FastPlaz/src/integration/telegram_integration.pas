@@ -956,7 +956,6 @@ end;
 
 function TTelegramIntegration.GroupMemberCount(AGroupID: string): integer;
 var
-  i: integer;
   s, urlTarget: string;
 begin
   Result := 0;

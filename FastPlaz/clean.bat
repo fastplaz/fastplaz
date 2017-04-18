@@ -19,6 +19,7 @@ rmdir /s /q src\vendor\backup
 rmdir /s /q src\app\example\backup
 rmdir /s /q src\app\example\models\backup
 rmdir /s /q src\app\example\module\backup
+rmdir /s /q src\integration\backup
 
 rmdir /s /q src\lib\
 

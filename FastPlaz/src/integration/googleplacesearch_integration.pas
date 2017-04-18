@@ -20,7 +20,7 @@ interface
 
 uses
   fpjson,
-  common, json_lib, http_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   Classes, SysUtils;
 
 type
@@ -63,7 +63,7 @@ const
   _GOOGLE_PLACE_TEXTSEARCH_URL =
     'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&query=%s';
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
-  _GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
+  //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
 var
   Response: IHTTPResponse;

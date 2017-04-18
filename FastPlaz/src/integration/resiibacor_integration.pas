@@ -87,7 +87,6 @@ function TResiIbacorController.Find(VendorName, CodeName: string): string;
 var
   s, urlTarget: string;
   httpClient: THTTPLib;
-  jsonData: TJSONData;
   json: TJSONUtil;
 begin
   Result := '';

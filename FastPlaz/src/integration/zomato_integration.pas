@@ -13,7 +13,7 @@ unit zomato_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, jsonparser,
   Classes, SysUtils;
 
@@ -48,7 +48,7 @@ implementation
 
 const
   ZOMATO_API_URL = 'https://developers.zomato.com/api/v2.1/';
-  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%.10f,%.10f';
+  //_GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%.10f,%.10f';
   _GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
 var
@@ -203,7 +203,7 @@ function TZomatoIntegration.Search(AKeyword: string; ALat: double;
   ALon: double; ACount: integer): string;
 var
   i: integer;
-  urlTarget, url: string;
+  urlTarget: string;
   lat, lon: double;
 begin
   Result := '';

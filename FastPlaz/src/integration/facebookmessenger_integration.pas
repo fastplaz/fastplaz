@@ -5,11 +5,21 @@ unit facebookmessenger_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, strutils,
   Classes, SysUtils;
 
 type
+
+  { TFacebookTemplateMessage }
+
+  TFacebookTemplateMessage = class
+  private
+  public
+    constructor Create;
+    destructor Destroy;
+  published
+  end;
 
   { TFacebookMessengerIntegration }
 
@@ -87,6 +97,18 @@ const
 var
   Response: IHTTPResponse;
 
+{ TFacebookTemplateMessage }
+
+constructor TFacebookTemplateMessage.Create;
+begin
+
+end;
+
+destructor TFacebookTemplateMessage.Destroy;
+begin
+
+end;
+
 { TFacebookMessengerIntegration }
 
 procedure TFacebookMessengerIntegration.setRequestContent(AValue: string);
@@ -154,6 +176,7 @@ destructor TFacebookMessengerIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited;
 end;
 
 procedure TFacebookMessengerIntegration.Send(ATo: string; AMessages: string);
@@ -320,8 +343,6 @@ begin
 end;
 
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
-var
-  s: string;
 begin
   Result := False;
   if VoiceURL = '' then

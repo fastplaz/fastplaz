@@ -32,7 +32,7 @@ unit kawalpemilu_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, jsonparser,
   Classes, SysUtils;
 

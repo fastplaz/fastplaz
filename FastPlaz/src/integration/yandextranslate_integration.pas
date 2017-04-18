@@ -29,7 +29,7 @@ unit yandextranslate_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson,
   Classes, SysUtils;
 
@@ -50,7 +50,7 @@ type
     function getData(APath: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;

@@ -18,7 +18,7 @@ unit openweathermap_integration;
 interface
 
 uses
-  common, http_lib, json_lib, logutil_lib,
+  common, http_lib, logutil_lib,
   fpjson, jsonparser, variants,
   Classes, SysUtils;
 
@@ -58,7 +58,7 @@ type
 implementation
 
 const
-  _OPENWEATHERMAP_API = 'http://api.openweathermap.org/data/2.5/';
+  //_OPENWEATHERMAP_API = 'http://api.openweathermap.org/data/2.5/';
   _OPENWEATHERMAP_API_WEATHER =
     'http://api.openweathermap.org/data/2.5/weather?appid=%s&lang=%s&units=%s&mode=%s&q=%s';
 

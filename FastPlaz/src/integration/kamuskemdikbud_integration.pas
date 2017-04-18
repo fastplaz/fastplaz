@@ -69,8 +69,6 @@ function TKamusIntegration.Find(Text: string): string;
 var
   s, return, urlTarget: string;
   httpClient: THTTPLib;
-  jsonData: TJSONData;
-  regex: TRegExpr;
 begin
   Result := '';
   Text := trim(LowerCase(Text));
