@@ -33,9 +33,6 @@ uses
   cthreads,
   {$ENDIF}
   logutil_lib,
-  {$IFNDEF Windows}
-  cthreads,
-  {$ENDIF}
   Sockets, RegExpr, fpjson, common,
   Classes, SysUtils;
 
