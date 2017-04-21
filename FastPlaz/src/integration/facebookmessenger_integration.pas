@@ -5,11 +5,35 @@ unit facebookmessenger_integration;
 interface
 
 uses
-  common, http_lib, logutil_lib,
+  common, http_lib, logutil_lib, json_lib,
   fpjson, strutils,
   Classes, SysUtils;
 
 type
+
+  { TFacebookTemplateElement }
+
+  TFacebookTemplateElement = class
+  private
+    FActionURL: string;
+    FData: TJSONUtil;
+    FImageURL: string;
+    FSubTitle: string;
+    FTitle: string;
+    function getAsJSON: string;
+    procedure generateData;
+  public
+    constructor Create;
+    destructor Destroy;
+  published
+    property Title: string read FTitle write FTitle;
+    property SubTitle: string read FSubTitle write FSubTitle;
+    property ImageURL: string read FImageURL write FImageURL;
+    property ActionURL: string read FActionURL write FActionURL;
+    property Data: TJSONUtil read FData write FData;
+
+    property AsJSON: string read getAsJSON;
+  end;
 
   { TFacebookTemplateMessage }
 
@@ -96,6 +120,44 @@ const
 
 var
   Response: IHTTPResponse;
+
+{ TFacebookTemplateElement }
+
+function TFacebookTemplateElement.getAsJSON: string;
+begin
+  generateData;
+  Result := FData.AsJSONFormated;
+end;
+
+constructor TFacebookTemplateElement.Create;
+begin
+  FData := TJSONUtil.Create;
+  FData['title'] := '';
+  FData['subtitle'] := '';
+  FData['image_url'] := '';
+  FData['default_action/type'] := 'web_url';
+  FData['default_action/url'] := '';
+  FData['default_action/messenger_extensions'] := true;
+  FData['default_action/webview_height_ratio'] := 'tall';
+  FData['default_action/fallback_url'] := '';
+end;
+
+destructor TFacebookTemplateElement.Destroy;
+begin
+  FData.Free;
+end;
+
+procedure TFacebookTemplateElement.generateData;
+begin
+  FData['title'] := FTitle;
+  FData['subtitle'] := FSubTitle;
+  FData['image_url'] := FImageURL;
+  FData['default_action/type'] := 'web_url';
+  FData['default_action/url'] := FActionURL;
+  FData['default_action/messenger_extensions'] := true;
+  FData['default_action/webview_height_ratio'] := 'tall';
+  FData['default_action/fallback_url'] := '';
+end;
 
 { TFacebookTemplateMessage }
 

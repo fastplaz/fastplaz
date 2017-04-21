@@ -65,6 +65,9 @@ const
   KAWALPEMILU_PROVINCE_REALCOUNT_URL =
     'https://www.kawalpilkada.id/kandidat/refreshagregasi/2017/Provinsi/%s';
 
+  KAWALPEMILU_PROVINCE_REALCOUNT_PUTARAN2_URL =
+  'https://www.kawalpilkada.id/suara/get/2017-Putaran-2/Provinsi/%s';
+
 var
   Response: IHTTPResponse;
 
@@ -105,7 +108,7 @@ begin
   if AProvinceCode = '' then
     Exit;
 
-  with THTTPLib.Create(format(KAWALPEMILU_PROVINCE_REALCOUNT_URL, [AProvinceCode])) do
+  with THTTPLib.Create(format(KAWALPEMILU_PROVINCE_REALCOUNT_PUTARAN2_URL, [AProvinceCode])) do
   begin
     try
       Response := Post;
@@ -125,7 +128,8 @@ end;
 
 function TKawalPemiluIntegration.ProvinceRealCountInfo(AProvinceCode: string): string;
 var
-  suara1, suara2, suara3, total: integer;
+  i, suara1, suara2, suara3, total: integer;
+  totalSuara2, totalSuara3: integer;
   percent1, percent2, percent3: double;
   s: string;
   paslon1, paslon2, paslon3: string;
@@ -135,11 +139,53 @@ begin
   if Result = '' then
     Exit;
 
+  Result := 'Update QuickCount:';
+
+  totalSuara2 := 0;
+  totalSuara3 := 0;
+  for i:=0 to 5 do
+  begin
+    s := #10 + getData('[0]['+i2s(i)+'].nama');
+    s := s + ' (' + i2s(getDataAsInteger('[0]['+i2s(i)+'].totalpemilih')) + ')';
+    s := s + #10 + i2s(getDataAsInteger('[0]['+i2s(i)+'].jumlahTPS')) + ' TPS';
+
+    suara2 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.2.suaraTPS');
+    suara3 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.3.suaraTPS');
+    totalSuara2 := totalSuara2 + suara2;
+    totalSuara3 := totalSuara3 + suara3;
+    Result := Result + #10 + s;
+    Result := Result + #10 + 'Suara TPS';
+    Result := Result + #10 + '2. ' + FormatFloat('##,##0', suara2);
+    Result := Result + #10 + '3. ' + FormatFloat('##,##0', suara3);
+
+    suara2 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.2.suaraKPU');
+    suara3 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.3.suaraKPU');
+    Result := Result + #10 + 'Suara KPU';
+    Result := Result + #10 + '2. ' + FormatFloat('##,##0', suara2);
+    Result := Result + #10 + '3. ' + FormatFloat('##,##0', suara3);
+  end;
+
+  total := totalSuara2 + totalSuara3;
+  percent2 := (totalSuara2 * 100) / total;
+  percent3 := (totalSuara3 * 100) / total;
+
+  Result := Result + #10#10'Total:';
+  s := ' (' + FormatFloat('##,##0.00', percent2) + ')';
+  Result := Result + #10 + '2. ' + FormatFloat('##,##0', totalSuara2) + s;
+  s := ' (' + FormatFloat('##,##0.00', percent3) + ')';
+  Result := Result + #10 + '3. ' + FormatFloat('##,##0', totalSuara3) + s;
+
+
+  Exit;
+  die( Result);
+
+  {
   if getData('[1].tahun') = '' then
   begin
     Result := 'Maaf, data belum tersedia.';
     Exit;
   end;
+  }
 
   Result := 'Update Real Count: ' + getData('[1].nama');
 
