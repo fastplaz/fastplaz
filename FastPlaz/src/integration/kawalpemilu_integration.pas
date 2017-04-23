@@ -160,9 +160,9 @@ begin
 
     suara2 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.2.suaraKPU');
     suara3 := getDataAsInteger('[0]['+i2s(i)+'].suaraKandidat.3.suaraKPU');
-    Result := Result + #10 + 'Suara KPU';
-    Result := Result + #10 + '2. ' + FormatFloat('##,##0', suara2);
-    Result := Result + #10 + '3. ' + FormatFloat('##,##0', suara3);
+    //Result := Result + #10 + 'Suara KPU';
+    //Result := Result + #10 + '2. ' + FormatFloat('##,##0', suara2);
+    //Result := Result + #10 + '3. ' + FormatFloat('##,##0', suara3);
   end;
 
   total := totalSuara2 + totalSuara3;
