@@ -60,7 +60,7 @@ type
 
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -176,7 +176,7 @@ end;
 
 function TJobPlanetIntegration.getInfoFromHTML(AHTML: string): string;
 var
-  s, _info, _title, _description, _tingkatKepuasan: string;
+  _info, _title, _description, _tingkatKepuasan: string;
 begin
   _title := getContent('<h2 class="txt_titl_info">', '</h2>', AHTML);
   _title := StripTags(_title);
@@ -196,7 +196,7 @@ end;
 
 function TJobPlanetIntegration.getReviewFromHTML(AHTML: string): string;
 var
-  s, _label: string;
+  s: string;
 begin
   Result := getInfoFromHTML(AHTML);
   Result := StringReplace(Result, 'Profil', 'Review', [rfReplaceAll]);
