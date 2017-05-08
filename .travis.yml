@@ -9,5 +9,5 @@ script:
 before_install:
   - sudo apt-get install -qq fpc
 #  - fpc -iV
-install: ./install-dependencies.sh
+install:
 env:
