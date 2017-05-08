@@ -92,6 +92,7 @@ function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
 function b2s(b: boolean): string;
 function s2b(s: string): boolean;
+function StrInArray(const AValue : String;const AArrayOfString : Array of String) : Boolean;
 function StreamToString(AStream: TStream): string;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
@@ -252,6 +253,21 @@ begin
     Result := True;
   if s = 'required' then
     Result := True;
+end;
+
+function StrInArray(const AValue: String; const AArrayOfString: array of String
+  ): Boolean;
+var
+ Loop : String;
+begin
+  for Loop in AArrayOfString do
+  begin
+    if AValue = Loop then
+    begin
+       Exit(true);
+    end;
+  end;
+  result := false;
 end;
 
 function StreamToString(AStream: TStream): string;

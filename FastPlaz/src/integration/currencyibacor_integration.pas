@@ -48,7 +48,7 @@ type
 implementation
 
 const
-  _CURRENCY_IBACOR_URL =
+  CURRENCY_IBACOR_URL =
     'http://ibacor.com/api/currency-converter?k=%s&view=convert&from=%s&to=%s&amount=%d';
 
 var
@@ -78,7 +78,7 @@ begin
   Result := '';
   if FToken = '' then
     Exit;
-  _url := Format(_CURRENCY_IBACOR_URL, [FToken, FromCurrency, ToCurrency, Value]);
+  _url := Format(CURRENCY_IBACOR_URL, [FToken, FromCurrency, ToCurrency, Value]);
 
   _http := THTTPLib.Create(_url);
   Response := _http.Get;
