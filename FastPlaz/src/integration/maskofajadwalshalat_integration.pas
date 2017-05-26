@@ -61,13 +61,16 @@ type
     function Find(ACityName: string): string;
     function Find(ACityName: string; ADateTime: TDate): string;
     function Find(ACityID: integer; ADateTime: TDate): string;
+  published
+    property Data: TJSONData read jsonData;
   end;
 
 implementation
 
 const
   //_MASKOFA_JADWALSHALAT_URL = 'http://api.maskofa.com/jadwal-shalat.html';
-  _MASKOFA_JADWALSHALAT_BULANAN_URL = 'http://api.maskofa.com/jadwal-shalat-bulanan.html';
+  _MASKOFA_JADWALSHALAT_BULANAN_URL =
+    'http://api.maskofa.com/jadwal-shalat-bulanan.html';
   _MASKOFA_JADWALSHALAT_CITYIDDEFAULT = 310; // jakarta selatan
 
 
@@ -105,7 +108,7 @@ function TMasKofaJadwalShalatIntegration.getData(ACityID: integer;
   ADateTime: TDate): boolean;
 var
   s: string;
-  http : TFPHTTPClient;
+  http: TFPHTTPClient;
 begin
   Result := False;
 
@@ -117,7 +120,7 @@ begin
     s := s + '&kota=' + i2s(ACityID);
     s := s + '&bulan=' + i2s(MonthOf(ADateTime));
     s := s + '&tahun=' + i2s(YearOf(ADateTime));
-    s := http.FormPost( _MASKOFA_JADWALSHALAT_BULANAN_URL, s);
+    s := http.FormPost(_MASKOFA_JADWALSHALAT_BULANAN_URL, s);
     if http.ResponseStatusCode = 200 then
     begin
       jsonData := GetJSON(s);
@@ -221,4 +224,3 @@ begin
 end;
 
 end.
-
