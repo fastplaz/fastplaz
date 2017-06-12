@@ -20,6 +20,9 @@ rmdir /s /q src\app\example\backup
 rmdir /s /q src\app\example\models\backup
 rmdir /s /q src\app\example\module\backup
 rmdir /s /q src\integration\backup
+rmdir /s /q src\cms\controller\backup
+rmdir /s /q src\cms\model\backup
+rmdir /s /q src\cms\util\backup
 
 rmdir /s /q src\lib\
 

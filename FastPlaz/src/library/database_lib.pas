@@ -23,6 +23,7 @@ type
 
   TSimpleModel = class
   private
+    AMessage: string;
     FConnector : TSQLConnector;
     FFieldList : TStrings;
     FTableName : string;
@@ -69,6 +70,7 @@ type
     property RecordCount: Longint read GetRecordCount;
     property EOF: boolean read GetEOF;
     property LastInsertID: LongInt read GetLastInsertID;
+    property Message: string read AMessage;
 
     function ParamByName(Const AParamName : String) : TParam;
     function Exec( SQL:String): boolean;
@@ -115,7 +117,7 @@ type
     function OrWhere( Conditions:string): TSimpleModel;
     function OrderBy( FieldNames:string): TSimpleModel;
     function Limit( LimitNumber:integer; Offset:integer=0): TSimpleModel;
-    function Open: Boolean;
+    function Open( AUniDirectional:Boolean = False): Boolean;
   end;
 
 procedure DataBaseInit( const RedirecURL:string = '');
@@ -703,6 +705,7 @@ begin
   FScriptOrderBy := '';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
+  AMessage := '';
   FConnector := DB_Connector;
   if DefaultTableName = '' then
   begin
@@ -1210,14 +1213,24 @@ begin
   Result := Self;
 end;
 
-function TSimpleModel.Open: Boolean;
+function TSimpleModel.Open(AUniDirectional: Boolean): Boolean;
 begin
   Result := False;
   if Data.SQL.Text = '' then
     Exit;
+  Data.UniDirectional := AUniDirectional;
   Result := _queryOpen;
-  Data.Last;
-  Data.First;
+  if not Result then
+    Exit;
+  try
+    Data.Last;
+    Data.First;
+  except
+    on E:Exception do
+    begin
+      AMessage := E.Message;
+    end;
+  end;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
     primaryKeyValue := Data.FieldByName( primaryKey).AsString;
