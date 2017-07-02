@@ -214,11 +214,11 @@ begin
     Exit;
 
   s := FormatDateTime('d', ADateTime);
-  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/' + s + '/Shubuh');
-  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/' + s + '/Dzuhur');
-  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/' + s + '/Ashr');
-  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/' + s + '/Maghrib');
-  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/' + s + '/Isya');
+  Result := Result + #10'Shubuh: ' + jsonGetData(jsonData, 'data/' + s + '/Shubuh') + '.';
+  Result := Result + #10'Dzuhur: ' + jsonGetData(jsonData, 'data/' + s + '/Dzuhur') + '.';
+  Result := Result + #10'Ashr: ' + jsonGetData(jsonData, 'data/' + s + '/Ashr') + '.';
+  Result := Result + #10'Maghrib: ' + jsonGetData(jsonData, 'data/' + s + '/Maghrib') + '.';
+  Result := Result + #10'Isya: ' + jsonGetData(jsonData, 'data/' + s + '/Isya') + '.';
 
   Result := Trim(Result);
 end;
