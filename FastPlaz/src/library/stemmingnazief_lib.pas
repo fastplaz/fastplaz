@@ -45,6 +45,7 @@ type
     FDictionary: TStringList;
     FDictionaryFile: string;
     FIsDictionaryLoaded: boolean;
+    FStemmedText: string;
     FWordType: integer;
     FWordTypeInString: string;
 
@@ -76,6 +77,8 @@ type
     property Dictionary: TStringList read FDictionary;
     property DictionaryFile: string read FDictionaryFile write FDictionaryFile;
     property IsDictionaryLoaded: boolean read FIsDictionaryLoaded write FIsDictionaryLoaded;
+
+    property Text: string read FStemmedText;
   end;
 
 implementation
@@ -91,6 +94,7 @@ begin
   Dictionary.NameValueSeparator := ',';
   FWordType := 0;
   FWordTypeInString := '';
+  FStemmedText := '';
 end;
 
 destructor TStemmingNazief.Destroy;
@@ -520,6 +524,7 @@ var
   return: TStringList;
   i: integer;
 begin
+  FStemmedText := '';
   str := Explode(Text, ' ');
   return := TStringList.Create;
 
@@ -536,9 +541,10 @@ begin
       return.Add('},')
     else
       return.Add('}');
-    ;
+    FStemmedText := FStemmedText + str[i] + ' ';
   end;
   return.Add(']');
+  FStemmedText := trim( FStemmedText);
   Result := return.Text;
 
   return.Free;
