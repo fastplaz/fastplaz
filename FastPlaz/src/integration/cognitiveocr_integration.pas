@@ -31,6 +31,7 @@ type
   TCognitiveOCR = class(TInterfacedObject)
   private
     FDetectOrientation: boolean;
+    FGeo: string;
     FImageURL: string;
     FLanguage: string;
     FToken: string;
@@ -45,6 +46,7 @@ type
     constructor Create;
     destructor Destroy;
 
+    property Geo: string read FGeo write FGeo;
     property Token: string read FToken write FToken;
     property Language: string read FLanguage write FLanguage;
     property ImageURL: string read FImageURL write FImageURL;
@@ -59,7 +61,7 @@ implementation
 
 const
   _COGNITIVE_OCR_URL =
-    'https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr?language=%s&detectOrientation=%s';
+    'https://%s.api.cognitive.microsoft.com/vision/v1.0/ocr?language=%s&detectOrientation=%s';
 
 var
   Response: IHTTPResponse;
@@ -71,7 +73,7 @@ begin
   Result := 'false';
   if DetectOrientation then
     Result := 'true';
-  Result := Format(_COGNITIVE_OCR_URL, [FLanguage, Result]);
+  Result := Format(_COGNITIVE_OCR_URL, [FGeo, FLanguage, Result]);
 end;
 
 function TCognitiveOCR.getData(APath: string): string;
@@ -124,6 +126,7 @@ end;
 constructor TCognitiveOCR.Create;
 begin
   FLanguage := 'en';
+  FGeo := 'southeastasia';
   FDetectOrientation := True;
 end;
 
