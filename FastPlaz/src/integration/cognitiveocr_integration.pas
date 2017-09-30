@@ -111,16 +111,25 @@ end;
 
 function TCognitiveOCR.getAllWords: string;
 var
+  _region,
   i: integer;
   s: string;
 begin
   Result := '';
   s := '';
-  i := 0;
+  _region := 0;
   repeat
-    s := trim(getWordsAtLine(0, i));
-    Result := Result + #10 + s;
-    i := i + 1;
+    s := trim(getWordsAtLine(_region, 0));
+    if s = '' then
+      Exit;
+    i := 0;
+    repeat
+      s := trim(getWordsAtLine(_region, i));
+      Result := Result + #10 + s;
+      i := i + 1;
+    until s = '';
+    s := '*';
+    _region := _region + 1;
   until s = '';
   Result := Trim(Result);
 end;
@@ -174,10 +183,10 @@ begin
       _body := '{"url":"' + AImageURL + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
+      FResponseText := Response.ResultText;
       if Response.ResultCode = 200 then
       begin
         Result := Response.ResultText;
-        FResponseText := Response.ResultText;
       end;
     except
       on E: Exception do
