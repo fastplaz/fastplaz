@@ -84,6 +84,16 @@ begin
   if Response.ResultCode <> 200 then
     Exit;
 
+  return := StringCut( '<span class="rootword">', '</h2>', Response.ResultText);
+  return := StripHTML( return);
+  return := Trim( return);
+  s := StringCut( '<ul style="list-style: none;" class="adjusted-par">', '</ul>', Response.ResultText);
+  s := StripHTML( s);
+  s := Trim( s);
+  s := ReplaceAll(s, ['   ', '  ', #13, #10], '', True);
+  return := return + '\n' + s;
+
+  {
   return := copy(Response.ResultText, pos('<hr />', Response.ResultText) + 6);
   return := copy(return, 1, pos('<hr />', return) - 1);
 
@@ -92,7 +102,7 @@ begin
     '\<span title="([\.\$A-Za-z0-9=_ :;\-"]+)">([\.\$A-Za-z0-9=_ :;\-"]+)</span>',
     '', return, True);
   return := preg_replace('\<.*?>', '', return, True);
-  return := ReplaceAll(return, ['   ', '  ', #13, #10], '', True);
+  }
 
   if Pos( 'Entri tidak ditemukan', return) = 0 then
     Result := return;
