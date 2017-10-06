@@ -1,5 +1,5 @@
 {
-This file is part of the SimpleBOT package.
+This file is part of the FastPlaz package.
 (c) Luri Darmawan <luri@fastplaz.com>
 
 For the full copyright and license information, please view the LICENSE
@@ -84,13 +84,16 @@ begin
   if Response.ResultCode <> 200 then
     Exit;
 
-  return := StringCut( '<span class="rootword">', '</h2>', Response.ResultText);
+  return := StringCut( '<h2>', '</h2>', Response.ResultText);
   return := StripHTML( return);
   return := Trim( return);
-  s := StringCut( '<ul style="list-style: none;" class="adjusted-par">', '</ul>', Response.ResultText);
+  s := StringCut( '</h2>', '<hr />', Response.ResultText);
   s := StripHTML( s);
   s := Trim( s);
-  s := ReplaceAll(s, ['   ', '  ', #13, #10], '', True);
+  s := ReplaceAll(s, ['   ', '  '], '', True);
+  s := ReplaceAll(s, [#13, #10], '\n', True);
+  s := ReplaceAll(s, ['\n\n'], '\n', True);
+  s := ReplaceAll(s, ['\n\n'], '\n', True);
   return := return + '\n' + s;
 
   {
