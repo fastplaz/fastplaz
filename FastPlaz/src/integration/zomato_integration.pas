@@ -23,6 +23,8 @@ type
 
   TZomatoIntegration = class(TInterfacedObject)
   private
+    FEntityID: integer;
+    FEntityType: string;
     FKey: string;
     FResultCode: integer;
     FResultText: string;
@@ -37,6 +39,8 @@ type
     property ResultText: string read FResultText;
 
     property Key: string read FKey write FKey;
+    property EntityType: string read FEntityType write FEntityType;
+    property EntityID: integer read FEntityID write FEntityID;
     function ConvertJsonToTextInfo(AJson: string): string;
     function SearchAsJson(AKeyword: string; ALat: double = 0;
       ALon: double = 0; ACount: integer = 5): string;
@@ -76,7 +80,8 @@ end;
 
 constructor TZomatoIntegration.Create;
 begin
-
+  FEntityType := '';
+  FEntityID := 94; //Indonesia
 end;
 
 destructor TZomatoIntegration.Destroy;
@@ -105,8 +110,8 @@ begin
       Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/address') + #10;
 
       s := jsonGetData(jData, '[' + i2s(i) + ']/url');
-      if Pos( '?', s) > 0 then
-        s := copy( s, 0, Pos( '?', s)-1);
+      if Pos('?', s) > 0 then
+        s := copy(s, 0, Pos('?', s) - 1);
       if jsonGetData(jData, '[' + i2s(i) + ']/maps') <> '' then
         Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/maps') + #10
       else
@@ -130,7 +135,9 @@ var
 begin
   Result := '';
   urlTarget := ZOMATO_API_URL + 'search?count=' + i2s(ACount) +
-    '&radius=2000&q=' + UrlEncode(AKeyword);
+    '&radius=2000&entity_type=' + FEntityType + '&entity_id=' +
+    i2s(FEntityID) + '&q=' + UrlEncode(AKeyword);
+
   if (ALat <> 0) and (ALon <> 0) then
   begin
     urlTarget := urlTarget + '&lat=' + FloatToStr(ALat);
@@ -148,7 +155,7 @@ begin
     begin
       jsonData := GetJSON(FResultText);
       restaurants := TJSONArray.Create;
-      i := s2i( getData('results_shown'));
+      i := s2i(getData('results_shown'));
       if i < ACount then
         ACount := i;
       for i := 0 to ACount - 1 do
@@ -163,9 +170,8 @@ begin
           getData('restaurants[' + i2s(i) + '].restaurant.url');
         restaurant.Strings['rating'] :=
           getData('restaurants[' + i2s(i) +
-          '].restaurant.user_rating.aggregate_rating') +
-          ' - ' + getData('restaurants[' + i2s(i) +
-          '].restaurant.user_rating.rating_text');
+          '].restaurant.user_rating.aggregate_rating') + ' - ' +
+          getData('restaurants[' + i2s(i) + '].restaurant.user_rating.rating_text');
         restaurant.Strings['image'] :=
           getData('restaurants[' + i2s(i) + '].restaurant.featured_image');
         restaurant.Strings['thumb'] :=
@@ -226,7 +232,8 @@ begin
     if FResultCode = 200 then
     begin
       jsonData := GetJSON(FResultText);
-      i := s2i( getData('results_shown'));
+      i := s2i(getData('results_shown'));
+
       if i < ACount then
         ACount := i;
       for i := 0 to ACount - 1 do

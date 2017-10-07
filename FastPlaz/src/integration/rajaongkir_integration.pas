@@ -46,6 +46,7 @@ type
     FKey: string;
     FURL: string;
     function getAccountType: TRajaOngkirAccountType;
+    function getResultText: string;
     procedure setAccountType(AValue: TRajaOngkirAccountType);
     function TrackAsJson(CourierName, WayBillNumber: string): string;
   public
@@ -58,6 +59,7 @@ type
     property URL: string read FURL write FURL;
     property Key: string read FKey write FKey;
     property IsSuccessfull: boolean read FIsSuccessfull;
+    property ResultText: string read getResultText;
   end;
 
 implementation
@@ -112,6 +114,11 @@ end;
 function TRajaOngkirIntegration.getAccountType: TRajaOngkirAccountType;
 begin
   Result := FAccountType;
+end;
+
+function TRajaOngkirIntegration.getResultText: string;
+begin
+  Result := Response.ResultText;
 end;
 
 procedure TRajaOngkirIntegration.setAccountType(AValue: TRajaOngkirAccountType);
