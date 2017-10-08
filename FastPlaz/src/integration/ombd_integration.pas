@@ -27,17 +27,22 @@ type
 
   TOmdbIntegration = class
   private
+    FKey: string;
+    FResponseText: string;
   public
     constructor Create;
     destructor Destroy; override;
 
     function Find(MovieTitle: string): string;
+  published
+    property Key:string read FKey write FKey;
+    property ResponseText: string read FResponseText;
   end;
 
 implementation
 
 const
-  _OMDB_URL = 'http://www.omdbapi.com/?y=&plot=short&r=json&t=';
+  _OMDB_URL = 'http://www.omdbapi.com/?y=&plot=short&r=json&apikey=%s&t=%s';
 
   _OMDB_MSG_NOTFOUND = 'Film "%s" tidak ditemukan';
 
@@ -48,7 +53,8 @@ var
 
 constructor TOmdbIntegration.Create;
 begin
-
+  FKey := '';
+  FResponseText := '';
 end;
 
 destructor TOmdbIntegration.Destroy;
@@ -58,14 +64,17 @@ end;
 
 function TOmdbIntegration.Find(MovieTitle: string): string;
 var
+  s: string;
   _http: THTTPLib;
   _json: TJSONUtil;
 begin
   Result := Format(_OMDB_MSG_NOTFOUND, [MovieTitle]);
+  s := Format( _OMDB_URL, [FKey, UrlEncode(MovieTitle)]);
 
   _http := THTTPLib.Create;
-  _http.URL := _OMDB_URL + UrlEncode(MovieTitle);
+  _http.URL := Trim( s);
   Response := _http.Get;
+  FResponseText := Response.ResultText;
   _http.Free;
   if Response.ResultCode <> 200 then
     Exit;
