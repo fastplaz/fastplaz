@@ -28,6 +28,7 @@ type
     FKey: string;
     FResultCode: integer;
     FResultText: string;
+    FURL: string;
     jsonData: TJSONData;
     function getData(APath: string): string;
     function getDataAsFloat(APath: string): double;
@@ -37,6 +38,7 @@ type
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
+    property URL: string read FURL write FURL;
 
     property Key: string read FKey write FKey;
     property EntityType: string read FEntityType write FEntityType;
@@ -82,6 +84,7 @@ constructor TZomatoIntegration.Create;
 begin
   FEntityType := '';
   FEntityID := 94; //Indonesia
+  FURL := ZOMATO_API_URL;
 end;
 
 destructor TZomatoIntegration.Destroy;
@@ -134,7 +137,7 @@ var
   restaurant: TJSONObject;
 begin
   Result := '';
-  urlTarget := ZOMATO_API_URL + 'search?count=' + i2s(ACount) +
+  urlTarget := FURL + 'search?count=' + i2s(ACount) +
     '&radius=2000&entity_type=' + FEntityType + '&entity_id=' +
     i2s(FEntityID) + '&q=' + UrlEncode(AKeyword);
 
