@@ -72,6 +72,7 @@ const
   _CACHE_PATH = 'ztemp/cache/';
 
 type
+  CharSet=Set of Char;
   TStringArray = array of string;
 
   { TLocalJSONParser }
@@ -94,6 +95,8 @@ function b2s(b: boolean): string;
 function s2b(s: string): boolean;
 function StrInArray(const AValue : String;const AArrayOfString : Array of String) : Boolean;
 function StreamToString(AStream: TStream): string;
+function StripNonAscii(const s: string): string;
+function StripCharsInSet(s:string; c:CharSet):string;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
@@ -288,6 +291,39 @@ begin
   begin
     Result := '';
   end;
+end;
+
+function StripNonAscii(const s: string): string;
+var
+  i, Count: Integer;
+begin
+  SetLength(Result, Length(s));
+  Count := 0;
+  for i := 1 to Length(s) do
+  begin
+    if ((s[i] >= #32) and (s[i] <= #127)) or (s[i] in [#10, #13]) then
+    begin
+      inc(Count);
+      Result[Count] := s[i];
+    end;
+  end;
+  SetLength(Result, Count);
+end;
+
+// usage:
+//  s := StripCharsInSet(s,[#0..#9,#11,#12,#14..#31,#127]);
+function StripCharsInSet(s: string; c: CharSet): string;
+var i,j:Integer;
+begin
+  SetLength(result,Length(s));
+  j:=0;
+  for i:=1 to Length(s) do
+    if not (s[i] in c) then
+    begin
+      inc(j);
+      result[j]:=s[i];
+    end;
+  SetLength(result,j);
 end;
 
 function StringCut(AStartString, AStopString: string; AText: string): string;
