@@ -122,7 +122,7 @@ begin
   Result := False;
   if (AOrigins = '') or (ADestionations = '') then
     Exit;
-  urlTarget := Format(GOOGLEDISTANCE_URL, [AOrigins, ADestionations]);
+  urlTarget := Format(GOOGLEDISTANCE_URL, [UrlEncode(AOrigins), UrlEncode(ADestionations)]);
 
   with THTTPLib.Create(urlTarget) do
   begin
