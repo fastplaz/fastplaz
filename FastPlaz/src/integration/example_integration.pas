@@ -39,6 +39,9 @@ implementation
 const
   EXAMPLE_BASEURL = 'https://api.example.fastplaz.com/bot%s/';
 
+var
+  Response: IHTTPResponse;
+
 { TExampleIntegration }
 
 constructor TExampleIntegration.Create;
