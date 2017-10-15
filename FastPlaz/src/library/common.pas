@@ -163,6 +163,7 @@ function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
 
 function file_get_contents(TargetURL: string): string;
+function FileCopy(ASource, ATarget: string): boolean;
 
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
 function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
@@ -1221,6 +1222,21 @@ begin
 
     Free;
   end;
+end;
+
+function FileCopy(ASource, ATarget: string): boolean;
+var
+  memBuffer: TMemoryStream;
+begin
+  Result := false;
+  memBuffer := TMemoryStream.Create;
+  try
+    memBuffer.LoadFromFile(ASource);
+    MemBuffer.SaveToFile(ATarget);
+    Result := true
+  except
+  end;
+  memBuffer.Free
 end;
 
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
