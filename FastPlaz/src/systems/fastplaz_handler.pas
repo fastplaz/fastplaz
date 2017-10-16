@@ -300,10 +300,10 @@ type
 
   TRoute = class
   private
+  public
     procedure Add(const ModuleName: string; const PatternURL: string;
       ModuleClass: TMyCustomWebModuleClass; Method: string = '';
       LoadOnStart: boolean = False; SkipStreaming: boolean = True);
-  public
     procedure Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleClass;
       Method: string = ''; LoadOnStart: boolean = False; SkipStreaming: boolean = True);
   end;
