@@ -120,7 +120,7 @@ type
     function Open( AUniDirectional:Boolean = False): Boolean;
   end;
 
-procedure DataBaseInit( const RedirecURL:string = '');
+function DataBaseInit( const RedirecURL:string = ''):boolean;
 
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
@@ -141,10 +141,11 @@ var
   DB_Transaction_Write : TSQLTransaction;
   DB_LibLoader_Write : TSQLDBLibraryLoader;
 
-procedure DataBaseInit(const RedirecURL: string);
+function DataBaseInit(const RedirecURL: string):boolean;
 var
   s : string;
 begin
+  Result := False;
   AppData.useDatabase := True;
 
   // multidb - prepare
@@ -203,6 +204,7 @@ begin
     try
       DB_Connector.Open;
       AppData.databaseActive := True;
+      Result := True;
     except
       on E: Exception do
       begin
