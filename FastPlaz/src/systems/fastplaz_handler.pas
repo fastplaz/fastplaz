@@ -344,6 +344,7 @@ var
 function _CleanVar(const Value: string): string;
 begin
   Result := mysql_real_escape_string(Value);
+  Result := Trim(Result);
 end;
 
 
