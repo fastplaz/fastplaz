@@ -39,6 +39,7 @@ type
 
   TYandexTranslateIntegration = class(TInterfacedObject)
   private
+    FCache: boolean;
     FCallback: string;
     FFormat: string;
     FHint: string;
@@ -62,6 +63,8 @@ type
 
     function Detect(AText: string): string;
     function Translate(ALang, AText: string): string;
+  published
+    property Cache: boolean read FCache write FCache;
   end;
 
 implementation
@@ -69,6 +72,9 @@ implementation
 const
   _YANDEX_DETECT_URL = 'https://translate.yandex.net/api/v1.5/tr.json/detect?key=';
   _YANDEX_TRANSLATE_URL = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=';
+
+  TRANSLATE_CACHE_PATH = 'ztemp/cache/translate/';
+  TRANSLATE_CACHE_EXTENSION = '.txt';
 
 var
   Response: IHTTPResponse;
@@ -95,6 +101,7 @@ begin
   FHint := '';
   FCallback := '';
   FFormat := 'plain';
+  FCache := False;
 end;
 
 destructor TYandexTranslateIntegration.Destroy;
@@ -137,13 +144,22 @@ end;
 
 function TYandexTranslateIntegration.Translate(ALang, AText: string): string;
 var
-  url: string;
+  filename, url: string;
 begin
   Result := '';
   if FKey = '' then
     Exit;
   if AText = '' then
     Exit;
+
+  filename := TRANSLATE_CACHE_PATH + Trim(SafeText(StripNonAscii(AText))) +
+    '-' + ALang + TRANSLATE_CACHE_EXTENSION;
+
+  if FCache and FileExists(filename) then
+  begin
+    Result := LoadFromFile(filename);
+    Exit;
+  end;
 
   url := _YANDEX_TRANSLATE_URL + FKey;
   if FCallback <> '' then
@@ -161,6 +177,9 @@ begin
     begin
       jsonData := GetJSON(Response.ResultText);
       Result := getData('text[0]');
+
+      if FCache then
+        SaveToFile(filename, Result);
     end;
     Free;
   end;

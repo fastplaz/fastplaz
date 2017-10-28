@@ -125,6 +125,8 @@ function DirectoryIsWritable(const DirectoryName: string): boolean;
 function ScanFolder(const APath: String; AWildCard:string = '*'):TStringList;
 function ZipFolder(APath: string; ATarget: string): boolean;
 function DownloadFile(const AURL: String;  const AFilePath: String):boolean;
+function LoadFromFile(const AFileName: string): string;
+function SaveToFile(const AFileName: string; const AContent: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
@@ -966,6 +968,38 @@ begin
     end;
     Free;
   end;
+end;
+
+function LoadFromFile(const AFileName: string): string;
+var
+  lst: TStringList;
+begin
+  Result := '';
+  if AFileName = '' then
+    Exit;
+  if not FileExists( AFileName) then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.LoadFromFile( AFileName);
+  Result := lst.Text;
+
+  lst.Free;
+end;
+
+function SaveToFile(const AFileName: string; const AContent: string): boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  if AFileName = '' then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.Text := AContent;
+  lst.SaveToFile( AFileName);
+  lst.Free;
+  Result := True;
 end;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
