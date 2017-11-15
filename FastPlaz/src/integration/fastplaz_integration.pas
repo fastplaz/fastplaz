@@ -11,15 +11,15 @@ uses
   bmkg_integration, botframework_integration, clarifai_integration, 
   cognitiveanalyze_integration, cognitivedomainspecific_integration, 
   cognitiveocr_integration, currencyibacor_integration, 
-  facebookmessenger_integration, googleplacesearch_integration, 
-  ibacorpolicenumber_integration, ibacortrainschedule_integration, 
-  jobplanet_integration, kamusibacor_integration, kamuskemdikbud_integration, 
-  kamussunda_integration, kawalpemilu_integration, 
-  kloudlesscalendar_integration, line_integration, 
+  facebookmessenger_integration, googledistancematrix_integration, 
+  googleplacesearch_integration, ibacorpolicenumber_integration, 
+  ibacortrainschedule_integration, jobplanet_integration, 
+  kamusibacor_integration, kamuskemdikbud_integration, kamussunda_integration, 
+  kawalpemilu_integration, kloudlesscalendar_integration, line_integration, 
   maskofajadwalshalat_integration, ombd_integration, 
-  openweathermap_integration, resiibacor_integration, telegram_integration, 
-  whois_integration, witai_integration, yandextranslate_integration, 
-  zomato_integration, portalpulsa_integration, rajaongkir_integration, 
+  openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
+  resiibacor_integration, telegram_integration, whois_integration, 
+  witai_integration, yandextranslate_integration, zomato_integration, 
   LazarusPackageIntf;
 
 implementation

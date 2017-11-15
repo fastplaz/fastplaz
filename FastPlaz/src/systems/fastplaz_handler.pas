@@ -319,6 +319,7 @@ procedure Debug(const Sender: TObject; const Key: string = '');
 var
   AppData: TMainData;
   Config: TMyConfig;
+  Sanitize: boolean;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
   ModuleLoaded: TModuleLoaded;
@@ -1040,7 +1041,10 @@ begin
       s := Application.Request.ContentFields.Values[Variable];
     end;
   end;
-  Result := _CleanVar(s);
+  if Sanitize then
+    Result := _CleanVar(s)
+  else
+    Result := s
 end;
 
 procedure TPOST.SetValue(const Variable: string; AValue: string);
@@ -1060,7 +1064,10 @@ begin
   Result := '';
   if Application.Request.QueryFields.IndexOfName(Name) = -1 then
     Exit;
-  Result := _CleanVar(Application.Request.QueryFields.Values[Name]);
+  if Sanitize then
+    Result := _CleanVar(Application.Request.QueryFields.Values[Name])
+  else
+    Result := Application.Request.QueryFields.Values[Name];
 end;
 
 procedure TGET.SetValue(const Name: string; AValue: string);
@@ -1381,6 +1388,7 @@ end;
 initialization
   AppData.isReady := False;
   StartTime := _GetTickCount;
+  Sanitize := True;
   //MemoryAllocated := GetHeapStatus.TotalAllocated;
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
