@@ -69,7 +69,7 @@ const
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
 
-  _CACHE_PATH = 'ztemp/cache/';
+  _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
 
 type
   CharSet=Set of Char;
@@ -146,6 +146,8 @@ function EncodeQueryString(Data: array of string): string;
 function StripSlash(Const DataString: UnicodeString): UnicodeString;
 function StripHTML(AHTML: UnicodeString): UnicodeString;
 function StripTags(AHTML: UnicodeString): UnicodeString;
+function LoadCache( AName:String; AMod:String = 'general'): String;
+function SaveCache( AName, AContent:String; AMod:String = 'general'): Boolean;
 
 // php like function
 procedure echo(const Message: string);
@@ -821,6 +823,44 @@ begin
     Result := Result + Copy(AHTML, i, APos-i);
     i := ReadUntil(APos+1, '>');
   end;
+end;
+
+function LoadCache(AName: String; AMod: String): String;
+var
+  i: Integer;
+  lst: TStringList;
+begin
+  Result := '';
+  AName := SafeText( AName);
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  if not FileExists( AName) then
+    Exit;
+  i := HoursBetween(FileDateToDateTime(FileAge(AName)), now);
+  if i > 0 then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.LoadFromFile( AName);
+  Result := lst.Text;
+
+  lst.Free;
+end;
+
+function SaveCache(AName, AContent: String; AMod: String): Boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  AName := SafeText( AName);
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  lst := TStringList.Create;
+  lst.Text := AContent;
+  try
+    lst.SaveToFile(AName);
+    Result := True;
+  except
+  end;
+  lst.Free;
 end;
 
 
