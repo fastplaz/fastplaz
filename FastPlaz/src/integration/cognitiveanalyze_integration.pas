@@ -33,6 +33,7 @@ type
   private
     FCaption: string;
     FDetails: string;
+    FEndPoint: String;
     FFeatures: string;
     FImageURL: string;
     FResultText: String;
@@ -57,13 +58,14 @@ type
     function AnalyzeAsJSON(AImageURL: string): string;
   published
     property ResultText: String read FResultText;
+    property EndPoint: String read FEndPoint write FEndPoint;
   end;
 
 implementation
 
 const
   _COGNITIVE_ANALYZE_URL =
-    'https://westus.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=%s&details=%s&language=en';
+    'https://%s.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=%s&details=%s&language=en';
 
 var
   Response: IHTTPResponse;
@@ -72,7 +74,7 @@ var
 
 function TCognitiveAnalyze.generateURL: string;
 begin
-  Result := Format(_COGNITIVE_ANALYZE_URL, [FFeatures, FDetails]);
+  Result := Format(_COGNITIVE_ANALYZE_URL, [FEndPoint, FFeatures, FDetails]);
 end;
 
 function TCognitiveAnalyze.getData(APath: string): string;
@@ -90,6 +92,7 @@ begin
   FDetails := 'celebrities';
   FCaption := '';
   FTagCharacter := ',';
+  FEndPoint := 'southeastasia';
 end;
 
 destructor TCognitiveAnalyze.Destroy;
