@@ -35,6 +35,7 @@ type
     FDetails: string;
     FFeatures: string;
     FImageURL: string;
+    FResultText: String;
     FTagCharacter: string;
     FToken: string;
     jsonData: TJSONData;
@@ -54,6 +55,8 @@ type
     function Analyze: string;
     function Analyze(AImageURL: string): string;
     function AnalyzeAsJSON(AImageURL: string): string;
+  published
+    property ResultText: String read FResultText;
   end;
 
 implementation
@@ -149,6 +152,7 @@ var
   _body: string;
 begin
   Result := '';
+  FResultText := '';
   if FToken = '' then
     Exit;
   if AImageURL = '' then
@@ -162,6 +166,7 @@ begin
       _body := '{"url":"' + AImageURL + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
+      FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
       begin
         Result := Response.ResultText;
