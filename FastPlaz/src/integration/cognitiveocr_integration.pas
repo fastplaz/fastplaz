@@ -34,7 +34,7 @@ type
     FGeo: string;
     FImageURL: string;
     FLanguage: string;
-    FResponseText: string;
+    FResultText: String;
     FToken: string;
     jsonData: TJSONData;
     function generateURL: string;
@@ -52,7 +52,7 @@ type
     property Language: string read FLanguage write FLanguage;
     property ImageURL: string read FImageURL write FImageURL;
     property DetectOrientation: boolean read FDetectOrientation write FDetectOrientation;
-    property ResponseText: string read FResponseText;
+    property ResultText: String read FResultText;
 
     function Scan: string;
     function Scan(AImageURL: string): string;
@@ -138,7 +138,7 @@ constructor TCognitiveOCR.Create;
 begin
   FLanguage := 'en';
   FGeo := 'southeastasia';
-  FResponseText := '';
+  FResultText := '';
   FDetectOrientation := True;
 end;
 
@@ -169,7 +169,7 @@ var
   _body: string;
 begin
   Result := '';
-  FResponseText := '';
+  FResultText := '';
   if FToken = '' then
     Exit;
   if AImageURL = '' then
@@ -183,7 +183,7 @@ begin
       _body := '{"url":"' + AImageURL + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
-      FResponseText := Response.ResultText;
+      FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
       begin
         Result := Response.ResultText;
