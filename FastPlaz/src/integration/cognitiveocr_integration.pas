@@ -31,7 +31,7 @@ type
   TCognitiveOCR = class(TInterfacedObject)
   private
     FDetectOrientation: boolean;
-    FGeo: string;
+    FEndPoint: String;
     FImageURL: string;
     FLanguage: string;
     FResultText: String;
@@ -47,7 +47,6 @@ type
     constructor Create;
     destructor Destroy;
 
-    property Geo: string read FGeo write FGeo;
     property Token: string read FToken write FToken;
     property Language: string read FLanguage write FLanguage;
     property ImageURL: string read FImageURL write FImageURL;
@@ -57,6 +56,8 @@ type
     function Scan: string;
     function Scan(AImageURL: string): string;
     function ScanAsJSON(AImageURL: string): string;
+  published
+    property EndPoint: String read FEndPoint write FEndPoint;
   end;
 
 implementation
@@ -75,7 +76,7 @@ begin
   Result := 'false';
   if DetectOrientation then
     Result := 'true';
-  Result := Format(_COGNITIVE_OCR_URL, [FGeo, FLanguage, Result]);
+  Result := Format(_COGNITIVE_OCR_URL, [FEndPoint, FLanguage, Result]);
 end;
 
 function TCognitiveOCR.getData(APath: string): string;
@@ -137,7 +138,7 @@ end;
 constructor TCognitiveOCR.Create;
 begin
   FLanguage := 'en';
-  FGeo := 'southeastasia';
+  FEndPoint := 'southeastasia';
   FResultText := '';
   FDetectOrientation := True;
 end;

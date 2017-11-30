@@ -28,8 +28,10 @@ type
 
   TCognitiveDomainSpecific = class(TInterfacedObject)
   private
+    FDetails: string;
+    FEndPoint: String;
+    FFeatures: string;
     FImageURL: string;
-    FModel: string;
     FResultText: String;
     FToken: string;
     jsonData: TJSONData;
@@ -39,7 +41,6 @@ type
     destructor Destroy; override;
 
     property Token: string read FToken write FToken;
-    property Model: string read FModel write FModel;
     property ImageURL: string read FImageURL write FImageURL;
 
     function Scan: string;
@@ -47,13 +48,16 @@ type
     function ScanAsJSON(AImageURL: string): string;
   published
     property ResultText: String read FResultText;
+    property Features: string read FFeatures write FFeatures;
+    property Details: string read FDetails write FDetails;
+    property EndPoint: String read FEndPoint write FEndPoint;
   end;
 
 implementation
 
 const
   _COGNITIVE_OCR_URL =
-    'https://westus.api.cognitive.microsoft.com/vision/v1.0/models/%s/analyze';
+    'https://%s.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=%s&details=%s&language=en';
 
 var
   Response: IHTTPResponse;
@@ -62,12 +66,14 @@ var
 
 function TCognitiveDomainSpecific.generateURL: string;
 begin
-  Result := Format(_COGNITIVE_OCR_URL, [FModel]);
+  Result := Format(_COGNITIVE_OCR_URL, [FEndPoint, FFeatures, FDetails]);
 end;
 
 constructor TCognitiveDomainSpecific.Create;
 begin
-  FModel := 'celebrities';
+  FFeatures := 'Description,Faces,Categories,Tags,Adult';
+  FDetails := 'celebrities';
+  FEndPoint := 'southeastasia';
 end;
 
 destructor TCognitiveDomainSpecific.Destroy;
