@@ -2,13 +2,14 @@ unit cognitivecustomvision_integration;
 
 {
   Cognitive Computer Vision Domain Specific
+  https://www.customvision.ai
 
   [x] USAGE
   with TCognitiveCustomVision.Create do
   begin
-    Token := 'yourcognitivetoken;
-    Model := 'celebrities';
-    Result := Scan('imageURL');
+    Key := 'yourkey';
+    URL := 'yourendpointurl';
+    Result := Prediction('yourimageurl');
     Free;
   end;
 
@@ -51,6 +52,7 @@ type
   private
     FImageURL: string;
     FKey: string;
+    FLimitScore: Double;
     FResultText: string;
     FURL: string;
     jsonData: TJSONData;
@@ -69,6 +71,7 @@ type
     property URL: string read FURL write FURL;
     property Key: string read FKey write FKey;
     property Data: TJSONData read jsonData;
+    property LimitScore: Double read FLimitScore write FLimitScore;
 
     property ResultText: string read FResultText;
   end;
@@ -76,6 +79,7 @@ type
 implementation
 
 const
+  LIMITSCORE_DEFAULT = 5; // in percent
   _COGNITIVE_CUSTOMVISION_DEFAULT_URL =
     'https://southcentralus.api.cognitive.microsoft.com/customvision/v1.0/Prediction/';
 
@@ -102,6 +106,7 @@ constructor TCognitiveCustomVision.Create;
 begin
   FURL := '';
   FKey := '';
+  FLimitScore := LIMITSCORE_DEFAULT;
 end;
 
 destructor TCognitiveCustomVision.Destroy;
@@ -137,6 +142,8 @@ begin
         totalScore := totalScore + jsonData.GetPath('Predictions[' +
           i2s(i) + '].Probability').AsFloat;
       except
+        on E: Exception do
+          LogUtil.Add(E.Message, 'PREDICTION');
       end;
     end;
     i := i + 1;
@@ -148,12 +155,17 @@ begin
     s := getData('Predictions[' + i2s(i) + '].Tag');
     if s <> '' then
     begin
-      Result := Result + #10 + s + ': ';
       try
         score := jsonData.GetPath('Predictions[' + i2s(i) + '].Probability').AsFloat;
         score := score * 100 / totalScore;
-        Result := Result + Format('%f', [score]);
+        if score > FLimitScore then
+        begin
+          Result := Result + #10 + s + ': ';
+          Result := Result + Format('%f', [score]);
+        end;
       except
+        on E: Exception do
+          LogUtil.Add(E.Message, 'PREDICTION');
       end;
     end;
     i := i + 1;
@@ -181,7 +193,6 @@ begin
       RequestBody := TStringStream.Create(_body);
       Response := Post;
       FResultText := Response.ResultText;
-      LogUtil.Add(FResultText, 'CUSTOMVISION');
       if Response.ResultCode = 200 then
       begin
         Result := Response.ResultText;
