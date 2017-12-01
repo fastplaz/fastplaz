@@ -117,24 +117,48 @@ end;
 
 function TCognitiveCustomVision.Prediction(AImageURL: string): string;
 var
-  i: Integer;
-  s: String;
+  i: integer;
+  s: string;
+  score, totalScore: double;
 begin
   Result := PredictionAsJSON(AImageURL);
   if Result = '' then
     Exit;
 
   jsonData := GetJSON(Result);
-  Result := '';
+  // get total score
+  i := 0;
+  score := 0;
   repeat
     s := getData('Predictions[' + i2s(i) + '].Tag');
     if s <> '' then
     begin
-      Result := Result + '\n' + s + ':';
-      Result := Result + getData('Predictions[' + i2s(i) + '].Probability');
+      try
+        totalScore := totalScore + jsonData.GetPath('Predictions[' +
+          i2s(i) + '].Probability').AsFloat;
+      except
+      end;
     end;
     i := i + 1;
   until s = '';
+
+  Result := '';
+  i := 0;
+  repeat
+    s := getData('Predictions[' + i2s(i) + '].Tag');
+    if s <> '' then
+    begin
+      Result := Result + #10 + s + ': ';
+      try
+        score := jsonData.GetPath('Predictions[' + i2s(i) + '].Probability').AsFloat;
+        score := score * 100 / totalScore;
+        Result := Result + Format('%f', [score]);
+      except
+      end;
+    end;
+    i := i + 1;
+  until s = '';
+  Result := Trim(Result);
 end;
 
 function TCognitiveCustomVision.PredictionAsJSON(AImageURL: string): string;

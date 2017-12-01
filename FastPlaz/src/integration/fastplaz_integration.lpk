@@ -42,11 +42,10 @@
       </Item7>
       <Item8>
         <Filename Value="cognitivecustomvision_integration.pas"/>
-        <UnitName Value="cognitivedomainspecific_integration"/>
+        <UnitName Value="cognitivecustomvision_integration"/>
       </Item8>
       <Item9>
         <Filename Value="cognitivedomainspecific_integration.pas"/>
-        <AddToUsesPkgSection Value="False"/>
         <UnitName Value="cognitivedomainspecific_integration"/>
       </Item9>
       <Item10>
