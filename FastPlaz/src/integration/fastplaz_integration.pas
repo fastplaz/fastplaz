@@ -9,7 +9,7 @@ interface
 uses
   alquranindonesia_integration, apixu_integration, bca_integration, 
   bmkg_integration, botframework_integration, clarifai_integration, 
-  cognitiveanalyze_integration, cognitivedomainspecific_integration, 
+  cognitiveanalyze_integration, cognitivecustomvision_integration, 
   cognitiveocr_integration, currencyibacor_integration, 
   facebookmessenger_integration, googledistancematrix_integration, 
   googleplacesearch_integration, ibacorpolicenumber_integration, 
