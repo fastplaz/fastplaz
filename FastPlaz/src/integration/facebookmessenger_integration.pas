@@ -54,12 +54,16 @@ type
     FImageID: string;
     FImageURL: string;
     FIsSuccessfull: boolean;
+    FLocationLatitude: double;
+    FLocationLongitude: double;
+    FLocationName: string;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
     FToken: string;
 
     jsonData: TJSONData;
+    function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
     function getText: string;
@@ -91,6 +95,7 @@ type
     function isImage(ADetail: boolean = False): boolean;
 
     property IsVoice: boolean read getIsVoice;
+    property IsLocation: boolean read getIsLocation;
     property VoiceURL: string read getVoiceURL;
     function DownloadVoiceTo(ATargetFile: string): boolean;
 
@@ -98,6 +103,10 @@ type
     property ImageID: string read FImageID;
     property ImageURL: string read FImageURL;
     property ImageCaption: string read FImageCaption;
+
+    property LocationLatitude: double read FLocationLatitude;
+    property LocationLongitude: double read FLocationLongitude;
+    property LocationName: string read FLocationName;
   end;
 
 
@@ -197,6 +206,22 @@ begin
     if jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
       'audio' then
       Result := True;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.getIsLocation: boolean;
+begin
+  Result := False;
+  try
+    if not (jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
+      'location') then
+      Exit;
+
+    FLocationLatitude := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.coordinates.lat').AsFloat;
+    FLocationLongitude := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.coordinates.long').AsFloat;
+    Result := True;
+    FLocationName := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].title').AsString;
   except
   end;
 end;

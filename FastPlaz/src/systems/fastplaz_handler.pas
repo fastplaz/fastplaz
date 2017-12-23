@@ -99,6 +99,7 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
+    FFiles: TUploadedFiles;
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
@@ -179,6 +180,8 @@ type
 
     property TablePrefix: string read GetTablePrefix;
     property TimeUsage: integer read GetTimeUsage;
+  published
+    property Files : TUploadedFiles Read FFiles;
   end;
 
   TMyCustomWebModuleClass = class of TMyCustomWebModule;
