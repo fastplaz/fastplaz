@@ -132,11 +132,12 @@ begin
   Payloads['t'] := FHitType;
 
   FPayLoads.Text := Trim(FPayLoads.Text);
-  FPayLoads.Text := StringReplace(FPayLoads.Text, #13#10, '&', [rfReplaceAll]);
-  FPayLoads.Text := StringReplace(FPayLoads.Text, #13, '&', [rfReplaceAll]);
-  FPayLoads.Text := StringReplace(FPayLoads.Text, #10, '', [rfReplaceAll]);
-  FPayLoads.Text := StringReplace(FPayLoads.Text, '&&', '', [rfReplaceAll]);
-  payloadURL := Trim(GOOGLEANALYTICS_BASEURL + FPayLoads.Text);
+  for i := 0 to FPayLoads.Count - 1 do
+  begin
+    payloadURL := payloadURL + FPayLoads.Names[i] + '=' +
+      FPayLoads.ValueFromIndex[i] + '&';
+  end;
+  payloadURL := Trim(GOOGLEANALYTICS_BASEURL + payloadURL);
   FURL := payloadURL;
 
   with THTTPLib.Create(payloadURL) do
@@ -151,5 +152,4 @@ end;
 
 
 end.
-
 
