@@ -137,6 +137,7 @@ begin
   FPayLoads.Text := StringReplace(FPayLoads.Text, #10, '', [rfReplaceAll]);
   FPayLoads.Text := StringReplace(FPayLoads.Text, '&&', '', [rfReplaceAll]);
   payloadURL := Trim(GOOGLEANALYTICS_BASEURL + FPayLoads.Text);
+  FURL := payloadURL;
 
   with THTTPLib.Create(payloadURL) do
   begin
