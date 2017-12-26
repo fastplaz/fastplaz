@@ -28,6 +28,7 @@ type
     FURL: string;
   public
     constructor Create;
+    destructor Destroy;
     function SendExample(FileName: string; Public_Id: string = ''): IHTTPResponse;
   published
     property URL: string read FURL write FURL;
@@ -48,6 +49,10 @@ constructor TExampleIntegration.Create;
 begin
   FIsSuccessfull := False;
 
+end;
+
+destructor TExampleIntegration.Destroy;
+begin
 end;
 
 function TExampleIntegration.SendExample(FileName: string; Public_Id: string): IHTTPResponse;
