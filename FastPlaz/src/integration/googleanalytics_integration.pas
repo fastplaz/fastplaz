@@ -144,7 +144,10 @@ begin
   begin
     httpResponse := Post;
     if httpResponse.ResultCode = 200 then
+    begin
       FIsSuccessfull := True;
+      Result := True;
+    end;
     Free;
   end;
 
