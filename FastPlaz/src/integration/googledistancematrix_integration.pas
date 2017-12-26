@@ -10,10 +10,6 @@ REF:
   https://developers.google.com/maps/documentation/distance-matrix/
   // USAGE:
 
-  Ongkir := TRajaOngkirIntegration.Create;
-  Result := Ongkir.Find('your_airwaybill');
-  Ongkir.Free;
-
 }
 unit googledistancematrix_integration;
 
