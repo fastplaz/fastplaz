@@ -175,6 +175,8 @@ type
     destructor Destroy; override;
     function Get: IHTTPResponse;
     function Post: IHTTPResponse;
+    function Put: IHTTPResponse;
+    function Patch: IHTTPResponse;
     function Delete: IHTTPResponse;
     function UploadFile(Files: array of string;
       VarName: string = 'files[]'): IHTTPResponse;
@@ -338,6 +340,18 @@ begin
         if not Assigned( HTTPClient.RequestBody) then
            prepareRequestBody;
         HTTPClient.Delete(FURL, ResultStream);
+      end;
+      'PUT':
+      begin
+        if not Assigned( HTTPClient.RequestBody) then
+           prepareRequestBody;
+        HTTPClient.Put(FURL, ResultStream);
+      end;
+      'PATCH':
+      begin
+        if not Assigned( HTTPClient.RequestBody) then
+           prepareRequestBody;
+        HTTPClient.Options(FURL, ResultStream);
       end;
       'POST':
       begin
@@ -567,6 +581,16 @@ begin
   //HTTPClient.RequestBody := TStringStream.Create(PostFormData.Text);
 
   Result := CustomSubmit('FORMPOST');
+end;
+
+function THTTPLib.Put: IHTTPResponse;
+begin
+  Result := CustomSubmit('PUT');
+end;
+
+function THTTPLib.Patch: IHTTPResponse;
+begin
+  Result := CustomSubmit('PATCH');
 end;
 
 function THTTPLib.Delete: IHTTPResponse;
