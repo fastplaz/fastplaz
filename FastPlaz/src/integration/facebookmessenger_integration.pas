@@ -6,10 +6,13 @@ interface
 
 uses
   common, http_lib, logutil_lib, json_lib,
-  fpjson, strutils,
-  Classes, SysUtils;
+  fpjson, strutils, fgl, Classes, SysUtils;
 
 type
+
+  generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
+  TPayloadHandlerCallback = function(const APayload, ATitle: string): string of object;
+  TPayloadHandlerCallbackMap = specialize TStringHashMap<TPayloadHandlerCallback>;
 
   { TFacebookTemplateElement }
 
@@ -66,9 +69,15 @@ type
     function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
+    function getPayload: string;
+    function getPayloadHandler(const TagName: string): TPayloadHandlerCallback;
+    function getPayloadTitle: string;
+    function getPostbackTitle: string;
     function getText: string;
     function getUserID: string;
     function getVoiceURL: string;
+    procedure setPayloadHandler(const TagName: string;
+      AValue: TPayloadHandlerCallback);
     procedure setRequestContent(AValue: string);
   public
     constructor Create;
@@ -93,11 +102,20 @@ type
     function isCanSend: boolean;
     function isMessage: boolean;
     function isImage(ADetail: boolean = False): boolean;
+    function isPostback: boolean;
 
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
     property VoiceURL: string read getVoiceURL;
     function DownloadVoiceTo(ATargetFile: string): boolean;
+
+    // Postback
+    property Payload: string read getPayload;
+    property PayloadTitle: string read getPayloadTitle;
+    property PostbackTitle: string read getPostbackTitle; // = PayloadTitle
+    property PayloadHandler[const TagName: string]: TPayloadHandlerCallback
+      read getPayloadHandler write setPayloadHandler;
+    function PayloadHandling: String;
 
   published
     property ImageID: string read FImageID;
@@ -129,6 +147,7 @@ const
 
 var
   Response: IHTTPResponse;
+  ___PayloadHandlerCallbackMap: TPayloadHandlerCallbackMap;
 
 { TFacebookTemplateElement }
 
@@ -146,7 +165,7 @@ begin
   FData['image_url'] := '';
   FData['default_action/type'] := 'web_url';
   FData['default_action/url'] := '';
-  FData['default_action/messenger_extensions'] := true;
+  FData['default_action/messenger_extensions'] := True;
   FData['default_action/webview_height_ratio'] := 'tall';
   FData['default_action/fallback_url'] := '';
 end;
@@ -163,7 +182,7 @@ begin
   FData['image_url'] := FImageURL;
   FData['default_action/type'] := 'web_url';
   FData['default_action/url'] := FActionURL;
-  FData['default_action/messenger_extensions'] := true;
+  FData['default_action/messenger_extensions'] := True;
   FData['default_action/webview_height_ratio'] := 'tall';
   FData['default_action/fallback_url'] := '';
 end;
@@ -214,14 +233,18 @@ function TFacebookMessengerIntegration.getIsLocation: boolean;
 begin
   Result := False;
   try
-    if not (jsonData.GetPath('entry[0].messaging[0].message.attachments[0].type').AsString =
-      'location') then
+    if not (jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].type').AsString
+      = 'location') then
       Exit;
 
-    FLocationLatitude := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.coordinates.lat').AsFloat;
-    FLocationLongitude := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].payload.coordinates.long').AsFloat;
+    FLocationLatitude := jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].payload.coordinates.lat').AsFloat;
+    FLocationLongitude := jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].payload.coordinates.long').AsFloat;
     Result := True;
-    FLocationName := jsonData.GetPath('entry[0].messaging[0].message.attachments[0].title').AsString;
+    FLocationName := jsonData.GetPath(
+      'entry[0].messaging[0].message.attachments[0].title').AsString;
   except
   end;
 end;
@@ -233,6 +256,35 @@ begin
     Result := jsonData.GetPath('entry[0].messaging[0].message.mid').AsString;
   except
   end;
+end;
+
+function TFacebookMessengerIntegration.getPayload: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('entry[0].messaging[0].postback.payload').AsString;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.getPayloadHandler(
+  const TagName: string): TPayloadHandlerCallback;
+begin
+  Result := ___PayloadHandlerCallbackMap[TagName];
+end;
+
+function TFacebookMessengerIntegration.getPayloadTitle: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('entry[0].messaging[0].postback.title').AsString;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.getPostbackTitle: string;
+begin
+  Result := getPayloadTitle;
 end;
 
 function TFacebookMessengerIntegration.getUserID: string;
@@ -254,13 +306,20 @@ begin
   end;
 end;
 
+procedure TFacebookMessengerIntegration.setPayloadHandler(const TagName: string;
+  AValue: TPayloadHandlerCallback);
+begin
+  ___PayloadHandlerCallbackMap[TagName] := AValue;
+end;
+
 constructor TFacebookMessengerIntegration.Create;
 begin
-
+  ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
 end;
 
 destructor TFacebookMessengerIntegration.Destroy;
 begin
+  ___PayloadHandlerCallbackMap.Free;
   if Assigned(jsonData) then
     jsonData.Free;
   inherited;
@@ -429,6 +488,16 @@ begin
   end;
 end;
 
+function TFacebookMessengerIntegration.isPostback: boolean;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('entry[0].messaging[0].postback.payload').AsString <> '' then
+      Result := True;
+  except
+  end;
+end;
+
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
 begin
   Result := False;
@@ -459,6 +528,19 @@ begin
     Free;
   end;
 
+end;
+
+function TFacebookMessengerIntegration.PayloadHandling: String;
+var
+  i: Integer;
+  h: TPayloadHandlerCallback;
+begin
+  Result := '';
+  i := ___PayloadHandlerCallbackMap.IndexOf(getPayload);
+  if i = -1 then
+    Exit;
+  h := ___PayloadHandlerCallbackMap.Data[i];
+  Result := h( getPayload, getPayloadTitle);
 end;
 
 end.
