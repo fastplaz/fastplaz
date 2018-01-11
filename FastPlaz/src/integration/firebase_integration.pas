@@ -11,8 +11,24 @@ unit firebase_integration;
   // GOOGLE FIREBASE
   https://firebase.google.com/
   https://firebase.google.com/docs/reference/rest/database/
+  https://firebase.google.com/docs/database/rest/retrieve-data
 
   // USAGE:
+  [x] Get Data
+  with TFirebaseIntegration.Create do
+  begin
+    ProjectID := 'your-project-id';
+    Path := 'users/jack/name.json';
+    if Get then
+    begin
+      variable := Data['fieldname'];
+      ...
+
+    end;
+
+    Free;
+  end;
+
   [x] Write Data
   with TFirebaseIntegration.Create do
   begin
@@ -20,14 +36,13 @@ unit firebase_integration;
     Path := 'users/jack/name.json';
     Data['first'] := 'first';
     Data['last'] := 'last';
-    if not Post then
+    if not Put then
     begin
       // failed
     end;
 
     Free;
   end;
-
 
 
 }
@@ -41,7 +56,7 @@ uses
   http_lib, json_lib,
   Classes, SysUtils;
 
-{$ifdef Firebase_INTEGRATION}
+{$ifdef FIREBASE_INTEGRATION}
 {$endif}
 
 type
@@ -137,9 +152,16 @@ begin
   if not Result then
     Exit;
 
+  FData.LoadFromJsonString( '{}');
   FhttpResponse := FhttpClient.Get;
   if FhttpResponse.ResultCode <> 200 then
     Exit;
+
+  try
+    if FhttpResponse.ResultText <> 'null' then
+      FData.LoadFromJsonString( FhttpResponse.ResultText);
+  except
+  end;
 
   Result := True;
 end;
