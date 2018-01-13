@@ -32,9 +32,11 @@ type
   private
     FAddress: string;
     FCount: integer;
+    FData: TJSONData;
     FKey: string;
     FLatitude: double;
     FLongitude: double;
+    FPlaceID: String;
     FResultCode: integer;
     FResultText: string;
     FTitle: string;
@@ -45,7 +47,9 @@ type
     property Key: string read FKey write FKey;
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
+    function Detail(APlaceID:String):String;
   published
+    property Data: TJSONData read FData write FData;
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
 
@@ -54,6 +58,7 @@ type
     property Address: string read FAddress write FAddress;
     property Latitude: double read FLatitude write FLatitude;
     property Longitude: double read FLongitude write FLongitude;
+    property PlaceID: String read FPlaceID write FPlaceID;
   end;
 
 
@@ -62,6 +67,8 @@ implementation
 const
   _GOOGLE_PLACE_TEXTSEARCH_URL =
     'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&query=%s';
+  _GOOGLE_PLACE_DETAIL_URL =
+    'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
   //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
@@ -86,6 +93,7 @@ var
   _url: string;
 begin
   Result := '';
+  FPlaceID := '';
   if FKey = '' then
     Exit;
 
@@ -134,6 +142,7 @@ begin
     begin
       if FCount = 1 then
       begin
+        FPlaceID := jsonGetData(_json, 'results[' + i2s(i) + '].place_id');
         FTitle := jsonGetData(_json, 'results[' + i2s(i) + '].name');
         FAddress := jsonGetData(_json, 'results[' + i2s(i) + '].formatted_address');
         FLatitude := _json.GetPath('results[' + i2s(i) +
@@ -166,6 +175,37 @@ begin
   s := StringReplace(s, #13, '\n', [rfReplaceAll]);
   s := StringReplace(s, #10, '\n', [rfReplaceAll]);
   Result := s;
+end;
+
+function TGooglePlaceIntegration.Detail(APlaceID: String): String;
+var
+  _url : String;
+begin
+  Result := '';
+  if APlaceID = '' then
+    Exit;
+  if FKey = '' then
+    Exit;
+
+  _url := format(_GOOGLE_PLACE_DETAIL_URL, [FKey, UrlEncode(APlaceID)]);
+  with THTTPLib.Create(_url) do
+  begin
+    try
+      //AddHeader('Cache-Control', 'no-cache');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+
+      if Response.ResultCode <> 200 then
+        Exit;
+
+      FData := GetJSON( Response.ResultText);
+      Result := Response.ResultText;
+    except
+    end;
+    Free;
+  end;
+
 end;
 
 end.
