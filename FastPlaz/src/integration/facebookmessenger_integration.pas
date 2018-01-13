@@ -1,6 +1,33 @@
+{
+This file is part of the FastPlaz package.
+(c) Luri Darmawan <luri@fastplaz.com>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+}
+{
+  [x] USAGE
+
+  Facebook := TFacebookMessengerIntegration.Create;
+  Facebook.BotName := 'YOUR_BOT_NAME';
+  Facebook.Token := 'FACEBOOK_TOKEN';
+  Facebook.Send('facebookID, 'text');
+
+
+  [x] Payload Handler
+
+  function yourpayloadHandler(const APayload, ATitle: String): String;
+
+
+  Facebook.PayloadHandler['YOUR_PAYLOAD'] := @yourpayloadHandler;
+  Text := Facebook.PayloadHandling;
+
+
+}
 unit facebookmessenger_integration;
 
 {$mode objfpc}{$H+}
+
 
 interface
 
