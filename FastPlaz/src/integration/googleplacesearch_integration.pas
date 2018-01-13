@@ -157,6 +157,13 @@ begin
         '].geometry.location.lng').AsFloat]);
       s := s + '*' + _name + '*'#10;
       s := s + _json.GetPath('results[' + i2s(i) + '].formatted_address').AsString + #10;
+      try
+        if _json.GetPath('results[' + i2s(i) + '].opening_hours.open_now').AsBoolean then
+        begin
+          s := s + 'Saat ini buka.'#10;
+        end;
+      except
+      end;
       s := s + 'rating: ' + f2s(_json.GetPath('results[' + i2s(i) +
         '].rating').AsFloat) + #10;
 
