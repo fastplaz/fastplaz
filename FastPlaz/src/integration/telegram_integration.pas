@@ -779,7 +779,7 @@ begin
     Exit;
 
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDVENUE,
-    [ChatID, AName, AAddress, ALatitude, ALongitude, FParseMode]);
+    [ChatID, UrlEncode(AName), UrlEncode(AAddress), ALatitude, ALongitude, FParseMode]);
 
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
