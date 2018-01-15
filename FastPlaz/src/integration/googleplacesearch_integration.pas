@@ -125,7 +125,7 @@ function TGooglePlaceIntegration.SearchAsText(Keyword: string;
 
 var
   s, _name, _lat, _lon, _url: string;
-  i: integer;
+  i, j: integer;
   _json: TJSONData;
 begin
   Result := '';
@@ -140,7 +140,7 @@ begin
       FCount := 4;
     for i := 0 to FCount - 1 do
     begin
-      if FCount = 1 then
+      if i = 0 then
       begin
         FPlaceID := jsonGetData(_json, 'results[' + i2s(i) + '].place_id');
         FTitle := jsonGetData(_json, 'results[' + i2s(i) + '].name');
@@ -164,8 +164,32 @@ begin
         end;
       except
       end;
-      s := s + 'rating: ' + f2s(_json.GetPath('results[' + i2s(i) +
-        '].rating').AsFloat) + #10;
+      if i = 0 then
+      begin
+        try
+          if Detail(FPlaceID) <> '' then
+          begin
+            j := DayOfWeek(Now)-2;
+            if j = -1 then
+              j := 6;
+            if (jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/open/time') <> '')
+              and (jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/close/time') <> '') then
+            begin
+              s := s + 'Jam buka: ';
+              s := s + jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/open/time');
+              s := s + ' - ' + jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/close/time');
+              s := s + #10;
+            end;
+          end;
+        except
+        end;
+      end;
+
+      try
+        s := s + 'rating: ' + f2s(_json.GetPath('results[' + i2s(i) +
+          '].rating').AsFloat) + #10;
+      except
+      end;
 
       _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
       s := s + _url + #10;
