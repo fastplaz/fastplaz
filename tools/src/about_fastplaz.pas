@@ -8,7 +8,7 @@ uses
   {$ifdef windows}
   ShellAPI,
   {$endif}
-  PackageIntf,
+  PackageIntf, LazFileUtils,
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel, StdCtrls, ComCtrls;
 
 const

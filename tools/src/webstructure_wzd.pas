@@ -5,7 +5,7 @@ unit webstructure_wzd;
 interface
 
 uses
-  LazIDEIntf,
+  LazIDEIntf, LazFileUtils,
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
   ExtCtrls, StdCtrls, ButtonPanel, EditBtn;
 

@@ -5,6 +5,7 @@ unit webstructure_lib;
 interface
 
 uses
+  LazFileUtils,
   FileUtil, fpjson, jsonConf, jsonparser, jsonscanner,
   Dialogs, Controls, LazarusPackageIntf, ProjectIntf, NewItemIntf,
   IDEMsgIntf, LazIDEIntf, PackageIntf,

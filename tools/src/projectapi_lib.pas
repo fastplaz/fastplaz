@@ -5,6 +5,7 @@ unit projectapi_lib;
 interface
 
 uses
+  LazFileUtils,
   Forms, Controls, FileUtil, Dialogs,
   ProjectIntf, PackageIntf, LazIDEIntf,
   Classes, SysUtils;
