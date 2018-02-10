@@ -150,6 +150,7 @@
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
+      <OutDir Value="src\i18n"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
     <RequiredPkgs Count="1">
