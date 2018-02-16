@@ -1114,8 +1114,9 @@ end;
 function JsonFormatter(JsonString: string): string;
   // error line : VJSONParser.Scanner.CurRow;
 var
-  VJSONData: TJSONData = nil;
-  VJSONParser: TLocalJSONParser;
+  VJSONData : TJSONData = nil;
+  VJSONParser : TLocalJSONParser;
+  setOptions : TJSONOptions;
 begin
   Result := '';
   JsonString := trim(JsonString);
@@ -1125,10 +1126,11 @@ begin
   VJSONParser := TLocalJSONParser.Create(JsonString);
   try
     try
-      VJSONParser.Strict := True;
+      setOptions := VJSONParser.Options;
+      Include(setOptions, joStrict);
+
       VJSONData := VJSONParser.Parse;
       Result := VJSONData.FormatJSON([], 2);
-      ;
       VJSONData.Free;
     except
       on E: Exception do
