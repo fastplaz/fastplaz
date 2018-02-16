@@ -226,6 +226,7 @@ begin
     Add('');
     Add('  Application.OnGetModule := @FastPlasAppandler.OnGetModule;');
     Add('  Application.PreferModuleName := True;');
+    Add('  Application.LegacyRouting := True;');
     Add('');
     Add('  Application.Initialize;');
     Add('  Application.Run;');

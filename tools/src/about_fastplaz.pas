@@ -116,7 +116,7 @@ procedure TfAboutFastplaz.lbl_URLClick(Sender: TObject);
 var
   lsURL : string;
 begin
-  lsURL := 'http' + '://app.laz' + 'ex' + '.' + 'pert.com';
+  lsURL := 'http' + '://app.fas' + 'tpl' + 'az' + '.com';
   {$ifdef windows}
   ShellExecute(0, PChar('Open'), PChar( lsURL ),
     nil, PChar( ExtractFileDir( Application.ExeName)), 1);
