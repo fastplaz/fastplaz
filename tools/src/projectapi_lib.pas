@@ -226,7 +226,9 @@ begin
     Add('');
     Add('  Application.OnGetModule := @FastPlasAppandler.OnGetModule;');
     Add('  Application.PreferModuleName := True;');
+    Add('  {$if (fpc_version=3) and (fpc_release>=0) and (fpc_patch>=4)}');
     Add('  Application.LegacyRouting := True;');
+    Add('  {$endif}');
     Add('');
     Add('  Application.Initialize;');
     Add('  Application.Run;');
