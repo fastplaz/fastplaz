@@ -101,7 +101,9 @@ type
     function  Delete( ID: LongInt): boolean;
 
     procedure First;
+    procedure Prior;
     procedure Next;
+    procedure Last;
     procedure StartTransaction;
     procedure ReStartTransaction;
     procedure Commit;
@@ -1109,9 +1111,19 @@ begin
   Data.First;
 end;
 
+procedure TSimpleModel.Prior;
+begin
+  Data.Prior;
+end;
+
 procedure TSimpleModel.Next;
 begin
   Data.Next;
+end;
+
+procedure TSimpleModel.Last;
+begin
+  Data.Last;
 end;
 
 procedure TSimpleModel.StartTransaction;
