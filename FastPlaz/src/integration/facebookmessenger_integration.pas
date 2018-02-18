@@ -357,6 +357,7 @@ var
   posSplit: integer;
   s: string;
 begin
+  FIsSuccessfull := False;
   if not isCanSend then
     Exit;
   if (ATo = '') or (AMessages = '') then
@@ -381,7 +382,6 @@ begin
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      FIsSuccessfull := IsSuccessfull;
 
       if FResultCode = 200 then
       begin
@@ -392,6 +392,7 @@ begin
             s := Copy(s, 0, _FACEBOOK_MSG_MAXLENGTH) + ' ...';
           Send(ATo, s);
         end;
+        FIsSuccessfull := True;
       end;
 
     except
