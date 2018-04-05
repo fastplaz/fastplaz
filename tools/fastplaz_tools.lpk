@@ -3,6 +3,7 @@
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="fastplaz_tools"/>
+    <Type Value="RunAndDesignTime"/>
     <Author Value="Luri Darmawan"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -16,34 +17,28 @@
           <GenerateDebugInfo Value="False"/>
         </Debugging>
       </Linking>
-      <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
-        <CompilerPath Value="$(CompPath)"/>
-      </Other>
     </CompilerOptions>
     <Description Value="Tools Generator for FastPlaz
 for more information visit http://www.fastplaz.com
 "/>
-    <Version Minor="1" Release="1"/>
-    <Files Count="14">
+    <Version Minor="1" Release="2"/>
+    <Files Count="18">
       <Item1>
+        <Filename Value="src\about_fastplaz.pas"/>
+        <UnitName Value="about_fastplaz"/>
+      </Item1>
+      <Item2>
+        <Filename Value="src\about_fastplaz.lfm"/>
+        <Type Value="LFM"/>
+      </Item2>
+      <Item3>
         <Filename Value="src\fastplaz_tools_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_tools_register"/>
-      </Item1>
-      <Item2>
-        <Filename Value="src\modsimple_lib.pas"/>
-        <UnitName Value="modsimple_lib"/>
-      </Item2>
-      <Item3>
-        <Filename Value="src\modsimple_wzd.pas"/>
-        <UnitName Value="modsimple_wzd"/>
       </Item3>
       <Item4>
-        <Filename Value="src\modsimplejson_lib.pas"/>
-        <UnitName Value="modsimplejson_lib"/>
+        <Filename Value="src\menu_experts.pas"/>
+        <UnitName Value="menu_experts"/>
       </Item4>
       <Item5>
         <Filename Value="src\model_lib.pas"/>
@@ -54,53 +49,71 @@ for more information visit http://www.fastplaz.com
         <UnitName Value="model_wzd"/>
       </Item6>
       <Item7>
-        <Filename Value="src\menu_experts.pas"/>
-        <UnitName Value="menu_experts"/>
+        <Filename Value="src\modsimple_lib.pas"/>
+        <UnitName Value="modsimple_lib"/>
       </Item7>
       <Item8>
-        <Filename Value="src\project_lib.pas"/>
-        <UnitName Value="project_lib"/>
+        <Filename Value="src\modsimple_wzd.pas"/>
+        <UnitName Value="modsimple_wzd"/>
       </Item8>
       <Item9>
-        <Filename Value="src\project_wzd.pas"/>
-        <UnitName Value="project_wzd"/>
+        <Filename Value="src\modsimplejson_lib.pas"/>
+        <UnitName Value="modsimplejson_lib"/>
       </Item9>
       <Item10>
-        <Filename Value="src\about_fastplaz.lfm"/>
-        <Type Value="LFM"/>
+        <Filename Value="src\project_lib.pas"/>
+        <UnitName Value="project_lib"/>
       </Item10>
       <Item11>
-        <Filename Value="src\about_fastplaz.pas"/>
-        <UnitName Value="about_fastplaz"/>
+        <Filename Value="src\project_wzd.pas"/>
+        <UnitName Value="project_wzd"/>
       </Item11>
       <Item12>
-        <Filename Value="src\webstructure_lib.pas"/>
-        <UnitName Value="webstructure_lib"/>
+        <Filename Value="src\projectapi_lib.pas"/>
+        <UnitName Value="projectapi_lib"/>
       </Item12>
       <Item13>
-        <Filename Value="src\webstructure_wzd.lfm"/>
-        <Type Value="LFM"/>
+        <Filename Value="src\projectapi_wzd.pas"/>
+        <UnitName Value="projectapi_wzd"/>
       </Item13>
       <Item14>
+        <Filename Value="src\projectgenerator_lib.pas"/>
+        <UnitName Value="projectgenerator_lib"/>
+      </Item14>
+      <Item15>
+        <Filename Value="src\themestructure_wzd.pas"/>
+        <UnitName Value="themestructure_wzd"/>
+      </Item15>
+      <Item16>
+        <Filename Value="src\webstructure_lib.pas"/>
+        <UnitName Value="webstructure_lib"/>
+      </Item16>
+      <Item17>
         <Filename Value="src\webstructure_wzd.pas"/>
         <UnitName Value="webstructure_wzd"/>
-      </Item14>
+      </Item17>
+      <Item18>
+        <Filename Value="src\webstructure_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item18>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
-    <Type Value="RunAndDesignTime"/>
-    <RequiredPkgs Count="3">
+    <RequiredPkgs Count="4">
       <Item1>
-        <PackageName Value="IDEIntf"/>
+        <PackageName Value="jcfidelazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
+        <PackageName Value="IDEIntf"/>
       </Item2>
       <Item3>
-        <PackageName Value="FCL"/>
+        <PackageName Value="LCL"/>
       </Item3>
+      <Item4>
+        <PackageName Value="FCL"/>
+      </Item4>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>

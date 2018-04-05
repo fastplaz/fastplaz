@@ -36,6 +36,10 @@ msgctxt "custom_handler.__tag_content_not_found"
 msgid "Tags Content \"%s\" Not Found"
 msgstr ""
 
+#: fastplaz_handler.all
+msgid ""
+msgstr ""
+
 #: fastplaz_handler.get
 msgid "GET"
 msgstr ""

@@ -7,10 +7,13 @@ interface
 
 uses
   //SynExportHTML,
-  fpcgi, gettext, process, Math, fpjson, jsonparser, custweb, jsonConf,
+  fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient,
   //fphttpclient_with_ssl,
   RegExpr,
+  //netdb,
+  resolve,
+  zipper, strutils, dateutils,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -29,11 +32,13 @@ const
   _SYSTEM_THEME_ENABLE = 'systems/theme_enable';
   _SYSTEM_THEME = 'systems/theme';
   _SYSTEM_DEBUG = 'systems/debug';
+  _SYSTEM_DEBUGLEVEL = 'systems/debug_level';
   _SYSTEM_CACHE_TYPE = 'systems/cache';
   _SYSTEM_CACHE_TIME = 'systems/cache_time';
   _SYSTEM_CACHE_WRITE = 'systems/write';
   _SYSTEM_TEMP_DIR = 'systems/temp';
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
+  _SYSTEM_SESSION_STORAGE = 'systems/session_storage';
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
 
@@ -64,59 +69,124 @@ const
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
 
+  _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
+
 type
+  CharSet=Set of Char;
   TStringArray = array of string;
+
+  { TLocalJSONParser }
+
+  TLocalJSONParser = class(TJSONParser)
+  private
+    FScanner: TJSONScanner;
+  public
+    property Scanner: TJSONScanner read FScanner;
+  end;
 
 
 function i2s(pI: integer): string;
 function s2i(s: string): integer;
 function f2s(n: extended): string;
 function s2f(s: string): extended;
-function Implode(lst: TStringList; sep: string = ';'; prefix: string = ''; suffix: string = ''): string;
+function b2i(b: boolean): integer;
+function b2is(b: boolean): string;
+function b2s(b: boolean): string;
+function s2b(s: string): boolean;
+function StrInArray(const AValue : String;const AArrayOfString : Array of String) : Boolean;
+function StreamToString(AStream: TStream): string;
+function StripNonAscii(const s: string): string;
+function StripCharsInSet(s:string; c:CharSet):string;
+function StringCut(AStartString, AStopString: string; AText: string): string;
+function StringHumanToNominal( StrHuman: string):string;
+function StringHumanToFloat( StrHuman: string):double;
+function StringHumanToDate( AStringHuman: string):TDateTime;
+function StringsExists( ASubstring, AFullString:string):boolean;
+function WordExists( ASubstring, AFullString:string):boolean;
+function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
+  suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
+function isEmpty(AString: string): boolean;
+function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
+function DateTimeToISO8601( ADateTime:TDateTime): string;
+function ISO8601ToDateTime( AString:string; AOffsetHours:integer = 7): TDateTime;
 
 function SafeText(const SourceString: string): string;
-function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
-  IgnoreCase: boolean = False): string;
-function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
-  IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean = False): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
+function ScanFolder(const APath: String; AWildCard:string = '*'):TStringList;
+function ZipFolder(APath: string; ATarget: string): boolean;
+function DownloadFile(const AURL: String;  const AFilePath: String):boolean;
+function LoadFromFile(const AFileName: string): string;
+function SaveToFile(const AFileName: string; const AContent: string): boolean;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
+function jsonGetData(AJsonData: TJsonData; APath: string): string;
+function jsonGetString(J: TJsonData; index: string): string;
+function JsonFormatter(JsonString: string): string;
+function IsJsonValid(JsonString: string): boolean;
 function HexToInt(HexStr: string): int64;
 
+function WordNumber( s:string): integer;
+function isWord( s:string): boolean;
 function RandomString(PLen: integer; PrefixString: string = ''): string;
-function EncodeQueryString( Data: array of string): string;
+function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = True;
+  UseUpper: boolean = True; UseLower: boolean = True; UseSpace: boolean = False;
+  UseNumber: boolean = False; UseSpecial: boolean = False;
+  UseSeed: boolean = False; DontUse: string = ''): string;
+function EncodeQueryString(Data: array of string): string;
+function StripSlash(Const DataString: UnicodeString): UnicodeString;
+function StripHTML(AHTML: UnicodeString): UnicodeString;
+function StripTags(AHTML: UnicodeString): UnicodeString;
+function LoadCache( AName:String; AMod:String = 'general'): String;
+function SaveCache( AName, AContent:String; AMod:String = 'general'): Boolean;
 
 // php like function
 procedure echo(const Message: string);
 procedure echo(const Number: integer);
 procedure echo(const Number: double);
 procedure pr(const Message: variant);
-procedure ta(const Message: variant; Width : integer = 800; Height : integer = 200);
+procedure ta(const Message: variant; Width: integer = 800; Height: integer = 200);
 procedure Die(const Message: string = ''); overload;
 procedure Die(const Number: integer); overload;
 procedure Die(const Message: TStringList); overload;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
+function CleanUrl(URL: string; Separator: string = '-'): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
 function ucwords(const str: string): string;
 
-function file_get_contents( TargetURL: string):string;
+function file_get_contents(TargetURL: string): string;
+function FileCopy(ASource, ATarget: string): boolean;
 
-function preg_replace( const RegexExpression, ReplaceString, SourceString : string; UseSubstitution : boolean = True) : string;
+function preg_match(const RegexExpression: string; SourceString: string): boolean;
+function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
+  UseSubstitution: boolean = True): string;
 // php like function - end
+
+function isIPAddress(const IPAddress: string): boolean;
+function isEmail(const s: string): boolean;
+function isDomain(const s: string): boolean;
+function GetHostNameIP( HostName: string): string;
+
+function Exec(const AExeName: string; const AParameter: array of string;
+  var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
+function FastInfo(): string;
 
 implementation
 
-uses language_lib;
+uses
+  logutil_lib, language_lib;
 
 function i2s(pI: integer): string;
 begin
@@ -129,8 +199,11 @@ end;
 
 function s2i(s: string): integer;
 begin
-  Result := 0;
-  TryStrToInt(s, Result);
+  try
+    TryStrToInt(s, Result);
+  except
+    Result := 0;
+  end;
 end;
 
 function f2s(n: extended): string;
@@ -139,15 +212,230 @@ begin
   try
     //Result := FloatToStr(n);
     //Result := FloatToStrF(n, ffCurrency, 8, 2);
-    Result := Format( '%.2f', [n]);
+    Result := Format('%.2f', [n]);
   except
   end;
 end;
 
 function s2f(s: string): extended;
 begin
-  Result := 0;
-  TryStrToFloat(s, Result);
+  try
+    Result := 0;
+    TryStrToFloat(s, Result);
+  except
+  end;
+end;
+
+function b2i(b: boolean): integer;
+begin
+  if b then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+function b2is(b: boolean): string;
+begin
+  if b then
+    Result := '1'
+  else
+    Result := '0';
+end;
+
+function b2s(b: boolean): string;
+begin
+  if b then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
+function s2b(s: string): boolean;
+begin
+  Result := False;
+  try
+    Result := StrToBool(s);
+  except
+  end;
+  if s = 'on' then
+    Result := True;
+  if s = 'required' then
+    Result := True;
+end;
+
+function StrInArray(const AValue: String; const AArrayOfString: array of String
+  ): Boolean;
+var
+ Loop : String;
+begin
+  for Loop in AArrayOfString do
+  begin
+    if AValue = Loop then
+    begin
+       Exit(true);
+    end;
+  end;
+  result := false;
+end;
+
+function StreamToString(AStream: TStream): string;
+var
+  SS: TStringStream;
+begin
+  if AStream <> nil then
+  begin
+    SS := TStringStream.Create('');
+    try
+      SS.CopyFrom(AStream, 0);  // No need to position at 0 nor provide size
+      Result := SS.DataString;
+    finally
+      SS.Free;
+    end;
+  end
+  else
+  begin
+    Result := '';
+  end;
+end;
+
+function StripNonAscii(const s: string): string;
+var
+  i, Count: Integer;
+begin
+  SetLength(Result, Length(s));
+  Count := 0;
+  for i := 1 to Length(s) do
+  begin
+    if ((s[i] >= #32) and (s[i] <= #127)) or (s[i] in [#10, #13]) then
+    begin
+      inc(Count);
+      Result[Count] := s[i];
+    end;
+  end;
+  SetLength(Result, Count);
+end;
+
+// usage:
+//  s := StripCharsInSet(s,[#0..#9,#11,#12,#14..#31,#127]);
+function StripCharsInSet(s: string; c: CharSet): string;
+var i,j:Integer;
+begin
+  SetLength(result,Length(s));
+  j:=0;
+  for i:=1 to Length(s) do
+    if not (s[i] in c) then
+    begin
+      inc(j);
+      result[j]:=s[i];
+    end;
+  SetLength(result,j);
+end;
+
+function StringCut(AStartString, AStopString: string; AText: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  i := pos(AStartString, AText);
+  if i = 0 then
+    Exit;
+  Result := copy(AText, i + Length(AStartString));
+  Result := Copy(Result, 0, pos(AStopString, Result) - 1);
+end;
+
+function StringHumanToNominal(StrHuman: string): string;
+begin
+  Result := StrHuman;
+  Result := ReplaceAll( Result,
+    ['satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'],
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9'], False);
+  Result := StringReplace( Result, 'puluh', '0', [rfReplaceAll]);
+  Result := StringReplace( Result, 'ratus', '00', [rfReplaceAll]);
+  Result := StringReplace( Result, 'rb', '000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'ribu', '000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'jt', '000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'juta', '000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
+end;
+
+function StringHumanToFloat(StrHuman: string): double;
+begin
+  Result := s2f( StringHumanToNominal(StrHuman));
+end;
+
+// [x] example
+//   TheDate := StringHumanToDate('17 agustus 15');
+function StringHumanToDate(AStringHuman: string): TDateTime;
+var
+  i: integer;
+  s: string;
+  lst: TStrings;
+  FS: TFormatSettings;
+
+  function LongToShortMonth( AStr:string):string;
+  var
+    i: integer;
+  begin
+
+    Result := AStr;
+    for i := 1 to 12 do
+    begin
+      Result := StringReplace( Result, FS.LongMonthNames[i], FS.ShortMonthNames[i], [rfReplaceAll]);
+    end;
+
+    Result := StringReplace( Result, 'januari', 'jan', [rfReplaceAll]);
+    Result := StringReplace( Result, 'februari', 'feb', [rfReplaceAll]);
+    Result := StringReplace( Result, 'maret', 'mar', [rfReplaceAll]);
+    Result := StringReplace( Result, 'april', 'apr', [rfReplaceAll]);
+    Result := StringReplace( Result, 'mei', 'may', [rfReplaceAll]);
+    Result := StringReplace( Result, 'juni', 'jun', [rfReplaceAll]);
+    Result := StringReplace( Result, 'juli', 'jul', [rfReplaceAll]);
+    Result := StringReplace( Result, 'agustus', 'aug', [rfReplaceAll]);
+    Result := StringReplace( Result, 'september', 'sep', [rfReplaceAll]);
+    Result := StringReplace( Result, 'oktober', 'oct', [rfReplaceAll]);
+    Result := StringReplace( Result, 'november', 'nov', [rfReplaceAll]);
+    Result := StringReplace( Result, 'desember', 'dec', [rfReplaceAll]);
+  end;
+
+begin
+  Result := Today;
+  FS := DefaultFormatSettings;
+  FS.DateSeparator := ' ';
+  FS.ShortDateFormat := 'dd mmm yyyy';
+
+  if WordNumber(AStringHuman) = 1 then
+  begin
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('mmm yyyy',Now);
+  end;
+  if WordNumber(AStringHuman) = 2 then
+    AStringHuman := AStringHuman + ' ' + FormatDateTime('yyyy',Now);
+  if WordNumber(AStringHuman) > 2 then
+  begin
+    i := LastDelimiter( ' ', AStringHuman);
+    if ( Length(AStringHuman) - i) = 2 then
+    begin
+      AStringHuman := Copy(AStringHuman,0,i) + '20' + Copy(AStringHuman,i+1);
+    end;
+    AStringHuman := LongToShortMonth( AStringHuman);
+    try
+      Result := ScanDateTime('dd mmm yyyy', AStringHuman, FS);
+    except
+      Result := Today;
+    end;
+  end;
+
+end;
+
+function StringsExists(ASubstring, AFullString: string): boolean;
+begin
+  ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
+  Result := preg_match( '('+ASubstring+')', AFullString);
+end;
+
+function WordExists(ASubstring, AFullString: string): boolean;
+begin
+  Result := StringsExists( ASubstring, AFullString);
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -227,10 +515,30 @@ begin
   if Pos('.', lst[0]) <> 0 then
   begin
     lst.Insert(0, Copy(lst[0], 1, Pos('.', lst[0]) - 1));
-    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) - Pos('.', lst[1]));
+    lst[1] := 'index=' + Copy(lst[1], Pos('.', lst[1]) + 1, Length(lst[1]) -
+      Pos('.', lst[1]));
   end;
 
   Result := lst;
+end;
+
+function isEmpty(AString: string): boolean;
+begin
+  Result := False;
+  if AString = '' then
+    Result := True;
+end;
+
+// maybe is regex ?
+function isRegex(s: string): boolean;
+begin
+  Result := False;
+  if Pos('?', s) <> 0 then
+    Result := True;
+  if Pos('^', s) <> 0 then
+    Result := True;
+  if Pos('$', s) <> 0 then
+    Result := True;
 end;
 
 function EchoError(const Fmt: string; const Args: array of const): string;
@@ -244,21 +552,40 @@ begin
   Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
 end;
 
+function DateTimeToISO8601(ADateTime: TDateTime): string;
+begin
+  Result := FormatDateTime('YYYY-mm-dd"T"HH:nn:ss'+'+0700', ADateTime);;
+end;
+
+function ISO8601ToDateTime(AString: string; AOffsetHours: integer): TDateTime;
+var
+  tmpFormatSettings: TFormatSettings;
+begin
+  Result := now;
+
+  AString := copy( AString,0,10) + ' ' + copy(AString,12,8);
+  tmpFormatSettings := FormatSettings;
+  tmpFormatSettings.DateSeparator := '-';
+  tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd';
+  try
+    Result := StrToDateTime( AString, tmpFormatSettings);
+    Result := IncHour(Result, AOffsetHours); // GMT+7
+  except
+  end;
+end;
+
 function SafeText(const SourceString: string): string;
 const
   NotAllowed: array[1..24] of string =
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
     '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`'
     );
-var
-  s: string;
 begin
-  s := ReplaceAll(SourceString, NotAllowed, '-');
-  Result := s;
+  Result := ReplaceAll(SourceString, NotAllowed, '-');
 end;
 
-function ReplaceAll(const Subject: string; const OldPatterns, NewPatterns: array of string;
-  IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string;
+  const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   NewPattern: string;
@@ -278,8 +605,8 @@ begin
   end;
 end;
 
-function ReplaceAll(const Subject: string; const OldPatterns: array of string; NewPatterns: string;
-  IgnoreCase: boolean): string;
+function ReplaceAll(const Subject: string; const OldPatterns: array of string;
+  NewPatterns: string; IgnoreCase: boolean): string;
 var
   ReplaceFlags: TReplaceFlags;
   I: integer;
@@ -320,11 +647,13 @@ end;
 
 procedure ta(const Message: variant; Width: integer; Height: integer);
 begin
-  if Width = 0 then Width := 800;
-  echo( #13'<textarea style="width: '+i2s(Width)+'px !important; height: '+i2s(Height)+'px !important;">');
-  echo( #13'');
-  echo( string(Message));
-  echo( #13'</textarea>');
+  if Width = 0 then
+    Width := 800;
+  echo(#13'<textarea style="width: ' + i2s(Width) + 'px !important; height: ' +
+    i2s(Height) + 'px !important;">');
+  echo(#13'');
+  echo(string(Message));
+  echo(#13'</textarea>');
 end;
 
 procedure Die(const Number: integer);
@@ -335,6 +664,22 @@ end;
 procedure Die(const Message: TStringList);
 begin
   Die('<pre>' + Message.Text + '</pre>');
+end;
+
+function WordNumber(s: string): integer;
+var
+  lst : TStrings;
+begin
+  lst := Explode( s, ' ');
+  Result := lst.Count;
+  lst.Free;
+end;
+
+function isWord(s: string): boolean;
+begin
+  Result := False;
+  if WordNumber( s) = 1 then
+    Result := True;
 end;
 
 function RandomString(PLen: integer; PrefixString: string): string;
@@ -348,6 +693,54 @@ begin
   repeat
     Result := Result + str[Random(Length(str)) + 1];
   until (Length(Result) = PLen);
+end;
+
+function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean;
+  UseUpper: boolean; UseLower: boolean; UseSpace: boolean; UseNumber: boolean;
+  UseSpecial: boolean; UseSeed: boolean; DontUse: string): string;
+const
+  c_upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  c_lower = 'abcdefghijklmnopqrstuvwxyz';
+  c_number = '0123456789';
+  c_special = '~@#$%^*()_+-={}|][';
+var
+  rnd, chars: string;
+  i, len, clen: integer;
+begin
+  chars := '';
+  if UseLower then
+    chars := chars + c_lower;
+  if UseUpper then
+    chars := chars + c_upper;
+  if UseNumber then
+    chars := chars + c_number;
+  if UseSpecial then
+    chars := chars + c_special;
+  if UseSpace then
+  begin
+    for i := 0 to (Length(chars) mod 10) do
+      chars := chars + ' ';
+  end;
+  if DontUse <> '' then
+  begin
+    // .. next ...
+  end;
+
+  Randomize;
+  len := RandomRange(MinLength, MaxLength);
+  clen := length(chars);
+  rnd := '';
+  try
+    for i := 1 to len do
+    begin
+      rnd := rnd + chars[RandomRange(1, clen)];
+    end;
+  except
+  end;
+
+  if LeadingCapital then
+    rnd[1] := upCase(rnd[1]);
+  Result := rnd;
 end;
 
 function EncodeQueryString(Data: array of string): string;
@@ -371,10 +764,114 @@ begin
   Result := s;
 end;
 
+function StripSlash(const DataString: UnicodeString): UnicodeString;
+var
+  L : Integer;
+begin
+  L:=Length(DataString);
+  If (L>0) and (DataString[l]='/') then
+    Result:=Copy(DataString,1,L-1)
+  else
+    Result:=DataString;
+end;
+
+// http://www.festra.com/eng/snip12.htm
+function StripHTML(AHTML: UnicodeString): UnicodeString;
+var
+  TagBegin, TagEnd, TagLength: integer;
+begin
+  TagBegin := Pos('<', AHTML);      // search position of first <
+
+  while (TagBegin > 0) do
+  begin  // while there is a < in S
+    TagEnd := Pos('>', AHTML);              // find the matching >
+    TagLength := TagEnd - TagBegin + 1;
+    Delete(AHTML, TagBegin, TagLength);     // delete the tag
+    TagBegin := Pos('<', AHTML);            // search for next <
+  end;
+
+  Result := AHTML;
+end;
+
+function StripTags(AHTML: UnicodeString): UnicodeString;
+var
+  Len: Integer;
+
+  function ReadUntil(const ReadFrom: Integer; const C: Char): Integer;
+  var
+    j: Integer;
+  begin
+    for j := ReadFrom to Len do
+      if (AHTML[j] = C) then
+      begin
+        Result := j;
+        Exit;
+      end;
+    Result := Len+1;
+  end;
+
+var
+  i, APos: Integer;
+begin
+  Len := Length(AHTML);
+  i := 0;
+  Result := '';
+  while (i <= Len) do
+  begin
+    Inc(i);
+    APos := ReadUntil(i, '<');
+    Result := Result + Copy(AHTML, i, APos-i);
+    i := ReadUntil(APos+1, '>');
+  end;
+end;
+
+function LoadCache(AName: String; AMod: String): String;
+var
+  i: Integer;
+  lst: TStringList;
+begin
+  Result := '';
+  AName := SafeText( AName);
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  if not FileExists( AName) then
+    Exit;
+  i := HoursBetween(FileDateToDateTime(FileAge(AName)), now);
+  if i > 0 then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.LoadFromFile( AName);
+  Result := lst.Text;
+
+  lst.Free;
+end;
+
+function SaveCache(AName, AContent: String; AMod: String): Boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  AName := SafeText( AName);
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  lst := TStringList.Create;
+  lst.Text := AContent;
+  try
+    lst.SaveToFile(AName);
+    Result := True;
+  except
+  end;
+  lst.Free;
+end;
+
+
 procedure Die(const Message: string);
 begin
   //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
   //raise EFPWebError.Create(Message);
+  StopTime:= _GetTickCount;
+  ElapsedTime:= StopTime - StartTime;
+
+  Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));;
   Application.Response.Contents.Add(Message);
   Application.Response.SendContent;
   Application.Terminate;
@@ -405,6 +902,144 @@ begin
     FileClose(fHandle);
     DeleteFile(TempFilename);
   end;
+end;
+
+function ScanFolder(const APath: String; AWildCard: string): TStringList;
+var
+  sPath: string;
+  rec : TSearchRec;
+  tmpLst: TStringList;
+begin
+  Result := TStringList.Create;
+  sPath := IncludeTrailingPathDelimiter(APath);
+  if FindFirst(sPath + AWildCard, faAnyFile, rec) = 0 then
+  begin
+    repeat
+      // TSearchRec.Attr contain basic attributes (directory, hidden,
+      // system, etc). TSearchRec only supports a subset of all possible
+      // info. TSearchRec.FindData contains everything that the OS
+      // reported about the item during the search, if you need to
+      // access more detailed information...
+
+      if (rec.Attr and faDirectory) <> 0 then
+      begin
+        // item is a directory
+        if (rec.Name <> '.') and (rec.Name <> '..') then
+        begin
+          tmpLst := ScanFolder(sPath + rec.Name);
+          if tmpLst.Count > 0 then
+          begin
+            Result.AddStrings( tmpLst);
+          end;
+        end;
+      end
+      else
+      begin
+        // item is a file
+        Result.Add( IncludeTrailingPathDelimiter( APath) + rec.Name);
+      end;
+    until FindNext(rec) <> 0;
+    FindClose(rec);
+  end;end;
+
+function ZipFolder(APath: string; ATarget: string): boolean;
+var
+  i: integer;
+  s, szPathEntry: string;
+  _Zipper: TZipper;
+  _FileList: TStringList;
+  _ZEntries: TZipFileEntries;
+
+begin
+  Result := False;
+  if not DirectoryExists(APath) then
+    Exit;
+
+  _Zipper := TZipper.Create;
+  _ZEntries := TZipFileEntries.Create(TZipFileEntry);
+  _Zipper.Filename := ATarget;
+
+  // relative directory
+  szPathEntry := ExcludeTrailingPathDelimiter(APath);
+  szPathEntry := IncludeTrailingPathDelimiter(ExtractFileDir( szPathEntry));
+
+  try
+    _FileList := ScanFolder(APath);
+    for i := 0 to _FileList.Count - 1 do
+    begin
+      s := StringReplace( _FileList[i], szPathEntry, '', [rfReplaceAll]);
+      // Make sure the RelativeDirectory files are not in the root of the ZipFile
+      _ZEntries.AddFileEntry(_FileList[i], s);
+    end;
+
+    if (_ZEntries.Count > 0) then
+    begin
+      _Zipper.ZipFiles(_ZEntries);
+      Result := True;
+    end;
+  except
+    on E: Exception do
+    begin
+      LogUtil.Add( APath + ': ' + E.Message, 'ZIP');
+    end;
+  end;
+
+  _ZEntries.Free;
+  _FileList.Free;
+  _Zipper.Free;
+end;
+
+function DownloadFile(const AURL: String; const AFilePath: String): boolean;
+begin
+  Result := False;
+  if (AURL='') or (AFilePath='') then
+    Exit;
+  if FileExists(AFilePath) then
+    DeleteFile(AFilePath);
+  with TFPHTTPClient.Create(nil) do
+  begin
+    try
+      Get(AURL,AFilePath);
+      Result := True;
+    except
+      on E: Exception do
+      begin
+      end;
+    end;
+    Free;
+  end;
+end;
+
+function LoadFromFile(const AFileName: string): string;
+var
+  lst: TStringList;
+begin
+  Result := '';
+  if AFileName = '' then
+    Exit;
+  if not FileExists( AFileName) then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.LoadFromFile( AFileName);
+  Result := lst.Text;
+
+  lst.Free;
+end;
+
+function SaveToFile(const AFileName: string; const AContent: string): boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  if AFileName = '' then
+    Exit;
+
+  lst := TStringList.Create;
+  lst.Text := AContent;
+  lst.SaveToFile( AFileName);
+  lst.Free;
+  Result := True;
 end;
 
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
@@ -453,6 +1088,69 @@ begin
     echo(#13#10);
 end;
 
+function jsonGetData(AJsonData: TJsonData; APath: string): string;
+begin
+  Result := '';
+  try
+    APath := StringReplace( APath, '/', '.', [rfReplaceAll]);
+    Result := AJsonData.GetPath(APath).AsString;
+  except
+  end;
+end;
+
+function jsonGetString(J: TJsonData; index: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  try
+    i := TJSONObject(J).IndexOfName(index);
+    if i <> -1 then
+      Result := J.Items[i].AsString;
+  except
+  end;
+end;
+
+function JsonFormatter(JsonString: string): string;
+  // error line : VJSONParser.Scanner.CurRow;
+var
+  VJSONData : TJSONData = nil;
+  VJSONParser : TLocalJSONParser;
+  setOptions : TJSONOptions;
+begin
+  Result := '';
+  JsonString := trim(JsonString);
+  if JsonString = '' then
+    Exit;
+
+  VJSONParser := TLocalJSONParser.Create(JsonString);
+  try
+    try
+      setOptions := VJSONParser.Options;
+      Include(setOptions, joStrict);
+
+      VJSONData := VJSONParser.Parse;
+      Result := VJSONData.FormatJSON([], 2);
+      VJSONData.Free;
+    except
+      on E: Exception do
+      begin
+      end;
+    end;
+  finally
+    VJSONParser.Free;
+  end;
+
+end;
+
+function IsJsonValid(JsonString: string): boolean;
+begin
+  if JsonFormatter(JsonString) = '' then
+    Result := False
+  else
+    Result := True;
+end;
+
 function HexToInt(HexStr: string): int64;
 var
   RetVar: int64;
@@ -481,7 +1179,8 @@ begin
   Result := RetVar;
 end;
 
-function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string; Flags: TReplaceFlags): string;
+function StringReplaceExt(const S: string; OldPattern, NewPattern: array of string;
+  Flags: TReplaceFlags): string;
 var
   i: integer;
 begin
@@ -509,6 +1208,14 @@ begin
   end;
   Result := lst.Text;
   FreeAndNil(lst);
+end;
+
+function CleanUrl(URL: string; Separator: string): string;
+begin
+  Result := LowerCase(Trim(URL));
+  Result := ReplaceAll(Result, [' ', ',', '?', '!', '.', '''', '+',
+    '^', '"', #13, #10, '/', '\', '(', ')', '[', ']', '*', '$', '!'], Separator);
+  Result := ReplaceAll(Result, ['---', '--'], '-');
 end;
 
 function UrlEncode(const DecodedStr: string; Pluses: boolean): string;
@@ -574,16 +1281,16 @@ end;
 
 function file_get_contents(TargetURL: string): string;
 var
-  s : string;
+  s: string;
 begin
   Result := '';
-  With TFPHTTPClient.Create(Nil) do
+  with TFPHTTPClient.Create(nil) do
   begin
     try
-      s := Get( TargetURL);
+      s := Get(TargetURL);
       Result := s;
     except
-      on e : Exception do
+      on e: Exception do
       begin
         Result := e.Message;
       end;
@@ -593,13 +1300,43 @@ begin
   end;
 end;
 
-function preg_replace(const RegexExpression, ReplaceString, SourceString: string; UseSubstitution: boolean): string;
+function FileCopy(ASource, ATarget: string): boolean;
+var
+  memBuffer: TMemoryStream;
+begin
+  Result := false;
+  memBuffer := TMemoryStream.Create;
+  try
+    memBuffer.LoadFromFile(ASource);
+    MemBuffer.SaveToFile(ATarget);
+    Result := true
+  except
+  end;
+  memBuffer.Free
+end;
+
+function preg_match(const RegexExpression: string; SourceString: string): boolean;
+begin
+  Result := False;
+  try
+    with TRegExpr.Create do
+    begin
+      Expression := RegexExpression;
+      Result := Exec(SourceString);
+      Free;
+    end;
+  except
+  end;
+end;
+
+function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
+  UseSubstitution: boolean): string;
 begin
   try
     with TRegExpr.Create do
     begin
       Expression := RegexExpression;
-      Result := Replace( SourceString, ReplaceString, UseSubstitution);
+      Result := Replace(SourceString, ReplaceString, UseSubstitution);
       Free;
     end;
   except
@@ -607,11 +1344,156 @@ begin
   end;
 end;
 
+function isIPAddress(const IPAddress: string): boolean;
+begin
+  Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+end;
+
+function isEmail(const s: string): boolean;
+begin
+  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
+end;
+
+function isDomain(const s: string): boolean;
+begin
+  //Result := execregexpr('(^(?!\-)(?:[a-zA-Z\d\-]{0,62}[a-zA-Z\d]\.){1,126}(?!\d+)[a-zA-Z\d]{1,63}$)', s);
+  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', s);
+end;
+
+function GetHostNameIP(HostName: string): string;
+{
+var
+  i: integer;
+  ans: array [1..10] of THostAddr;
+  lst: TStrings;
+}
+begin
+  Result := '';
+  with THostResolver.Create(nil) do
+  begin
+    try
+      if NameLookup( HostName ) then
+      begin
+        Result := Trim( AddressAsString);
+      end;
+    except
+    end;
+    Free;
+  end;
+{
+  i := ResolveName(HostName, ans);
+  if i = 0 then
+    Exit;
+  Result := HostAddrToStr(Ans[1]);
+
+  lst := Explode( Result, '.');
+  Result := '';
+  for i := 3 downto 1 do
+  begin
+    Result := Result + lst[i] + '.';
+  end;
+  Result := Result + lst[0];
+  lst.Free;
+}
+end;
+
+// example:
+//  Exec( 'executable-nya', ['parameternya'], lsS);
+function Exec(const AExeName: string; const AParameter: array of string;
+  var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
+var
+  p: TProcess;
+  i, exitstatus: integer;
+
+const
+  // not too small to avoid fragmentation when reading large files.
+  csi_EXECCOMMAND_READ_BYTES = 65536;
+
+  // helperfunction that does the bulk of the work.
+  function internalRuncommand(p: TProcess; var outputstring: string;
+  var exitstatus: integer; const AShowOptons: TShowWindowOptions = swoHIDE): integer;
+  var
+    numbytes, bytesread: integer;
+  begin
+    Result := -1;
+    try
+      try
+        p.Options := [poUsePipes, poWaitOnExit, poStderrToOutPut];
+        p.ShowWindow := AShowOptons;
+        bytesread := 0;
+        p.Execute;
+        while p.Running do
+        begin
+          Setlength(outputstring, BytesRead + csi_EXECCOMMAND_READ_BYTES);
+          NumBytes := p.Output.Read(outputstring[1 + bytesread],
+            csi_EXECCOMMAND_READ_BYTES);
+          if NumBytes > 0 then
+            Inc(BytesRead, NumBytes)
+          else
+            Sleep(100);
+        end;
+        repeat
+          Setlength(outputstring, BytesRead + csi_EXECCOMMAND_READ_BYTES);
+          NumBytes := p.Output.Read(outputstring[1 + bytesread],
+            csi_EXECCOMMAND_READ_BYTES);
+          if NumBytes > 0 then
+            Inc(BytesRead, NumBytes);
+        until NumBytes <= 0;
+        setlength(outputstring, BytesRead);
+        exitstatus := p.exitstatus;
+        Result := 0; // we came to here, document that.
+      except
+        on e: Exception do
+        begin
+          die( e.Message);
+          Result := 1;
+          setlength(outputstring, BytesRead);
+        end;
+      end;
+    finally
+      p.Free;
+    end;
+
+  end;
+
+begin
+  p := TProcess.Create(nil);
+  p.Executable := AExeName;
+  if high(AParameter) >= 0 then
+    for i := low(AParameter) to high(AParameter) do
+      p.Parameters.add(AParameter[i]);
+  Result := internalruncommand(p, AOutput, exitstatus, AShowOptons) = 0;
+  if exitstatus <> 0 then
+    Result := False;
+end;
+
+function FastInfo: string;
+var
+  lst: TStringList;
+  s: string;
+begin
+  lst := TStringList.Create;
+  Application.GetEnvironmentList(lst);
+
+  s := '<pre><b>Your Server Info:</b><br>';
+  s := s + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
+  s := s + #13#10'Target OS ' + {$i %FPCTARGETOS%};
+  s := s + #13#10'FPC Version ' + {$i %FPCVERSION%};
+  s := s + #13#10'Build Date ' + {$i %DATE%};
+  s := s + #13#10#13;
+
+  lst.Text := s + lst.Text;
+  Result := lst.Text;
+  lst.Free;
+end;
+
+
+
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
   AppData.debug := True;
   Config := TMyConfig.Create(nil);
-  Config.ValidateFile( 'config/config.json');
+  Config.ValidateFile('config/config.json');
 
 
 finalization

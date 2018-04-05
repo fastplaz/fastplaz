@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <Name Value="fastplaz_integration"/>
+    <Type Value="RunAndDesignTime"/>
+    <Author Value="Luri Darmawan (luri@fastplaz.com)"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Description Value="Integration Package for FastPlaz"/>
+    <Files Count="36">
+      <Item1>
+        <Filename Value="alquranindonesia_integration.pas"/>
+        <UnitName Value="alquranindonesia_integration"/>
+      </Item1>
+      <Item2>
+        <Filename Value="apixu_integration.pas"/>
+        <UnitName Value="apixu_integration"/>
+      </Item2>
+      <Item3>
+        <Filename Value="bca_integration.pas"/>
+        <UnitName Value="bca_integration"/>
+      </Item3>
+      <Item4>
+        <Filename Value="bmkg_integration.pas"/>
+        <UnitName Value="bmkg_integration"/>
+      </Item4>
+      <Item5>
+        <Filename Value="botframework_integration.pas"/>
+        <UnitName Value="botframework_integration"/>
+      </Item5>
+      <Item6>
+        <Filename Value="clarifai_integration.pas"/>
+        <UnitName Value="clarifai_integration"/>
+      </Item6>
+      <Item7>
+        <Filename Value="cognitiveanalyze_integration.pas"/>
+        <UnitName Value="cognitiveanalyze_integration"/>
+      </Item7>
+      <Item8>
+        <Filename Value="cognitivecustomvision_integration.pas"/>
+        <UnitName Value="cognitivecustomvision_integration"/>
+      </Item8>
+      <Item9>
+        <Filename Value="cognitivedomainspecific_integration.pas"/>
+        <UnitName Value="cognitivedomainspecific_integration"/>
+      </Item9>
+      <Item10>
+        <Filename Value="cognitiveocr_integration.pas"/>
+        <UnitName Value="cognitiveocr_integration"/>
+      </Item10>
+      <Item11>
+        <Filename Value="currencyibacor_integration.pas"/>
+        <UnitName Value="currencyibacor_integration"/>
+      </Item11>
+      <Item12>
+        <Filename Value="facebookmessenger_integration.pas"/>
+        <UnitName Value="facebookmessenger_integration"/>
+      </Item12>
+      <Item13>
+        <Filename Value="firebase_integration.pas"/>
+        <UnitName Value="firebase_integration"/>
+      </Item13>
+      <Item14>
+        <Filename Value="googleanalytics_integration.pas"/>
+        <UnitName Value="googleanalytics_integration"/>
+      </Item14>
+      <Item15>
+        <Filename Value="googledistancematrix_integration.pas"/>
+        <UnitName Value="googledistancematrix_integration"/>
+      </Item15>
+      <Item16>
+        <Filename Value="googleplacesearch_integration.pas"/>
+        <UnitName Value="googleplacesearch_integration"/>
+      </Item16>
+      <Item17>
+        <Filename Value="ibacorpolicenumber_integration.pas"/>
+        <UnitName Value="ibacorpolicenumber_integration"/>
+      </Item17>
+      <Item18>
+        <Filename Value="ibacortrainschedule_integration.pas"/>
+        <UnitName Value="ibacortrainschedule_integration"/>
+      </Item18>
+      <Item19>
+        <Filename Value="jobplanet_integration.pas"/>
+        <UnitName Value="jobplanet_integration"/>
+      </Item19>
+      <Item20>
+        <Filename Value="kamusibacor_integration.pas"/>
+        <UnitName Value="kamusibacor_integration"/>
+      </Item20>
+      <Item21>
+        <Filename Value="kamuskemdikbud_integration.pas"/>
+        <UnitName Value="kamuskemdikbud_integration"/>
+      </Item21>
+      <Item22>
+        <Filename Value="kamussunda_integration.pas"/>
+        <UnitName Value="kamussunda_integration"/>
+      </Item22>
+      <Item23>
+        <Filename Value="kawalpemilu_integration.pas"/>
+        <UnitName Value="kawalpemilu_integration"/>
+      </Item23>
+      <Item24>
+        <Filename Value="kloudlesscalendar_integration.pas"/>
+        <UnitName Value="kloudlesscalendar_integration"/>
+      </Item24>
+      <Item25>
+        <Filename Value="line_integration.pas"/>
+        <UnitName Value="line_integration"/>
+      </Item25>
+      <Item26>
+        <Filename Value="maskofajadwalshalat_integration.pas"/>
+        <UnitName Value="maskofajadwalshalat_integration"/>
+      </Item26>
+      <Item27>
+        <Filename Value="ombd_integration.pas"/>
+        <UnitName Value="ombd_integration"/>
+      </Item27>
+      <Item28>
+        <Filename Value="openweathermap_integration.pas"/>
+        <UnitName Value="openweathermap_integration"/>
+      </Item28>
+      <Item29>
+        <Filename Value="portalpulsa_integration.pas"/>
+        <UnitName Value="portalpulsa_integration"/>
+      </Item29>
+      <Item30>
+        <Filename Value="rajaongkir_integration.pas"/>
+        <UnitName Value="rajaongkir_integration"/>
+      </Item30>
+      <Item31>
+        <Filename Value="resiibacor_integration.pas"/>
+        <UnitName Value="resiibacor_integration"/>
+      </Item31>
+      <Item32>
+        <Filename Value="telegram_integration.pas"/>
+        <UnitName Value="telegram_integration"/>
+      </Item32>
+      <Item33>
+        <Filename Value="whois_integration.pas"/>
+        <UnitName Value="whois_integration"/>
+      </Item33>
+      <Item34>
+        <Filename Value="witai_integration.pas"/>
+        <UnitName Value="witai_integration"/>
+      </Item34>
+      <Item35>
+        <Filename Value="yandextranslate_integration.pas"/>
+        <UnitName Value="yandextranslate_integration"/>
+      </Item35>
+      <Item36>
+        <Filename Value="zomato_integration.pas"/>
+        <UnitName Value="zomato_integration"/>
+      </Item36>
+    </Files>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="fastplaz_runtime"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
+  </Package>
+</CONFIG>

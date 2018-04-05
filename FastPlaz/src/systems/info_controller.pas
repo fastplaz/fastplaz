@@ -22,7 +22,7 @@ type
 
 implementation
 
-uses theme_controller, common;
+uses theme_controller, common, versioninfo_lib;
 
 constructor TInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -38,15 +38,10 @@ end;
 
 procedure TInfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
-var
-  lst: TStringList;
 begin
-  lst := TStringList.Create;
-  Application.GetEnvironmentList(lst);
-
-  die('<pre>Your Server Info:<br>' + lst.Text);
-
-  Response.Content := ThemeUtil.Render();
+  ThemeUtil.GetVersionInfo();
+  //Response.Content := ThemeUtil.Render();
+  Response.Content := VersionInfo.FullVersion + FastInfo();
   Handled := True;
 end;
 

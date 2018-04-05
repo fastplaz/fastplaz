@@ -5,8 +5,9 @@ unit webstructure_wzd;
 interface
 
 uses
-  LazIDEIntf,
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ButtonPanel, EditBtn;
+  LazIDEIntf, LazFileUtils,
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
+  ExtCtrls, StdCtrls, ButtonPanel, EditBtn;
 
 type
 
@@ -24,7 +25,7 @@ type
     procedure OKButtonClick(Sender: TObject);
   private
   public
-    function CreateStructure( TargetDirectory:string):boolean;
+    function CreateStructure(TargetDirectory: string): boolean;
   end;
 
 var
@@ -43,10 +44,15 @@ begin
   ModalResult := mrOk;
 end;
 
+procedure TfWebStructure.CancelButtonClick(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+
 function TfWebStructure.CreateStructure(TargetDirectory: string): boolean;
 begin
   Result := False;
-  if not DirectoryExistsUTF8( TargetDirectory) then
+  if not DirectoryExistsUTF8(TargetDirectory) then
   begin
     //ShowMessage( 'Directory is not exists.');
     //Exit;
@@ -54,7 +60,8 @@ begin
 
   with TWebStructure.Create do
   begin
-    Result := GenerateStructure( TargetDirectory, ExtractFileName(LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename));
+    Result := GenerateStructure(TargetDirectory,
+      ExtractFileName(LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename));
     Free;
   end;
   ShowMessage('Create structure Done.');
@@ -62,15 +69,9 @@ begin
   Result := True;
 end;
 
-procedure TfWebStructure.CancelButtonClick(Sender: TObject);
-begin
-  ModalResult := mrCancel;
-end;
-
 procedure TfWebStructure.FormCreate(Sender: TObject);
 begin
-  edt_TargetDir.Directory:= ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename);
+  edt_TargetDir.Directory := ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename);
 end;
 
 end.
-

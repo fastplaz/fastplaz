@@ -18,8 +18,10 @@ type
 
   TFileDescDefaultModule = class(TFileDescPascalUnit)
   private
+    IsAPI: boolean;
   public
     constructor Create; override;
+    constructor Create(AsAPI: boolean);
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
@@ -94,12 +96,21 @@ begin
   //Name:=rs_Mod_Default_Name;
   DefaultFileExt := '.pas';
   VisibleInNewDialog := True;
+  IsAPI := False;
+end;
+
+constructor TFileDescDefaultModule.Create(AsAPI: boolean);
+begin
+  Create;
+  IsAPI := AsAPI;
 end;
 
 function TFileDescDefaultModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, html_lib, database_lib';
+  if not IsAPI then
+    Result := Result + ', html_lib';
+  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, database_lib';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;
@@ -116,9 +127,9 @@ end;
 
 function TFileDescDefaultModule.GetUnitDirectives: string;
 begin
-  Result:='{$mode objfpc}{$H+}';
+  Result := '{$mode objfpc}{$H+}';
   if Owner is TLazProject then
-    Result:=CompilerOptionsToUnitDirectives(TLazProject(Owner).LazCompilerOptions);
+    Result := CompilerOptionsToUnitDirectives(TLazProject(Owner).LazCompilerOptions);
 end;
 
 function TFileDescDefaultModule.GetInterfaceSource(
@@ -132,12 +143,19 @@ begin
   begin
     Add('type');
     Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
-    Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
-    Add('    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
+    if not IsAPI then
+    begin
+      Add('    function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
+    end;
+    Add('    procedure BeforeRequestHandler(Sender: TObject; ARequest: TRequest);');
     Add('  public');
     Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
     Add('    destructor Destroy; override;');
+    Add('');
+    Add('    procedure Get; override;');
+    Add('    procedure Post; override;');
     Add('  end;');
     Add('');
   end;
@@ -154,14 +172,22 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses theme_controller, common;');
+    if IsAPI then
+    begin
+      Add('uses json_lib, common;');
+    end
+    else
+    begin
+      Add('uses theme_controller, common;');
+    end;
     Add('');
 
     Add('constructor ' + ModulTypeName +
       '.CreateNew(AOwner: TComponent; CreateMode: integer);');
     Add('Begin');
     Add('  inherited CreateNew(AOwner, CreateMode);');
-    Add('  OnRequest := @RequestHandler;');
+    //Add('  OnRequest := @RequestHandler;');
+    Add('  BeforeRequest := @BeforeRequestHandler;');
     Add('End;');
     Add('');
 
@@ -171,23 +197,83 @@ begin
     Add('End;');
     Add('');
 
+    Add('// Init First');
     Add('procedure ' + ModulTypeName +
-      '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+      '.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);');
     Add('Begin');
-    Add('  Tags[''$maincontent''] := @Tag_MainContent_Handler; //<<-- tag $maincontent handler');
-    Add('  Response.Content := ThemeUtil.Render();');
-    Add('  Handled := True;');
+    if IsAPI then
+    begin
+      Add('  Response.ContentType := ''application/json'';');
+    end;
     Add('End;');
     Add('');
 
-    Add('function ' + ModulTypeName +
-      '.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
+    //Add('procedure ' + ModulTypeName + '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('// GET Method Handler');
+    Add('procedure ' + ModulTypeName + '.Get;');
     Add('Begin');
-    Add('');
-    Add('  // your code here');
-    Add('  Result:=h3(''Hello "' + ucwords(ResourceName) + '" Module ... FastPlaz !'');');
-    Add('');
+    if IsAPI then
+    begin
+      Add('  //---');
+      Add('  Response.Content := ''{}'';');
+    end
+    else
+    begin
+      Add('  Tags[''maincontent''] := @Tag_MainContent_Handler; //<<-- tag maincontent handler');
+      Add('  Response.Content := ThemeUtil.Render();');
+    end;
     Add('End;');
+    Add('');
+
+    Add('// POST Method Handler');
+    if IsAPI then
+    begin
+      Add('// CURL example:');
+      Add('//   curl -X POST -H "Authorization: Basic dW5hbWU6cGFzc3dvcmQ=" "yourtargeturl"');
+    end;
+    Add('procedure ' + ModulTypeName + '.Post;');
+    if IsAPI then
+    begin
+      Add('var');
+      Add('  json : TJSONUtil;');
+      Add('  authstring : string;');
+      Add('Begin');
+      Add('  authstring := Header[''Authorization''];');
+      Add('  if authstring <> ''YourAuthKey'' then');
+      Add('  begin');
+      Add('    //');
+      Add('  end;');
+      Add('  json := TJSONUtil.Create;');
+      Add('');
+      Add('  json[''code''] := Int16(0);');
+      Add('  json[''data''] := ''yourdatahere'';');
+      Add('  CustomHeader[ ''ThisIsCustomHeader''] := ''datacustomheader'';');
+      Add('');
+      Add('  //---');
+      Add('  Response.Content := json.AsJSON;');
+      Add('  json.Free;');
+    end
+    else
+    begin
+      Add('Begin');
+      Add('  Response.Content := ''This is POST Method'';');
+    end;
+    Add('End;');
+    Add('');
+
+    if not IsAPI then
+    begin
+      Add('function ' + ModulTypeName +
+        '.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;');
+      Add('Begin');
+      Add('');
+      Add('  // your code here');
+      Add('  Result:=h3(''Hello "' + ucwords(ResourceName) +
+        '" Module ... FastPlaz !'');');
+      Add('');
+      Add('End;');
+    end;
+
     Add('');
     Add('');
   end;
@@ -214,7 +300,7 @@ function TFileDescDefaultModule.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
   if not bExpert then
-  begin;
+  begin
     Permalink := 'sample';
     ModulTypeName := 'TSampleModule';
     if not bCreateProject then

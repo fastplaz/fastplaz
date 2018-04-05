@@ -5,13 +5,11 @@ unit webstructure_lib;
 interface
 
 uses
+  LazFileUtils,
   FileUtil, fpjson, jsonConf, jsonparser, jsonscanner,
   Dialogs, Controls, LazarusPackageIntf, ProjectIntf, NewItemIntf,
   IDEMsgIntf, LazIDEIntf, PackageIntf,
   Classes, SysUtils;
-
-const
-  CSS_WEBSTRUCTURE_FAILED = 'Failed create directory structure';
 
 type
 
@@ -23,12 +21,19 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    function GenerateStructure(TargetDirectory: string; DefaultBinaryFile:string = ''): boolean;
+    function GenerateStructure(TargetDirectory: string;
+      DefaultBinaryFile: string = ''): boolean;
+    function GenerateThemeStructure(const ThemeName, TargetDirectory: string): boolean;
   end;
 
 implementation
 
 uses fastplaz_tools_register;
+
+const
+  CSS_WEBSTRUCTURE_FAILED = 'Failed create directory structure';
+  CSS_APP_TEMPLATEFOLDER = 'app';
+
 
 { TWebStructure }
 
@@ -41,7 +46,8 @@ begin
   inherited Destroy;
 end;
 
-function TWebStructure.GenerateStructure(TargetDirectory: string; DefaultBinaryFile: string): boolean;
+function TWebStructure.GenerateStructure(TargetDirectory: string;
+  DefaultBinaryFile: string): boolean;
 var
   Pkg: TIDEPackage;
   fastplaz_package_dir, s: string;
@@ -55,7 +61,9 @@ begin
 
   Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
   fastplaz_package_dir := Pkg.DirectoryExpanded;
-  ScanDirAndCopy(fastplaz_package_dir + DirectorySeparator + 'templates' +
+  ScanDirAndCopy(fastplaz_package_dir +
+    DirectorySeparator + 'templates' +
+    DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
     DirectorySeparator + '*',
     TargetDirectory);
 
@@ -68,7 +76,9 @@ begin
     s := DefaultBinaryFile;
   with TStringList.Create do
   begin
-    LoadFromFile(fastplaz_package_dir + 'templates'+DirectorySeparator+'.htaccess');
+    LoadFromFile(fastplaz_package_dir + 'templates' +
+      DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
+      DirectorySeparator + '.htaccess');
     Text := StringReplace(Text, 'your_binary_file', s, [rfReplaceAll]);
     try
       SaveToFile(TargetDirectory + DirectorySeparator + '.htaccess');
@@ -78,6 +88,28 @@ begin
   end;
 
   Result := False;
+end;
+
+function TWebStructure.GenerateThemeStructure(
+  const ThemeName, TargetDirectory: string): boolean;
+var
+  Pkg: TIDEPackage;
+  fastplaz_package_dir, dirTheme: string;
+begin
+  Result := False;
+  dirTheme := TargetDirectory + DirectorySeparator + ThemeName;
+  if not ForceDirectoriesUTF8(dirTheme) then
+  begin
+    ShowMessage(CSS_WEBSTRUCTURE_FAILED);
+    exit;
+  end;
+
+  Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
+  fastplaz_package_dir := Pkg.DirectoryExpanded;
+  ScanDirAndCopy(fastplaz_package_dir + DirectorySeparator +
+    'templates/themes/default' + DirectorySeparator + '*',
+    dirTheme);
+
 end;
 
 function TWebStructure.ScanDirAndCopy(SourceDirectory, TargetDirectory: string): boolean;

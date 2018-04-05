@@ -47,122 +47,100 @@
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="fastplaz"/>
       </Unit0>
       <Unit1>
-        <Filename Value="main.pas"/>
+        <Filename Value="define.inc"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="main"/>
       </Unit1>
       <Unit2>
-        <Filename Value="define.inc"/>
+        <Filename Value="src\systems\fastplaz_handler.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
       <Unit3>
-        <Filename Value="src\systems\fastplaz_handler.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="fastplaz_handler"/>
-      </Unit3>
-      <Unit4>
         <Filename Value="src\library\common.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="common"/>
-      </Unit4>
-      <Unit5>
+      </Unit3>
+      <Unit4>
         <Filename Value="src\library\database_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="database_lib"/>
-      </Unit5>
-      <Unit6>
+      </Unit4>
+      <Unit5>
         <Filename Value="src\library\logutil_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="logutil_lib"/>
-      </Unit6>
-      <Unit7>
+      </Unit5>
+      <Unit6>
         <Filename Value="src\systems\theme_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="theme_controller"/>
-      </Unit7>
-      <Unit8>
+      </Unit6>
+      <Unit7>
         <Filename Value="src\app\example\example_controller.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="ExampleWebModule"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
-        <UnitName Value="example_controller"/>
-      </Unit8>
-      <Unit9>
+      </Unit7>
+      <Unit8>
         <Filename Value="src\app\example\models\users_model.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="users_model"/>
-      </Unit9>
-      <Unit10>
+      </Unit8>
+      <Unit9>
         <Filename Value="src\app\about\about_controller.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="AboutModule"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
-        <UnitName Value="about_controller"/>
-      </Unit10>
-      <Unit11>
+      </Unit9>
+      <Unit10>
         <Filename Value="src\library\html_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="html_lib"/>
-      </Unit11>
-      <Unit12>
+      </Unit10>
+      <Unit11>
         <Filename Value="src\library\language_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="language_lib"/>
-      </Unit12>
-      <Unit13>
+      </Unit11>
+      <Unit12>
         <Filename Value="src\routes.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="routes"/>
-      </Unit13>
-      <Unit14>
+      </Unit12>
+      <Unit13>
         <Filename Value="src\library\versioninfo_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="versioninfo_lib"/>
-      </Unit14>
-      <Unit15>
+      </Unit13>
+      <Unit14>
         <Filename Value="src\systems\initialize_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="initialize_controller"/>
-      </Unit15>
-      <Unit16>
+      </Unit14>
+      <Unit15>
         <Filename Value="src\systems\error_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="error_controller"/>
-      </Unit16>
-      <Unit17>
+      </Unit15>
+      <Unit16>
         <Filename Value="src\systems\docs_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="docs_controller"/>
-      </Unit17>
-      <Unit18>
+      </Unit16>
+      <Unit17>
         <Filename Value="src\systems\session_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="session_controller"/>
-      </Unit18>
-      <Unit19>
+      </Unit17>
+      <Unit18>
         <Filename Value="src\systems\info_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="info_controller"/>
-      </Unit19>
-      <Unit20>
+      </Unit18>
+      <Unit19>
         <Filename Value="src\systems\module_controller.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="module_controller"/>
-      </Unit20>
-      <Unit21>
+      </Unit19>
+      <Unit20>
         <Filename Value="src\library\config_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="config_lib"/>
-      </Unit21>
-      <Unit22>
+      </Unit20>
+      <Unit21>
         <Filename Value="src\library\mailer_lib.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="mailer_lib"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="src\mainapp.pas"/>
+        <IsPartOfProject Value="True"/>
       </Unit22>
     </Units>
   </ProjectOptions>
@@ -183,14 +161,10 @@
       </Debugging>
     </Linking>
     <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
       <ConfigFile>
         <CustomConfigFile Value="True"/>
         <ConfigFilePath Value="extra.cfg"/>
       </ConfigFile>
-      <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
   <Debugging>

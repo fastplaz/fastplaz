@@ -31,7 +31,7 @@ var
 
 implementation
 
-uses modsimple_lib, modsimplejson_lib, model_lib, project_lib,
+uses modsimple_lib, modsimplejson_lib, model_lib, project_lib, projectapi_lib,
   webstructure_lib, menu_experts;
 
 function ucwords(const str: string): string;
@@ -60,6 +60,7 @@ begin
   //RegisterUnit('fastplaz_tools_register', @fastplaz_tools_register.Register);
   RegisterNewItemCategory(TNewIDEItemCategory.Create(FastPlaz));
   RegisterProjectDescriptor(TProjectFastPlazDescriptor.Create, FastPlaz);
+  RegisterProjectDescriptor(TProjectAPIFastPlazDescriptor.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescDefaultModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescModel.Create, FastPlaz);

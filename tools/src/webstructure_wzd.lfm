@@ -3,12 +3,13 @@ object fWebStructure: TfWebStructure
   Height = 209
   Top = 220
   Width = 633
+  BorderStyle = bsDialog
   Caption = 'Web Structure Wizard'
   ClientHeight = 209
   ClientWidth = 633
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.2.6.0'
+  LCLVersion = '1.5'
   object pnl_Top: TPanel
     Left = 0
     Height = 34

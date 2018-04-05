@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="fastplaz_extras"/>
+    <Author Value="Luri Darmawan"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\FastPlaz"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Other>
+        <ConfigFile>
+          <CustomConfigFile Value="True"/>
+          <ConfigFilePath Value="extra.cfg"/>
+        </ConfigFile>
+      </Other>
+    </CompilerOptions>
+    <Description Value="FastPlaz Extras Library"/>
+    <Files Count="3">
+      <Item1>
+        <Filename Value="src\fastplaz_extras_register.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="fastplaz_extras_register"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\FastPlaz\src\library\redis_lib.pas"/>
+        <UnitName Value="redis_lib"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\FastPlaz\src\systems\redis_controller.pas"/>
+        <UnitName Value="redis_controller"/>
+      </Item3>
+    </Files>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <EnableI18NForLFM Value="True"/>
+    </i18n>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="FCL"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

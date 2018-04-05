@@ -77,11 +77,14 @@ begin
   begin
     Add('type');
     Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
-    Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
     Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
     Add('    destructor Destroy; override;');
+    Add('');
+    Add('    procedure Get; override;');
+    Add('    procedure Post; override;');
     Add('  end;');
     Add('');
   end;
@@ -98,14 +101,14 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses common;');
+    Add('uses common, json_lib;');
     Add('');
 
     Add('constructor ' + ModulTypeName +
       '.CreateNew(AOwner: TComponent; CreateMode: integer);');
     Add('Begin');
     Add('  inherited CreateNew(AOwner, CreateMode);');
-    Add('  OnRequest := @RequestHandler;');
+    //Add('  OnRequest := @RequestHandler;');
     Add('End;');
     Add('');
 
@@ -115,25 +118,29 @@ begin
     Add('End;');
     Add('');
 
-    Add('procedure ' + ModulTypeName +
-      '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    //Add('procedure ' + ModulTypeName + '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
+    Add('// GET Method Handler');
+    Add('procedure ' + ModulTypeName + '.Get;');
     Add('var');
-    Add('  o, response_json : TJSONObject;');
+    Add('  json : TJSONUtil;');
     Add('Begin');
-    Add('  response_json := TJSONObject.Create;');
-    Add('  o := TJSONObject.Create;');
+    Add('  json := TJSONUtil.Create;');
     Add('');
-    Add('  // example');
-    Add('  o.Add( ''msg'', ''OK'');');
-    Add('  o.Add( ''variable'', ''value'');');
+    Add('  json[''code''] := Int16(0);');
+    Add('  json[''variable''] := ''value'';');
+    Add('  json[''msg''] := ''Ok'';');
     Add('');
-    Add('  response_json.Add( ''code'', 0);');
-    Add('  response_json.Add( ''response'', o);');
-    Add('  // example - end');
+    Add('  //---');
+    Add('  Response.ContentType := ''application/json'';');
+    Add('  Response.Content := json.AsJSON;');
+    Add('  json.Free;');
+    Add('End;');
     Add('');
-    Add('  Response.Content := response_json.AsJSON;');
-    Add('  FreeAndNil( response_json);');
-    Add('  Handled := True;');
+
+    Add('// POST Method Handler');
+    Add('procedure ' + ModulTypeName + '.Post;');
+    Add('Begin');
+    Add('  Response.Content := '''';');
     Add('End;');
     Add('');
 

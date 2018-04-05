@@ -3,6 +3,7 @@ unit config_lib;
 {$IF ((FPC_VERSION >= 2) and (FPC_RELEASE >= 5) and (FPC_PATCH >= 1))}
   {$DEFINE LSNEWFPC}
 {$ENDIF}
+{$DEFINE LSNEWFPC} // force bypass
 
 {$mode objfpc}{$H+}
 
@@ -10,6 +11,10 @@ interface
 
 uses
   fpcgi, jsonConf, fpjson, jsonparser, variants,
+  {$IFDEF LSNEWFPC}
+  {$ELSE}
+  jsonscanner,
+  {$ENDIF}
   Classes, SysUtils;
 
 const
@@ -38,7 +43,8 @@ type
     Status: integer;
     Message: string;
     constructor Create(AOwner: TComponent); override;
-    property Value[KeyName: WideString]: variant read GetConfigValue write SetConfigValue; default;
+    property Value[KeyName: WideString]: variant
+      read GetConfigValue write SetConfigValue; default;
     property IsValid: boolean read FIsValid;
 
     function ValidateFile(ConfigFileName: string): boolean;
@@ -60,14 +66,22 @@ end;
 
 function TMyConfig.GetConfigValue(KeyName: WideString): variant;
 var
-  s: WideString;
+  El : TJSONData;
 begin
+  Result := '';
   try
-    s := GetValue(KeyName, '');
-    Result := s;
+    El:=FindElement(StripSlash(KeyName),False);
+    if El.JSONType = jtArray then
+    begin
+      Result := El.AsJSON;
+    end
+    else
+    begin
+      Result := El.AsString;
+    end;
   except
-    on e: Exception do
-      die(e.Message);
+//    on e: Exception do
+//      die(e.Message);
   end;
 end;
 
@@ -108,8 +122,8 @@ begin
       on E: Exception do
       begin
         Status := 2;
-        Message := 'Config Error at line ' + i2s(VJSONParser.Scanner.CurRow) + ',' +
-          i2s(VJSONParser.Scanner.CurColumn + 1);
+        Message := 'Config Error at line ' + i2s(VJSONParser.Scanner.CurRow) +
+          ',' + i2s(VJSONParser.Scanner.CurColumn + 1);
         //if AppData.debug then
         //  Message:= Message + ': ' + VJSONParser.Scanner.CurLine ;
         FreeAndNil(VJSONData);

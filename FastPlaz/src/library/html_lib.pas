@@ -5,15 +5,17 @@ unit html_lib;
 interface
 
 uses
-  common,
-  strutils,
+  common, sqldb,
+  strutils, fpjson,
   Classes, SysUtils;
 
 const
   __HTMLLIB_FORMID_LENGTH = 5;
   __HTMLLIB_FORMCSRFTOKEN_LENGTH = 12;
-
-  __HTML_ALLBLOCK = '(table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
+  __HTML_CSRF_TOKEN_KEY = '_csrf_token_key';
+  __HTML_CSRF_TOKEN_KEY_FAILEDCOUNT = '_csrf_token_key_failedcount';
+  __HTML_ALLBLOCK =
+    '(table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
 
 type
 
@@ -23,14 +25,18 @@ type
     FFormID: string;
   private
     function GetFormID: string;
-    function setTag(const Tag: string; const Content: string; const Options: array of string;
+    function setTag(const Tag: string; const Content: string;
+      const Options: array of string; EndTag: boolean = True): string;
+    function setTag(const Tag: string; const Content: string;
       EndTag: boolean = True): string;
-    function setTag(const Tag: string; const Content: string; EndTag: boolean = True): string;
-    function getCsrfTokenHtml: string;
+    function setCsrfTokenHtml(const FormIDDefault: string = ''): string;
   public
     constructor Create;
     destructor Destroy; override;
     property FormID: string read GetFormID;
+    procedure ResetCSRF;
+    function CSRF(const FormIDDefault: string = ''; AsHTML : boolean = true): string;
+    function CheckCSRF(Force: boolean = True): boolean;
     function H1(const Content: string; Options: array of string): string;
     function H1(const Content: string): string;
     function Block(const Content: string; Options: array of string): string;
@@ -40,11 +46,27 @@ type
     function AddForm(Options: array of string): string;
     function EndForm(): string;
     function AddInput(Options: array of string; Mandatory: boolean = False): string;
+
+    function AddInputLTE(InputID, InputType: string; LabelName: string = '';
+      Value: string = ''; Placeholder: string = ''; Required: boolean = True;
+      ButtonLabel: string = ''): string;
+    function AddSelectLTE(InputID: string; LabelName: string = '';
+      Data: TSQLQuery = nil; IndexFieldName: string = 'id';
+      ValueFieldName: string = 'name'): string;
+
     function AddField(TagName: string; Options: array of string): string;
     function AddButton(TagName: string; Options: array of string): string;
-    function Link( const URL:string; Options: array of string):string;
-    function Link( const Text, URL:string; Options: array of string):string;
-    function ReCaptcha( const PublicKey:string; const Version:string = 'v1'):string;
+    function Link(const URL: string; Options: array of string): string;
+    function Link(const Text, URL: string; Options: array of string): string;
+
+    function ReCaptcha(const PublicKey: string; const Version: string = 'v1'): string;
+    function Permalink(Title: string): string;
+    function CleanURL(Title: string): string;
+
+    function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
+    function AddNotif(NotifType: integer; Title, Icon, URL: string;
+      IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
   end;
 
 function H1(Content: string; StyleClass: string = ''): string;
@@ -55,13 +77,18 @@ function Span(Content: string; StyleClass: string = ''): string;
 function Block(Content: string; StyleClass: string = ''; BlockID: string = ''): string;
 
 function StripTags(const Content: string): string;
-function StripTagsCustom(const Content: string; const TagStart: string; const TagEnd: string): string;
-function MoreLess(const Content: string; CharacterCount: integer = 100): string;
+function StripTagsCustom(const Content: string; const TagStart: string;
+  const TagEnd: string): string;
+function MoreLess(const Content: string; CharacterCount: integer = 100;
+  Suffix: string = '...'): string;
 
 var
   HTMLUtil: THTMLUtil;
 
 implementation
+
+uses
+  fastplaz_handler;
 
 function H1(Content: string; StyleClass: string): string;
 begin
@@ -121,25 +148,33 @@ var
 begin
   s := Content;
   while ((Pos('<', s) > 0) or (Pos('>', s) > 0)) do
-    s := StringReplace(s, copy(s, pos('<', s), pos('>', s) - pos('<', s) + 1), '', [rfIgnoreCase, rfReplaceAll]);
+    s := StringReplace(s, copy(s, pos('<', s), pos('>', s) - pos('<', s) + 1),
+      '', [rfIgnoreCase, rfReplaceAll]);
   Result := s;
 end;
 
-function StripTagsCustom(const Content: string; const TagStart: string; const TagEnd: string): string;
+function StripTagsCustom(const Content: string; const TagStart: string;
+  const TagEnd: string): string;
 var
   s: string;
 begin
   s := Content;
   while ((Pos(TagStart, s) > 0) or (Pos(TagEnd, s) > 0)) do
-    s := StringReplace(s, copy(s, pos(TagStart, s), pos(TagEnd, s) - pos(TagStart, s) + 1),
-      '', [rfIgnoreCase, rfReplaceAll]);
+    s := StringReplace(s, copy(s, pos(TagStart, s), pos(TagEnd, s) -
+      pos(TagStart, s) + 1), '', [rfIgnoreCase, rfReplaceAll]);
   Result := s;
 end;
 
-function MoreLess(const Content: string; CharacterCount: integer): string;
+function MoreLess(const Content: string; CharacterCount: integer;
+  Suffix: string): string;
 begin
-  Result := Copy(Content, 1, CharacterCount);
+  if CharacterCount = 0 then
+    CharacterCount := 100;
+  Result := StripTags(Content);
+  Result := Copy(Result, 1, CharacterCount);
   Result := Copy(Result, 1, RPos(' ', Result) - 1);
+  if Suffix <> '' then
+    Result := Result + ' ' + Suffix;
 end;
 
 { THTMLUtil }
@@ -153,8 +188,8 @@ begin
   Result := FFormID;
 end;
 
-function THTMLUtil.setTag(const Tag: string; const Content: string; const Options: array of string;
-  EndTag: boolean): string;
+function THTMLUtil.setTag(const Tag: string; const Content: string;
+  const Options: array of string; EndTag: boolean): string;
 var
   i: integer;
   s: string;
@@ -171,7 +206,8 @@ begin
   Result := s;
 end;
 
-function THTMLUtil.setTag(const Tag: string; const Content: string; EndTag: boolean): string;
+function THTMLUtil.setTag(const Tag: string; const Content: string;
+  EndTag: boolean): string;
 begin
   Result := '<' + Tag + '>' + Content;
   if EndTag then
@@ -180,12 +216,61 @@ end;
 
 
 // prepare for next security feature
-function THTMLUtil.getCsrfTokenHtml: string;
+function THTMLUtil.setCsrfTokenHtml(const FormIDDefault: string): string;
+var
+  s, key: string;
+begin
+  s := FormIDDefault;
+  if s = '' then
+    s := FormID;
+  key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, s);
+  _SESSION[__HTML_CSRF_TOKEN_KEY] := key;
+  Result := #13'<input type="hidden" name="csrftoken" value="' + key +
+    '" id="FormCsrfToken_' + s + '" />';
+  SessionController.ForceUpdate;
+end;
+
+function THTMLUtil.CSRF(const FormIDDefault: string; AsHTML: boolean): string;
+begin
+  if AsHTML then
+    Result := setCsrfTokenHtml(FormIDDefault)
+  else
+  begin
+    Result := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormIDDefault);
+    _SESSION[__HTML_CSRF_TOKEN_KEY] := Result;
+    SessionController.ForceUpdate;
+  end;
+end;
+
+function THTMLUtil.CheckCSRF(Force: boolean): boolean;
 var
   key: string;
 begin
-  key := RandomString(__HTMLLIB_FORMCSRFTOKEN_LENGTH, FormID);
-  Result := #13'<input type="hidden" name="csrftoken" value="' + key + '" id="FormCsrfToken_' + FormID + '" />';
+  Result := False;
+  key := _SESSION[__HTML_CSRF_TOKEN_KEY];
+  if _POST['csrftoken'] = '' then
+  begin
+    if not Force then
+    begin
+      Result := True;
+    end;
+    Exit;
+  end;
+
+  if key = _POST['csrftoken'] then
+  begin
+    Result := True;
+    ;
+  end;
+
+  if Force then
+    ResetCSRF;
+end;
+
+procedure THTMLUtil.ResetCSRF;
+begin
+  _SESSION[__HTML_CSRF_TOKEN_KEY] := '';
+  SessionController.DeleteKey(__HTML_CSRF_TOKEN_KEY_FAILEDCOUNT);
 end;
 
 constructor THTMLUtil.Create;
@@ -232,8 +317,9 @@ end;
 function THTMLUtil.AddForm(Options: array of string): string;
 begin
   Result := setTag('form', '', Options, False);
-  Result := Result + '<input type="hidden" name="__formid" id="form__id" value="' + GetFormID + '" />';
-  Result := Result + getCsrfTokenHtml;
+  Result := Result + '<input type="hidden" name="__formid" id="form__id" value="' +
+    GetFormID + '" />';
+  Result := Result + setCsrfTokenHtml;
   Result := Result + '<div>';
   //todo: set session token
 end;
@@ -252,60 +338,190 @@ begin
     Result := Result + '<span class="form-mandatory-flag">*</span>';
 end;
 
-function THTMLUtil.AddField(TagName: string; Options: array of string): string;
+function THTMLUtil.AddInputLTE(InputID, InputType: string; LabelName: string;
+  Value: string; Placeholder: string; Required: boolean; ButtonLabel: string): string;
+var
+  btnName: string;
+begin
+  Result := '<div class="form-group">';
+  if InputType = 'hidden' then
+  begin
+    Result := '<input type="hidden" id="'+InputID+'" name="'+InputID+'" value="'+Value+'" >';
+    Exit;
+  end;
+  if InputType = 'checkbox' then
+  begin
+    Result := Result + '<div class="col-sm-offset-2 col-sm-9">';
+    Result := Result + '<div class="checkbox">';
+    Result := Result + '<label><input id="' + InputID + '" name="' + InputID +
+      '" type="checkbox"> ' + LabelName + '</label>';
+    Result := Result + '</div>';
+    Result := Result + '</div>';
+  end
+  else
+  begin
+    if Value <> '' then
+      Value := ' value="' + Value + '" ';
+    Result := Result + '<label for="' + InputID + '" class="col-sm-2 control-label">' +
+      LabelName + '</label>';
+    if InputType = 'password' then
+      Result := Result + '<div class="col-sm-5 input-group input-group-sm">'
+    else
+      Result := Result + '<div class="col-sm-9 input-group input-group-sm">';
+    if InputType = 'email' then
+      Result := Result + '<span class="input-group-addon"><i class="fa fa-envelope"></i></span>';
+    Result := Result + '<input id="' + InputID + '" name="' + InputID +
+      '" type="' + InputType + '" class="form-control EntTab" ' + Value + ' placeholder="' + Placeholder + '" ';
+    if Required then
+      Result := Result + ' required>'
+    else
+      Result := Result + '>';
+
+    //-- button
+    if ButtonLabel <> '' then
+    begin
+      btnName := 'btn-' + ButtonLabel;
+      btnName := StringReplace(btnName, ' ', '', [rfReplaceAll]);
+      Result := Result + '<span class="input-group-btn"><button id="' +
+        btnName + '" name="' + btnName + '" type="button" class="btn btn-info btn-flat">' +
+        ButtonLabel + '</span></span>';
+    end;
+
+    Result := Result + '</div>';
+  end;
+  Result := Result + '</div>';
+end;
+
+function THTMLUtil.AddSelectLTE(InputID: string; LabelName: string;
+  Data: TSQLQuery; IndexFieldName: string; ValueFieldName: string): string;
+var
+  html: TStringList;
+  index, Value: string;
 begin
   Result := '';
+  if Data = nil then
+    Exit;
+
+  html := TStringList.Create;
+  Data.First;
+  html.Add('<DIV class="form-group">');
+  html.Add('<LABEL FOR="' + InputID + '" class="col-sm-2 control-label">' +
+    LabelName + '</LABEL>');
+  html.Add('<DIV CLASS="col-sm-9 ">');
+  html.Add('<SELECT id="' + InputID + '" name="' + InputID + '" class="form-control">');
+  html.Add('<OPTION value="0">- NONE -</OPTION>');
+  repeat
+    index := Data[IndexFieldName];
+    Value := Data[ValueFieldName];
+    html.Add('<OPTION value="' + index + '">' + Value + '</OPTION>');
+    Data.Next;
+  until Data.EOF;
+  html.Add('</SELECT>');
+  html.Add('</DIV>');
+  html.Add('</DIV>');
+
+  Result := html.Text;
+  FreeAndNil(html);
+end;
+
+function THTMLUtil.AddField(TagName: string; Options: array of string): string;
+begin
+  Result := ''; // next development
 end;
 
 function THTMLUtil.AddButton(TagName: string; Options: array of string): string;
 begin
-  Result := '';
+  Result := ''; // next development
 end;
 
 function THTMLUtil.Link(const URL: string; Options: array of string): string;
 begin
-  Result := Link( URL, URL, Options);
+  Result := Link(URL, URL, Options);
 end;
 
 function THTMLUtil.Link(const Text, URL: string; Options: array of string): string;
 var
-  s : string;
-  i : integer;
+  s: string;
+  i: integer;
 begin
   s := '';
   for  i := Low(Options) to High(Options) do
   begin
     s := s + ' ' + Options[i];
   end;
-  Result := '<a href="'+URL+'"'+s+'>'+Text+'</a>';
+  Result := '<a href="' + URL + '"' + s + '>' + Text + '</a>';
 end;
 
 function THTMLUtil.ReCaptcha(const PublicKey: string; const Version: string): string;
 begin
   if Version = 'v2' then
   begin
-    Result := #13'<div class="g-recaptcha" data-sitekey="'+PublicKey+'"></div>'
-      + #13'<script src="https://www.google.com/recaptcha/api.js?hl=en"></script>';
+    Result := #13'<div class="g-recaptcha" data-sitekey="' + PublicKey +
+      '"></div>' + #13'<script src="https://www.google.com/recaptcha/api.js?hl=en"></script>';
   end
   else
   begin
     Result := ''
 
-//    + #13'<script type="text/javascript">'
-//    + #13'var RecaptchaOptions = {'
-//    + #13'	theme : "clean",'
-//    + #13'	lang : "en",'
-//    + #13'	custom_translations : {'
-//    + #13'	},'
-//    + #13'	tabindex : 0'
-//    + #13'};'
-//    + #13'</script>'
+      //    + #13'<script type="text/javascript">'
+      //    + #13'var RecaptchaOptions = {'
+      //    + #13'  theme : "clean",'
+      //    + #13'  lang : "en",'
+      //    + #13'  custom_translations : {'
+      //    + #13'  },'
+      //    + #13'  tabindex : 0'
+      //    + #13'};'
+      //    + #13'</script>'
 
-    + #13'<input type="hidden" name="recaptcha_version" value="'+Version+'"/>'
-    + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='+PublicKey+'">'
-    + #13'</script>'
-    ;
+      + #13'<input type="hidden" name="recaptcha_version" value="' +
+      Version + '"/>' + #13'<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?hl=en&k='
+      + PublicKey + '">' + #13'</script>';
   end;
+end;
+
+function THTMLUtil.Permalink(Title: string): string;
+begin
+  Result := CleanUrl(Title);
+end;
+
+function THTMLUtil.CleanURL(Title: string): string;
+begin
+  Result := CleanUrl(Title);
+end;
+
+function THTMLUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if RgihtLabel <> '' then
+    o.Add('right-label', RgihtLabel);
+  if IsAjax then
+    o.Add('ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add('rel', AjaxTarget);
+
+  Result := o;
+end;
+
+function THTMLUtil.AddNotif(NotifType: integer; Title, Icon, URL: string;
+  IsAjax: boolean; AjaxTarget: string): TJSONObject;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('title', Title);
+  o.Add('icon', Icon);
+  o.Add('url', URL);
+  if IsAjax then
+    o.Add('ajax', '1');
+  if AjaxTarget <> '' then
+    o.Add('rel', AjaxTarget);
+  Result := o;
 end;
 
 initialization

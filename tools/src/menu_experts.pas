@@ -21,7 +21,7 @@ procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 
 implementation
 
-uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, project_lib,
+uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd, project_lib,
   modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
@@ -123,7 +123,18 @@ begin
     end;
     Free;
   end;
+end;
 
+procedure CreateThemeStructure_Proc(ASender: TObject);
+begin
+  with TfThemeStructure.Create(nil) do
+  begin
+    if ShowModal = mrOk then
+    begin
+      CreateTheme( edt_ThemeName.Text, edt_TargetDir.Text);
+    end;
+    Free;
+  end;
 end;
 
 procedure About_Proc(ASender: TObject);
@@ -159,6 +170,8 @@ begin
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_CreateWebStructure',
     'Create Web Directory Structure', nil, @CreateWebStructure_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_CreateThemeStructure',
+    'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlazAbout', 'About',
     nil, @About_Proc, nil, 'icon_information');

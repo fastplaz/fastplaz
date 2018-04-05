@@ -117,7 +117,7 @@ begin
 
   tags := ExplodeTags(TagString);
   case tags[0] of
-    '$maincontent':
+    'maincontent':
     begin
       ReplaceText := ThemeUtil.RenderFromContent(@TagController,
         content_internal, template_file);

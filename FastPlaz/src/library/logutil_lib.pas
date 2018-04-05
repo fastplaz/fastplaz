@@ -21,8 +21,10 @@ type
     Dir, FileName, FullName: WideString;
     constructor Create;
     destructor Destroy; override;
-    procedure RegisterError(MessageString: string; psHttpCode: integer = 0; URL: string = '');
-    procedure Add(const message: string);
+    procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
+      URL: string = '');
+    procedure Add(const message: string; const ModName: string = '';
+      const Skip: boolean = False);
   end;
 
 var
@@ -57,13 +59,13 @@ end;
 
 constructor TLogUtil.Create;
 begin
-  Dir := Config.GetValue('log/dir', 'ztemp/error_log');
   try
+    Dir := Config.GetValue('log/dir', 'ztemp/logs');
     if not DirectoryExists(Dir) then
       ForceDirectories(Dir);
   except
   end;
-  FileName := 'app.log';
+  FileName := 'app-' + FormatDateTime('YYYYMMDD', Now) + '.log';
   FullName := dir + '/' + FileName;
 end;
 
@@ -72,34 +74,49 @@ begin
 
 end;
 
-procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer; URL: string);
+procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer;
+  URL: string);
 begin
   AssignFile(log_file, fullname);
   { $I+}
   try
     //Rewrite(log_file);
     Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + MessageString +
-      ' | ' + i2s(psHttpCode) + ' | ' + URL
+    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) +
+      ' | ' + MessageString + ' | ' + i2s(psHttpCode) + ' | ' + URL
       );
     CloseFile(log_file);
   except
   end;
 end;
 
-procedure TLogUtil.Add(const message: string);
+procedure TLogUtil.Add(const message: string; const ModName: string;
+  const Skip: boolean);
+var
+  s: string;
 begin
-  AssignFile(log_file, fullname);
-  { $I+}
+  if Skip then
+    Exit;
   try
-    if not FileExists(fullname) then
-      Rewrite(log_file)
-    else
-      Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + message
-      );
-    CloseFile(log_file);
+    if ModName <> '' then
+      s := ModName + ': ';
+    s := s + message;
+    AssignFile(log_file, fullname);
+    { $I+}
+    try
+      if not FileExists(fullname) then
+        Rewrite(log_file)
+      else
+        Append(log_file);
+      WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
+      CloseFile(log_file);
+    except
+    end;
   except
+    on E: Exception do
+    begin
+      die('cannot logging: ' + E.Message);
+    end;
   end;
 end;
 
@@ -110,7 +127,4 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
-
-
-
 

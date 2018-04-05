@@ -39,7 +39,7 @@ end;
 procedure TErrorinfoModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
-  Tags['$maincontent'] := @Tag_MainContent_Handler;
+  Tags['maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
@@ -70,5 +70,5 @@ end;
 initialization
   // -> http://yourdomainname/error
   // is better to move line below to file "route.pas"
-  Route.Add('error', TErrorinfoModule);
+  Route.Add('error', TMyCustomWebModuleClass(TErrorinfoModule));
 end.
