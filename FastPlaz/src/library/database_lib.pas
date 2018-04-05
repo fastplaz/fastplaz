@@ -126,6 +126,7 @@ function DataBaseInit( const RedirecURL:string = ''):boolean;
 
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
+function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName : boolean = True): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExec( SQL: string):boolean;
 function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName : boolean = True):boolean;
@@ -331,6 +332,33 @@ begin
   FreeAndNil( q);
 end;
 
+function QueryOpenToJson(SQL: string; var ResultArray: TJSONArray;
+  NoFieldName: boolean): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+
+  try
+    q.Open;
+    DataToJSON( q, ResultArray, NoFieldName);
+    Result := True;
+  except
+    on E: Exception do begin
+    end;
+  end;
+
+  {$ifdef debug}
+  {$endif}
+  FreeAndNil( q);
+end;
+
+
+
 function DatabaseSecond_Prepare( const ConnectionName:string = 'default'; Mode:string = ''):TSQLConnector;
 var
   s : string;
@@ -399,7 +427,6 @@ begin
 
   Result := DB_Connector_Write;
 end;
-
 
 function QueryExecToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
 var
@@ -495,6 +522,14 @@ begin
             else
               item_array.add( FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
           end
+          else if Data.FieldDefs.Items[j].DataType = ftAutoInc then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftInteger then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
           else
             item_array.add( Data.FieldByName(field_name).AsString);
         end
@@ -507,6 +542,14 @@ begin
               item.add( field_name, '')
             else
               item.add( field_name, FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftAutoInc then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftInteger then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
           end
           else
             item.Add(field_name, Data.FieldByName(field_name).AsString);
