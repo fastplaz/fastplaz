@@ -20,6 +20,24 @@ unit stemmingnazief_lib;
   Stemming.LoadDictionaryFromFile('dictionary.csv');
   StringVariable := Stemming.ParseSentence( 'kalimat dalam bahasa indonesia');
 
+  // non-standard-word check (kata baku)
+  .
+  Stemming.StandardWordCheck := True;
+  Stemming.LoadNonStandardWordFromFile('nonstandardword.txt');
+  .
+
+  [x] Word Type
+    0 -
+    1 Adjektiva
+    2 Nomina
+    3 Pronomina
+    4 Verba
+    5 Adverbia
+    6 Numeralia
+    7 Interjeksi
+    8 Konjungsi
+    9 Preposisi
+   10 partikel
 
 }
 
@@ -27,10 +45,11 @@ unit stemmingnazief_lib;
 interface
 
 uses
-  common,
+  common, IniFiles,
   RegExpr, Classes, SysUtils;
 
 const
+  WORD_NONSTANDARD_FILE = 'word-nonstandard.txt';
   STEMMINGNAZIEF_DICTIONARY_FILE = 'dictionary.csv';
   STEMMINGNAZIEF_WORDTYPE: array [0..10] of string =
     ('-', 'Adjektiva', 'Nomina', 'Pronomina', 'Verba', 'Adverbia',
@@ -45,10 +64,19 @@ type
     FDictionary: TStringList;
     FDictionaryFile: string;
     FIsDictionaryLoaded: boolean;
+    FNonStandardWordCount: integer;
+    FStandardWordFile: string;
     FStemmedText: string;
+    FUnknownWordCount: integer;
+    FWordCount: integer;
     FWordType: integer;
     FWordTypeInString: string;
+    FStandardWordCheck: boolean;
+    FNonStandardWord: TIniFile;
+    FParseWord_nonstandard: boolean;
 
+    function GetStandardWordCheck: boolean;
+    procedure SetStandardWordCheck(AValue: boolean);
     function _exist(Text: string; SkipCheck: boolean = False): boolean;
     function _delInflectionSuffixes(Text: string): string;
     function _delDerivationSuffixes(Text: string): string;
@@ -67,6 +95,8 @@ type
     destructor Destroy; override;
     procedure LoadDictionaryFromFile(FileName: string = STEMMINGNAZIEF_DICTIONARY_FILE);
       virtual;
+    procedure LoadNonStandardWordFromFile(AFileName: string = WORD_NONSTANDARD_FILE);
+      virtual;
 
     function ParseWord(Text: string): string;
     function ParseSentence(Text: string): string;
@@ -76,9 +106,17 @@ type
 
     property Dictionary: TStringList read FDictionary;
     property DictionaryFile: string read FDictionaryFile write FDictionaryFile;
-    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded write FIsDictionaryLoaded;
+    property NonStandardWord: TIniFile read FNonStandardWord;
+    property NonStandardWordFile: string read FStandardWordFile write FStandardWordFile;
+    property IsDictionaryLoaded: boolean read FIsDictionaryLoaded
+      write FIsDictionaryLoaded;
 
     property Text: string read FStemmedText;
+    property WordCount: integer read FWordCount;
+    property NonStandardWordCount: integer read FNonStandardWordCount;
+    property UnknownWordCount: integer read FUnknownWordCount;
+    property StandardWordCheck: boolean read GetStandardWordCheck
+      write SetStandardWordCheck;
   end;
 
 implementation
@@ -95,12 +133,16 @@ begin
   FWordType := 0;
   FWordTypeInString := '';
   FStemmedText := '';
+  FStandardWordCheck := False;
+  FNonStandardWordCount := 0;
 end;
 
 destructor TStemmingNazief.Destroy;
 begin
   inherited Destroy;
   FDictionary.Free;
+  if Assigned(FNonStandardWord) then
+    FNonStandardWord.Free;
 end;
 
 
@@ -140,6 +182,17 @@ begin
     Result := False;
   end;
   }
+
+end;
+
+function TStemmingNazief.GetStandardWordCheck: boolean;
+begin
+  Result := FStandardWordCheck;
+end;
+
+procedure TStemmingNazief.SetStandardWordCheck(AValue: boolean);
+begin
+  FStandardWordCheck := AValue;
 
 end;
 
@@ -186,6 +239,14 @@ begin
       FIsDictionaryLoaded := True;
     end;
   end;
+end;
+
+procedure TStemmingNazief.LoadNonStandardWordFromFile(AFileName: string);
+begin
+  if not FileExists(AFileName) then
+    Exit;
+  if not Assigned(FNonStandardWord) then
+    FNonStandardWord := TIniFile.Create(AFileName);
 end;
 
 // #2. Remove Infection suffixes (-lah, -kah, -ku, -mu, -tah, -nya)
@@ -456,6 +517,7 @@ function TStemmingNazief.ParseWord(Text: string): string;
 var
   i: double;
   oldDecimalSeparator: char;
+  s: string;
 begin
   Text := LowerCase(Text);
   Text := ReplaceAll(Text, [' ', ',', '?', '!', '.', '''', '+', '^',
@@ -469,6 +531,20 @@ begin
   begin
     Result := '?';
     Exit;
+  end;
+
+  FParseWord_nonstandard := False;
+  if FStandardWordCheck then
+  begin
+    s := FNonStandardWord.ReadString('base', Text, Text);
+    if s <> Text then
+    begin
+      Text := s;
+      Result := s;
+      Inc(FNonStandardWordCount);
+      FParseWord_nonstandard := True;
+    end;
+    ;
   end;
 
   if _exist(Text) then
@@ -520,22 +596,34 @@ end;
 
 function TStemmingNazief.ParseSentence(Text: string): string;
 var
+  original_word: string;
   str: TStrings;
   return: TStringList;
   i: integer;
 begin
   FStemmedText := '';
   str := Explode(Text, ' ');
+  FWordCount := str.Count;
+  FNonStandardWordCount := 0;
+  FUnknownWordCount := 0;
   return := TStringList.Create;
 
   return.Add('[');
   for i := 0 to str.Count - 1 do
   begin
+    original_word := str[i];
     str[i] := ParseWord(str[i]);
     return.Add('{');
     return.Add('"word":"' + str[i] + '",');
     return.Add('"wordtype":"' + WordTypeInString + '",');
     return.Add('"type":"' + IntToStr(WordType) + '",');
+    if FParseWord_nonstandard then
+    begin
+      return.Add('"non_standard":"yes",');
+      return.Add('"original_word":"' + original_word + '",');
+    end;
+    if WordType = 0 then
+      Inc(FUnknownWordCount);
     return.Add('"score":"0"');
     if i < str.Count - 1 then
       return.Add('},')
@@ -544,7 +632,7 @@ begin
     FStemmedText := FStemmedText + str[i] + ' ';
   end;
   return.Add(']');
-  FStemmedText := trim( FStemmedText);
+  FStemmedText := trim(FStemmedText);
   Result := return.Text;
 
   return.Free;
