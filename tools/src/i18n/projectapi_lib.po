@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: projectapi_lib.rs_projectapi_description
+msgid "create API application based on FastPlaz"
+msgstr ""
+
+#: projectapi_lib.rs_projectapi_name
+msgid "Create New API Application"
+msgstr ""
+

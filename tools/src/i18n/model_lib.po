@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: model_lib.rs_model_description
+msgid "create unit for model database"
+msgstr ""
+
+#: model_lib.rs_model_name
+msgid "Model Generator"
+msgstr ""
+
