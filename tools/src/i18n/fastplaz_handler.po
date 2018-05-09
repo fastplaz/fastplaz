@@ -1,0 +1,83 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: fastplaz_handler.head
+msgid "HEAD"
+msgstr ""
+
+#: fastplaz_handler.method_get
+msgid "GET"
+msgstr ""
+
+#: fastplaz_handler.method_post
+msgid "POST"
+msgstr ""
+
+#: fastplaz_handler.method_put
+msgid "PUT"
+msgstr ""
+
+#: fastplaz_handler.options
+msgid "OPTIONS"
+msgstr ""
+
+#: fastplaz_handler.__content_not_found
+msgid "Nothing Found"
+msgstr ""
+
+#: fastplaz_handler.__errnomodulenameforrequest
+msgid "Could not determine HTTP module name for request"
+msgstr ""
+
+#: fastplaz_handler.__err_app_init
+msgid "<h3>This is the first time using fastplaz?</h3><a href=\"%s\">click here</a> if you need to initialize your webapp's structure.<br>Make sure target directory is writeable"
+msgstr ""
+
+#: fastplaz_handler.__err_http_invalidmethod
+msgid "Invalid method request"
+msgstr ""
+
+#: fastplaz_handler.__err_theme_foreachnotimplemented
+msgid "foreach array still not implemented"
+msgstr ""
+
+#: fastplaz_handler.__err_theme_modul_notfond
+msgid "Modul \"%s\" not found"
+msgstr ""
+
+#: fastplaz_handler.__err_theme_not_exists
+msgid "file layout \"%s\" does not exist in theme \"%s\""
+msgstr ""
+
+#: fastplaz_handler.__err_theme_tag_notimplemented
+msgid "Template tag [%s] does not implemented yet."
+msgstr ""
+
+#: fastplaz_handler.__result_default_delete
+msgid "Default DELETE Result"
+msgstr ""
+
+#: fastplaz_handler.__result_default_get
+msgid "Default GET Result"
+msgstr ""
+
+#: fastplaz_handler.__result_default_handler
+msgid "Request Handler Default"
+msgstr ""
+
+#: fastplaz_handler.__result_default_option
+msgid "Default OPTION Result"
+msgstr ""
+
+#: fastplaz_handler.__result_default_post
+msgid "Default POST Result"
+msgstr ""
+
+#: fastplaz_handler.__result_default_put
+msgid "Default PUT Result"
+msgstr ""
+
+#: fastplaz_handler.__tag_content_not_found
+msgid "Tags Content \"%s\" Not Found"
+msgstr ""
+

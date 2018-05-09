@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: modsimplejson_lib.rs_mod_json_description
+msgid "create fastplaz simple json module"
+msgstr ""
+
+#: modsimplejson_lib.rs_mod_json_name
+msgid "JSON module"
+msgstr ""
+
