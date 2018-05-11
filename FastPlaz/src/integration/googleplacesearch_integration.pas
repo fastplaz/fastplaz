@@ -66,10 +66,11 @@ implementation
 
 const
   _GOOGLE_PLACE_TEXTSEARCH_URL =
-    'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&query=%s';
+    'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&rankBy=distance&query=%s';
   _GOOGLE_PLACE_DETAIL_URL =
     'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
+  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
   //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
 var
@@ -102,7 +103,6 @@ begin
   begin
     _url := _url + '&location=' + FloatToStr(ALat) + ',' + FloatToStr(ALon);
   end;
-  LogUtil.Add(_url, 'GOOGLEPLACE');
   with THTTPLib.Create(_url) do
   begin
     try
@@ -191,7 +191,8 @@ begin
       except
       end;
 
-      _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
+      //_url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
+      _url := _GOOGLE_MAPS_PLACEID_URL + _json.GetPath('results[' + i2s(i) + '].place_id').AsString;
       s := s + _url + #10;
 
       s := s + #10;
