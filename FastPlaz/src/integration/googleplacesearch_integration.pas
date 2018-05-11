@@ -66,7 +66,7 @@ implementation
 
 const
   _GOOGLE_PLACE_TEXTSEARCH_URL =
-    'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&query=%s';
+    'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&rankBy=distance&query=%s';
   _GOOGLE_PLACE_DETAIL_URL =
     'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
@@ -102,7 +102,6 @@ begin
   begin
     _url := _url + '&location=' + FloatToStr(ALat) + ',' + FloatToStr(ALon);
   end;
-  LogUtil.Add(_url, 'GOOGLEPLACE');
   with THTTPLib.Create(_url) do
   begin
     try
