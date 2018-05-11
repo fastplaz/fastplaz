@@ -191,8 +191,8 @@ begin
       except
       end;
 
-      //_url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
-      _url := _GOOGLE_MAPS_PLACEID_URL + _json.GetPath('results[' + i2s(i) + '].place_id').AsString;
+      _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
+      //_url := _GOOGLE_MAPS_PLACEID_URL + _json.GetPath('results[' + i2s(i) + '].place_id').AsString;
       s := s + _url + #10;
 
       s := s + #10;
