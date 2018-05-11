@@ -536,15 +536,17 @@ begin
   FParseWord_nonstandard := False;
   if FStandardWordCheck then
   begin
-    s := FNonStandardWord.ReadString('base', Text, Text);
-    if s <> Text then
-    begin
-      Text := s;
-      Result := s;
-      Inc(FNonStandardWordCount);
-      FParseWord_nonstandard := True;
+    try
+      s := FNonStandardWord.ReadString('base', Text, Text);
+      if s <> Text then
+      begin
+        Text := s;
+        Result := s;
+        Inc(FNonStandardWordCount);
+        FParseWord_nonstandard := True;
+      end;
+    except
     end;
-    ;
   end;
 
   if _exist(Text) then
