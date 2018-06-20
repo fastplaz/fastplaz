@@ -13,7 +13,7 @@ uses
   RegExpr,
   //netdb,
   resolve,
-  zipper, strutils, dateutils,
+  zipper, strutils, dateutils, base64,
   Classes, SysUtils, fastplaz_handler, config_lib;
 
 const
@@ -164,6 +164,8 @@ function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function CleanUrl(URL: string; Separator: string = '-'): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
+function base64_encode(const AStr: string): string;
+function base64_decode(const AStr: string): string;
 function ucwords(const str: string): string;
 
 function file_get_contents(TargetURL: string): string;
@@ -1263,6 +1265,38 @@ begin
       I := Succ(I);
     end;
   end;
+end;
+
+function base64_encode(const AStr: string): string;
+var
+  LDecodedStream: TStringStream;
+  LEncodedStream: TStringStream;
+  LEncoder: TBase64EncodingStream;
+begin
+  LDecodedStream := TStringStream.Create(AStr);
+  LEncodedStream := TStringStream.Create('');
+  LEncoder       := TBase64EncodingStream.Create(LEncodedStream);
+  LEncoder.CopyFrom(LDecodedStream, LDecodedStream.Size);
+  Result := LEncodedStream.DataString;
+  LDecodedStream.Free;
+  LEncodedStream.Free;
+  LEncoder.Free;
+end;
+
+function base64_decode(const AStr: string): string;
+var
+  LDecodedStream: TStringStream;
+  LEncodedStream: TStringStream;
+  LDecoder: TBase64DecodingStream;
+begin
+  LEncodedStream := TStringStream.Create(AStr);
+  LDecodedStream := TStringStream.Create('');
+  LDecoder       := TBase64DecodingStream.Create(LEncodedStream);
+  LDecodedStream.CopyFrom(LDecoder, LDecoder.Size);
+  Result := LDecodedStream.DataString;
+  LDecodedStream.Free;
+  LEncodedStream.Free;
+  LDecoder.Free;
 end;
 
 function ucwords(const str: string): string;

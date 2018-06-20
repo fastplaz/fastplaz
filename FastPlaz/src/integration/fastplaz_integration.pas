@@ -4,6 +4,7 @@
 
 unit fastplaz_integration;
 
+{$warn 5023 off : no warning about unused units}
 interface
 
 uses
@@ -22,7 +23,7 @@ uses
   openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
   resiibacor_integration, telegram_integration, whois_integration, 
   witai_integration, yandextranslate_integration, zomato_integration, 
-  LazarusPackageIntf;
+  googlegeocoding_integration, LazarusPackageIntf;
 
 implementation
 
