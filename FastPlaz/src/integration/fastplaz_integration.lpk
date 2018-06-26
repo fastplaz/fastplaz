@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="37">
+    <Files Count="38">
       <Item1>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -160,6 +160,10 @@
         <Filename Value="googlegeocoding_integration.pas"/>
         <UnitName Value="googlegeocoding_integration"/>
       </Item37>
+      <Item38>
+        <Filename Value="thesaurus_integration.pas"/>
+        <UnitName Value="thesaurus_integration"/>
+      </Item38>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
