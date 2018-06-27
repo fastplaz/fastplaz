@@ -1,11 +1,20 @@
 unit thesaurus_integration;
 
 {
+This file is part of the FastPlaz package.
+(c) Luri Darmawan <luri@fastplaz.com>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+
   // USAGE:
 
+  kamus := TThesaurusIntegration.Create;
+  kamus.PathName := 'your/thesaurus/location/path/';
+  Result := kamus.Find('merdeka');
+  kamus.Free;
 
 }
-
 {$mode objfpc}{$H+}
 { $ include ../../define.inc}
 
@@ -25,15 +34,15 @@ type
   TThesaurusIntegration = class(TInterfacedObject)
   private
     FData: TStringList;
-    FMultiResult: Boolean;
-    FPathName: String;
+    FMultiResult: boolean;
+    FPathName: string;
   public
     constructor Create;
     destructor Destroy;
     function Find(AText: string): string;
   published
-    property PathName: String read FPathName write FPathName;
-    property MultiResult: Boolean read FMultiResult write FMultiResult;
+    property PathName: string read FPathName write FPathName;
+    property MultiResult: boolean read FMultiResult write FMultiResult;
   end;
 
 implementation
@@ -58,37 +67,34 @@ end;
 
 function TThesaurusIntegration.Find(AText: string): string;
 var
-  s, LFileName, LSearch, LRow: String;
-  i: Integer;
+  s, LFileName, LSearch, LRow: string;
+  i: integer;
 begin
   Result := '';
-  LFileName := UpperCase(Copy(Trim(AText),1,1));
+  LFileName := UpperCase(Copy(Trim(AText), 1, 1));
   LFileName := FPathName + LFileName + THESAURUS_EXTENSION;
-  if not FileExists( LFileName) then
-    Exit;;
+  if not FileExists(LFileName) then
+    Exit;
+  ;
 
   if not Assigned(FData) then
     FData := TStringList.Create;
-  FData.LoadFromFile( LFileName);
+  FData.LoadFromFile(LFileName);
 
-  LSearch := Trim(AText)+' ';
-  for i:=0 to FData.Count-1 do
+  LSearch := Trim(AText) + ' ';
+  for i := 0 to FData.Count - 1 do
   begin
     LRow := FData[i];
-    if Pos( LSearch, LRow) = 1 then
+    if Pos(LSearch, LRow) = 1 then
     begin
-      LRow := StringReplace( LRow, ';', ';'#13, [rfReplaceAll]);
+      LRow := StringReplace(LRow, ';', ';'#13, [rfReplaceAll]);
       Result := Result + LRow + #13;
       if not FMultiResult then
         Break;
       Result := Result + #13;
     end;
   end;
-  Result := Trim( Result);
+  Result := Trim(Result);
 end;
 
-
-
 end.
-
-
