@@ -23,9 +23,6 @@ uses
   common,
   Classes, SysUtils;
 
-{$ifdef NLP_LIB}
-{$endif}
-
 type
 
   TNLPSimilarityMethod = (smNone, smCosine);

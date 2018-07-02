@@ -128,6 +128,8 @@ begin
     Add('');
     Add('  json[''code''] := Int16(0);');
     Add('  json[''variable''] := ''value'';');
+    Add('  json[''path01/path02/var01''] := ''value01'';');
+    Add('  json[''path01/path02/var02''] := ''value02'';');
     Add('  json[''msg''] := ''Ok'';');
     Add('');
     Add('  //---');
