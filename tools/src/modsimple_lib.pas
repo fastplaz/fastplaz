@@ -64,7 +64,7 @@ end;
 function TFileRouteDescModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fastplaz_handler';
+  Result := Result + ', fpjson, fastplaz_handler';
 end;
 
 function TFileRouteDescModule.GetImplementationSource(
@@ -110,7 +110,7 @@ begin
   Result := inherited GetInterfaceUsesSection;
   if not IsAPI then
     Result := Result + ', html_lib';
-  Result := Result + ', fpcgi, HTTPDefs, fastplaz_handler, database_lib';
+  Result := Result + ', fpcgi, fpjson, HTTPDefs, fastplaz_handler, database_lib';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;
@@ -247,6 +247,8 @@ begin
       Add('');
       Add('  json[''code''] := Int16(0);');
       Add('  json[''data''] := ''yourdatahere'';');
+      Add('  json[''path01/path02/var01''] := ''value01'';');
+      Add('  json[''path01/path02/var02''] := ''value02'';');
       Add('  CustomHeader[ ''ThisIsCustomHeader''] := ''datacustomheader'';');
       Add('');
       Add('  //---');
