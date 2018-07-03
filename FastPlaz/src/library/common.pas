@@ -1349,6 +1349,8 @@ begin
   memBuffer.Free
 end;
 
+// ref:
+// http://regexpstudio.com/en/regexp_syntax.html
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
 begin
   Result := False;
