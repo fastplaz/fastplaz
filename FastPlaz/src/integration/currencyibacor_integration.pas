@@ -1,5 +1,5 @@
 {
-This file is part of the SimpleBOT package.
+This file is part of the FastPlaz package.
 (c) Luri Darmawan <luri@fastplaz.com>
 
 For the full copyright and license information, please view the LICENSE
