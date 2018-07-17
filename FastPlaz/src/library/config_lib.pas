@@ -47,6 +47,8 @@ type
       read GetConfigValue write SetConfigValue; default;
     property IsValid: boolean read FIsValid;
 
+    function GetObject( AKeyName:string):TJSONObject;
+
     function ValidateFile(ConfigFileName: string): boolean;
   end;
 
@@ -62,6 +64,14 @@ begin
   FIsValid := False;
   Status := 1;
   Message := _ERR_CONFIG_FILENOTEXIST;
+end;
+
+function TMyConfig.GetObject(AKeyName: string): TJSONObject;
+begin
+  try
+    Result := FindObject(AKeyName, False);
+  except
+  end;
 end;
 
 function TMyConfig.GetConfigValue(KeyName: WideString): variant;
