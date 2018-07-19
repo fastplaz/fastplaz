@@ -69,6 +69,8 @@ end;
 function TMyConfig.GetObject(AKeyName: string): TJSONObject;
 begin
   try
+    If (AKeyName[Length(AKeyName)]<>'/') then
+      AKeyName := AKeyName+'/';
     Result := FindObject(AKeyName, False);
   except
   end;
