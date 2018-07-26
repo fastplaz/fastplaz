@@ -303,12 +303,16 @@ type
 
   TRoute = class
   private
+    procedure SetRouteValue(KeyName: string; AValue: TMyCustomWebModuleClass);
   public
     procedure Add(const ModuleName: string; const PatternURL: string;
       ModuleClass: TMyCustomWebModuleClass; Method: string = '';
       LoadOnStart: boolean = False; SkipStreaming: boolean = True);
     procedure Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleClass;
       Method: string = ''; LoadOnStart: boolean = False; SkipStreaming: boolean = True);
+
+    property RouteValue[KeyName: string]: TMyCustomWebModuleClass
+      write SetRouteValue; default;
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
@@ -575,6 +579,12 @@ begin
   moduleNameReal := ReplaceAll(moduleNameReal, ['_'], '');
   moduleNameReal := ReplaceAll(moduleNameReal, ['-', '|'], '_');
   Add(moduleNameReal, ModuleName, ModuleClass, Method, LoadOnStart, SkipStreaming);
+end;
+
+procedure TRoute.SetRouteValue(KeyName: string; AValue: TMyCustomWebModuleClass
+  );
+begin
+  Add( KeyName, AValue);
 end;
 
 procedure TRoute.Add(const ModuleName: string; const PatternURL: string;
@@ -1212,7 +1222,7 @@ begin
   if ModuleFactory.FindModule(S) = nil then
   begin
     pathInfo := ARequest.PathInfo;
-    pathInfo := ExcludeLeadingPathDelimiter(pathInfo);
+    pathInfo := IncludeLeadingPathDelimiter(pathInfo);
 
     // check with Regex - redefine variable
     try

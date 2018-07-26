@@ -1,5 +1,10 @@
 unit bmkg_integration;
 {
+
+  DEPRECATED:
+    no update from bmkg data
+  -----------------------------------
+
   INFO GEMPA dari BMKG
 
   [x] USAGE
