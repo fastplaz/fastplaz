@@ -1043,7 +1043,7 @@ var
   s, postType: string;
 begin
   Result := '';
-  if Application.Request.Method <> 'POST' then
+  if Application.Request.Method = 'GET' then
     Exit;
   s := '';
   try
