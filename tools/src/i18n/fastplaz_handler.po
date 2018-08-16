@@ -5,8 +5,16 @@ msgstr "Content-Type: text/plain; charset=UTF-8"
 msgid "HEAD"
 msgstr ""
 
+#: fastplaz_handler.method_delete
+msgid "DELETE"
+msgstr ""
+
 #: fastplaz_handler.method_get
 msgid "GET"
+msgstr ""
+
+#: fastplaz_handler.method_patch
+msgid "PATCH"
 msgstr ""
 
 #: fastplaz_handler.method_post
@@ -62,11 +70,15 @@ msgid "Default GET Result"
 msgstr ""
 
 #: fastplaz_handler.__result_default_handler
-msgid "Request Handler Default"
+msgid "Fastplaz Request Handler Default"
 msgstr ""
 
 #: fastplaz_handler.__result_default_option
-msgid "Default OPTION Result"
+msgid "Default OPTIONS Result"
+msgstr ""
+
+#: fastplaz_handler.__result_default_patch
+msgid "Default PATCH Result"
 msgstr ""
 
 #: fastplaz_handler.__result_default_post

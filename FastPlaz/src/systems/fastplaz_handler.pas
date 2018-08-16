@@ -37,8 +37,9 @@ resourcestring
   __Result_Default_Post = 'Default POST Result';
   __Result_Default_Put = 'Default PUT Result';
   __Result_Default_Delete = 'Default DELETE Result';
-  __Result_Default_Option = 'Default OPTION Result';
-  __Result_Default_Handler = 'Request Handler Default';
+  __Result_Default_Patch = 'Default PATCH Result';
+  __Result_Default_Option = 'Default OPTIONS Result';
+  __Result_Default_Handler = 'Fastplaz Request Handler Default';
 
   __Content_Not_Found = 'Nothing Found';
   __Tag_Content_Not_Found = 'Tags Content "%s" Not Found';
@@ -48,6 +49,8 @@ resourcestring
   METHOD_GET = 'GET';
   METHOD_POST = 'POST';
   METHOD_PUT = 'PUT';
+  METHOD_PATCH = 'PATCH';
+  METHOD_DELETE = 'DELETE';
   HEAD = 'HEAD';
   OPTIONS = 'OPTIONS';
 
@@ -115,6 +118,7 @@ type
     function GetIsAjax: boolean;
     function GetIsDelete: boolean;
     function GetIsGet: boolean;
+    function GetIsPatch: boolean;
     function GetIsPost: boolean;
     function GetIsPut: boolean;
     function GetIsValidCSRF: boolean;
@@ -142,6 +146,7 @@ type
     procedure Post; virtual;
     procedure Put; virtual;
     procedure Delete; virtual;
+    procedure Patch; virtual;
     procedure Option; virtual;
 
     procedure LanguageInit;
@@ -167,6 +172,7 @@ type
     property isPost: boolean read GetIsPost;
     property isGet: boolean read GetIsGet;
     property isPut: boolean read GetIsPut;
+    property isPatch: boolean read GetIsPatch;
     property isDelete: boolean read GetIsDelete;
     property isValidCSRF: boolean read GetIsValidCSRF;
     property isAjax: boolean read GetIsAjax;
@@ -716,7 +722,7 @@ end;
 function TMyCustomWebModule.GetIsDelete: boolean;
 begin
   Result := False;
-  if Application.Request.Method = 'DELETE' then
+  if Application.Request.Method = METHOD_DELETE then
     Result := True;
 end;
 
@@ -724,6 +730,13 @@ function TMyCustomWebModule.GetIsGet: boolean;
 begin
   Result := False;
   if Application.Request.Method = METHOD_GET then
+    Result := True;
+end;
+
+function TMyCustomWebModule.GetIsPatch: boolean;
+begin
+  Result := False;
+  if Application.Request.Method = METHOD_PATCH then
     Result := True;
 end;
 
@@ -919,11 +932,15 @@ begin
     begin
       Put;
     end;
+    'PATCH':
+    begin
+      Patch;
+    end;
     'DELETE':
     begin
       Delete;
     end;
-    'OPTION':
+    'OPTIONS':
     begin
       Option;
     end;
@@ -955,6 +972,11 @@ end;
 procedure TMyCustomWebModule.Put;
 begin
   Response.Content := __Result_Default_Put;
+end;
+
+procedure TMyCustomWebModule.Patch;
+begin
+  Response.Content := __Result_Default_Patch;
 end;
 
 procedure TMyCustomWebModule.Delete;
@@ -1044,15 +1066,18 @@ begin
     Result := '';
     Exit;
   end;
-  case postType of
-    'multipart/form-data':
-    begin
-      s := Application.Request.ContentFields.Values[Variable];
+  try
+    case postType of
+      'multipart/form-data':
+      begin
+        s := Application.Request.ContentFields.Values[Variable];
+      end;
+      'application/x-www-form-urlencoded':
+      begin
+        s := Application.Request.ContentFields.Values[Variable];
+      end;
     end;
-    'application/x-www-form-urlencoded':
-    begin
-      s := Application.Request.ContentFields.Values[Variable];
-    end;
+  except
   end;
   if Sanitize then
     Result := _CleanVar(s)
@@ -1077,10 +1102,13 @@ begin
   Result := '';
   if Application.Request.QueryFields.IndexOfName(Name) = -1 then
     Exit;
-  if Sanitize then
-    Result := _CleanVar(Application.Request.QueryFields.Values[Name])
-  else
-    Result := Application.Request.QueryFields.Values[Name];
+  try
+    if Sanitize then
+      Result := _CleanVar(Application.Request.QueryFields.Values[Name])
+    else
+      Result := Application.Request.QueryFields.Values[Name];
+  except
+  end;
 end;
 
 procedure TGET.SetValue(const Name: string; AValue: string);
