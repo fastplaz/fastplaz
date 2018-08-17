@@ -25,11 +25,16 @@ type
     function UrlEncode: string; overload; inline;
     function UrlDecode: string; overload; inline;
     function EscapeString: string; overload; inline;
+    function IsEmpty: boolean; overload; inline;
     function IsJson: boolean; overload; inline;
+    function IsNumeric: boolean; overload; inline;
     function Encode64: string; overload; inline;
     function Decode64: string; overload; inline;
     function Cut( AStartText, AStopText: string):string; overload; inline;
     function SaveToFile( AFileName: string): boolean; overload; inline;
+    function Has( AText: string): boolean; overload; inline;
+    function UcWords: string; overload; inline;
+
   end;
 
 implementation
@@ -49,9 +54,24 @@ begin
   Result := mysql_real_escape_string(Self);
 end;
 
+function TStringSmartHelper.IsEmpty: boolean;
+begin
+  Result := IsNullOrEmpty( Self);
+end;
+
 function TStringSmartHelper.IsJson: boolean;
 begin
   Result := IsJsonValid(Self);
+end;
+
+function TStringSmartHelper.IsNumeric: boolean;
+begin
+  Result := False;
+  try
+    StrToFloat( Self);
+    Result := True;
+  except
+  end;
 end;
 
 function TStringSmartHelper.Encode64: string;
@@ -82,6 +102,18 @@ begin
   except
   end;
   sText.Free;
+end;
+
+function TStringSmartHelper.Has(AText: string): boolean;
+begin
+  Result := False;
+  if pos( AText, Self) > 0 then
+    Result := True;
+end;
+
+function TStringSmartHelper.UcWords: string;
+begin
+  Result := common.ucwords(Self);
 end;
 
 end.
