@@ -21,7 +21,7 @@
     </CompilerOptions>
     <Description Value="FastPlaz RunTime"/>
     <Version Minor="2" Release="476" Build="1"/>
-    <Files Count="34">
+    <Files Count="35">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -159,6 +159,10 @@
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item34>
+      <Item35>
+        <Filename Value="..\FastPlaz\src\helper\datetime_helpers.pas"/>
+        <UnitName Value="datetime_helpers"/>
+      </Item35>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
