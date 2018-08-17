@@ -22,34 +22,41 @@ type
 
   TStringSmartHelper = type helper(TStringHelper) for AnsiString
   public
-    function UrlEncode: string; overload; inline;
-    function UrlDecode: string; overload; inline;
-    function EscapeString: string; overload; inline;
+    function AsDateTime: TDateTime; overload; inline;
+    function UrlEncode: AnsiString; overload; inline;
+    function UrlDecode: AnsiString; overload; inline;
+    function EscapeString: AnsiString; overload; inline;
     function IsEmpty: boolean; overload; inline;
+    function IsEqualTo( AString: string): boolean; overload; inline;
     function IsJson: boolean; overload; inline;
     function IsNumeric: boolean; overload; inline;
-    function Encode64: string; overload; inline;
-    function Decode64: string; overload; inline;
-    function Cut( AStartText, AStopText: string):string; overload; inline;
+    function Encode64: AnsiString; overload; inline;
+    function Decode64: AnsiString; overload; inline;
+    function Cut( AStartText, AStopText: string):AnsiString; overload; inline;
     function SaveToFile( AFileName: string): boolean; overload; inline;
     function Has( AText: string): boolean; overload; inline;
-    function UcWords: string; overload; inline;
+    function UcWords: AnsiString; overload; inline;
 
   end;
 
 implementation
 
-function TStringSmartHelper.UrlEncode: string;
+function TStringSmartHelper.AsDateTime: TDateTime;
+begin
+  Result := StrToDateTime( Self);
+end;
+
+function TStringSmartHelper.UrlEncode: AnsiString;
 begin
   Result := common.UrlEncode(Self);
 end;
 
-function TStringSmartHelper.UrlDecode: string;
+function TStringSmartHelper.UrlDecode: AnsiString;
 begin
   Result := common.UrlDecode(Self);
 end;
 
-function TStringSmartHelper.EscapeString: string;
+function TStringSmartHelper.EscapeString: AnsiString;
 begin
   Result := mysql_real_escape_string(Self);
 end;
@@ -57,6 +64,11 @@ end;
 function TStringSmartHelper.IsEmpty: boolean;
 begin
   Result := IsNullOrEmpty( Self);
+end;
+
+function TStringSmartHelper.IsEqualTo(AString: string): boolean;
+begin
+  Result := Self.Equals( AString);
 end;
 
 function TStringSmartHelper.IsJson: boolean;
@@ -74,17 +86,17 @@ begin
   end;
 end;
 
-function TStringSmartHelper.Encode64: string;
+function TStringSmartHelper.Encode64: AnsiString;
 begin
   Result := base64_encode(Self);
 end;
 
-function TStringSmartHelper.Decode64: string;
+function TStringSmartHelper.Decode64: AnsiString;
 begin
   Result := base64_decode(Self);
 end;
 
-function TStringSmartHelper.Cut(AStartText, AStopText: string): string;
+function TStringSmartHelper.Cut(AStartText, AStopText: string): AnsiString;
 begin
   Result := StringCut(AStartText, AStopText, Self);
 end;
@@ -111,7 +123,7 @@ begin
     Result := True;
 end;
 
-function TStringSmartHelper.UcWords: string;
+function TStringSmartHelper.UcWords: AnsiString;
 begin
   Result := common.ucwords(Self);
 end;
