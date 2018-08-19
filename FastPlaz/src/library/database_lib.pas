@@ -745,6 +745,7 @@ end;
 constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
 var
   i : integer;
+  s : string;
 begin
   FScriptFieldNames := '';
   FScriptWhere := '';
@@ -773,6 +774,18 @@ begin
     FTableName:= DefaultTableName;
   FTableName:= AppData.tablePrefix+FTableName;
 
+  // primary key name
+  if pPrimaryKey = '' then
+  begin
+    s := copy( ToString, 2, Length(ToString)-6);
+    primaryKey := '';
+    for i:=1 to length( s) do
+    begin
+      if (s[i] in ['A'..'Z']) then
+        primaryKey := primaryKey + s[i];
+    end;
+    primaryKey := primaryKey.ToLower + 'id';
+  end;
 
   FJoinList := TStringList.Create;
   {$ifdef zeos}
