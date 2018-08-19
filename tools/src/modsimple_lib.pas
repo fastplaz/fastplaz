@@ -79,8 +79,8 @@ begin
     Add('uses info_controller, main;');
     Add('');
     Add('initialization');
-    Add('  Route.Add( ''main'', TMainModule);');
-    Add('  Route.Add( ''info'', TInfoModule);');
+    Add('  Route[ ''info''] := TInfoModule;');
+    Add('  Route[ ''/''] := TMainModule; // Main Module');
     Add('');
   end;
 
@@ -287,8 +287,8 @@ begin
     Result := Result + LineEnding + 'initialization' + LineEnding +
       '  // -> http://yourdomainname/' + ResourceName + LineEnding +
       '  // The following line should be moved to a file "routes.pas"' +
-      LineEnding + '  Route.Add(''' + Permalink + ''',' + ModulTypeName +
-      ');' + LineEnding + LineEnding;
+      LineEnding + '  Route[ ''' + Permalink + '''] := ' + ModulTypeName +
+      ';' + LineEnding + LineEnding;
   end;
 end;
 
