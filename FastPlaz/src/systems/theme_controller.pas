@@ -723,6 +723,7 @@ var
   html : string;
   i : integer;
 begin
+  html := '';
   //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Get Data</legend>';
@@ -747,6 +748,7 @@ begin
   Result := '';
   if Application.Request.Method <> 'POST' then
     Exit;
+  html := '';
   //html := '<div class="debug">';
   html := html + '<fieldset>';
   html := html + '<legend>Post Data</legend>';
@@ -780,6 +782,7 @@ var
 begin
   Result := '';
   //html := '<div class="debug">';
+  html := '';
   html := html + '<fieldset>';
   html := html + '<legend>Header Data</legend>';
   html  := html + '<table>';
@@ -1701,7 +1704,7 @@ begin
       ReplaceText := __(tagstring_custom.Values['text']);
       end;
     'config' : begin
-      ReplaceText:= Config[ tagstring_custom.Values['key']];
+      ReplaceText := Config[ tagstring_custom.Values['key']];
       end;
     'modvar' : begin
       ReplaceText:= ModVar[ tagstring_custom.Values['key']];

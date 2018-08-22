@@ -18,7 +18,7 @@ type
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
   public
-    Dir, FileName, FullName: WideString;
+    Dir, FileName, FullName: UnicodeString;
     constructor Create;
     destructor Destroy; override;
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
@@ -65,7 +65,7 @@ begin
       ForceDirectories(Dir);
   except
   end;
-  FileName := 'app-' + FormatDateTime('YYYYMMDD', Now) + '.log';
+  FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
   FullName := dir + '/' + FileName;
 end;
 
