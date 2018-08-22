@@ -203,6 +203,9 @@ begin
     if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
       DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
     //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
+    s := string( Config.GetValue( format( _DATABASE_CHARSET, [AppData.databaseRead]), ''));
+    if s <> '' then
+      DB_Connector.CharSet := s;
 
     try
       DB_Connector.Open;
@@ -409,6 +412,9 @@ begin
   DB_Connector_Write.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [ConnectionName]), ''));
   DB_Connector_Write.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [ConnectionName]), ''));
   DB_Connector_Write.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [ConnectionName]), 'test'));
+  s := string( Config.GetValue( format( _DATABASE_CHARSET, [ConnectionName]), ''));
+  if s <> '' then
+    DB_Connector.CharSet := s;
 
   if Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), '') <> '' then
     DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( UTF8Decode(format( _DATABASE_PORT, [ConnectionName])), ''));

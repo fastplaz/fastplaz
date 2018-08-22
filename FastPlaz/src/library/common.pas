@@ -51,6 +51,7 @@ const
   _DATABASE_TABLETYPE = 'database/%s/tabletype';
   _DATABASE_USERNAME = 'database/%s/username';
   _DATABASE_PASSWORD = 'database/%s/password';
+  _DATABASE_CHARSET = 'database/%s/charset';
   _DATABASE_DATABASENAME = 'database/%s/database_name';
   _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
   _DATABASE_LIBRARY = 'database/%s/library';
