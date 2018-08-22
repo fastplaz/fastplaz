@@ -152,28 +152,28 @@ begin
   AppData.useDatabase := True;
 
   // multidb - prepare
-  AppData.databaseRead := Config.GetValue( _DATABASE_OPTIONS_READ, 'default');
-  AppData.databaseWrite := Config.GetValue( _DATABASE_OPTIONS_WRITE, AppData.databaseRead);
-  AppData.tablePrefix := Config.GetValue( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead]), '');
+  AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
+  AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
+  AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
 
   // currentdirectory mesti dipindah
   //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
-  s := string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  s := string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), ''));
 
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '')));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
 
-  if Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '') <> '' then begin
+  if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '') <> '' then begin
     try
-      DB_LibLoader.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
+      DB_LibLoader.ConnectionType:= string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [AppData.databaseRead])), ''));
       DB_LibLoader.LibraryName:= s;
       DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
@@ -195,15 +195,15 @@ begin
 
   if not DB_Connector.Connected then
   begin
-    DB_Connector.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [AppData.databaseRead]), 'localhost'));
-    DB_Connector.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
-    DB_Connector.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [AppData.databaseRead]), ''));
-    DB_Connector.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [AppData.databaseRead]), ''));
-    DB_Connector.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [AppData.databaseRead]), 'test'));
-    if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
-      DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
+    DB_Connector.HostName:= string( Config.GetValue( UnicodeString( format( _DATABASE_HOSTNAME, [AppData.databaseRead])), 'localhost'));
+    DB_Connector.ConnectorType := string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [AppData.databaseRead])), ''));
+    DB_Connector.UserName:= string( Config.GetValue( UnicodeString( format( _DATABASE_USERNAME, [AppData.databaseRead])), ''));
+    DB_Connector.Password:= string( Config.GetValue( UnicodeString( format( _DATABASE_PASSWORD, [AppData.databaseRead])), ''));
+    DB_Connector.DatabaseName:= string( Config.GetValue( UnicodeString( format( _DATABASE_DATABASENAME, [AppData.databaseRead])), 'test'));
+    if Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), '') <> '' then
+      DB_Connector.Params.Values['port'] := string( Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), ''));
     //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
-    s := string( Config.GetValue( format( _DATABASE_CHARSET, [AppData.databaseRead]), ''));
+    s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [AppData.databaseRead])), ''));
     if s <> '' then
       DB_Connector.CharSet := s;
 
@@ -373,23 +373,23 @@ begin
     Exit;
   end;
 
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [ConnectionName]), ''));
+  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ConnectionName])), ''));
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '')));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ ConnectionName])), '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
   end;
 
-  if Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '') <> '' then
+  if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ ConnectionName])), '') <> '' then
   begin
     if not Assigned( DB_LibLoader_Write) then DB_LibLoader_Write := TSQLDBLibraryLoader.Create( nil);
     try
-      DB_LibLoader_Write.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
+      DB_LibLoader_Write.ConnectionType:= string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [ConnectionName])), ''));
       DB_LibLoader_Write.LibraryName:= s;
       DB_LibLoader_Write.Enabled:= True;
       DB_LibLoader_Write.LoadLibrary;
@@ -407,16 +407,16 @@ begin
     DB_Connector_Write := TSQLConnector.Create( nil);
     DB_Connector_Write.Transaction := DB_Transaction_Write;
   end;
-  DB_Connector_Write.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [ConnectionName]), 'localhost'));
-  DB_Connector_Write.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
-  DB_Connector_Write.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [ConnectionName]), ''));
-  DB_Connector_Write.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [ConnectionName]), ''));
-  DB_Connector_Write.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [ConnectionName]), 'test'));
-  s := string( Config.GetValue( format( _DATABASE_CHARSET, [ConnectionName]), ''));
+  DB_Connector_Write.HostName:= string( Config.GetValue( UnicodeString( format( _DATABASE_HOSTNAME, [ConnectionName])), 'localhost'));
+  DB_Connector_Write.ConnectorType := string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [ConnectionName])), ''));
+  DB_Connector_Write.UserName:= string( Config.GetValue( UnicodeString( format( _DATABASE_USERNAME, [ConnectionName])), ''));
+  DB_Connector_Write.Password:= string( Config.GetValue( UnicodeString( format( _DATABASE_PASSWORD, [ConnectionName])), ''));
+  DB_Connector_Write.DatabaseName:= string( Config.GetValue( UnicodeString( format( _DATABASE_DATABASENAME, [ConnectionName])), 'test'));
+  s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [ConnectionName])), ''));
   if s <> '' then
     DB_Connector.CharSet := s;
 
-  if Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), '') <> '' then
+  if Config.GetValue( UnicodeString( format( _DATABASE_PORT, [ConnectionName])), '') <> '' then
     DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( UTF8Decode(format( _DATABASE_PORT, [ConnectionName])), ''));
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 

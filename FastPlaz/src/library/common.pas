@@ -372,8 +372,6 @@ end;
 function StringHumanToDate(AStringHuman: string): TDateTime;
 var
   i: integer;
-  s: string;
-  lst: TStrings;
   FS: TFormatSettings;
 
   function LongToShortMonth( AStr:string):string;
@@ -1126,7 +1124,7 @@ begin
   if JsonString = '' then
     Exit;
 
-  VJSONParser := TLocalJSONParser.Create(JsonString);
+  VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8]);
   try
     try
       setOptions := VJSONParser.Options;
