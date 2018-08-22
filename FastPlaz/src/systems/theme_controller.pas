@@ -705,6 +705,7 @@ begin
   ElapsedTime:= StopTime - StartTime;
 
   //html := '<div class="debug">';
+  html := '';
   html := html + '<fieldset>';
   html := html + '<legend>Benchmark Info</legend>';
   html := html + '<table>';
