@@ -24,8 +24,8 @@ type
     function GetAsJSON: TJSONStringType;
     function GetAsString: TJSONStringType;
     function GetIsObject: boolean;
-    function GetItem(PathString: string): TJSONUtilItem;
-    procedure SetItem(PathString: string; AValue: TJSONUtilItem);
+    function GetItem(PathString: UnicodeString): TJSONUtilItem;
+    procedure SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
 
     function FindObject(const PathString: UnicodeString; AllowCreate: boolean;
       var ElementName: UnicodeString): TJSONObject;
@@ -35,7 +35,7 @@ type
   public
     constructor Create(JSONData: TJSONObject);
     destructor Destroy; override;
-    property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem; default;
+    property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem; default;
 
     property IsObject: boolean read GetIsObject;
     property AsString: TJSONStringType read GetAsString;
@@ -51,11 +51,12 @@ type
     FModified: boolean;
     function GetAsJSON: TJSONStringType;
     function GetAsJSONFormated: TJSONStringType;
-    function GetItem(PathString: string): TJSONUtilItem;
-    function GetValue(PathString: string): variant;
-    function GetValueArray(PathString: string): TJSONArray;
-    procedure SetItem(PathString: string; AValue: TJSONUtilItem);
-    procedure SetValue(PathString: string; AValue: variant);
+    function GetItem(PathString: UnicodeString): TJSONUtilItem;
+    function GetValue(PathString: UnicodeString): variant;
+    function GetValueArray(PathString: UnicodeString): TJSONArray;
+    procedure SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
+    procedure SetValue(PathString: UnicodeString; AValue: variant);
+    procedure SetValueArray(PathString: UnicodeString; AValue: TJSONArray);
 
     function FindObject(const PathString: UnicodeString;
       AllowCreate: boolean): TJSONObject;
@@ -65,7 +66,6 @@ type
       CreateParent: boolean): TJSONData;
     function FindElement(const PathString: UnicodeString; CreateParent: boolean;
       var ParentObject: TJSONObject; var ElementName: UnicodeString): TJSONData;
-    procedure SetValueArray(PathString: string; AValue: TJSONArray);
   public
     constructor Create;
     destructor Destroy; override;
@@ -74,11 +74,11 @@ type
     property Data: TJSONObject read FJsonObject;
     property AsJSON: TJSONStringType read GetAsJSON;
     property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
-    property Value[PathString: string]: variant read GetValue write SetValue; default;
-    property ValueArray[PathString: string]: TJSONArray
+    property Value[PathString: UnicodeString]: variant read GetValue write SetValue; default;
+    property ValueArray[PathString: UnicodeString]: TJSONArray
       read GetValueArray write SetValueArray;
 
-    property Item[PathString: string]: TJSONUtilItem read GetItem write SetItem;
+    property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
     procedure LoadFromJsonString(const JsonString: string);
   end;
@@ -91,7 +91,7 @@ uses
 
 { TJSONUtilItem }
 
-function TJSONUtilItem.GetItem(PathString: string): TJSONUtilItem;
+function TJSONUtilItem.GetItem(PathString: UnicodeString): TJSONUtilItem;
 var
   o: TJSONObject;
   El: TJSONData;
@@ -131,7 +131,7 @@ begin
   Result := FJSONData.AsJSON;
 end;
 
-procedure TJSONUtilItem.SetItem(PathString: string; AValue: TJSONUtilItem);
+procedure TJSONUtilItem.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
 begin
 
 end;
@@ -232,7 +232,7 @@ end;
 
 { TJSONUtil }
 
-function TJSONUtil.GetValue(PathString: string): variant;
+function TJSONUtil.GetValue(PathString: UnicodeString): variant;
 var
   o: TJSONObject;
   El: TJSONData;
@@ -254,12 +254,12 @@ begin
     Result := El.AsFloat;
 end;
 
-function TJSONUtil.GetValueArray(PathString: string): TJSONArray;
+function TJSONUtil.GetValueArray(PathString: UnicodeString): TJSONArray;
 begin
-
+  Result := Nil;
 end;
 
-procedure TJSONUtil.SetItem(PathString: string; AValue: TJSONUtilItem);
+procedure TJSONUtil.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
 begin
 
 end;
@@ -274,7 +274,7 @@ begin
   Result := JsonFormatter(AsJSON);
 end;
 
-function TJSONUtil.GetItem(PathString: string): TJSONUtilItem;
+function TJSONUtil.GetItem(PathString: UnicodeString): TJSONUtilItem;
 var
   o: TJSONObject;
   El: TJSONData;
@@ -293,7 +293,7 @@ begin
 
 end;
 
-procedure TJSONUtil.SetValueArray(PathString: string; AValue: TJSONArray);
+procedure TJSONUtil.SetValueArray(PathString: UnicodeString; AValue: TJSONArray);
 var
   o: TJSONObject;
   El: TJSONData;
@@ -317,7 +317,7 @@ begin
   end;
 end;
 
-procedure TJSONUtil.SetValue(PathString: string; AValue: variant);
+procedure TJSONUtil.SetValue(PathString: UnicodeString; AValue: variant);
 var
   o: TJSONObject;
   El: TJSONData;
