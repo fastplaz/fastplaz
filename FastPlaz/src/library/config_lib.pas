@@ -10,7 +10,7 @@ unit config_lib;
 interface
 
 uses
-  fpcgi, jsonConf, fpjson, jsonparser, variants,
+  fpcgi, jsonConf, fpjson, jsonparser, jsonscanner, variants,
   {$IFDEF LSNEWFPC}
   {$ELSE}
   jsonscanner,
@@ -47,7 +47,7 @@ type
       read GetConfigValue write SetConfigValue; default;
     property IsValid: boolean read FIsValid;
 
-    function GetObject( AKeyName:string):TJSONObject;
+    function GetObject( AKeyName:UnicodeString):TJSONObject;
 
     function ValidateFile(ConfigFileName: string): boolean;
   end;
@@ -66,7 +66,7 @@ begin
   Message := _ERR_CONFIG_FILENOTEXIST;
 end;
 
-function TMyConfig.GetObject(AKeyName: string): TJSONObject;
+function TMyConfig.GetObject(AKeyName: UnicodeString): TJSONObject;
 begin
   try
     If (AKeyName[Length(AKeyName)]<>'/') then
@@ -124,10 +124,10 @@ begin
   lst := TStringList.Create;
   lst.LoadFromFile(ConfigFileName);
 
-  VJSONParser := TLocalJSONParser.Create(lst.Text);
+  VJSONParser := TLocalJSONParser.Create(lst.Text, [joStrict, joUTF8]);
   try
     try
-      VJSONParser.Strict := True;
+      //VJSONParser.Strict := True; //deprecated, use joStrict
       VJSONData := VJSONParser.Parse;
       lst.Text := VJSONData.FormatJSON([], 2);
     except
