@@ -54,7 +54,7 @@ end;
 function TFileDescModel.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', database_lib';
+  Result := Result + ', database_lib, string_helpers, dateutils, datetime_helpers';
 end;
 
 function TFileDescModel.GetLocalizedName: string;
