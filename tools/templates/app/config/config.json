@@ -24,6 +24,7 @@
       "username" : "your_username",
       "password" : "your_password",
       "database_name" : "your_database",
+      "charset" : "",
       "prefix" : "",
       "library" : "..\/libs\/win\/libmysql.dll"
     }
