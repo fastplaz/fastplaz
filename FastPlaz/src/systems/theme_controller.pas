@@ -474,7 +474,7 @@ wordpress file "wp-includes/formation.php"
 function TThemeUtil.wpautop(Content: string; BR: boolean): string;
 var
   tmp : TStrings;
-  html : widestring;
+  html : String;
 begin
   if trim( Content) = '' then
   begin
