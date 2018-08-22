@@ -111,7 +111,7 @@ begin
   except
     on e: Exception do
     begin
-      Result.message := format(__(__err_module_call_failed), [ModuleName, e.Message]);
+      Result.message := UnicodeString( format(__(__err_module_call_failed), [ModuleName, e.Message]));
     end;
   end;
   UnloadLibrary(lib_handle);

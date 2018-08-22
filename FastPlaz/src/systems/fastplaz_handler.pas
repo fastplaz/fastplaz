@@ -389,7 +389,7 @@ begin
   AppData.slogan := string(Config.GetValue(_SYSTEM_SLOGAN, _APP));
   AppData.baseUrl := string(Config.GetValue(_SYSTEM_BASEURL, ''));
   AppData.admin_email := string(
-    Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, Application.Email));
+    Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, UnicodeString( Application.Email)));
   AppData.language := string(Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en'));
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := string(Config.GetValue(_SYSTEM_THEME, 'default'));
@@ -685,7 +685,7 @@ end;
 
 function TMyCustomWebModule.GetCustomHeader(const KeyName: string): string;
 begin
-  Response.GetCustomHeader( KeyName);
+  Result := Response.GetCustomHeader( KeyName);
 end;
 
 function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;

@@ -63,7 +63,7 @@ var
 
   function consumeinteger: variant;
   var
-    j, len: integer;
+    j : integer;
   begin
     Inc(i, 2);
     j := i;
@@ -75,7 +75,7 @@ var
 
   function consumeboolean: variant;
   var
-    j, len: integer;
+    j : integer;
   begin
     Inc(i, 2);
     j := i;
@@ -89,7 +89,7 @@ var
 
   function consumedouble: variant;
   var
-    j, len: integer;
+    j : integer;
   begin
     Inc(i, 2);
     j := i;

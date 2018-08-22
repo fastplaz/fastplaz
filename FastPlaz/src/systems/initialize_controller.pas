@@ -52,9 +52,9 @@ begin
     Exit;
   ;
   Result := str;
-  VJSONParser := TLocalJSONParser.Create(str);
+  VJSONParser := TLocalJSONParser.Create(str, [joStrict, joUTF8]);
   try
-    VJSONParser.Strict := True;
+    //VJSONParser.Strict := True; // deprecated
     VJSONData := VJSONParser.Parse;
     Result := VJSONData.FormatJSON([], 2);
   except
