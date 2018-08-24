@@ -1,35 +1,35 @@
 object fModelWizard: TfModelWizard
-  Left = 908
+  Left = 698
   Height = 206
-  Top = 328
-  Width = 407
+  Top = 322
+  Width = 465
   BorderStyle = bsDialog
   Caption = 'Model Wizard'
   ClientHeight = 206
-  ClientWidth = 407
+  ClientWidth = 465
   Color = 15790320
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   Position = poScreenCenter
   SessionProperties = 'Top;Left'
-  LCLVersion = '1.2.6.0'
+  LCLVersion = '1.8.4.0'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
     Top = 0
-    Width = 407
+    Width = 465
     Align = alTop
     BevelOuter = bvNone
     ClientHeight = 34
-    ClientWidth = 407
+    ClientWidth = 465
     Color = clWhite
     ParentColor = False
     TabOrder = 2
     object lbl_Title: TLabel
       Left = 6
-      Height = 25
+      Height = 22
       Top = 4
-      Width = 119
+      Width = 125
       Caption = 'Model Wizard'
       Font.Height = -19
       ParentColor = False
@@ -38,9 +38,9 @@ object fModelWizard: TfModelWizard
   end
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 34
-    Top = 166
-    Width = 395
+    Height = 30
+    Top = 170
+    Width = 453
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
     OKButton.OnClick = OKButtonClick
@@ -56,17 +56,17 @@ object fModelWizard: TfModelWizard
   end
   object Label1: TLabel
     Left = 10
-    Height = 15
+    Height = 16
     Top = 49
-    Width = 75
+    Width = 87
     Caption = 'Model Name :'
     ParentColor = False
   end
   object edt_ModelName: TEdit
     Left = 90
-    Height = 23
+    Height = 22
     Top = 46
-    Width = 306
+    Width = 360
     TabOrder = 0
     Text = 'Sample'
   end
@@ -74,12 +74,12 @@ object fModelWizard: TfModelWizard
     Left = 20
     Height = 82
     Top = 76
-    Width = 376
+    Width = 430
     Lines.Strings = (
       'Nama table akan secara otomatis mengikuti Nama Model.'
       'misal:'
-      'jk modelname = ''Table'', maka nama table-nya adalah ''table'''
-      'jk modelname = ''MyTable'', maka nama table-nya adalah ''my_table'''
+      'jk modelname = ''User'', maka nama table-nya adalah ''users'''
+      'jk modelname = ''MyTable'', maka nama table-nya adalah ''my_tables'''
       ''
       'jika memerlukan custom nama table, bisa didefinisikan melalui '
       'onCreate model tersebut'
