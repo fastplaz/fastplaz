@@ -211,7 +211,7 @@ begin
     Add('');
     Add('uses');
     Add('  {$IFNDEF Windows}cthreads,{$ENDIF}');
-    Add('  fpcgi, sysutils, fastplaz_handler, common, main;');
+    Add('  fpcgi, sysutils, fastplaz_handler, common, ' + LowerCase(ProjectName) + '_controller;');
     Add('');
     Add('{$R *.res}');
     Add('');
@@ -277,9 +277,11 @@ begin
 
   bCreateProject := True;
   bExpert := False;
+  _GlobalProjectName := ProjectName;
   LazarusIDE.DoNewEditorFile(TFileRouteDescModule.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create( True), 'main.pas', '',
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create( True),
+    LowerCase(ProjectName) + '_controller.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
 
   // open readme file

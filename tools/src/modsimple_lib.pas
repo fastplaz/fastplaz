@@ -48,6 +48,9 @@ type
       ResourceName: string): string; override;
   end;
 
+var
+  _GlobalProjectName : String;
+
 implementation
 
 uses fastplaz_tools_register, modsimple_wzd;
@@ -76,11 +79,11 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses info_controller, main;');
+    Add('uses info_controller, ' + LowerCase(_GlobalProjectName) + '_controller;');
     Add('');
     Add('initialization');
     Add('  Route[ ''info''] := TInfoModule;');
-    Add('  Route[ ''/''] := TMainModule; // Main Module');
+    Add('  Route[ ''/''] := T' + ucwords(_GlobalProjectName) + 'Module; // Main Module');
     Add('');
   end;
 
@@ -326,7 +329,7 @@ begin
     end
     else
     begin
-      ModulTypeName := 'TMainModule';
+      ModulTypeName := 'T' + ucwords(_GlobalProjectName) + 'Module';
       Permalink := 'main';
     end;
   end;
