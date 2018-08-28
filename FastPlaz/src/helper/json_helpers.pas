@@ -35,10 +35,10 @@ function TJsonSmartHelper.getValue(const AKeyName: string): string;
 var
   s: string;
 begin
-  s := StringReplace(s, '/', '.', [rfReplaceAll]);
+  s := StringReplace(AKeyName, '/', '.', [rfReplaceAll]);
   Result := '';
   try
-    Result := jsonGetData(Self, AKeyName);
+    Result := jsonGetData(Self, s);
   except
   end;
 end;

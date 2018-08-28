@@ -98,6 +98,7 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
+  ElName := '';
   El := FindElement(StripSlash('/' + PathString), False, o, ElName);
   if not Assigned(El) then
   begin
@@ -239,6 +240,7 @@ var
   ElName: UnicodeString;
 begin
   Result := '';
+  ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), False, o, ElName);
@@ -282,6 +284,7 @@ var
   i: integer;
 begin
   Result := nil;
+  ElName := '';
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
   begin
@@ -300,6 +303,7 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
+  ElName := '';
   El := FindElement(StripSlash(PathString), True, o, ElName);
   if Assigned(El) and (not (El is TJSONArray)) then
   begin
@@ -324,6 +328,7 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
+  ElName := '';
 {
   // SIMPLE WAY
   El := FindElement(StripSlash(PathString), True, o, ElName);
@@ -515,6 +520,7 @@ var
   o: TJSONObject;
   elementName: UnicodeString;
 begin
+  elementName := '';
   Result := FindElement(PathString, CreateParent, o, elementName);
 end;
 

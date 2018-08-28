@@ -95,7 +95,7 @@ const
     'templates' + DirectorySeparator + 'swagger' + DirectorySeparator +
     'unit_template.pas';
   CONTROLLER_DIRNAME = 'controller';
-  REGEX_PARAMETER = '{([a-zA-Z0-9]+)}';
+  //REGEX_PARAMETER = '{([a-zA-Z0-9]+)}';
 
 { TProjectGenerator }
 
@@ -233,16 +233,19 @@ var
   function addGetSource(ASource: string): string;
   begin
     getSource := getSource + #13 + ASource;
+    Result := getSource;
   end;
 
   function addPostSource(ASource: string): string;
   begin
     postSource := postSource + #13 + ASource;
+    Result := postSource;
   end;
 
   function addPutSource(ASource: string): string;
   begin
     putSource := putSource + #13 + ASource;
+    Result := putSource;
   end;
 
 begin

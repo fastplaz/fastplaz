@@ -49,7 +49,7 @@ function TProjectAPIFastPlazDescriptor.ScanDirAndCopy(SourceDirectory,
 var
   Rec: TSearchRec;
   R: integer;
-  lsFileSource, lsFileTarget, lsTgl, lsSubDir: string;
+  lsFileSource, lsFileTarget, lsSubDir: string;
 begin
   Result := True;
   try

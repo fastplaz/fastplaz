@@ -32,7 +32,7 @@ var
 implementation
 
 uses modsimple_lib, modsimplejson_lib, model_lib, project_lib, projectapi_lib,
-  webstructure_lib, menu_experts;
+  menu_experts;
 
 function ucwords(const str: string): string;
 var

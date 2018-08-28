@@ -6,7 +6,7 @@ interface
 
 uses
   Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
-  NewItemIntf, IDEMsgIntf, PackageIntf,
+  PackageIntf,
   Classes, SysUtils;
 
 resourcestring

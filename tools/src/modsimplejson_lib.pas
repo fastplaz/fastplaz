@@ -5,7 +5,7 @@ unit modsimplejson_lib;
 interface
 
 uses
-  Dialogs, Controls, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf,
+  Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
   Classes, SysUtils;
 
 resourcestring
