@@ -7,7 +7,7 @@ interface
 uses
   LazFileUtils,
   FileUtil, fpjson, jsonConf, jsonparser, jsonscanner,
-  Dialogs, Controls, LazarusPackageIntf, ProjectIntf, NewItemIntf,
+  Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
   IDEMsgIntf, LazIDEIntf, PackageIntf,
   Classes, SysUtils;
 

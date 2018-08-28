@@ -515,7 +515,7 @@ end;
 
 function TStemmingNazief.ParseWord(Text: string): string;
 var
-  i: double;
+  i: Double;
   oldDecimalSeparator: char;
   s: string;
 begin

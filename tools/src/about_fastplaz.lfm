@@ -13,11 +13,11 @@ object fAboutFastplaz: TfAboutFastplaz
   OnKeyDown = FormKeyDown
   Position = poScreenCenter
   UseDockManager = True
-  LCLVersion = '1.2.6.0'
+  LCLVersion = '1.8.4.0'
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 34
-    Top = 300
+    Height = 30
+    Top = 304
     Width = 366
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -42,8 +42,8 @@ object fAboutFastplaz: TfAboutFastplaz
     TabPosition = tpBottom
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 249
-      ClientWidth = 362
+      ClientHeight = 238
+      ClientWidth = 364
       object mem: TMemo
         Left = 8
         Height = 82
