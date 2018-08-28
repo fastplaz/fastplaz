@@ -251,6 +251,7 @@ begin
     'lib' + DirectorySeparator + '$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
   AProject.LazCompilerOptions.TargetFilename := targetExecutable;
+  AProject.LazCompilerOptions.TargetFilenameApplyConventions := False;
   //AProject.LazCompilerOptions.CustomConfigFile := True;
   AProject.LazCompilerOptions.ConfigFilePath := 'extra.cfg';
   AProject.Flags := AProject.Flags - [pfMainUnitHasCreateFormStatements];

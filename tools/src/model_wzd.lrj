@@ -1,0 +1,6 @@
+{"version":1,"strings":[
+{"hash":10920804,"name":"tfmodelwizard.caption","sourcebytes":[77,111,100,101,108,32,87,105,122,97,114,100],"value":"Model Wizard"},
+{"hash":10920804,"name":"tfmodelwizard.lbl_title.caption","sourcebytes":[77,111,100,101,108,32,87,105,122,97,114,100],"value":"Model Wizard"},
+{"hash":33791194,"name":"tfmodelwizard.label1.caption","sourcebytes":[77,111,100,101,108,32,78,97,109,101,32,58],"value":"Model Name :"},
+{"hash":93865765,"name":"tfmodelwizard.edt_modelname.text","sourcebytes":[83,97,109,112,108,101],"value":"Sample"}
+]}
