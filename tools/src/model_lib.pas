@@ -149,7 +149,7 @@ begin
   ModelName := 'T' + StringReplace(UcWords(ModelName), ' ', '', [rfReplaceAll]) + 'Model';
   Result := inherited CreateSource(LowerCase(ModelName) + '_model.pas',
     SourceName, ModelName);
-  log('model "' + ModelName + '" created');
+  log('model "' + ModelName + '" created', DefaultFilename + DefaultFileExt);
 end;
 
 procedure TFileDescModel.UpdateDefaultPascalFileExtension(const DefPasExt: string);
