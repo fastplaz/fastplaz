@@ -334,7 +334,7 @@ begin
     end;
   end;
   Result := inherited CreateSource(Filename, SourceName, Permalink);
-  log('module "' + ModulTypeName + '" created');
+  log('module "' + ModulTypeName + '" created', Filename);
 end;
 
 procedure TFileDescDefaultModule.UpdateDefaultPascalFileExtension(

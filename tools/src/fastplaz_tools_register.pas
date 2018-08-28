@@ -5,8 +5,8 @@ unit fastplaz_tools_register;
 interface
 
 uses
-  Dialogs, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf, PackageIntf,
-  Classes, SysUtils;
+  Dialogs, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf, IDEExternToolIntf,
+  PackageIntf, Classes, SysUtils;
 
 const
   FastPlaz = 'FastPlaz';
@@ -19,7 +19,7 @@ const
 
 
 procedure Register;
-procedure log(const Msg: string);
+procedure log(const Msg: string; AFileName: string = ''; ATheUrgency: TMessageLineUrgency = mluNote);
 function ucwords(const str: string): string;
 
 var
@@ -48,9 +48,10 @@ begin
   Result := trim(s);
 end;
 
-procedure log(const Msg: string);
+procedure log(const Msg: string; AFileName: string;
+  ATheUrgency: TMessageLineUrgency);
 begin
-  IDEMessagesWindow.AddMsg(FastPlaz + ' : ' + Msg, '', 0, nil);
+  IDEMessagesWindow.AddCustomMessage( ATheUrgency, Msg, AFileName, 0, 0, FastPlaz);
 end;
 
 procedure Register;

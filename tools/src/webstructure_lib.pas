@@ -87,6 +87,7 @@ begin
     Free;
   end;
 
+  log( 'Web structure created');
   Result := False;
 end;
 
@@ -110,6 +111,7 @@ begin
     'templates/themes/default' + DirectorySeparator + '*',
     dirTheme);
 
+  log('Theme structure created');
 end;
 
 function TWebStructure.ScanDirAndCopy(SourceDirectory, TargetDirectory: string): boolean;

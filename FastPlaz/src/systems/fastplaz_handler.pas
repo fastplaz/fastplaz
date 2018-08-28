@@ -190,6 +190,8 @@ type
     property Files : TUploadedFiles Read FFiles;
   end;
 
+  TMyCustomController = class(TMyCustomWebModule);
+
   TMyCustomWebModuleClass = class of TMyCustomWebModule;
 
   { TModuleLoadedItem }
