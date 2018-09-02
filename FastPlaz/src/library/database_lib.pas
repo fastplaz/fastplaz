@@ -27,6 +27,7 @@ type
     FConnector : TSQLConnector;
     FFieldList : TStrings;
     FTableName : string;
+    FAliasName : string;
     FGroupField : string;
     FSelectField : string;
     FJoinList : TStrings;
@@ -38,11 +39,13 @@ type
 
     primaryKeyValue : string;
     FGenFields : TStringList;
+    function getAliasName: string;
     function GetEOF: boolean;
     function GetLastInsertID: LongInt;
     function GetRecordCount: Longint;
     function getSQL: TStringlist;
     function GetTablePrefix: string;
+    procedure setAliasName(AValue: string);
     procedure _queryPrepare;
     function  _queryOpen:boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
@@ -66,6 +69,7 @@ type
     procedure SetFieldValue( FieldName: String; AValue: Variant);
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
+    property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
@@ -605,6 +609,16 @@ begin
   Result := AppData.tablePrefix;
 end;
 
+procedure TSimpleModel.setAliasName(AValue: string);
+begin
+  FAliasName := AValue;
+end;
+
+function TSimpleModel.getAliasName: string;
+begin
+  Result := FAliasName;
+end;
+
 function TSimpleModel.GetEOF: boolean;
 begin
   Result := Data.EOF;
@@ -786,6 +800,7 @@ begin
   end else
     FTableName:= DefaultTableName;
   FTableName:= AppData.tablePrefix+FTableName;
+  FAliasName := FTableName.Replace('.', '_');
 
   // primary key name
   if pPrimaryKey = '' then
@@ -924,7 +939,7 @@ begin
     end;
   end;
   // prepare join - end
-  Data.SQL.Text := 'SELECT ' + _selectField + #13#10'FROM ' + FTableName + ' ' + FTableName + _joinSQL;
+  Data.SQL.Text := 'SELECT ' + _selectField + #13#10'FROM ' + FTableName + ' ' + FAliasName + _joinSQL;
 
   if sWhere <> '' then
     Data.SQL.Add( 'WHERE ' + sWhere);
@@ -1316,7 +1331,10 @@ begin
   end;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
-    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    try
+      primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    except
+    end;
   end;
 end;
 
