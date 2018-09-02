@@ -41,6 +41,7 @@ type
     function GetEOF: boolean;
     function GetLastInsertID: LongInt;
     function GetRecordCount: Longint;
+    function getSQL: TStringlist;
     function GetTablePrefix: string;
     procedure _queryPrepare;
     function  _queryOpen:boolean;
@@ -73,7 +74,8 @@ type
     property Message: string read AMessage;
 
     function ParamByName(Const AParamName : String) : TParam;
-    function Exec( SQL:String): boolean;
+    property SQL : TStringlist read getSQL;
+    function Exec( ASQL:String): boolean;
 
     function All:boolean;
     function GetAll:boolean;
@@ -90,7 +92,7 @@ type
     procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
 
     procedure GroupBy( const GroupField:string);
-    function RecordsTotalFiltered( const SQL:string = ''; ForceClose: boolean = True):integer;
+    function RecordsTotalFiltered( const ASQL:string = ''; ForceClose: boolean = True):integer;
 
 
     procedure Clear;
@@ -593,6 +595,11 @@ begin
   Result := Data.RecordCount;
 end;
 
+function TSimpleModel.getSQL: TStringlist;
+begin
+  Result := Data.SQL;
+end;
+
 function TSimpleModel.GetTablePrefix: string;
 begin
   Result := AppData.tablePrefix;
@@ -822,9 +829,9 @@ begin
   Result := Data.ParamByName( AParamName);
 end;
 
-function TSimpleModel.Exec(SQL: String): boolean;
+function TSimpleModel.Exec(ASQL: String): boolean;
 begin
-  Result := QueryExec( SQL);
+  Result := QueryExec( ASQL);
 end;
 
 function TSimpleModel.All: boolean;
@@ -987,7 +994,7 @@ begin
   FGroupField:= GroupField;
 end;
 
-function TSimpleModel.RecordsTotalFiltered(const SQL: string;
+function TSimpleModel.RecordsTotalFiltered(const ASQL: string;
   ForceClose: boolean): integer;
 begin
   Result := 0;
@@ -1000,9 +1007,9 @@ begin
     end;
     Data.Close;
   end;
-  if SQL = '' then
+  if ASQL = '' then
     Exit;
-  Data.SQL.Text := SQL;
+  Data.SQL.Text := ASQL;
   Data.Open;
   if RecordCount > 0 then
   begin

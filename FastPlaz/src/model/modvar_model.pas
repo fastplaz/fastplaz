@@ -58,8 +58,6 @@ end;
 
 function TModvarModel.SetCustom(const ModuleName: string;
   const VariableName: string; const ValueOfVariable: string): boolean;
-var
-  sql: string;
 begin
   if FindFirst([MODVAR_FIELD_MODULENAME + '="' + ModuleName + '"',
     MODVAR_FIELD_VARIABLE + '="' + VariableName + '"']) then
