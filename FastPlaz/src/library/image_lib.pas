@@ -1,5 +1,34 @@
 unit image_lib;
 
+{
+  USAGE
+
+  [x] resize:
+    img := TImageLib.Create;
+    if not img.LoadFromFile( 'sourceFileName.jpg') then
+    begin
+      img.Resize( 300); // auto height
+
+      img.Resize(300,200); // force resize - stretch
+
+      img.GrayScale := True; // convert to grayscale
+
+      img.Quality := 70; // custom jpeg quality. default is 80
+
+      img.SaveToFile('newFileName.jpg'); // save to file
+    end;
+    img.Free;
+
+  [x] Load As Stream
+
+    img := TImageLib.Create;
+    img.LoadFromFile( 'sourceFileName.jpg');
+    ContentStream := img.AsStream;
+
+    img.Free;
+
+
+}
 {$mode objfpc}{$H+}
 
 interface
