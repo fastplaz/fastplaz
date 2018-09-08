@@ -6,6 +6,6 @@ msgid "create unit for model database"
 msgstr ""
 
 #: model_lib.rs_model_name
-msgid "Model Generator"
+msgid "Database Model Generator"
 msgstr ""
 
