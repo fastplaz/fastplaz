@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Model_Name = 'Model Generator';
+  rs_Model_Name = 'Database Model Generator';
   rs_Model_Description = 'create unit for model database';
 
 type
