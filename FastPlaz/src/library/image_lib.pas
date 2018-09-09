@@ -1,3 +1,10 @@
+{
+This file is part of the FastPlaz package.
+(c) Luri Darmawan <luri@fastplaz.com>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+}
 unit image_lib;
 
 {
@@ -34,8 +41,8 @@ unit image_lib;
 interface
 
 uses
-  dateutils,
-  FPimage, FPReadJPEG, FPWriteJPEG, FPImgCanv, FPCanvas,
+  FPimage, FPCanvas, FPImgCanv, FPReadJPEG, FPReadPNG, FPReadGif,
+  FPWriteJPEG, FPWritePNG,
   Classes, SysUtils;
 
 type
@@ -70,13 +77,17 @@ type
 
 implementation
 
+uses common;
+
 { TImageLib }
 
 function TImageLib.getAsStream: TStream;
 begin
   if not Assigned(stream) then
     stream := TMemoryStream.Create;
-  writer.ImageWrite(stream,targetImage);
+  if not Assigned(writer) then
+    writer := TFPWriterJPEG.Create;
+  writer.ImageWrite(stream, targetImage);
   Result := stream;
 end;
 
@@ -87,9 +98,6 @@ begin
   sourceCanvas := TFPImageCanvas.Create(sourceImage);
   targetImage := TFPMemoryImage.Create(1, 1);
   targetCanvas := TFPImageCanvas.Create(targetImage);
-
-  reader := TFPReaderJPEG.Create;
-  writer := TFPWriterJPEG.Create;
 
   r.Left := 0;
   r.Top := 0;
@@ -102,13 +110,30 @@ begin
   inherited Destroy;
   if Assigned(stream) then
     stream.Free;
+  if Assigned(reader) then
+    reader.Free;
+  if Assigned(writer) then
+    writer.Free;
 end;
 
 function TImageLib.LoadFromFile(AFile: string): boolean;
+var
+  fileExt: string;
 begin
   Result := False;
   if not FileExists(AFile) then
     Exit;
+
+  if Assigned(reader) then
+    reader.Free;
+
+  fileExt := LowerCase(ExtractFileExt(AFile));
+  case fileExt of
+    '.png': reader := TFPReaderPNG.Create;
+    '.gif': reader := TFPReaderGif.Create;
+    else // default is jpeg
+      reader := TFPReaderJPEG.Create;
+  end;
 
   sourceImage.LoadFromFile(AFile, reader);
   r := Rect(0, 0, sourceCanvas.Width, sourceCanvas.Height);
@@ -119,11 +144,31 @@ begin
 end;
 
 function TImageLib.SaveToFile(AFile: string): boolean;
+var
+  fileExt: string;
 begin
-  with writer as TFPWriterJPEG do
-  begin
-    GrayScale := FGrayScale;
-    Quality := FQuality;
+  if Assigned(writer) then
+    writer.Free;
+
+  fileExt := LowerCase(ExtractFileExt(AFile));
+  case fileExt of
+    '.png':
+    begin
+      writer := TFPWriterPNG.Create;
+      with writer as TFPWriterPNG do
+      begin
+        GrayScale := FGrayScale;
+      end;
+    end
+    else
+    begin // default is jpeg
+      writer := TFPWriterJPEG.Create;
+      with writer as TFPWriterJPEG do
+      begin
+        GrayScale := FGrayScale;
+        CompressionQuality := FQuality;
+      end;
+    end;
   end;
 
   targetImage.SaveToFile(AFile, writer);
@@ -144,4 +189,3 @@ begin
 end;
 
 end.
-
