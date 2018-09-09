@@ -1005,6 +1005,8 @@ begin
     except
       on E: Exception do
       begin
+        if AppData.debug then
+          LogUtil.Add( E.Message, 'Download');
       end;
     end;
     Free;
