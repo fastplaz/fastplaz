@@ -130,7 +130,7 @@ type
 
 function DataBaseInit( const RedirecURL:string = ''):boolean;
 
-function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''): boolean;
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName : boolean = True): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
@@ -236,7 +236,7 @@ end;
 function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
   const aParams: array of string; SQLCount: string; Where: string;
   Order: string; Limit: integer; Offset: integer; Echo: integer;
-  sParams: string): boolean;
+  sParams: string; NoFieldName: boolean): boolean;
 var
   q: TSQLQuery;
   Data: TJSONArray;
@@ -290,7 +290,7 @@ begin
     q.Open;
 
     Data := TJSONArray.Create();
-    DataToJSON(q, Data);
+    DataToJSON(q, Data, NoFieldName);
     ResultJSON.Add('draw', Echo);
     ResultJSON.Add('recordsTotal', iTotal);
     ResultJSON.Add('recordsFiltered', iFiltered);
