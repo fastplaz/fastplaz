@@ -120,10 +120,13 @@ begin
   if (THandle(fHandle) <> feInvalidHandle) then
   begin
     s := 'WriteTest';
-    if FileWrite(fHandle, S[1], Length(S)) > 0 then
-      Result := True;
-    FileClose(fHandle);
-    DeleteFile(TempFilename);
+    try
+      if FileWrite(fHandle, S[1], Length(S)) > 0 then
+        Result := True;
+      FileClose(fHandle);
+      DeleteFile(TempFilename);
+    except
+    end;
   end;
 end;
 
