@@ -26,11 +26,13 @@ type
   { TInitializeModule }
 
   TInitializeModule = class(TMyCustomWebModule)
-    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);
+    procedure RequestHandler(Sender: TObject; ARequest: TRequest;
+      AResponse: TResponse; var Handled: boolean);
   private
     htaccess, ContentFile: TStringList;
     function InitializeApp: boolean;
-    function CreateDirCustom(const NewDir: string; CreateHtaccess: boolean = False): boolean;
+    function CreateDirCustom(const NewDir: string;
+      CreateHtaccess: boolean = False): boolean;
     function Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
   public
     constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;
@@ -50,9 +52,9 @@ begin
     Exit;
   ;
   Result := str;
-  VJSONParser := TLocalJSONParser.Create(str);
+  VJSONParser := TLocalJSONParser.Create(str, [joStrict, joUTF8]);
   try
-    VJSONParser.Strict := True;
+    //VJSONParser.Strict := True; // deprecated
     VJSONData := VJSONParser.Parse;
     Result := VJSONData.FormatJSON([], 2);
   except
@@ -73,15 +75,15 @@ begin
   inherited Destroy;
 end;
 
-procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse;
-  var Handled: boolean);
+procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest;
+  AResponse: TResponse; var Handled: boolean);
 begin
   if FileExists('config/config.json') then
     Redirect(BaseURL);
 
   InitializeApp;
 
-  Tags['$maincontent'] := @Tag_MainContent_Handler;
+  Tags['maincontent'] := @Tag_MainContent_Handler;
   Response.Content := ThemeUtil.Render();
   Handled := True;
 end;
@@ -106,7 +108,7 @@ begin
   CreateDirCustom('modules');
   CreateDirCustom('ztemp', True);
   CreateDirCustom('ztemp/cache');
-  CreateDirCustom('ztemp/error_log');
+  CreateDirCustom('ztemp/logs');
   CreateDirCustom('ztemp/sessions');
   CreateDirCustom('themes', True);
   CreateDirCustom('themes/default', True);
@@ -127,7 +129,8 @@ begin
     Add('  <link rel="stylesheet" id="fastplaz-style-css"  href="[$themefullpath]/style/style.css" type="text/css" media="all" />');
     Add('</head>');
     Add('<body>');
-    Add('[$maincontent]');
+    Add('[flashmessages]');
+    Add('[maincontent]');
     Add('</body>');
     Add('</html>');
     try
@@ -142,29 +145,32 @@ begin
   Config.Filename := 'config/config.json';
   Config.SetValue(_SYSTEM_SITENAME, _APP);
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
-  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'admin@' + widestring(GetEnvironmentVariable('SERVER_NAME')));
+  Config.SetValue(_SYSTEM_BASEURL, '');
+  Config.SetValue(_SYSTEM_WEBMASTER_EMAIL, 'admin@' +
+    WideString(GetEnvironmentVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
+  Config.SetValue(_SYSTEM_DEBUG, True);
   Config.SetValue(_SYSTEM_THEME_ENABLE, True);
   Config.SetValue(_SYSTEM_THEME, 'default');
   Config.SetValue(_SYSTEM_TEMP_DIR, 'ztemp');
   Config.SetValue(_SYSTEM_SESSION_TIMEOUT, 0);
 
-  Config.SetValue(_DATABASE_DRIVER, 'MySQL 5.0');
-  Config.SetValue(_DATABASE_HOSTNAME, 'localhost');
-  Config.SetValue(_DATABASE_PORT, '');
-  Config.SetValue(_DATABASE_USERNAME, 'your_username');
-  Config.SetValue(_DATABASE_PASSWORD, 'your_password');
-  Config.SetValue(_DATABASE_DATABASENAME, 'your_database');
-  Config.SetValue(_DATABASE_TABLE_PREFIX, '');
-  Config.SetValue(_DATABASE_LIBRARY, '../libs/win/libmysql.dll');
+  Config.SetValue(UTF8Decode(format(_DATABASE_DRIVER, ['default'])), 'MySQL 5.5');
+  Config.SetValue(UTF8Decode(format(_DATABASE_HOSTNAME, ['default'])), 'localhost');
+  Config.SetValue(UTF8Decode(format(_DATABASE_PORT, ['default'])), '');
+  Config.SetValue(UTF8Decode(format(_DATABASE_USERNAME, ['default'])), 'your_username');
+  Config.SetValue(UTF8Decode(format(_DATABASE_PASSWORD, ['default'])), 'your_password');
+  Config.SetValue(UTF8Decode(format(_DATABASE_DATABASENAME, ['default'])), 'your_database');
+  Config.SetValue(UTF8Decode(format(_DATABASE_TABLE_PREFIX, ['default'])), '');
+  Config.SetValue(UTF8Decode(format(_DATABASE_LIBRARY, ['default'])), '../libs/win/libmysql.dll');
 
-  Config.SetValue( format(_MAIL_MAILSERVER, ['default']), 'your.mail.server');
-  Config.SetValue( format(_MAIL_USERNAME, ['default']), 'your-username');
-  Config.SetValue( format(_MAIL_PASSWORD, ['default']), 'your-password');
-  Config.SetValue( format(_MAIL_SMTPPORT, ['default']), '465');
-  Config.SetValue( format(_MAIL_SSL, ['default']), True);
-  Config.SetValue( format(_MAIL_TLS, ['default']), True);
+  Config.SetValue(UTF8Decode(format(_MAIL_MAILSERVER, ['default'])), 'your.mail.server');
+  Config.SetValue(UTF8Decode(format(_MAIL_USERNAME, ['default'])), 'your-username');
+  Config.SetValue(UTF8Decode(format(_MAIL_PASSWORD, ['default'])), 'your-password');
+  Config.SetValue(UTF8Decode(format(_MAIL_SMTPPORT, ['default'])), '465');
+  Config.SetValue(UTF8Decode(format(_MAIL_SSL, ['default'])), True);
+  Config.SetValue(UTF8Decode(format(_MAIL_TLS, ['default'])), True);
 
   FreeAndNil(Config);
 
@@ -181,6 +187,9 @@ begin
   with TStringList.Create do
   begin
     Add('# Generated by FastPlaz');
+    Add('ErrorDocument 404 404.html');
+    Add('ErrorDocument 500 500.html');
+    Add('');
     Add('RewriteEngine On');
     Add('AddHandler cgi-script .cgi');
     Add('AddHandler cgi-script .bin');
@@ -209,7 +218,8 @@ begin
   Result := True;
 end;
 
-function TInitializeModule.CreateDirCustom(const NewDir: string; CreateHtaccess: boolean): boolean;
+function TInitializeModule.CreateDirCustom(const NewDir: string;
+  CreateHtaccess: boolean): boolean;
 begin
   try
     Result := ForceDirectories(NewDir);
@@ -222,13 +232,14 @@ begin
   end;
 end;
 
-function TInitializeModule.Tag_MainContent_Handler(const TagName: string; Params: TStringList): string;
+function TInitializeModule.Tag_MainContent_Handler(const TagName: string;
+  Params: TStringList): string;
 begin
   Result := '<h1>FastPlaz</h1>Application Structure successfully generated !!!';
 end;
 
 
 initialization
-  Route.Add('initialize', TInitializeModule);
+  Route.Add('initialize', TMyCustomWebModuleClass(TInitializeModule));
 
 end.

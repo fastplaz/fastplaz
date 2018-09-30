@@ -1,7 +1,7 @@
 unit database_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 
@@ -10,7 +10,7 @@ uses
   ghSQL, ghSQLdbLib,
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
-  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn,
+  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
   sqlite3conn, pqconnection,
   variants, Classes, SysUtils;
 
@@ -23,18 +23,29 @@ type
 
   TSimpleModel = class
   private
+    AMessage: string;
     FConnector : TSQLConnector;
     FFieldList : TStrings;
     FTableName : string;
+    FAliasName : string;
     FGroupField : string;
     FSelectField : string;
     FJoinList : TStrings;
 
+    FScriptFieldNames,
+    FScriptWhere,
+    FScriptLimit,
+    FScriptOrderBy : string;
+
     primaryKeyValue : string;
     FGenFields : TStringList;
+    function getAliasName: string;
     function GetEOF: boolean;
+    function GetLastInsertID: LongInt;
     function GetRecordCount: Longint;
+    function getSQL: TStringlist;
     function GetTablePrefix: string;
+    procedure setAliasName(AValue: string);
     procedure _queryPrepare;
     function  _queryOpen:boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
@@ -46,7 +57,8 @@ type
 
     function GetFieldList: TStrings;
     function GetFieldValue( FieldName: String): Variant;
-    procedure SetFieldValue( FieldName: String; AValue: Variant);
+
+    procedure GenerateScript;
   public
     FieldValueMap : TFieldValueMap;
     primaryKey : string;
@@ -54,14 +66,20 @@ type
     StartTime, StopTime, ElapsedTime : Cardinal;
     constructor Create( const DefaultTableName:string=''; const pPrimaryKey:string='');
     destructor Destroy; override;
+    procedure SetFieldValue( FieldName: String; AValue: Variant);
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
+    property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
     property EOF: boolean read GetEOF;
+    property LastInsertID: LongInt read GetLastInsertID;
+    property Message: string read AMessage;
 
     function ParamByName(Const AParamName : String) : TParam;
+    property SQL : TStringlist read getSQL;
+    function Exec( ASQL:String): boolean;
 
     function All:boolean;
     function GetAll:boolean;
@@ -78,13 +96,20 @@ type
     procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
 
     procedure GroupBy( const GroupField:string);
+    function RecordsTotalFiltered( const ASQL:string = ''; ForceClose: boolean = True):integer;
+
 
     procedure Clear;
     procedure New;
+    procedure Close;
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
+    function  Delete( ID: LongInt): boolean;
 
+    procedure First;
+    procedure Prior;
     procedure Next;
+    procedure Last;
     procedure StartTransaction;
     procedure ReStartTransaction;
     procedure Commit;
@@ -92,12 +117,25 @@ type
     procedure Rollback;
     procedure RollbackRetaining;
 
+
+    // SQL Builder
+    function Select( FieldNames:string): TSimpleModel;
+    function Where( Conditions:string): TSimpleModel;
+    function Where( ConditionFormat:string; ConditionArgs: array of const): TSimpleModel;
+    function OrWhere( Conditions:string): TSimpleModel;
+    function OrderBy( FieldNames:string): TSimpleModel;
+    function Limit( LimitNumber:integer; Offset:integer=0): TSimpleModel;
+    function Open( AUniDirectional:Boolean = False): Boolean;
   end;
 
-procedure DataBaseInit( const RedirecURL:string = '');
-function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
+function DataBaseInit( const RedirecURL:string = ''):boolean;
+
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''; NoFieldName : boolean = True): boolean;
+function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
+function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName : boolean = True): boolean;
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
-function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray):boolean;
+function  QueryExec( SQL: string):boolean;
+function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName : boolean = True):boolean;
 
 implementation
 
@@ -112,42 +150,47 @@ var
   DB_Transaction_Write : TSQLTransaction;
   DB_LibLoader_Write : TSQLDBLibraryLoader;
 
-procedure DataBaseInit(const RedirecURL: string);
+function DataBaseInit(const RedirecURL: string):boolean;
 var
   s : string;
 begin
+  Result := False;
   AppData.useDatabase := True;
 
   // multidb - prepare
-  AppData.databaseRead := Config.GetValue( _DATABASE_OPTIONS_READ, 'default');
-  AppData.databaseWrite := Config.GetValue( _DATABASE_OPTIONS_WRITE, AppData.databaseRead);
-  AppData.tablePrefix := Config.GetValue( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead]), '');
+  AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
+  AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
+  AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
 
   // currentdirectory mesti dipindah
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
+  s := string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), ''));
 
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '')));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
 
-  if Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), '') <> '' then begin
+  if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '') <> '' then begin
     try
-      DB_LibLoader.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
+      DB_LibLoader.ConnectionType:= string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [AppData.databaseRead])), ''));
       DB_LibLoader.LibraryName:= s;
       DB_LibLoader.Enabled:= True;
       DB_LibLoader.LoadLibrary;
     except
       on E: Exception do begin
+        LogUtil.Add( 'Database Init: Load Library, ' + E.Message);
         if RedirecURL = '' then
+        begin
           //TODO: check if database library cannot loaded
-          DisplayError( 'Database Init: Load Library, ' + E.Message)
+          DisplayError( 'Database Init: Load Library, ' + E.Message);
+        end
         else
           Redirect( RedirecURL);
       end;
@@ -156,35 +199,118 @@ begin
   // back to app directory
   SetCurrentDir(ExtractFilePath(Application.ExeName));
 
-  DB_Connector.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [AppData.databaseRead]), 'localhost'));
-  DB_Connector.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [AppData.databaseRead]), ''));
-  DB_Connector.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [AppData.databaseRead]), ''));
-  DB_Connector.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [AppData.databaseRead]), ''));
-  DB_Connector.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [AppData.databaseRead]), 'test'));
+  if not DB_Connector.Connected then
+  begin
+    DB_Connector.HostName:= string( Config.GetValue( UnicodeString( format( _DATABASE_HOSTNAME, [AppData.databaseRead])), 'localhost'));
+    DB_Connector.ConnectorType := string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [AppData.databaseRead])), ''));
+    DB_Connector.UserName:= string( Config.GetValue( UnicodeString( format( _DATABASE_USERNAME, [AppData.databaseRead])), ''));
+    DB_Connector.Password:= string( Config.GetValue( UnicodeString( format( _DATABASE_PASSWORD, [AppData.databaseRead])), ''));
+    DB_Connector.DatabaseName:= string( Config.GetValue( UnicodeString( format( _DATABASE_DATABASENAME, [AppData.databaseRead])), 'test'));
+    if Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), '') <> '' then
+      DB_Connector.Params.Values['port'] := string( Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), ''));
+    //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
+    s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [AppData.databaseRead])), ''));
+    if s <> '' then
+      DB_Connector.CharSet := s;
 
-  if Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), '') <> '' then
-    DB_Connector.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [AppData.databaseRead]), ''));
-  //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
+    try
+      DB_Connector.Open;
+      AppData.databaseActive := True;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if RedirecURL = '' then
+        begin
+          DisplayError( 'Database Error: '+ E.Message)
+        end
+        else
+          Redirect( RedirecURL);
+      end;
+    end;
+  end;//-- if not DB_Connector.Connected then
 
-  //log database
+
+end;
+
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
+  const aParams: array of string; SQLCount: string; Where: string;
+  Order: string; Limit: integer; Offset: integer; Echo: integer;
+  sParams: string; NoFieldName: boolean): boolean;
+var
+  q: TSQLQuery;
+  Data: TJSONArray;
+  i, iTotal, iFiltered: integer;
+begin
+
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional := True;
+  q.DataBase := DB_Connector;
+
 
   try
-    DB_Connector.Open;
-    AppData.databaseActive := True;
+    q.SQL.Text := SQLCount;
+    q.Prepare;
+    q.Open;
+    iTotal := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQLCount;
+    if Where <> '' then
+    begin
+      q.SQL.Text := q.SQL.Text + Where;
+
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    end;
+    q.Prepare;
+    q.Open;
+    iFiltered := q.Fields[0].AsInteger;
+    q.Close;
+
+    q.SQL.Text := SQL;
+    if Where <> '' then
+      q.SQL.Text := q.SQL.Text + Where;
+    if Order <> '' then
+      q.SQL.Text := q.SQL.Text + ' ORDER BY ' + Order;
+    if Limit > 0 then
+      q.SQL.Text := q.SQL.Text + ' LIMIT ' + IntToStr(Limit);
+    if Offset >= 0 then
+      q.SQL.Text := q.SQL.Text + ' OFFSET ' + IntToStr(Offset);
+    q.Prepare;
+
+    if Where <> '' then
+      for i := low(aParams) to high(aParams) do
+      begin
+        q.ParamByName(aParams[i]).AsString := '%' + sParams + '%';
+      end;
+    q.Open;
+
+    Data := TJSONArray.Create();
+    DataToJSON(q, Data, NoFieldName);
+    ResultJSON.Add('draw', Echo);
+    ResultJSON.Add('recordsTotal', iTotal);
+    ResultJSON.Add('recordsFiltered', iFiltered);
+    ResultJSON.Add('data', Data);
+    Result := True;
   except
     on E: Exception do
     begin
-      if RedirecURL = '' then
-      begin
-        DisplayError( 'Database Error: '+ E.Message)
-      end
-      else
-        Redirect( RedirecURL);
+      ResultJSON.Add('msg', E.Message);
     end;
   end;
+
+  {$ifdef debug}
+  ResultJSON.Add('sql', SQL);
+  {$endif}
+  FreeAndNil(q);
 end;
 
-function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
+function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
+  NoFieldName: boolean): boolean;
 var
   q : TSQLQuery;
   data : TJSONArray;
@@ -198,7 +324,7 @@ begin
   try
     q.Open;
     data := TJSONArray.Create();
-    DataToJSON( q, data);
+    DataToJSON( q, data, NoFieldName);
     //ResultJSON.Add( 'count', q.RowsAffected);
     ResultJSON.Add( 'count', data.Count);
     ResultJSON.Add( 'data', data);
@@ -215,6 +341,33 @@ begin
   FreeAndNil( q);
 end;
 
+function QueryOpenToJson(SQL: string; var ResultArray: TJSONArray;
+  NoFieldName: boolean): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result := False;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  q.DataBase := DB_Connector;
+  q.SQL.Text:= SQL;
+
+  try
+    q.Open;
+    DataToJSON( q, ResultArray, NoFieldName);
+    Result := True;
+  except
+    on E: Exception do begin
+    end;
+  end;
+
+  {$ifdef debug}
+  {$endif}
+  FreeAndNil( q);
+end;
+
+
+
 function DatabaseSecond_Prepare( const ConnectionName:string = 'default'; Mode:string = ''):TSQLConnector;
 var
   s : string;
@@ -226,23 +379,23 @@ begin
     Exit;
   end;
 
-  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [ConnectionName]), ''));
+  s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ConnectionName])), ''));
   if not SetCurrentDir( ExtractFilePath( s)) then
   begin
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
   end;
-  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '')));
+  s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ ConnectionName])), '')));
   if not FileExists( s) then
   begin
     SetCurrentDir(ExtractFilePath(Application.ExeName));
     DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
   end;
 
-  if Config.GetValue( format( _DATABASE_LIBRARY, [ ConnectionName]), '') <> '' then
+  if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ ConnectionName])), '') <> '' then
   begin
     if not Assigned( DB_LibLoader_Write) then DB_LibLoader_Write := TSQLDBLibraryLoader.Create( nil);
     try
-      DB_LibLoader_Write.ConnectionType:= string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
+      DB_LibLoader_Write.ConnectionType:= string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [ConnectionName])), ''));
       DB_LibLoader_Write.LibraryName:= s;
       DB_LibLoader_Write.Enabled:= True;
       DB_LibLoader_Write.LoadLibrary;
@@ -260,14 +413,17 @@ begin
     DB_Connector_Write := TSQLConnector.Create( nil);
     DB_Connector_Write.Transaction := DB_Transaction_Write;
   end;
-  DB_Connector_Write.HostName:= string( Config.GetValue( format( _DATABASE_HOSTNAME, [ConnectionName]), 'localhost'));
-  DB_Connector_Write.ConnectorType := string( Config.GetValue( format( _DATABASE_DRIVER, [ConnectionName]), ''));
-  DB_Connector_Write.UserName:= string( Config.GetValue( format( _DATABASE_USERNAME, [ConnectionName]), ''));
-  DB_Connector_Write.Password:= string( Config.GetValue( format( _DATABASE_PASSWORD, [ConnectionName]), ''));
-  DB_Connector_Write.DatabaseName:= string( Config.GetValue( format( _DATABASE_DATABASENAME, [ConnectionName]), 'test'));
+  DB_Connector_Write.HostName:= string( Config.GetValue( UnicodeString( format( _DATABASE_HOSTNAME, [ConnectionName])), 'localhost'));
+  DB_Connector_Write.ConnectorType := string( Config.GetValue( UnicodeString( format( _DATABASE_DRIVER, [ConnectionName])), ''));
+  DB_Connector_Write.UserName:= string( Config.GetValue( UnicodeString( format( _DATABASE_USERNAME, [ConnectionName])), ''));
+  DB_Connector_Write.Password:= string( Config.GetValue( UnicodeString( format( _DATABASE_PASSWORD, [ConnectionName])), ''));
+  DB_Connector_Write.DatabaseName:= string( Config.GetValue( UnicodeString( format( _DATABASE_DATABASENAME, [ConnectionName])), 'test'));
+  s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [ConnectionName])), ''));
+  if s <> '' then
+    DB_Connector.CharSet := s;
 
-  if Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), '') <> '' then
-    DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( format( _DATABASE_PORT, [ConnectionName]), ''));
+  if Config.GetValue( UnicodeString( format( _DATABASE_PORT, [ConnectionName])), '') <> '' then
+    DB_Connector_Write.Params.Values['port'] := string( Config.GetValue( UTF8Decode(format( _DATABASE_PORT, [ConnectionName])), ''));
   //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
 
   //log database
@@ -283,7 +439,6 @@ begin
 
   Result := DB_Connector_Write;
 end;
-
 
 function QueryExecToJson(SQL: string; var ResultJSON: TJSONObject): boolean;
 var
@@ -320,9 +475,43 @@ begin
   FreeAndNil(q);
 end;
 
-function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray): boolean;
+function QueryExec(SQL: string): boolean;
+var
+  q : TSQLQuery;
+begin
+  Result:=false;
+  q := TSQLQuery.Create(nil);
+  q.UniDirectional:=True;
+  if AppData.databaseRead = AppData.databaseWrite then
+    q.DataBase := DB_Connector
+  else
+  begin
+    q.DataBase := DatabaseSecond_Prepare( AppData.databaseWrite, 'write');
+    if q.DataBase = nil then
+    begin
+      DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
+    end;
+  end;
+  try
+    q.SQL.Text:= SQL;
+    q.ExecSQL;
+    TSQLConnector( q.DataBase).Transaction.Commit;
+    //DB_Connector.Transaction.Commit;
+    Result:=True;
+  except
+    on E: Exception do begin
+    end;
+  end;
+  {$ifdef debug}
+  {$endif}
+  FreeAndNil(q);
+end;
+
+function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray;
+  NoFieldName: boolean): boolean;
 var
   item : TJSONObject;
+  item_array : TJSONArray;
   field_name : string;
   i,j:integer;
 begin
@@ -332,12 +521,57 @@ begin
     while not Data.EOF do
     begin
       item := TJSONObject.Create();
+      item_array := TJSONArray.Create;
       for j:=0 to Data.FieldCount-1 do
       begin
         field_name:= Data.FieldDefs.Items[j].Name;
-        item.Add(field_name, Data.FieldByName(field_name).AsString);
+        if NoFieldName then
+        begin
+          if Data.FieldDefs.Items[j].DataType = ftDateTime then
+          begin
+            if (Data.FieldByName(field_name).AsDateTime) = 0 then
+              item_array.add( '')
+            else
+              item_array.add( FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftAutoInc then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftInteger then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else
+            item_array.add( Data.FieldByName(field_name).AsString);
+        end
+        else
+        begin // with fieldname
+
+          if Data.FieldDefs.Items[j].DataType = ftDateTime then
+          begin
+            if (Data.FieldByName(field_name).AsDateTime) = 0 then
+              item.add( field_name, '')
+            else
+              item.add( field_name, FormatDateTime('YYYY/MM/DD HH:nn:ss', Data.FieldByName(field_name).AsDateTime));
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftAutoInc then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftInteger then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else
+            item.Add(field_name, Data.FieldByName(field_name).AsString);
+
+        end;//-- if nofieldname
       end;
-      ResultJSON.Add( item);
+      if NoFieldName then
+        ResultJSON.Add( item_array)
+      else
+        ResultJSON.Add( item);
       i:=i+1;
       Data.Next;
     end;
@@ -365,14 +599,42 @@ begin
   Result := Data.RecordCount;
 end;
 
+function TSimpleModel.getSQL: TStringlist;
+begin
+  Result := Data.SQL;
+end;
+
 function TSimpleModel.GetTablePrefix: string;
 begin
   Result := AppData.tablePrefix;
 end;
 
+procedure TSimpleModel.setAliasName(AValue: string);
+begin
+  FAliasName := AValue;
+end;
+
+function TSimpleModel.getAliasName: string;
+begin
+  Result := FAliasName;
+end;
+
 function TSimpleModel.GetEOF: boolean;
 begin
   Result := Data.EOF;
+end;
+
+function TSimpleModel.GetLastInsertID: LongInt;
+begin
+  Result := 0;
+  try
+    if Data.Active then Data.Close;
+    Data.SQL.Text := 'SELECT LAST_INSERT_ID() as lastid FROM ' + TableName;
+    Data.Open;
+    if Data.RecordCount > 0 then
+      Result := Data.FieldValues['lastid'];
+  except
+  end;
 end;
 
 function TSimpleModel._queryOpen: boolean;
@@ -386,12 +648,15 @@ begin
     if Data.RecordCount > 0 then
       Result := True;
   except
-    on E: Exception do begin
-      if AppData.debug then begin
-        LogUtil.add( E.Message);
-        LogUtil.add( Data.SQL.Text);
+    on E: Exception do
+    begin
+      if ((AppData.debug) and (AppData.debugLevel <= 1)) then
+      begin
+        LogUtil.add( E.Message, 'DB');
+        LogUtil.add( Data.SQL.Text, 'DB');
         s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
       end;
+      die( E.Message + s);
       DisplayError( E.Message + s);
     end;
   end;
@@ -480,7 +745,16 @@ end;
 function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
-  Result := Data.FieldByName( FieldName).AsVariant;
+  try
+    if Data.FieldByName( FieldName).AsVariant = null then
+      Result := ''
+    else
+      Result := Data.FieldByName( FieldName).AsVariant;
+  except
+    on E: Exception do begin
+      die( 'getFieldValue: ' + e.Message);
+    end;
+  end;
 end;
 
 procedure TSimpleModel.SetFieldValue(FieldName: String; AValue: Variant);
@@ -498,9 +772,15 @@ end;
 constructor TSimpleModel.Create(const DefaultTableName: string; const pPrimaryKey: string);
 var
   i : integer;
+  s : string;
 begin
+  FScriptFieldNames := '';
+  FScriptWhere := '';
+  FScriptLimit := '';
+  FScriptOrderBy := '';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
+  AMessage := '';
   FConnector := DB_Connector;
   if DefaultTableName = '' then
   begin
@@ -520,7 +800,20 @@ begin
   end else
     FTableName:= DefaultTableName;
   FTableName:= AppData.tablePrefix+FTableName;
+  FAliasName := FTableName.Replace('.', '_');
 
+  // primary key name
+  if pPrimaryKey = '' then
+  begin
+    s := copy( ToString, 2, Length(ToString)-6);
+    primaryKey := '';
+    for i:=1 to length( s) do
+    begin
+      if (s[i] in ['A'..'Z']) then
+        primaryKey := primaryKey + s[i];
+    end;
+    primaryKey := primaryKey.ToLower + 'id';
+  end;
 
   FJoinList := TStringList.Create;
   {$ifdef zeos}
@@ -549,6 +842,11 @@ end;
 function TSimpleModel.ParamByName(const AParamName: String): TParam;
 begin
   Result := Data.ParamByName( AParamName);
+end;
+
+function TSimpleModel.Exec(ASQL: String): boolean;
+begin
+  Result := QueryExec( ASQL);
 end;
 
 function TSimpleModel.All: boolean;
@@ -601,7 +899,6 @@ var
   _joinfield,
   _join : TStrings;
 begin
-  Clear;
   primaryKeyValue := '';
   Result := false;
   sWhere := '';
@@ -642,7 +939,7 @@ begin
     end;
   end;
   // prepare join - end
-  Data.SQL.Text := 'SELECT ' + _selectField + #13#10'FROM ' + FTableName + ' ' + FTableName + _joinSQL;
+  Data.SQL.Text := 'SELECT ' + _selectField + #13#10'FROM ' + FTableName + ' ' + FAliasName + _joinSQL;
 
   if sWhere <> '' then
     Data.SQL.Add( 'WHERE ' + sWhere);
@@ -712,6 +1009,29 @@ begin
   FGroupField:= GroupField;
 end;
 
+function TSimpleModel.RecordsTotalFiltered(const ASQL: string;
+  ForceClose: boolean): integer;
+begin
+  Result := 0;
+  if Data.Active then
+  begin
+    if not ForceClose then
+    begin
+      Result := Data.RecordCount;
+      Exit;
+    end;
+    Data.Close;
+  end;
+  if ASQL = '' then
+    Exit;
+  Data.SQL.Text := ASQL;
+  Data.Open;
+  if RecordCount > 0 then
+  begin
+    Result := Data.Fields.Fields[0].AsInteger;
+  end;
+end;
+
 procedure TSimpleModel.Clear;
 begin
   New;
@@ -721,7 +1041,15 @@ procedure TSimpleModel.New;
 begin
   if Assigned( FGenFields) then FGenFields.Clear;
   if Assigned( FieldValueMap) then FieldValueMap.Clear;
+  Data.SQL.Clear;
   primaryKeyValue:='';
+  Close;
+end;
+
+procedure TSimpleModel.Close;
+begin
+  if Data.Active then Data.Close;
+  if Assigned( FJoinList) then FJoinList.Clear;
 end;
 
 function TSimpleModel.Save(Where: string; AutoCommit: boolean): boolean;
@@ -854,9 +1182,32 @@ begin
   Data.DataBase := DB_Connector;
 end;
 
+function TSimpleModel.Delete(ID: LongInt): boolean;
+begin
+  Result := False;
+  if primaryKey = '' then
+    Exit;
+  Result := Delete( primaryKey+'='+i2s(ID));
+end;
+
+procedure TSimpleModel.First;
+begin
+  Data.First;
+end;
+
+procedure TSimpleModel.Prior;
+begin
+  Data.Prior;
+end;
+
 procedure TSimpleModel.Next;
 begin
   Data.Next;
+end;
+
+procedure TSimpleModel.Last;
+begin
+  Data.Last;
 end;
 
 procedure TSimpleModel.StartTransaction;
@@ -889,6 +1240,102 @@ end;
 procedure TSimpleModel.RollbackRetaining;
 begin
   DB_Transaction.RollbackRetaining;
+end;
+
+procedure TSimpleModel.GenerateScript;
+begin
+  Clear;
+  Data.SQL.Text := 'SELECT ' + FScriptFieldNames;
+  Data.SQL.Add( 'FROM ' + FTableName);
+  if FScriptWhere <> '' then
+    Data.SQL.Add( 'WHERE ' + FScriptWhere);
+  if FScriptOrderBy <> '' then
+    Data.SQL.Add( 'ORDER BY ' + FScriptOrderBy);
+  if FScriptLimit <> '' then
+    Data.SQL.Add( FScriptLimit);
+end;
+
+function TSimpleModel.Select(FieldNames: string): TSimpleModel;
+begin
+  FScriptFieldNames := FieldNames;
+  FScriptWhere := '';
+  FScriptLimit := '';
+  FScriptOrderBy := '';
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Where(Conditions: string): TSimpleModel;
+begin
+  if FScriptWhere = '' then
+    FScriptWhere := Conditions
+  else
+    FScriptWhere := FScriptWhere + ' AND ' + Conditions;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Where(ConditionFormat: string;
+  ConditionArgs: array of const): TSimpleModel;
+begin
+  if FScriptWhere = '' then
+    FScriptWhere := Format( ConditionFormat, ConditionArgs)
+  else
+    FScriptWhere := FScriptWhere + ' AND ' + Format( ConditionFormat, ConditionArgs);
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.OrWhere(Conditions: string): TSimpleModel;
+begin
+  FScriptWhere := FScriptWhere + ' OR ' + Conditions;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.OrderBy(FieldNames: string): TSimpleModel;
+begin
+  FScriptOrderBy := FieldNames;
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Limit(LimitNumber: integer; Offset: integer
+  ): TSimpleModel;
+begin
+  if LimitNumber > 0 then
+    FScriptLimit := 'LIMIT ' + i2s(LimitNumber);
+  if Offset > 0 then
+    FScriptLimit := FScriptLimit + ' OFFSET ' + i2s(Offset);
+  GenerateScript;
+  Result := Self;
+end;
+
+function TSimpleModel.Open(AUniDirectional: Boolean): Boolean;
+begin
+  Result := False;
+  if Data.SQL.Text = '' then
+    Exit;
+  Data.UniDirectional := AUniDirectional;
+  Result := _queryOpen;
+  if not Result then
+    Exit;
+  try
+    Data.Last;
+    Data.First;
+  except
+    on E:Exception do
+    begin
+      AMessage := E.Message;
+    end;
+  end;
+  if (Data.RecordCount = 1) and (primaryKey <> '') then
+  begin
+    try
+      primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    except
+    end;
+  end;
 end;
 
 initialization

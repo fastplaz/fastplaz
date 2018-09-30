@@ -23,6 +23,7 @@ type
     pnl_Button: TButtonPanel;
     pnl_Top: TPanel;
     procedure CancelButtonClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure OKButtonClick(Sender: TObject);
   private
     { private declarations }
@@ -41,13 +42,19 @@ implementation
 
 procedure TfProjectWizard.OKButtonClick(Sender: TObject);
 begin
-  ModalResult := mrOK;
+  ModalResult := mrOk;
 end;
 
 procedure TfProjectWizard.CancelButtonClick(Sender: TObject);
 begin
   ModalResult := mrCancel;
 end;
+
+procedure TfProjectWizard.FormCreate(Sender: TObject);
+begin
+  edt_ProjectName.Text := 'fastplaz';
+end;
+
 
 end.
 

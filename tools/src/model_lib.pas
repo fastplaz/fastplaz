@@ -5,11 +5,11 @@ unit model_lib;
 interface
 
 uses
-  Dialogs, Controls, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf,
+  Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
   Classes, SysUtils;
 
 resourcestring
-  rs_Model_Name = 'Model Generator';
+  rs_Model_Name = 'Database Model Generator';
   rs_Model_Description = 'create unit for model database';
 
 type
@@ -54,7 +54,7 @@ end;
 function TFileDescModel.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', database_lib';
+  Result := Result + ', database_lib, string_helpers, dateutils, datetime_helpers';
 end;
 
 function TFileDescModel.GetLocalizedName: string;
@@ -149,7 +149,7 @@ begin
   ModelName := 'T' + StringReplace(UcWords(ModelName), ' ', '', [rfReplaceAll]) + 'Model';
   Result := inherited CreateSource(LowerCase(ModelName) + '_model.pas',
     SourceName, ModelName);
-  log('model "' + ModelName + '" created');
+  log('model "' + ModelName + '" created', DefaultFilename + DefaultFileExt);
 end;
 
 procedure TFileDescModel.UpdateDefaultPascalFileExtension(const DefPasExt: string);

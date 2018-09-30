@@ -1,0 +1,11 @@
+{"version":1,"strings":[
+{"hash":4691652,"name":"tfaboutfastplaz.caption","sourcebytes":[65,98,111,117,116],"value":"About"},
+{"hash":4691652,"name":"tfaboutfastplaz.tabsheet1.caption","sourcebytes":[65,98,111,117,116],"value":"About"},
+{"hash":145323594,"name":"tfaboutfastplaz.lbl_app.caption","sourcebytes":[70,97,115,116,80,108,97,122],"value":"FastPlaz"},
+{"hash":198097085,"name":"tfaboutfastplaz.lbl_url.caption","sourcebytes":[104,116,116,112,58,47,47,119,119,119,46,102,97,115,116,112,108,97,122,46,99,111,109],"value":"http://www.fastplaz.com"},
+{"hash":98477833,"name":"tfaboutfastplaz.lbl_version.caption","sourcebytes":[86,101,114,115,105,111,110,32,58,32,48,46,48,46,48,32,40,98,117,105,108,100,32,48,48,48,41],"value":"Version : 0.0.0 (build 000)"},
+{"hash":129701858,"name":"tfaboutfastplaz.lbl_url1.caption","sourcebytes":[69,120,112,101,114,116,32,119,105,116,104,32,89,111,117,114,32,70,105,110,103,101,114],"value":"Expert with Your Finger"},
+{"hash":77403973,"name":"tfaboutfastplaz.lbl_codename.caption","sourcebytes":[99,111,100,101,110,97,109,101,32,58,32,89,111,117,110,103,32,80,108,101,100,103,101],"value":"codename : Young Pledge"},
+{"hash":78166788,"name":"tfaboutfastplaz.tabsheet2.caption","sourcebytes":[67,114,101,100,105,116],"value":"Credit"},
+{"hash":4833316,"name":"tfaboutfastplaz.tabsheet3.caption","sourcebytes":[66,117,105,108,100],"value":"Build"}
+]}

@@ -11,7 +11,7 @@ uses
   fphttp, HTTPDefs,
   Classes, SysUtils;
 
-function __(str: string; AutoCreate:Boolean = False): string;
+function __(str: string; AutoCreate: boolean = False): string;
 
 var
   LANG, FallbackLANG: string;
@@ -20,11 +20,11 @@ implementation
 
 uses common;
 
-function __(str: string; AutoCreate: Boolean): string;
+function __(str: string; AutoCreate: boolean): string;
 var
   //  strl : TStringList;
-  po_file: string;
   i: integer;
+  po_file: string;
 begin
   Result := str;
   po_file := 'locale' + DirectorySeparator + 'fastplaz.' + LANG + '.po';

@@ -6,7 +6,7 @@ interface
 
 uses
   Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
-  NewItemIntf, IDEMsgIntf, PackageIntf,
+  PackageIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -60,7 +60,7 @@ var
   isCreateStructure: boolean;
 begin
   ProjectName := 'fastplaz';
-  targetExecutable := '.' + DirectorySeparator;
+  targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
 
   with TfProjectWizard.Create(nil) do
   begin
@@ -78,7 +78,8 @@ begin
     if edt_WebRootDir.Text <> '' then
     begin
       if edt_WebRootDir.Text <> GetUserDir then
-        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) + ProjectName + _APP_EXTENSION;
+        targetExecutable := IncludeTrailingPathDelimiter(edt_WebRootDir.Text) +
+          ProjectName + _APP_EXTENSION;
     end;
     isCreateStructure := cbx_GenerateStructure.Checked;
     Free;
@@ -99,26 +100,29 @@ begin
     Add('{$mode objfpc}{$H+}');
     Add('');
     Add('uses');
-    Add('  fpcgi, sysutils, fastplaz_handler, common, main;');
+    Add('  {$IFNDEF Windows}cthreads,{$ENDIF}');
+    Add('  fpcgi, sysutils, fastplaz_handler, common, ' + LowerCase(ProjectName) + '_controller;');
     Add('');
     Add('{$R *.res}');
     Add('');
     Add('begin');
-    Add('  Application.Title := Config.GetValue(_SYSTEM_SITENAME, _APP);');
-    Add('  Application.Email := Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''));');
-    Add('  Application.DefaultModuleName := Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main'');');
-    Add('  Application.ModuleVariable := Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod'');');
+    Add('  Application.Title := string( Config.GetValue(_SYSTEM_SITENAME, _APP));');
+    Add('  Application.Email := string( Config.GetValue(_SYSTEM_WEBMASTER_EMAIL,UTF8Decode(''webmaster@'' + GetEnvironmentVariable(''SERVER_NAME''))));');
+    Add('  Application.DefaultModuleName := string( Config.GetValue(_SYSTEM_MODULE_DEFAULT, ''main''));');
+    Add('  Application.ModuleVariable := string( Config.GetValue(_SYSTEM_MODULE_VARIABLE, ''mod''));');
     Add('  Application.AllowDefaultModule := True;');
-    Add('  Application.RedirectOnErrorURL := Config.GetValue(_SYSTEM_ERROR_URL, ''/'');');
+    Add('  Application.RedirectOnErrorURL := string( Config.GetValue(_SYSTEM_ERROR_URL, ''/''));');
     Add('  Application.RedirectOnError:= Config.GetValue( _SYSTEM_ERROR_REDIRECT, false);');
     Add('');
     Add('  Application.OnGetModule := @FastPlasAppandler.OnGetModule;');
     Add('  Application.PreferModuleName := True;');
+    Add('  {$if (fpc_version=3) and (fpc_release>=0) and (fpc_patch>=4)}');
+    Add('  Application.LegacyRouting := True;');
+    Add('  {$endif}');
     Add('');
     Add('  Application.Initialize;');
     Add('  Application.Run;');
     Add('end.');
-
   end;
   {$ifdef windows}
   AProject.MainFile.SetSourceText(Source.Text, True);
@@ -136,6 +140,7 @@ begin
   AProject.LazCompilerOptions.UnitOutputDirectory :=
     'lib' + DirectorySeparator + '$(TargetCPU)-$(TargetOS)';
   AProject.LazCompilerOptions.Win32GraphicApp := False;
+  AProject.LazCompilerOptions.TargetFilenameApplyConventions := False;
   AProject.LazCompilerOptions.TargetFilename := targetExecutable;
   //AProject.LazCompilerOptions.CustomConfigFile := True;
   AProject.LazCompilerOptions.ConfigFilePath := 'extra.cfg';
@@ -156,7 +161,6 @@ begin
 end;
 
 function TProjectFastPlazDescriptor.CreateStartFiles(AProject: TLazProject): TModalResult;
-
 var
   Pkg: TIDEPackage;
   filename: string;
@@ -167,14 +171,16 @@ begin
 
   bCreateProject := True;
   bExpert := False;
+  _GlobalProjectName := ProjectName;
   LazarusIDE.DoNewEditorFile(TFileRouteDescModule.Create, 'routes.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create, 'main.pas', '',
+  LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create,
+    LowerCase(ProjectName) + '_controller.pas', '',
     [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
 
   // open readme file
-  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator + 'docs' + DirectorySeparator +
-    'README-new project.txt';
+  filename := FastPlazRuntimeDirectory + '..' + DirectorySeparator +
+    'docs' + DirectorySeparator + 'README-new project.txt';
 
 
   if FileExists(filename) then

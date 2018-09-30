@@ -10,7 +10,7 @@ unit config_lib;
 interface
 
 uses
-  fpcgi, jsonConf, fpjson, jsonparser, variants,
+  fpcgi, jsonConf, fpjson, jsonparser, jsonscanner, variants,
   {$IFDEF LSNEWFPC}
   {$ELSE}
   jsonscanner,
@@ -37,15 +37,17 @@ type
   TMyConfig = class(TJSONConfig)
   private
     FIsValid: boolean;
-    function GetConfigValue(KeyName: WideString): variant;
-    procedure SetConfigValue(KeyName: WideString; AValue: variant);
+    function GetConfigValue(KeyName: String): variant;
+    procedure SetConfigValue(KeyName: String; AValue: variant);
   public
     Status: integer;
     Message: string;
     constructor Create(AOwner: TComponent); override;
-    property Value[KeyName: WideString]: variant
+    property Value[KeyName: String]: variant
       read GetConfigValue write SetConfigValue; default;
     property IsValid: boolean read FIsValid;
+
+    function GetObject( AKeyName:UnicodeString):TJSONObject;
 
     function ValidateFile(ConfigFileName: string): boolean;
   end;
@@ -64,26 +66,44 @@ begin
   Message := _ERR_CONFIG_FILENOTEXIST;
 end;
 
-function TMyConfig.GetConfigValue(KeyName: WideString): variant;
-var
-  s: WideString;
+function TMyConfig.GetObject(AKeyName: UnicodeString): TJSONObject;
 begin
   try
-    s := GetValue(KeyName, '');
-    Result := s;
+    If (AKeyName[Length(AKeyName)]<>'/') then
+      AKeyName := AKeyName+'/';
+    Result := FindObject(AKeyName, False);
   except
-    on e: Exception do
-      die(e.Message);
   end;
 end;
 
-procedure TMyConfig.SetConfigValue(KeyName: WideString; AValue: variant);
+function TMyConfig.GetConfigValue(KeyName: String): variant;
+var
+  El : TJSONData;
+begin
+  Result := '';
+  try
+    El:=FindElement(StripSlash( UnicodeString( KeyName)),False);
+    if El.JSONType = jtArray then
+    begin
+      Result := El.AsJSON;
+    end
+    else
+    begin
+      Result := El.AsString;
+    end;
+  except
+//    on e: Exception do
+//      die(e.Message);
+  end;
+end;
+
+procedure TMyConfig.SetConfigValue(KeyName: String; AValue: variant);
 var
   s: WideString;
 begin
   try
     s := AValue;
-    SetValue(KeyName, s);
+    SetValue( UnicodeString( KeyName), s);
   except
     on e: Exception do
       die(e.Message);
@@ -104,10 +124,10 @@ begin
   lst := TStringList.Create;
   lst.LoadFromFile(ConfigFileName);
 
-  VJSONParser := TLocalJSONParser.Create(lst.Text);
+  VJSONParser := TLocalJSONParser.Create(lst.Text, [joStrict, joUTF8]);
   try
     try
-      VJSONParser.Strict := True;
+      //VJSONParser.Strict := True; //deprecated, use joStrict
       VJSONData := VJSONParser.Parse;
       lst.Text := VJSONData.FormatJSON([], 2);
     except

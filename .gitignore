@@ -204,6 +204,7 @@ dist
 #Zikula Setting
 ztemp/doctrinemodels/*
 ztemp/error_logs/*
+ztemp/logs/*
 ztemp/idsTmp/*
 ztemp/NewsPDF/*
 ztemp/purifierCache/*
@@ -239,8 +240,14 @@ config/config.php
 *.ppu
 *.o
 
+FastPlaz/lib/*
+tools/lib/*
+public_html/ztemp/cache/*
+public_html/ztemp/error_log/*
+public_html/ztemp/sessions/*
 
 *.dll
 *.exe
 *.bin
 backup.bat
+backup.sh

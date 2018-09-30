@@ -28,6 +28,9 @@ unit redis_controller;
 interface
 
 uses
+  {$IFNDEF Windows}
+  cthreads,
+  {$ENDIF}
   fpcgi, redis_lib, fastplaz_handler, common, Classes, SysUtils;
 
 const
@@ -60,16 +63,16 @@ var
   s: string;
 begin
   inherited Create(ConfigName);
-  ServerAddress := string(Config.GetValue(format(_REDIS_CONFIG_SERVERADDRESS, [ConfigName]), REDIS_DEFAULT_SERVER));
-  Port := string(Config.GetValue(format(_REDIS_CONFIG_PORT, [ConfigName]), '6379'));
-  TimeOut := (Config.GetValue(format(_REDIS_CONFIG_TIMEOUT, [ConfigName]), REDIS_DEFAULT_TIMEOUT));
+  ServerAddress := string(Config.GetValue( UTF8Decode(format(_REDIS_CONFIG_SERVERADDRESS, [ConfigName])), REDIS_DEFAULT_SERVER));
+  Port := string(Config.GetValue( UTF8Decode(format(_REDIS_CONFIG_PORT, [ConfigName])), '6379'));
+  TimeOut := (Config.GetValue( UTF8Decode(format(_REDIS_CONFIG_TIMEOUT, [ConfigName])), REDIS_DEFAULT_TIMEOUT));
   WriteToMaster := (Config.GetValue(_REDIS_CONFIG_WRITETOMASTER, False));
   if WriteToMaster then
   begin
     s := string(Config.GetValue(_REDIS_CONFIG_MASTERCONFIG, 'master'));
-    MasterServerAddress := string(Config.GetValue(format(_REDIS_CONFIG_SERVERADDRESS, [s]), REDIS_DEFAULT_SERVER));
-    MasterPort := string(Config.GetValue(format(_REDIS_CONFIG_PORT, [s]), '6379'));
-    MasterTimeOut := (Config.GetValue(format(_REDIS_CONFIG_TIMEOUT, [s]), REDIS_DEFAULT_TIMEOUT));
+    MasterServerAddress := string(Config.GetValue( UTF8Decode(format(_REDIS_CONFIG_SERVERADDRESS, [s])), REDIS_DEFAULT_SERVER));
+    MasterPort := string(Config.GetValue( UTF8Decode(format(_REDIS_CONFIG_PORT, [s])), '6379'));
+    MasterTimeOut := (Config.GetValue( UTF8Decode( format(_REDIS_CONFIG_TIMEOUT, [s])), REDIS_DEFAULT_TIMEOUT));
   end;
 end;
 

@@ -18,12 +18,13 @@ type
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
   public
-    Dir, FileName, FullName: WideString;
+    Dir, FileName, FullName: UnicodeString;
     constructor Create;
     destructor Destroy; override;
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
       URL: string = '');
-    procedure Add(const message: string; const ModName: string = ''; const isDie:boolean = false);
+    procedure Add(const message: string; const ModName: string = '';
+      const Skip: boolean = False);
   end;
 
 var
@@ -58,13 +59,13 @@ end;
 
 constructor TLogUtil.Create;
 begin
-  Dir := Config.GetValue('log/dir', 'ztemp/error_log');
   try
+    Dir := Config.GetValue('log/dir', 'ztemp/logs');
     if not DirectoryExists(Dir) then
       ForceDirectories(Dir);
   except
   end;
-  FileName := 'app.log';
+  FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
   FullName := dir + '/' + FileName;
 end;
 
@@ -90,26 +91,33 @@ begin
 end;
 
 procedure TLogUtil.Add(const message: string; const ModName: string;
-  const isDie: boolean);
+  const Skip: boolean);
 var
   s: string;
 begin
-  if ModName <> '' then
-    s := ModName + ': ';
-  s := s + message;
-  AssignFile(log_file, fullname);
-  { $I+}
+  if Skip then
+    Exit;
   try
-    if not FileExists(fullname) then
-      Rewrite(log_file)
-    else
-      Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
-    CloseFile(log_file);
+    if ModName <> '' then
+      s := ModName + ': ';
+    s := s + message;
+    AssignFile(log_file, fullname);
+    { $I+}
+    try
+      if not FileExists(fullname) then
+        Rewrite(log_file)
+      else
+        Append(log_file);
+      WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
+      CloseFile(log_file);
+    except
+    end;
   except
+    on E: Exception do
+    begin
+      die('cannot logging: ' + E.Message);
+    end;
   end;
-  if isDie then
-    die( s);
 end;
 
 initialization
@@ -119,5 +127,4 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
-
 

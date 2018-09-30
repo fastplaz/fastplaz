@@ -21,7 +21,7 @@ procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 
 implementation
 
-uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd, project_lib,
+uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd,
   modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
@@ -147,8 +147,8 @@ end;
 
 
 procedure CreateIDEMenus;
-var
-  Key: TIDEShortCut;
+//var
+//  Key: TIDEShortCut;
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);

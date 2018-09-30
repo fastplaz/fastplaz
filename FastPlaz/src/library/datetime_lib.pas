@@ -19,8 +19,10 @@ interface
 uses
   dateutils, common, language_lib, Classes, SysUtils;
 
-function DateTimeHuman(TheDate: string; MaxIntervalDate: integer = 30; FormatDate: string = ''): string;
-function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 30; FormatDate: string = ''): string;
+function DateTimeHuman(TheDate: string; MaxIntervalDate: integer = 30;
+  FormatDate: string = ''): string;
+function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 30;
+  FormatDate: string = ''): string;
 
 implementation
 
@@ -33,7 +35,8 @@ begin
     Result := Result + 0.5;
 end;
 
-function DateTimeHuman(TheDate: string; MaxIntervalDate: integer; FormatDate: string): string;
+function DateTimeHuman(TheDate: string; MaxIntervalDate: integer;
+  FormatDate: string): string;
 var
   sdf: ansistring;
   dateTmp: TDateTime;
@@ -59,8 +62,8 @@ begin
   DefaultFormatSettings.ShortDateFormat := sdf;
 end;
 
-function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer; FormatDate: string;
-  Suffix: string = 'ago'; Prefix: string = ''): string;
+function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer;
+  FormatDate: string; Suffix: string = 'ago'; Prefix: string = ''): string;
 var
   diff, i: integer;
 begin
@@ -91,9 +94,11 @@ begin
       if diff < 31 then
         Result := Format(__('%d days  ' + Suffix), [DaysBetween(Now, TheDate)]);
       if diff > 30 then
-        Result := Format(__(Prefix + ' %d months ' + Suffix), [MonthsBetween(Now, TheDate)]);
+        Result := Format(__(Prefix + ' %d months ' + Suffix),
+          [MonthsBetween(Now, TheDate)]);
       if diff > 360 then
-        Result := Format(__(Prefix + ' %d years ' + Suffix), [YearsBetween(Now, TheDate)]);
+        Result := Format(__(Prefix + ' %d years ' + Suffix),
+          [YearsBetween(Now, TheDate)]);
     end
     else
     begin
@@ -102,32 +107,36 @@ begin
   end;
 end;
 
-function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer; FormatDate: string): string;
+function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer;
+  FormatDate: string): string;
 var
   diff: integer;
   diffDate: TDateTime;
 begin
-  if MaxIntervalDate = 0 then
-    MaxIntervalDate := 30;
+  Result := '';
+  try
+    if MaxIntervalDate = 0 then
+      MaxIntervalDate := 30;
 
-  diffDate := _DateTimeDiff(TheDate, Now);
-  diff := DaysBetween(Now, TheDate);
+    diffDate := _DateTimeDiff(TheDate, Now);
+    diff := DaysBetween(Now, TheDate);
 
-  if diffDate <= 0 then
-  begin
-    if diff = 1 then
-      Result := __('yesterday')
+    if diffDate <= 0 then
+    begin
+      if diff = 1 then
+        Result := __('yesterday')
+      else
+        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
+    end
     else
-      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
-  end
-  else
-  begin // present
-    if diff = 1 then
-      Result := __('tomorrow')
-    else
-      Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'from now');
+    begin // present
+      if diff = 1 then
+        Result := __('tomorrow')
+      else
+        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'from now');
+    end;
+  except
   end;
-
 end;
 
 end.

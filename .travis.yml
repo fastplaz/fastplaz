@@ -1,0 +1,13 @@
+language: pascal
+pascal:
+  - 'fpc-3.0.0'
+compiler:
+  - fpc
+before_script:
+  - ./clean-all.sh
+script:
+before_install:
+  - sudo apt-get install -qq fpc
+#  - fpc -iV
+install:
+env:

@@ -1,7 +1,7 @@
 unit mailer_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 
@@ -231,7 +231,8 @@ begin
 end;
 
 {$IFDEF XMAILER}
-procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
+procedure TMailer.xmailer_OnProgress(const AProgress, AMax: integer;
+  const AStatus: string);
 begin
   FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
 end;
@@ -250,12 +251,12 @@ begin
   FLogs := '';
 
   // read from config.json
-  MailServer := Config[format(_MAIL_MAILSERVER, [Setting])];
-  UserName := Config[format(_MAIL_USERNAME, [Setting])];
-  Password := Config[format(_MAIL_PASSWORD, [Setting])];
-  Port := Config[format(_MAIL_SMTPPORT, [Setting])];
-  SSL := Config.GetValue(format(_MAIL_SSL, [Setting]), True);
-  TLS := Config.GetValue(format(_MAIL_TLS, [Setting]), True);
+  MailServer := Config[UTF8Decode(format(_MAIL_MAILSERVER, [Setting]))];
+  UserName := Config[UTF8Decode(format(_MAIL_USERNAME, [Setting]))];
+  Password := Config[UTF8Decode(format(_MAIL_PASSWORD, [Setting]))];
+  Port := Config[UTF8Decode(format(_MAIL_SMTPPORT, [Setting]))];
+  SSL := Config.GetValue(UTF8Decode(format(_MAIL_SSL, [Setting])), True);
+  TLS := Config.GetValue(UTF8Decode(format(_MAIL_TLS, [Setting])), True);
 
 end;
 

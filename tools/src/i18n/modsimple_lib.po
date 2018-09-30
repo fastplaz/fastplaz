@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: modsimple_lib.rs_mod_default_description
+msgid "Create FastPlaz simple module"
+msgstr ""
+
+#: modsimple_lib.rs_mod_default_name
+msgid "Module Generator - Simple"
+msgstr ""
+

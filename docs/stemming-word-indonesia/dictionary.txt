@@ -1,0 +1,25 @@
+
+
+Stemming adalah proses pemetaan dan penguraian bentuk dari suatu kata menjadi bentuk kata dasarnya .
+Penggunaan stemming secara luas sudah biasa dilakukan di dalam Information Retrieval (pencarian informasi) untuk meningkatkan kualitas informasi yang didapatkan.
+
+Stemming word yang digunakan di sini berdasarkan Algoritma Nazief dan Adriani,
+dibangun dengan menggunakan bahasa pascal khususnya framework FastPlaz.
+
+Beberapa variasi kata mungkin tidak terdeteksi dikarenakan banyak hal dan kondisi.
+
+#stemming #machinelearning #fastplaz
+
+ 0 -
+ 1 Adjektiva
+ 2 Nomina
+ 3 Pronomina
+ 4 Verba
+ 5 Adverbia
+ 6 Numeralia
+ 7 Interjeksi
+ 8 Konjungsi
+ 9 Preposisi
+10 partikel
+
+

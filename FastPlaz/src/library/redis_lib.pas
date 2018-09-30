@@ -27,7 +27,7 @@ Redis.MasterPort: = '6378';
 unit redis_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define.inc}
+{$include ../../define_fastplaz.inc}
 
 interface
 
@@ -42,7 +42,7 @@ uses
   {$ifdef synapse}
   blcksock,
   {$endif}
-  {$ifndef win32} cthreads, {$endif}
+  {$IFNDEF Windows} cthreads, {$ENDIF}
   Classes, SysUtils;
 
 const
@@ -239,10 +239,10 @@ begin
   FLastMessage := '+OK';
   if FWriteToMaster then
   begin
-    RedisMaster.SendString('SET ' + Key + ' "' + AValue + '"');
+    RedisMaster.SendString('SET ' + Key + ' ''' + AValue + '''');
   end
   else
-    SendString('SET ' + Key + ' "' + AValue + '"');
+    SendString('SET ' + Key + ' ''' + AValue + '''');
 end;
 
 procedure TRedisLib.SetWriteToMaster(AValue: boolean);

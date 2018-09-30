@@ -9,6 +9,10 @@ rm -rf lib/*
 rm -rf backup/
 rm -rf src/backup/
 rm -rf src/integration/lib
+rm -rf src/integration/backup/
+rm -rf src/library/backup
+rm -rf src/library/lib
+rm -rf src/systems/backup/
 
 find ./ -type f -name *.~ -delete
 find ./ -type f -name *.o -delete

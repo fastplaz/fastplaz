@@ -13,35 +13,27 @@
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
         <ConfigFile>
           <CustomConfigFile Value="True"/>
           <ConfigFilePath Value="extra.cfg"/>
         </ConfigFile>
-        <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz Extras Library"/>
-    <Files Count="4">
+    <Files Count="3">
       <Item1>
         <Filename Value="src\fastplaz_extras_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_extras_register"/>
       </Item1>
       <Item2>
-        <Filename Value="..\FastPlaz\define.inc"/>
-        <Type Value="Include"/>
-      </Item2>
-      <Item3>
         <Filename Value="..\FastPlaz\src\library\redis_lib.pas"/>
         <UnitName Value="redis_lib"/>
-      </Item3>
-      <Item4>
+      </Item2>
+      <Item3>
         <Filename Value="..\FastPlaz\src\systems\redis_controller.pas"/>
         <UnitName Value="redis_controller"/>
-      </Item4>
+      </Item3>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
