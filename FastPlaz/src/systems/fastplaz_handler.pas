@@ -150,6 +150,7 @@ type
     procedure Option; virtual;
 
     procedure LanguageInit;
+    procedure CloseConnection;
 
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
@@ -295,8 +296,6 @@ type
     property Values[variable: string]: variant read GetValue write SetValue; default;
     function ReadDateTime(const variable: string): TDateTime;
   end;
-
-  { TSESSION }
 
   { TSERVER }
 
@@ -1008,6 +1007,12 @@ begin
   if LANG = 'us' then
     LANG := 'en';
   _SESSION['lang'] := LANG;
+end;
+
+procedure TMyCustomWebModule.CloseConnection;
+begin
+  CustomHeader['Connection'] := 'close';
+  Response.SendContent;
 end;
 
 procedure TMyCustomWebModule.TagController(Sender: TObject;
