@@ -13,6 +13,8 @@ file that was distributed with this source code.
   Facebook.Token := 'FACEBOOK_TOKEN';
   Facebook.Send('facebookID, 'text');
 
+  [x] Call Dialog
+  Facebook.SendCall('user_id', '+62..........', 'Call Name', 'Your Description');
 
   [x] Payload Handler
 
@@ -124,6 +126,7 @@ type
     procedure Send(ATo: string; AMessages: string);
     procedure SendAudio(ATo: string; AAudioURL: string);
     procedure SendImage(ATo: string; AImageURL: string);
+    procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
     procedure AskLocation(ATo: string);
 
     function isCanSend: boolean;
@@ -171,6 +174,8 @@ const
     '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"image","payload":{"url":"%s"}}}}';
   _FACEBOOK_MESSENGER_ASK_LOCATION =
     '{"recipient": {"id": "%s"},"message": {"text": "%s","quick_replies": [{"content_type": "location"}]}}';
+  _FACEBOOK_MESSENGER_SEND_CALL =
+    '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"phone_number","title":"%title%","payload":"%number%"}]}}}}';
 
 var
   Response: IHTTPResponse;
@@ -455,6 +460,42 @@ begin
 
     Free;
   end;
+end;
+
+procedure TFacebookMessengerIntegration.SendCall(ATo: string;
+  APhoneNumber: string; ATitle: string; ADescription: string);
+var
+  s: String;
+begin
+  if not isCanSend then
+    Exit;
+  if (ATo = '') or (FToken = '') then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      //s := Format(_FACEBOOK_MESSENGER_SEND_CALL, [ATo, AImageURL]);
+      s := _FACEBOOK_MESSENGER_SEND_CALL;
+      s := s.Replace('%id%', ATo);
+      s := s.Replace('%number%', APhoneNumber);
+      s := s.Replace('%title%', ATitle);
+      s := s.Replace('%text%', ADescription);
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      die(FResultText);
+      exit;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+
 end;
 
 procedure TFacebookMessengerIntegration.AskLocation(ATo: string);
