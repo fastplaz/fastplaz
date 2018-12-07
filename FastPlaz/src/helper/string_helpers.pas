@@ -28,6 +28,7 @@ type
     function EscapeString: AnsiString; overload; inline;
     function IsEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
+    function IsExists( AString: string): boolean; overload; inline;
     function IsJson: boolean; overload; inline;
     function IsNumeric: boolean; overload; inline;
     function Encode64: AnsiString; overload; inline;
@@ -69,6 +70,15 @@ end;
 function TStringSmartHelper.IsEqualTo(AString: string): boolean;
 begin
   Result := Self.Equals( AString);
+end;
+
+function TStringSmartHelper.IsExists(AString: string): boolean;
+begin
+  Result := False;
+  if IsEmpty then
+    Exit;
+  if Pos( AString, Self) > 0 then
+    Result := True;
 end;
 
 function TStringSmartHelper.IsJson: boolean;
