@@ -1011,6 +1011,7 @@ end;
 
 procedure TMyCustomWebModule.CloseConnection;
 begin
+  Response.Content := '';
   CustomHeader['Connection'] := 'close';
   Response.SendContent;
 end;
