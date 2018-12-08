@@ -55,40 +55,6 @@ type
   TPayloadHandlerCallback = function(const APayload, ATitle: string): string of object;
   TPayloadHandlerCallbackMap = specialize TStringHashMap<TPayloadHandlerCallback>;
 
-  { TFacebookTemplateElement }
-
-  TFacebookTemplateElement = class
-  private
-    FActionURL: string;
-    FData: TJSONUtil;
-    FImageURL: string;
-    FSubTitle: string;
-    FTitle: string;
-    function getAsJSON: string;
-    procedure generateData;
-  public
-    constructor Create;
-    destructor Destroy;
-  published
-    property Title: string read FTitle write FTitle;
-    property SubTitle: string read FSubTitle write FSubTitle;
-    property ImageURL: string read FImageURL write FImageURL;
-    property ActionURL: string read FActionURL write FActionURL;
-    property Data: TJSONUtil read FData write FData;
-
-    property AsJSON: string read getAsJSON;
-  end;
-
-  { TFacebookTemplateMessage }
-
-  TFacebookTemplateMessage = class
-  private
-  public
-    constructor Create;
-    destructor Destroy;
-  published
-  end;
-
   { TFacebookQuickReply }
 
   TFacebookQuickReply = class
@@ -109,6 +75,32 @@ type
     property Data: TJSONArray read FItem;
   end;
 
+  { TFacebookTemplateCardElement }
+  TFacebookTemplateCardElement = class
+    private
+      FCards: TJSONArray;
+      function getCount: Integer;
+    public
+      constructor Create;
+      destructor Destroy;
+    published
+      property Count: Integer read getCount;
+      property Cards: TJSONArray read FCards;
+  end;
+
+  { TFacebookTemplateCard }
+  TFacebookTemplateCard = class
+  private
+    FElement: TFacebookTemplateCardElement;
+    function getCount: Integer;
+  public
+    constructor Create;
+    destructor Destroy;
+  published
+    property Count: Integer read getCount;
+    property Element: TFacebookTemplateCardElement read FElement;
+  end;
+
   { TFacebookMessengerIntegration }
 
   TFacebookMessengerIntegration = class(TInterfacedObject)
@@ -125,6 +117,7 @@ type
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
+    FTemplateCard: TFacebookTemplateCard;
     FToken: string;
 
     jsonData: TJSONData;
@@ -162,6 +155,7 @@ type
     procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
     procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
     procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
+    procedure SendTemplateCard(ATo: string; AContent: TJSONArray);
     procedure AskLocation(ATo: string);
 
     function isCanSend: boolean;
@@ -182,8 +176,9 @@ type
       read getPayloadHandler write setPayloadHandler;
     function PayloadHandling: String;
 
-    // QuickReply
+    //
     property QuickReply: TFacebookQuickReply read FQuickReply write FQuickReply;
+    property TemplateCard: TFacebookTemplateCard read FTemplateCard write FTemplateCard;
 
   published
     property ImageID: string read FImageID;
@@ -220,6 +215,40 @@ const
 var
   Response: IHTTPResponse;
   ___PayloadHandlerCallbackMap: TPayloadHandlerCallbackMap;
+
+{ TFacebookTemplateCardElement }
+
+function TFacebookTemplateCardElement.getCount: Integer;
+begin
+  Result := FCards.Count;
+end;
+
+constructor TFacebookTemplateCardElement.Create;
+begin
+  FCards := TJSONArray.Create;
+end;
+
+destructor TFacebookTemplateCardElement.Destroy;
+begin
+  FCards.Free;
+end;
+
+{ TFacebookTemplateCard }
+
+function TFacebookTemplateCard.getCount: Integer;
+begin
+  Result := FElement.Count;
+end;
+
+constructor TFacebookTemplateCard.Create;
+begin
+  FElement := TFacebookTemplateCardElement.Create;
+end;
+
+destructor TFacebookTemplateCard.Destroy;
+begin
+  FElement.Free;
+end;
 
 { TFacebookQuickReply }
 
@@ -277,56 +306,6 @@ begin
   o := TJSONObject.Create;
   o.Add('content_type', 'user_phone_number');
   FItem.Add(o);
-end;
-
-{ TFacebookTemplateElement }
-
-function TFacebookTemplateElement.getAsJSON: string;
-begin
-  generateData;
-  Result := FData.AsJSONFormated;
-end;
-
-constructor TFacebookTemplateElement.Create;
-begin
-  FData := TJSONUtil.Create;
-  FData['title'] := '';
-  FData['subtitle'] := '';
-  FData['image_url'] := '';
-  FData['default_action/type'] := 'web_url';
-  FData['default_action/url'] := '';
-  FData['default_action/messenger_extensions'] := True;
-  FData['default_action/webview_height_ratio'] := 'tall';
-  FData['default_action/fallback_url'] := '';
-end;
-
-destructor TFacebookTemplateElement.Destroy;
-begin
-  FData.Free;
-end;
-
-procedure TFacebookTemplateElement.generateData;
-begin
-  FData['title'] := FTitle;
-  FData['subtitle'] := FSubTitle;
-  FData['image_url'] := FImageURL;
-  FData['default_action/type'] := 'web_url';
-  FData['default_action/url'] := FActionURL;
-  FData['default_action/messenger_extensions'] := True;
-  FData['default_action/webview_height_ratio'] := 'tall';
-  FData['default_action/fallback_url'] := '';
-end;
-
-{ TFacebookTemplateMessage }
-
-constructor TFacebookTemplateMessage.Create;
-begin
-
-end;
-
-destructor TFacebookTemplateMessage.Destroy;
-begin
-
 end;
 
 { TFacebookMessengerIntegration }
@@ -446,10 +425,12 @@ constructor TFacebookMessengerIntegration.Create;
 begin
   ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
   FQuickReply := TFacebookQuickReply.Create;
+  FTemplateCard := TFacebookTemplateCard.Create;
 end;
 
 destructor TFacebookMessengerIntegration.Destroy;
 begin
+  FTemplateCard.Free;
   FQuickReply.Free;
   ___PayloadHandlerCallbackMap.Free;
   if Assigned(jsonData) then
@@ -665,6 +646,40 @@ begin
   end;
 
   o.Free;
+end;
+
+procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
+  AContent: TJSONArray);
+var
+  s: string;
+  o : TJSONUtil;
+begin
+  if ATo.IsEmpty or FToken.IsEmpty then
+    Exit;
+
+  o := TJSONUtil.Create;
+  o['recipient/id'] := ATo;
+  o['message/attachment/type'] := 'template';
+  o['message/attachment/payload/template_type'] := 'generic';
+  o.ValueArray['message/attachment/payload/elements'] := AContent;
+
+  s := o.AsJSONFormated;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
 end;
 
 procedure TFacebookMessengerIntegration.AskLocation(ATo: string);

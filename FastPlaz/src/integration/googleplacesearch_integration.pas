@@ -23,8 +23,11 @@ uses
   common, http_lib, logutil_lib,
   Classes, SysUtils;
 
-type
+const
+  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
+  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
 
+type
 
   { TGooglePlaceIntegration }
 
@@ -69,8 +72,6 @@ const
     'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&rankBy=distance&query=%s';
   _GOOGLE_PLACE_DETAIL_URL =
     'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
-  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
-  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
   //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
 var
