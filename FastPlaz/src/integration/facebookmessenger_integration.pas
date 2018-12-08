@@ -182,7 +182,7 @@ const
   _FACEBOOK_MESSENGER_SEND_CALL =
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"phone_number","title":"%title%","payload":"%number%"}]}}}}';
   _FACEBOOK_MESSENGER_SEND_BUTTON_URL =
-    '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
+    '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","messenger_extensions": true,"webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
 
 var
   Response: IHTTPResponse;
