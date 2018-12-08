@@ -28,6 +28,14 @@ file that was distributed with this source code.
   Facebook.PayloadHandler['YOUR_PAYLOAD'] := @yourpayloadHandler;
   Text := Facebook.PayloadHandling;
 
+  [x] Quick Replay
+
+  Facebook.QuickReply.AddLocation;
+  Facebook.QuickReply.AddEmail;
+  Facebook.QuickReply.AddPhone;
+  Facebook.QuickReply.AddText('THE TEXT', 'YOUR_PAYLOAD', 'https://your_image.png');
+  Facebook.SendQuickReply(Facebook.UserID);
+
 
 }
 unit facebookmessenger_integration;
@@ -81,6 +89,26 @@ type
   published
   end;
 
+  { TFacebookQuickReply }
+
+  TFacebookQuickReply = class
+  private
+    FItem: TJSONArray;
+    function getCount: Integer;
+  public
+    constructor Create;
+    destructor Destroy;
+
+    procedure AddText( ATitle, APayload, AImageURL: string);
+    procedure AddLocation;
+    procedure AddEmail;
+    procedure AddPhone;
+
+  published
+    property Count: Integer read getCount;
+    property Data: TJSONArray read FItem;
+  end;
+
   { TFacebookMessengerIntegration }
 
   TFacebookMessengerIntegration = class(TInterfacedObject)
@@ -93,6 +121,7 @@ type
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FQuickReply: TFacebookQuickReply;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -132,6 +161,7 @@ type
     procedure SendImage(ATo: string; AImageURL: string);
     procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
     procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
+    procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
     procedure AskLocation(ATo: string);
 
     function isCanSend: boolean;
@@ -151,6 +181,9 @@ type
     property PayloadHandler[const TagName: string]: TPayloadHandlerCallback
       read getPayloadHandler write setPayloadHandler;
     function PayloadHandling: String;
+
+    // QuickReply
+    property QuickReply: TFacebookQuickReply read FQuickReply write FQuickReply;
 
   published
     property ImageID: string read FImageID;
@@ -187,6 +220,64 @@ const
 var
   Response: IHTTPResponse;
   ___PayloadHandlerCallbackMap: TPayloadHandlerCallbackMap;
+
+{ TFacebookQuickReply }
+
+function TFacebookQuickReply.getCount: Integer;
+begin
+  Result := FItem.Count;
+end;
+
+constructor TFacebookQuickReply.Create;
+begin
+  FItem := TJSONArray.Create;
+end;
+
+destructor TFacebookQuickReply.Destroy;
+begin
+  FItem.Free;
+end;
+
+procedure TFacebookQuickReply.AddText(ATitle, APayload, AImageURL: string);
+var
+  o: TJSONObject;
+begin
+  if ATitle.IsEmpty or AImageURL.IsEmpty or APayload.IsEmpty then
+    Exit;
+  o := TJSONObject.Create;
+  o.Add('content_type', 'text');
+  o.Add('title', ATitle);
+  o.Add('image_url', AImageURL);
+  o.Add('payload', APayload);
+  FItem.Add(o);
+end;
+
+procedure TFacebookQuickReply.AddLocation;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('content_type', 'location');
+  FItem.Add(o);
+end;
+
+procedure TFacebookQuickReply.AddEmail;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('content_type', 'user_email');
+  FItem.Add(o);
+end;
+
+procedure TFacebookQuickReply.AddPhone;
+var
+  o: TJSONObject;
+begin
+  o := TJSONObject.Create;
+  o.Add('content_type', 'user_phone_number');
+  FItem.Add(o);
+end;
 
 { TFacebookTemplateElement }
 
@@ -354,10 +445,12 @@ end;
 constructor TFacebookMessengerIntegration.Create;
 begin
   ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
+  FQuickReply := TFacebookQuickReply.Create;
 end;
 
 destructor TFacebookMessengerIntegration.Destroy;
 begin
+  FQuickReply.Free;
   ___PayloadHandlerCallbackMap.Free;
   if Assigned(jsonData) then
     jsonData.Free;
@@ -535,6 +628,43 @@ begin
   end;
 
 
+end;
+
+procedure TFacebookMessengerIntegration.SendQuickReply(ATo: string;
+  ACaption: string);
+var
+  s : string;
+  o : TJSONUtil;
+begin
+  if not isCanSend then
+    Exit;
+  if ATo.IsEmpty or FToken.IsEmpty or ACaption.IsEmpty then
+    Exit;
+
+  o := TJSONUtil.Create;
+  o['recipient/id'] := ATo;
+  o['message/text'] := ACaption;
+  o.ValueArray['message/quick_replies'] := QuickReply.Data;
+
+  s := o.AsJSONFormated;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+
+  o.Free;
 end;
 
 procedure TFacebookMessengerIntegration.AskLocation(ATo: string);
