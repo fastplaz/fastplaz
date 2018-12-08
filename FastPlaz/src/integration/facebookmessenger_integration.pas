@@ -13,8 +13,12 @@ file that was distributed with this source code.
   Facebook.Token := 'FACEBOOK_TOKEN';
   Facebook.Send('facebookID, 'text');
 
-  [x] Call Dialog
+  [x] Send PhoneCall Dialog
   Facebook.SendCall('user_id', '+62..........', 'Call Name', 'Your Description');
+
+  [x] Send Button URL
+  Facebook.SendButtonURL('user_id', 'title', 'https://your_url', 'Your Description');
+
 
   [x] Payload Handler
 
@@ -127,6 +131,7 @@ type
     procedure SendAudio(ATo: string; AAudioURL: string);
     procedure SendImage(ATo: string; AImageURL: string);
     procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
+    procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
     procedure AskLocation(ATo: string);
 
     function isCanSend: boolean;
@@ -176,6 +181,8 @@ const
     '{"recipient": {"id": "%s"},"message": {"text": "%s","quick_replies": [{"content_type": "location"}]}}';
   _FACEBOOK_MESSENGER_SEND_CALL =
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"phone_number","title":"%title%","payload":"%number%"}]}}}}';
+  _FACEBOOK_MESSENGER_SEND_BUTTON_URL =
+    '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
 
 var
   Response: IHTTPResponse;
@@ -487,14 +494,46 @@ begin
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      die(FResultText);
-      exit;
       FIsSuccessfull := IsSuccessfull;
     except
     end;
 
     Free;
   end;
+
+end;
+
+procedure TFacebookMessengerIntegration.SendButtonURL(ATo: string; ATitle,
+  AURL: string; ADescription: string);
+var
+  s: String;
+begin
+  if not isCanSend then
+    Exit;
+  if ATo.IsEmpty or FToken.IsEmpty or ADescription.IsEmpty then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      s := _FACEBOOK_MESSENGER_SEND_BUTTON_URL;
+      s := s.Replace('%id%', ATo);
+      s := s.Replace('%url%', AURL);
+      s := s.Replace('%title%', ATitle);
+      s := s.Replace('%text%', ADescription);
+      RequestBody := TStringStream.Create(s);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+
 
 end;
 
