@@ -32,6 +32,7 @@ type
 
   TGoogleDistanceIntegration = class(TInterfacedObject)
   private
+    FKey: String;
     jsonData: TJSONData;
     FDestinations: string;
     FDistance: integer;
@@ -49,6 +50,7 @@ type
     function GetDistance(AOrigins, ADestionations: string): boolean;
   published
     property URL: string read FURL write FURL;
+    property Key: String read FKey write FKey;
     property IsSuccessfull: boolean read FIsSuccessfull;
     property Origins: string read FOrigins write FOrigins;
     property Destinations: string read FDestinations write FDestinations;
@@ -63,7 +65,7 @@ implementation
 
 const
   GOOGLEDISTANCE_URL =
-    'https://maps.googleapis.com/maps/api/distancematrix/json?origins=%s&destinations=%s&language=id-ID';
+    'https://maps.googleapis.com/maps/api/distancematrix/json?origins=%s&destinations=%s&language=id-ID&key=';
 
 var
   Response: IHTTPResponse;
@@ -118,7 +120,8 @@ begin
   Result := False;
   if (AOrigins = '') or (ADestionations = '') then
     Exit;
-  urlTarget := Format(GOOGLEDISTANCE_URL, [UrlEncode(AOrigins), UrlEncode(ADestionations)]);
+  urlTarget := Format(GOOGLEDISTANCE_URL, [UrlEncode(AOrigins), UrlEncode(ADestionations)])
+    + FKey;
 
   with THTTPLib.Create(urlTarget) do
   begin
