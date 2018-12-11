@@ -23,10 +23,6 @@ uses
   common, http_lib, logutil_lib,
   Classes, SysUtils;
 
-const
-  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
-  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
-
 type
 
   { TGooglePlaceIntegration }
@@ -50,6 +46,7 @@ type
     property Key: string read FKey write FKey;
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
+    function SearchAsArray(Keyword: string; ALat: double = 0; ALon: double = 0): TJSONArray;
     function Detail(APlaceID:String):String;
   published
     property Data: TJSONData read FData write FData;
@@ -68,11 +65,14 @@ type
 implementation
 
 const
+  _GOOGLE_PLACE_MAX_COUNT = 5;
   _GOOGLE_PLACE_TEXTSEARCH_URL =
     'https://maps.googleapis.com/maps/api/place/textsearch/json?key=%s&rankBy=distance&query=%s';
   _GOOGLE_PLACE_DETAIL_URL =
     'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
   //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
+  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
+  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
 
 var
   Response: IHTTPResponse;
@@ -208,6 +208,77 @@ begin
   s := StringReplace(s, #13, '\n', [rfReplaceAll]);
   s := StringReplace(s, #10, '\n', [rfReplaceAll]);
   Result := s;
+end;
+
+function TGooglePlaceIntegration.SearchAsArray(Keyword: string; ALat: double;
+  ALon: double): TJSONArray;
+var
+  i, iCount: Integer;
+  s, sJson, sURL, sLat, sLon: String;
+  aResult: TJSONArray;
+  jSearch: TJSONData;
+  oSearch, oItem: TJSONObject;
+begin
+  Result := Nil;
+  if FKey = '' then
+    Exit;
+  sJson := Search(Keyword, ALat, ALon);
+  if sJson = '' then
+    Exit;
+
+  jSearch := GetJSON(sJson);
+  oSearch := TJSONObject(jSearch);
+
+  aResult := TJSONArray(oSearch.FindPath('results'));
+  iCount := aResult.Count;
+  if iCount > _GOOGLE_PLACE_MAX_COUNT then iCount := _GOOGLE_PLACE_MAX_COUNT;
+
+  result := TJSONArray.Create;
+  for i := 0 to iCount-1 do
+  begin
+    oItem := TJSONObject.Create;
+    FPlaceID := jsonGetData(aResult.Items[i], 'place_id');
+    sURL := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
+    oItem.Add('place_id', FPlaceID);
+    oItem.Add('title', jsonGetData(aResult.Items[i], 'name'));
+    s := jsonGetData(aResult.Items[i], 'formatted_address') + #13;
+    try
+      s := s + ' Rating: ' + f2s( aResult.Items[i].FindPath('rating').AsFloat) + '.'#13;
+    except
+    end;
+    try
+      if aResult.Items[i].GetPath('opening_hours.open_now').AsBoolean then
+      begin
+        s := s + ' Saat ini buka.'#13;
+      end;
+    except
+    end;
+    if iCount = 1 then
+    begin
+      // --- more detail
+      {
+      if Detail(FPlaceID) <> '' then
+      begin
+      end;
+      }
+    end;
+    oItem.Add('subtitle', s);
+    oItem.Add('place_url', sURL);
+    s := jsonGetData(aResult.Items[i], 'photos[0]/photo_reference');
+    s := 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=2500&photoreference='
+      + s
+      + '&key=' + FKey;
+    oItem.Add('image_url', s);
+
+    sLat := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lat').AsFloat]);
+    sLon := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lng').AsFloat]);
+    oItem.Add('lat', sLat);
+    oItem.Add('lon', sLon);
+
+    Result.Add( oItem);;
+  end;
+
+  jSearch.Free;
 end;
 
 function TGooglePlaceIntegration.Detail(APlaceID: String): String;

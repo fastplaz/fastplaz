@@ -651,17 +651,45 @@ end;
 procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
   AContent: TJSONArray);
 var
+  i: Integer;
   s: string;
   o : TJSONUtil;
+  aElements, aButtons: TJSONArray;
+  oItem, oDefaultAction, oButton: TJSONObject;
 begin
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
+
+  aElements := TJSONArray.Create;
+  for i := 0 to AContent.Count-1 do
+  begin
+    oItem := TJSONObject.Create;
+    oItem.Add('title', jsonGetData(AContent.Items[i], 'title'));
+    oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'subtitle'));
+    oItem.Add('image_url', jsonGetData(AContent.Items[i], 'image_url'));
+
+    oDefaultAction := TJSONObject.Create;
+    oDefaultAction.Add('type', 'web_url');
+    oDefaultAction.Add('url', jsonGetData(AContent.Items[0], 'place_url'));
+    oDefaultAction.Add('webview_height_ratio', 'FULL');
+    //oItem.Add('default_action', oDefaultAction);
+
+    aButtons := TJSONArray.Create;
+    oButton := TJSONObject.Create;
+    oButton.Add('type', 'web_url');
+    oButton.Add('title', 'Tampilkan Peta');
+    oButton.Add('url', jsonGetData(AContent.Items[0], 'place_url'));
+    aButtons.Add(oButton);
+    oItem.Add('buttons', aButtons);
+
+    aElements.Add(oItem);
+  end;
 
   o := TJSONUtil.Create;
   o['recipient/id'] := ATo;
   o['message/attachment/type'] := 'template';
   o['message/attachment/payload/template_type'] := 'generic';
-  o.ValueArray['message/attachment/payload/elements'] := AContent;
+  o.ValueArray['message/attachment/payload/elements'] := aElements;
 
   s := o.AsJSONFormated;
 
@@ -680,6 +708,7 @@ begin
     Free;
   end;
 
+  aElements.Free;
 end;
 
 procedure TFacebookMessengerIntegration.AskLocation(ATo: string);
