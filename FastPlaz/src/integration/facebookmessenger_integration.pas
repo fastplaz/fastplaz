@@ -670,7 +670,7 @@ begin
 
     oDefaultAction := TJSONObject.Create;
     oDefaultAction.Add('type', 'web_url');
-    oDefaultAction.Add('url', jsonGetData(AContent.Items[0], 'place_url'));
+    oDefaultAction.Add('url', jsonGetData(AContent.Items[i], 'place_url'));
     oDefaultAction.Add('webview_height_ratio', 'FULL');
     //oItem.Add('default_action', oDefaultAction);
 
@@ -678,7 +678,7 @@ begin
     oButton := TJSONObject.Create;
     oButton.Add('type', 'web_url');
     oButton.Add('title', 'Tampilkan Peta');
-    oButton.Add('url', jsonGetData(AContent.Items[0], 'place_url'));
+    oButton.Add('url', jsonGetData(AContent.Items[i], 'place_url'));
     aButtons.Add(oButton);
     oItem.Add('buttons', aButtons);
 
