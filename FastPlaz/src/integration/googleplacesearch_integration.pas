@@ -30,11 +30,14 @@ type
   TGooglePlaceIntegration = class(TInterfacedObject)
   private
     FAddress: string;
+    FBOLD_CODE: string;
     FCount: integer;
     FData: TJSONData;
+    FITALIC_CODE: string;
     FKey: string;
     FLatitude: double;
     FLongitude: double;
+    FMarkDown: boolean;
     FPlaceID: String;
     FResultCode: integer;
     FResultText: string;
@@ -59,6 +62,10 @@ type
     property Latitude: double read FLatitude write FLatitude;
     property Longitude: double read FLongitude write FLongitude;
     property PlaceID: String read FPlaceID write FPlaceID;
+
+    property BOLD_CODE: string read FBOLD_CODE write FBOLD_CODE;
+    property ITALIC_CODE: string read FITALIC_CODE write FITALIC_CODE;
+    property MarkDown: boolean read FMarkDown write FMarkDown;
   end;
 
 
@@ -82,6 +89,9 @@ var
 constructor TGooglePlaceIntegration.Create;
 begin
   FCount := 0;
+  FBOLD_CODE := '*';
+  FITALIC_CODE := '_';
+  FMarkDown := true;
 end;
 
 destructor TGooglePlaceIntegration.Destroy;
@@ -156,7 +166,7 @@ begin
         '].geometry.location.lat').AsFloat]);
       _lon := Format('%.16f', [_json.GetPath('results[' + i2s(i) +
         '].geometry.location.lng').AsFloat]);
-      s := s + '*' + _name + '*'#10;
+      s := s + FBOLD_CODE + _name + FBOLD_CODE + #10;
       s := s + _json.GetPath('results[' + i2s(i) + '].formatted_address').AsString + #10;
       try
         if _json.GetPath('results[' + i2s(i) + '].opening_hours.open_now').AsBoolean then
@@ -193,7 +203,11 @@ begin
       end;
 
       _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
-      //_url := _GOOGLE_MAPS_PLACEID_URL + _json.GetPath('results[' + i2s(i) + '].place_id').AsString;
+      _url := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
+      if FMarkDown then
+      begin
+        _url := '[Tampilkan Peta]('+_url+')';
+      end;
       s := s + _url + #10;
 
       s := s + #10;
