@@ -78,8 +78,9 @@ const
   _GOOGLE_PLACE_DETAIL_URL =
     'https://maps.googleapis.com/maps/api/place/details/json?key=%s&placeid=%s';
   //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
-  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%s,%s';
-  _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
+  //_GOOGLE_MAPS_URL = 'https://maps.google.com/maps/place/%s/@%s,%s';
+  _GOOGLE_MAPS_URL = 'https://www.google.com/maps/search/?api=1&query_place_id=%s&query=%s,%s';
+  _GOOGLE_MAPS_PLACEID_URL = 'https://maps.google.com/maps/place/?q=place_id:';
 
 var
   Response: IHTTPResponse;
@@ -135,7 +136,7 @@ function TGooglePlaceIntegration.SearchAsText(Keyword: string;
   ALat: double; ALon: double): string;
 
 var
-  s, _name, _lat, _lon, _url: string;
+  s, _name, _lat, _lon, _url, _placeID: string;
   i, j: integer;
   _json: TJSONData;
 begin
@@ -161,6 +162,7 @@ begin
         FLongitude := _json.GetPath('results[' + i2s(i) +
           '].geometry.location.lng').AsFloat;
       end;
+      _placeID := jsonGetData(_json, 'results[' + i2s(i) + '].place_id');
       _name := _json.GetPath('results[' + i2s(i) + '].name').AsString;
       _lat := Format('%.16f', [_json.GetPath('results[' + i2s(i) +
         '].geometry.location.lat').AsFloat]);
@@ -202,8 +204,9 @@ begin
       except
       end;
 
-      _url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
-      _url := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
+      //_url := format(_GOOGLE_MAPS_URL, [UrlEncode(_name), _lat, _lon]);
+      _url := format(_GOOGLE_MAPS_URL, [_placeID, _lat, _lon]);
+      //_url := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
       if FMarkDown then
       begin
         _url := '[Tampilkan Peta]('+_url+')';
