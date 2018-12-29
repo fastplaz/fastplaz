@@ -96,7 +96,7 @@ end;
 function TZomatoIntegration.ConvertJsonToTextInfo(AJson: string): string;
 var
   i: integer;
-  s: string;
+  s, place_url: string;
   jData: TJSONData;
 begin
   Result := '';
@@ -107,7 +107,7 @@ begin
     jData := GetJSON(AJson);
     for i := 0 to jData.Count - 1 do
     begin
-      Result := Result + '*' + jsonGetData(jData, '[' + i2s(i) + ']/name') + '*' + #10;
+      Result := Result + '**' + jsonGetData(jData, '[' + i2s(i) + ']/name') + '**' + #10;
       Result := Result + 'Rating: ' + jsonGetData(jData, '[' + i2s(i) +
         ']/rating') + #10;
       Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/address') + #10;
@@ -116,7 +116,11 @@ begin
       if Pos('?', s) > 0 then
         s := copy(s, 0, Pos('?', s) - 1);
       if jsonGetData(jData, '[' + i2s(i) + ']/maps') <> '' then
-        Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/maps') + #10
+      begin
+        place_url := jsonGetData(jData, '[' + i2s(i) + ']/maps');
+        place_url := '[Tampilkan Peta](' + place_url + ')';
+        Result := Result + place_url + #10
+      end
       else
         Result := Result + s + #10;
 
