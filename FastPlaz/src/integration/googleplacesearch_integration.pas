@@ -280,7 +280,12 @@ begin
   begin
     oItem := TJSONObject.Create;
     FPlaceID := jsonGetData(aResult.Items[i], 'place_id');
-    sURL := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
+
+    //sURL := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
+    sLat := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lat').AsFloat]);
+    sLon := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lng').AsFloat]);
+    sURL := format(_GOOGLE_MAPS_URL, [FPlaceID, sLat, sLon]);
+
     oItem.Add('place_id', FPlaceID);
     oItem.Add('title', jsonGetData(aResult.Items[i], 'name'));
     s := jsonGetData(aResult.Items[i], 'formatted_address') + #13;
@@ -312,8 +317,6 @@ begin
       + '&key=' + FKey;
     oItem.Add('image_url', s);
 
-    sLat := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lat').AsFloat]);
-    sLon := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lng').AsFloat]);
     oItem.Add('lat', sLat);
     oItem.Add('lon', sLon);
 
