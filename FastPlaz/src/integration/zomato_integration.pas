@@ -86,7 +86,6 @@ end;
 
 procedure TZomatoIntegration.setMarkDown(AValue: boolean);
 begin
-  if FMarkDown=AValue then Exit;
   FMarkDown:=AValue;
   if FMarkDown then
   begin

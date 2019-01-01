@@ -670,7 +670,7 @@ begin
 
     oDefaultAction := TJSONObject.Create;
     oDefaultAction.Add('type', 'web_url');
-    oDefaultAction.Add('url', jsonGetData(AContent.Items[i], 'place_url'));
+    oDefaultAction.Add('url', jsonGetData(AContent.Items[i], 'url'));
     oDefaultAction.Add('webview_height_ratio', 'FULL');
     //oItem.Add('default_action', oDefaultAction);
 
