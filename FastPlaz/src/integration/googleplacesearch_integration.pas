@@ -50,6 +50,7 @@ type
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsText(Keyword: string; ALat: double = 0; ALon: double = 0): string;
     function SearchAsArray(Keyword: string; ALat: double = 0; ALon: double = 0): TJSONArray;
+    function DisplayAsText(AData: TJSONArray): string;
     function Detail(APlaceID:String):String;
   published
     property Data: TJSONData read FData write FData;
@@ -131,6 +132,30 @@ begin
     Free;
   end;
 end;
+
+function TGooglePlaceIntegration.DisplayAsText(AData: TJSONArray): string;
+var
+  i, iCount : Integer;
+begin
+  Result := '';
+  iCount := AData.Count;
+  if iCount > 4 then
+    iCount := 4;
+
+  for i := 0 to iCount-1 do
+  begin
+    Result := Result + FBOLD_CODE + jsonGetData(AData.Items[i], 'title') + FBOLD_CODE;
+    Result := Result + #10 + trim(jsonGetData(AData.Items[i], 'subtitle'));
+    if FMarkDown then
+      Result := Result + #10'[Tampilkan Peta](' + jsonGetData(AData.Items[i], 'url') + ')'
+    else
+      Result := Result + #10 + jsonGetData(AData.Items[i], 'url');
+
+    Result := Result + #10#10;
+  end;
+
+end;
+
 
 function TGooglePlaceIntegration.SearchAsText(Keyword: string;
   ALat: double; ALon: double): string;
@@ -280,7 +305,7 @@ begin
       }
     end;
     oItem.Add('subtitle', s);
-    oItem.Add('place_url', sURL);
+    oItem.Add('url', sURL);
     s := jsonGetData(aResult.Items[i], 'photos[0]/photo_reference');
     s := 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=2500&photoreference='
       + s
