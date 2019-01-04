@@ -40,6 +40,7 @@ type
 
   TRajaOngkirIntegration = class(TInterfacedObject)
   private
+    FBOLD_CODE: string;
     jsonData: TJSONData;
     FAccountType: TRajaOngkirAccountType;
     FIsSuccessfull: boolean;
@@ -60,6 +61,7 @@ type
     property Key: string read FKey write FKey;
     property IsSuccessfull: boolean read FIsSuccessfull;
     property ResultText: string read getResultText;
+    property BOLD_CODE: string read FBOLD_CODE write FBOLD_CODE;
   end;
 
 implementation
@@ -136,6 +138,7 @@ begin
   FIsSuccessfull := False;
   AccountType := atStarter;
   FKey := '';
+  FBOLD_CODE := '**';
 end;
 
 destructor TRajaOngkirIntegration.Destroy;
@@ -163,7 +166,7 @@ begin
 
   Result := 'No Resi: ' + UpperCase(WayBillNumber);
   if jsonGetData(jsonData, PATH_ISDELIVERED) = 'True' then
-    Result := Result + #13'*Status: Terkirim*';
+    Result := Result + #13 + FBOLD_CODE + 'Status: Terkirim' + FBOLD_CODE;
   Result := Result + #13 + jsonGetData(jsonData, PATH_COURIERNAME);
   Result := Result + #13 + 'Service: ' + jsonGetData(jsonData, PATH_SERVICECODE);
   Result := Result + #13 + 'Tanggal: ' + jsonGetData(jsonData, PATH_WAYBILLDATE);
