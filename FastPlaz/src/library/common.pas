@@ -162,6 +162,7 @@ procedure Die(const Message: TStringList); overload;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
+function isURL( const AURL: string): boolean;
 function CleanUrl(URL: string; Separator: string = '-'): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
@@ -1211,6 +1212,13 @@ begin
   end;
   Result := lst.Text;
   FreeAndNil(lst);
+end;
+
+function isURL(const AURL: string): boolean;
+const
+  _REGEX_ISURL = '(http|https|ftp):\/\/([a-zA-Z0-9-]+)?(\/)?(.*)?$';
+begin
+  Result := preg_match(_REGEX_ISURL, AURL);
 end;
 
 function CleanUrl(URL: string; Separator: string): string;
