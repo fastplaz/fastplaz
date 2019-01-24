@@ -72,7 +72,14 @@ var
   _url: string;
 begin
   Result := '';
-  _page := (s2i(AAyat) div _ALQURANONLINE_AYAT_PER_PAGE)+1;
+  i := s2i(AAyat) mod _ALQURANONLINE_AYAT_PER_PAGE;
+  if (s2i(AAyat) mod _ALQURANONLINE_AYAT_PER_PAGE) = 0 then
+  begin
+    _page := (s2i(AAyat) div _ALQURANONLINE_AYAT_PER_PAGE);
+  end else begin
+    _page := (s2i(AAyat) div _ALQURANONLINE_AYAT_PER_PAGE)+1;
+  end;
+
   _url := Format(_ALQURANONLINE_URL, [ASurat, i2s(_page)]);
   Result := httpGET(_url);
 
