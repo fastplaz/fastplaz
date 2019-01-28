@@ -678,7 +678,7 @@ begin
     oButton := TJSONObject.Create;
     oButton.Add('type', 'web_url');
     oButton.Add('title', 'Tampilkan Peta');
-    oButton.Add('url', jsonGetData(AContent.Items[i], 'place_url'));
+    oButton.Add('url', jsonGetData(AContent.Items[i], 'url'));
     aButtons.Add(oButton);
     oItem.Add('buttons', aButtons);
 
@@ -691,7 +691,7 @@ begin
   o['message/attachment/payload/template_type'] := 'generic';
   o.ValueArray['message/attachment/payload/elements'] := aElements;
 
-  s := o.AsJSONFormated;
+  s := o.AsJSON;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
   begin
