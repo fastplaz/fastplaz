@@ -84,6 +84,7 @@ const
   PATH_DELIVERED_DATE = 'rajaongkir/result/delivery_status/pod_date';
   PATH_DELIVERED_TIME = 'rajaongkir/result/delivery_status/pod_time';
   PATH_RECEIVER_NAME = 'rajaongkir/result/summary/receiver_name';
+  PATH_MANIFEST = 'rajaongkir/result/manifest';
 
 var
   Response: IHTTPResponse;
@@ -149,6 +150,9 @@ begin
 end;
 
 function TRajaOngkirIntegration.Track(CourierName, WayBillNumber: string): string;
+var
+  i: Integer;
+  manifest: TJSONArray;
 begin
   Result := '';
   Result := TrackAsJson(CourierName, WayBillNumber);
@@ -180,6 +184,23 @@ begin
       PATH_RECEIVER_NAME);
     Result := Result + #13 + 'Tanggal: ' + jsonGetData(jsonData,
       PATH_DELIVERED_DATE) + ' ' + jsonGetData(jsonData, PATH_DELIVERED_TIME);
+  end
+  else
+  begin
+    // manifest
+    try
+      Result := Result + #13#13 + '**TRACKING PESANAN:**';
+      manifest := TJSONArray(jsonData.FindPath(PATH_MANIFEST.Replace('/','.')));
+
+      for i := 0 to (manifest.Count - 1) do
+      begin
+        Result := Result + #13 + jsonGetData(manifest.Items[i], 'manifest_date');
+        Result := Result + ' ' + jsonGetData(manifest.Items[i], 'manifest_time');
+        Result := Result + #13 + jsonGetData(manifest.Items[i], 'manifest_description');
+      end;
+
+    except
+    end;
   end;
 end;
 

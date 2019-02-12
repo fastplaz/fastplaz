@@ -19,12 +19,12 @@
     "default" : {
       "driver" : "MySQL 5.0",
       "hostname" : "localhost",
-      "tabletype" : "myisam",
+      "tabletype" : "innodb",
       "username" : "root",
       "password" : "root",
       "database_name" : "mysql",
       "prefix" : "",
-      "library" : "..\/libs\/win\/libmysql.dll"
+      "library" : ""
     }
   },
   "log" : {
