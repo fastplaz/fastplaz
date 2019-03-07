@@ -156,9 +156,9 @@ procedure echo(const Number: integer);
 procedure echo(const Number: double);
 procedure pr(const Message: variant);
 procedure ta(const Message: variant; Width: integer = 800; Height: integer = 200);
-procedure Die(const Message: string = ''); overload;
-procedure Die(const Number: integer); overload;
-procedure Die(const Message: TStringList); overload;
+procedure Die(const Message: string = ''; ACode: integer = 200); overload;
+procedure Die(const Number: integer; ACode: integer = 200); overload;
+procedure Die(const Message: TStringList; ACode: integer = 200); overload;
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
@@ -658,14 +658,14 @@ begin
   echo(#13'</textarea>');
 end;
 
-procedure Die(const Number: integer);
+procedure Die(const Number: integer; ACode: integer);
 begin
-  Die(i2s(Number));
+  Die(i2s(Number), ACode);
 end;
 
-procedure Die(const Message: TStringList);
+procedure Die(const Message: TStringList; ACode: integer);
 begin
-  Die('<pre>' + Message.Text + '</pre>');
+  Die('<pre>' + Message.Text + '</pre>', ACode);
 end;
 
 function WordNumber(s: string): integer;
@@ -866,7 +866,7 @@ begin
 end;
 
 
-procedure Die(const Message: string);
+procedure Die(const Message: string; ACode: integer);
 begin
   //raise EFPWebError.CreateFmt( '%s %s', [Application.Response.Contents.Text, Message]);
   //raise EFPWebError.Create(Message);
@@ -875,6 +875,7 @@ begin
 
   Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));;
   Application.Response.Contents.Add(Message);
+  Application.Response.Code := ACode;
   Application.Response.SendContent;
   Application.Terminate;
 end;
@@ -1512,7 +1513,7 @@ begin
     Result := False;
 end;
 
-function FastInfo: string;
+function FastInfo(): string;
 var
   lst: TStringList;
   s: string;
