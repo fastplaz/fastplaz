@@ -150,7 +150,7 @@ type
     procedure Option; virtual;
 
     procedure LanguageInit;
-    procedure CloseConnection;
+    procedure CloseConnection( const AResponseContent: string = '');
 
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
@@ -1009,9 +1009,9 @@ begin
   _SESSION['lang'] := LANG;
 end;
 
-procedure TMyCustomWebModule.CloseConnection;
+procedure TMyCustomWebModule.CloseConnection(const AResponseContent: string);
 begin
-  Response.Content := '';
+  Response.Content := AResponseContent;
   CustomHeader['Connection'] := 'close';
   Response.SendContent;
 end;

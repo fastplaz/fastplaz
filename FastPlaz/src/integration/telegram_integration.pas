@@ -104,6 +104,7 @@ type
     function getFullName: string;
     function getGroupName: string;
     function getImageCaption: string;
+    function getIsAdmin: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -154,6 +155,14 @@ type
     function GroupAdminList(AGroupID: string): string;
 
     function isImage(ADetail: boolean = False): boolean;
+    function KickUser(AChatID: string; AUserID: string; AReason: string; AUntilDate: Integer = 0):boolean;
+    function RestrictUser(AChatID: string; AUserID: string;
+      AUntilDate: integer = 0;
+      ASendMessage: boolean = false;
+      ASendMedia: boolean = false;
+      ASendOther: boolean = false;
+      ASendWebPreview: boolean = false
+      ):boolean;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -167,6 +176,7 @@ type
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
     property IsGroup: boolean read getIsGroup;
+    property IsAdmin: boolean read getIsAdmin;
     property IsInvitation: boolean read getIsInvitation;
 
     property InvitedUserName: string read FInvitedUserName;
@@ -220,6 +230,11 @@ const
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
   TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
   TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
+
+  TELEGRAM_COMMAND_KICKUSER = 'kickChatMember?chat_id=%s&user_id=%s&until_date=%d';
+  TELEGRAM_COMMAND_RESTRICTUSER = 'restrictChatMember?chat_id=%s&user_id=%s&until_date=%d'
+    + '&can_send_messages=%s&can_send_media_messages=%s'
+    + '&can_send_other_messages=%s&can_add_web_page_previews=%s';
 
 var
   Response: IHTTPResponse;
@@ -303,6 +318,13 @@ begin
     Result := jsonData.GetPath('message.caption').AsString;
   except
   end;
+end;
+
+function TTelegramIntegration.getIsAdmin: boolean;
+begin
+  Result := False;
+
+  //TODO: check is admin
 end;
 
 function TTelegramIntegration.getIsGroup: boolean;
@@ -986,6 +1008,7 @@ function TTelegramIntegration.GroupAdminList(AGroupID: string): string;
 var
   i: integer;
   s, urlTarget: string;
+  json: TJSONData;
 begin
   Result := '';
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
@@ -1007,16 +1030,17 @@ begin
     Exit;
 
   try
-    jsonData := GetJSON(FResultText);
+    json := GetJSON(FResultText);
     i := 0;
-    s := jsonGetData(jsonData, 'result[0]/user/username');
+    s := jsonGetData(json, 'result[0]/user/username');
     repeat
       if s <> '' then
         Result := Result + s + ',';
       i := i + 1;
-      s := jsonGetData(jsonData, 'result[' + i2s(i) + ']/user/username');
+      s := jsonGetData(json, 'result[' + i2s(i) + ']/user/username');
     until s = '';
     Result := copy(Result, 0, length(Result) - 1);
+    json.Free;
   except
   end;
 end;
@@ -1056,6 +1080,79 @@ begin
     Exit;
 
   FImageURL := format(TELEGRAM_FILEURL, [FToken]) + FImagePath;
+end;
+
+function TTelegramIntegration.KickUser(AChatID: string; AUserID: string;
+  AReason: string; AUntilDate: Integer): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if AChatID.IsEmpty then
+    Exit;
+  if AUserID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
+    [ChatID, AUserID, AUntilDate]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
+
+end;
+
+function TTelegramIntegration.RestrictUser(AChatID: string; AUserID: string;
+  AUntilDate: integer; ASendMessage: boolean; ASendMedia: boolean;
+  ASendOther: boolean; ASendWebPreview: boolean): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if AChatID.IsEmpty then
+    Exit;
+  if AUserID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
+    [ChatID, AUserID, AUntilDate, b2s(ASendMessage), b2s(ASendMedia), b2s(ASendOther), b2s(ASendWebPreview)]);
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
 end;
 
 
