@@ -73,7 +73,8 @@ msgstr ""
 msgid "Fastplaz Request Handler Default"
 msgstr ""
 
-#: fastplaz_handler.__result_default_option
+#: fastplaz_handler.__result_default_options
+msgctxt "fastplaz_handler.__result_default_options"
 msgid "Default OPTIONS Result"
 msgstr ""
 
