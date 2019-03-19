@@ -128,7 +128,7 @@ type
     function Open( AUniDirectional:Boolean = False): Boolean;
   end;
 
-function DataBaseInit( const RedirecURL:string = ''):boolean;
+function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
 
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
@@ -136,6 +136,9 @@ function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExec( SQL: string):boolean;
 function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName : boolean = True):boolean;
+
+var
+  QueryExecRowAffected: Integer;
 
 implementation
 
@@ -150,7 +153,8 @@ var
   DB_Transaction_Write : TSQLTransaction;
   DB_LibLoader_Write : TSQLDBLibraryLoader;
 
-function DataBaseInit(const RedirecURL: string):boolean;
+function DataBaseInit(const RedirecURL: string; const DBConfigName: string
+  ): boolean;
 var
   s : string;
 begin
@@ -161,6 +165,12 @@ begin
   AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
   AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
   AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
+
+  if not DBConfigName.IsEmpty then
+  begin
+    AppData.databaseRead := DBConfigName;
+    AppData.databaseWrite := DBConfigName;
+  end;
 
   // currentdirectory mesti dipindah
   //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
@@ -445,6 +455,7 @@ var
   q : TSQLQuery;
 begin
   Result:=false;
+  QueryExecRowAffected := -1;
   q := TSQLQuery.Create(nil);
   q.UniDirectional:=True;
   if AppData.databaseRead = AppData.databaseWrite then
@@ -461,6 +472,7 @@ begin
     q.SQL.Text:= SQL;
     q.ExecSQL;
     ResultJSON.Add( 'count', q.RowsAffected);
+    QueryExecRowAffected := q.RowsAffected;
     TSQLConnector( q.DataBase).Transaction.Commit;
     //DB_Connector.Transaction.Commit;
     Result:=True;
@@ -479,7 +491,8 @@ function QueryExec(SQL: string): boolean;
 var
   q : TSQLQuery;
 begin
-  Result:=false;
+  Result := false;
+  QueryExecRowAffected := -1;
   q := TSQLQuery.Create(nil);
   q.UniDirectional:=True;
   if AppData.databaseRead = AppData.databaseWrite then
@@ -495,6 +508,7 @@ begin
   try
     q.SQL.Text:= SQL;
     q.ExecSQL;
+    QueryExecRowAffected := q.RowsAffected;
     TSQLConnector( q.DataBase).Transaction.Commit;
     //DB_Connector.Transaction.Commit;
     Result:=True;
