@@ -38,7 +38,7 @@ resourcestring
   __Result_Default_Put = 'Default PUT Result';
   __Result_Default_Delete = 'Default DELETE Result';
   __Result_Default_Patch = 'Default PATCH Result';
-  __Result_Default_Option = 'Default OPTIONS Result';
+  __Result_Default_Options = 'Default OPTIONS Result';
   __Result_Default_Handler = 'Fastplaz Request Handler Default';
 
   __Content_Not_Found = 'Nothing Found';
@@ -147,7 +147,7 @@ type
     procedure Put; virtual;
     procedure Delete; virtual;
     procedure Patch; virtual;
-    procedure Option; virtual;
+    procedure Options; virtual;
 
     procedure LanguageInit;
     procedure CloseConnection( const AResponseContent: string = '');
@@ -943,7 +943,7 @@ begin
     end;
     'OPTIONS':
     begin
-      Option;
+      Options;
     end;
 
     else
@@ -985,9 +985,9 @@ begin
   Response.Content := __Result_Default_Delete;
 end;
 
-procedure TMyCustomWebModule.Option;
+procedure TMyCustomWebModule.Options;
 begin
-  Response.Content := __Result_Default_Option;
+  Response.Content := __Result_Default_Options;
 end;
 
 procedure TMyCustomWebModule.LanguageInit;
