@@ -514,6 +514,8 @@ begin
     Result:=True;
   except
     on E: Exception do begin
+      if AppData.debug then
+        LogUtil.Add( E.Message, 'DB');
     end;
   end;
   {$ifdef debug}
