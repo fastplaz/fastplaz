@@ -105,6 +105,7 @@ type
     function getGroupName: string;
     function getImageCaption: string;
     function getIsAdmin: boolean;
+    function getIsBot: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -177,6 +178,7 @@ type
     property GroupName: string read getGroupName;
     property IsGroup: boolean read getIsGroup;
     property IsAdmin: boolean read getIsAdmin;
+    property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
 
     property InvitedUserName: string read FInvitedUserName;
@@ -327,6 +329,15 @@ begin
   //TODO: check is admin
 end;
 
+function TTelegramIntegration.getIsBot: boolean;
+begin
+  Result := False;
+  try
+    Result := jsonData.GetPath('message.from.is_bot').AsBoolean;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getIsGroup: boolean;
 var
   s: string;
@@ -341,8 +352,9 @@ function TTelegramIntegration.getIsInvitation: boolean;
 begin
   Result := False;
   try
-    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
     FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
+    FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
+    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
   except
   end;
 
