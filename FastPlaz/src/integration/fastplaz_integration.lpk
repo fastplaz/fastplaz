@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="38">
+    <Files Count="39">
       <Item1>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -164,6 +164,10 @@
         <Filename Value="thesaurus_integration.pas"/>
         <UnitName Value="thesaurus_integration"/>
       </Item38>
+      <Item39>
+        <Filename Value="elasticsearch_integration.pas"/>
+        <UnitName Value="elasticsearch_integration"/>
+      </Item39>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

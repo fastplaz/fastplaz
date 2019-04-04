@@ -353,6 +353,9 @@ begin
   Result := False;
   try
     FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
+  except
+  end;
+  try
     FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
     FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
   except
