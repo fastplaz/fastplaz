@@ -23,7 +23,8 @@ uses
   openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
   resiibacor_integration, telegram_integration, whois_integration, 
   witai_integration, yandextranslate_integration, zomato_integration, 
-  googlegeocoding_integration, thesaurus_integration, LazarusPackageIntf;
+  googlegeocoding_integration, thesaurus_integration, 
+  elasticsearch_integration, LazarusPackageIntf;
 
 implementation
 
