@@ -85,6 +85,7 @@ begin
     Add('');
     Add('    procedure Get; override;');
     Add('    procedure Post; override;');
+    Add('    procedure Options; override;');
     Add('  end;');
     Add('');
   end;
@@ -142,6 +143,14 @@ begin
     Add('// POST Method Handler');
     Add('procedure ' + ModulTypeName + '.Post;');
     Add('Begin');
+    Add('  Response.Content := '''';');
+    Add('End;');
+    Add('');
+
+    Add('// POST Method Handler');
+    Add('procedure ' + ModulTypeName + '.Options;');
+    Add('Begin');
+    Add('  Response.Code := 204;');
     Add('  Response.Content := '''';');
     Add('End;');
     Add('');

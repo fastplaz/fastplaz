@@ -23,7 +23,7 @@ unit elasticsearch_integration;
     IndexName := 'the_index';
     TypeName  := 'the_type';
 
-    Data.Text := '{"query" : {"query_string" : {"query" : "tes*"}}}';
+    Data.Text := 'your_query_json';
     Query;
 
     if IsSuccessfull then
@@ -68,7 +68,7 @@ type
     procedure setTypeName(AValue: string);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     function CustomCommand(AFunction: string = ''): boolean;
     function Send: boolean;
     function Query: boolean;
@@ -85,9 +85,6 @@ type
   end;
 
 implementation
-
-var
-  Response: IHTTPResponse;
 
 { TElasticSearchIntegration }
 
@@ -148,6 +145,8 @@ end;
 destructor TElasticSearchIntegration.Destroy;
 begin
   FData.Free;
+
+  inherited;
 end;
 
 function TElasticSearchIntegration.CustomCommand(AFunction: string): boolean;
