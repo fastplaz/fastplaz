@@ -81,6 +81,7 @@ type
     FImageURL: string;
     FInvitedFullName: string;
     FInvitedUserName: string;
+    FInvitedUserId: string;
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
@@ -181,6 +182,7 @@ type
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
 
+    property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
     property InvitedFullName: string read FInvitedFullName;
 
@@ -357,6 +359,7 @@ begin
   end;
   try
     FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
+    FInvitedUserId := jsonData.GetPath('message.new_chat_member.id').AsString;
     FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
   except
   end;

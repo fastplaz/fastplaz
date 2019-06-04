@@ -147,7 +147,7 @@ begin
     Add('End;');
     Add('');
 
-    Add('// POST Method Handler');
+    Add('// OPTIONS Method Handler');
     Add('procedure ' + ModulTypeName + '.Options;');
     Add('Begin');
     Add('  Response.Code := 204;');
