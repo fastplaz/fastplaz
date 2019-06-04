@@ -578,7 +578,10 @@ end;
 
 procedure TJSONUtil.LoadFromJsonString(const JsonString: string);
 begin
-  FJsonObject := TJSONObject(GetJSON(JsonString));
+  try
+    FJsonObject := TJSONObject(GetJSON(JsonString));
+  except
+  end;
 end;
 
 end.
