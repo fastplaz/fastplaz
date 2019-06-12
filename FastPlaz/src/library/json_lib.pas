@@ -80,7 +80,7 @@ type
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
-    procedure LoadFromJsonString(const JsonString: string);
+    function LoadFromJsonString(const JsonString: string): boolean;
   end;
 
 
@@ -576,11 +576,13 @@ begin
   end;
 end;
 
-procedure TJSONUtil.LoadFromJsonString(const JsonString: string);
+function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
 begin
   try
     FJsonObject := TJSONObject(GetJSON(JsonString));
+    Result := true;
   except
+    Result := false;
   end;
 end;
 
