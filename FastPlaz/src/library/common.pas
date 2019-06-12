@@ -14,7 +14,7 @@ uses
   //netdb,
   resolve,
   zipper, strutils, dateutils, base64,
-  Classes, SysUtils, fastplaz_handler, config_lib;
+  Classes, SysUtils, fastplaz_handler, config_lib, array_helpers;
 
 const
   _APP = 'FastPlaz';
@@ -120,6 +120,9 @@ function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
   NewPatterns: string; IgnoreCase: boolean = False): string;
+
+function StripNumber(const AString:string): string;
+function StripNonNumber(const AString:string): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
@@ -878,6 +881,30 @@ begin
   Application.Response.Code := ACode;
   Application.Response.SendContent;
   Application.Terminate;
+end;
+
+function StripNumber(const AString: string): string;
+const
+  CHARS = ['0'..'9'];
+var
+  i : integer;
+begin
+  Result:='';
+  for i:=0 to length(AString) do
+    if not (AString[i] in CHARS) then
+  Result := Result + AString[i];
+end;
+
+function StripNonNumber(const AString: string): string;
+const
+  CHARS = ['0'..'9'];
+var
+  i : integer;
+begin
+  Result:='';
+  for i:=0 to length(AString) do
+    if (AString[i] in CHARS) then
+  Result := Result + AString[i];
 end;
 
 function AppendPathDelim(const Path: string): string;
