@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
-    <Files Count="39">
+    <Files Count="38">
       <Item1>
         <Filename Value="alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -85,89 +85,85 @@
         <UnitName Value="ibacortrainschedule_integration"/>
       </Item18>
       <Item19>
-        <Filename Value="jobplanet_integration.pas"/>
-        <UnitName Value="jobplanet_integration"/>
-      </Item19>
-      <Item20>
         <Filename Value="kamusibacor_integration.pas"/>
         <UnitName Value="kamusibacor_integration"/>
-      </Item20>
-      <Item21>
+      </Item19>
+      <Item20>
         <Filename Value="kamuskemdikbud_integration.pas"/>
         <UnitName Value="kamuskemdikbud_integration"/>
-      </Item21>
-      <Item22>
+      </Item20>
+      <Item21>
         <Filename Value="kamussunda_integration.pas"/>
         <UnitName Value="kamussunda_integration"/>
-      </Item22>
-      <Item23>
+      </Item21>
+      <Item22>
         <Filename Value="kawalpemilu_integration.pas"/>
         <UnitName Value="kawalpemilu_integration"/>
-      </Item23>
-      <Item24>
+      </Item22>
+      <Item23>
         <Filename Value="kloudlesscalendar_integration.pas"/>
         <UnitName Value="kloudlesscalendar_integration"/>
-      </Item24>
-      <Item25>
+      </Item23>
+      <Item24>
         <Filename Value="line_integration.pas"/>
         <UnitName Value="line_integration"/>
-      </Item25>
-      <Item26>
+      </Item24>
+      <Item25>
         <Filename Value="maskofajadwalshalat_integration.pas"/>
         <UnitName Value="maskofajadwalshalat_integration"/>
-      </Item26>
-      <Item27>
+      </Item25>
+      <Item26>
         <Filename Value="ombd_integration.pas"/>
         <UnitName Value="ombd_integration"/>
-      </Item27>
-      <Item28>
+      </Item26>
+      <Item27>
         <Filename Value="openweathermap_integration.pas"/>
         <UnitName Value="openweathermap_integration"/>
-      </Item28>
-      <Item29>
+      </Item27>
+      <Item28>
         <Filename Value="portalpulsa_integration.pas"/>
         <UnitName Value="portalpulsa_integration"/>
-      </Item29>
-      <Item30>
+      </Item28>
+      <Item29>
         <Filename Value="rajaongkir_integration.pas"/>
         <UnitName Value="rajaongkir_integration"/>
-      </Item30>
-      <Item31>
+      </Item29>
+      <Item30>
         <Filename Value="resiibacor_integration.pas"/>
         <UnitName Value="resiibacor_integration"/>
-      </Item31>
-      <Item32>
+      </Item30>
+      <Item31>
         <Filename Value="telegram_integration.pas"/>
         <UnitName Value="telegram_integration"/>
-      </Item32>
-      <Item33>
+      </Item31>
+      <Item32>
         <Filename Value="whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
-      </Item33>
-      <Item34>
+      </Item32>
+      <Item33>
         <Filename Value="witai_integration.pas"/>
         <UnitName Value="witai_integration"/>
-      </Item34>
-      <Item35>
+      </Item33>
+      <Item34>
         <Filename Value="yandextranslate_integration.pas"/>
         <UnitName Value="yandextranslate_integration"/>
-      </Item35>
-      <Item36>
+      </Item34>
+      <Item35>
         <Filename Value="zomato_integration.pas"/>
         <UnitName Value="zomato_integration"/>
-      </Item36>
-      <Item37>
+      </Item35>
+      <Item36>
         <Filename Value="googlegeocoding_integration.pas"/>
         <UnitName Value="googlegeocoding_integration"/>
-      </Item37>
-      <Item38>
+      </Item36>
+      <Item37>
         <Filename Value="thesaurus_integration.pas"/>
         <UnitName Value="thesaurus_integration"/>
-      </Item38>
-      <Item39>
+      </Item37>
+      <Item38>
         <Filename Value="elasticsearch_integration.pas"/>
         <UnitName Value="elasticsearch_integration"/>
-      </Item39>
+      </Item38>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
