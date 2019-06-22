@@ -51,7 +51,7 @@ end;
 function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, fpjson, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
 end;
 
 function TFileDescJSONModule.GetLocalizedName: string;
@@ -102,7 +102,7 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses common, json_lib;');
+    Add('uses common;');
     Add('');
 
     Add('constructor ' + ModulTypeName +
