@@ -185,6 +185,7 @@ function isIPAddress(const IPAddress: string): boolean;
 function isEmail(const s: string): boolean;
 function isDomain(const s: string): boolean;
 function GetHostNameIP( HostName: string): string;
+function GetUserIpAddress: string;
 
 function Exec(const AExeName: string; const AParameter: array of string;
   var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
@@ -1468,6 +1469,15 @@ begin
   Result := Result + lst[0];
   lst.Free;
 }
+end;
+
+function GetUserIpAddress: string;
+begin
+  Result := _SERVER['HTTP_CLIENT_IP'];
+  if not Result.IsEmpty then Exit;
+  Result := _SERVER['HTTP_X_FORWARDED_FOR'];
+  if not Result.IsEmpty then Exit;
+  Result := _SERVER['REMOTE_ADDR'];
 end;
 
 // example:
