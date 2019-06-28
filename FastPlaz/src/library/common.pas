@@ -1266,7 +1266,8 @@ begin
   if Length(DecodedStr) > 0 then
     for I := 1 to Length(DecodedStr) do
     begin
-      if not (DecodedStr[I] in ['0'..'9', 'a'..'z', 'A'..'Z', ' ']) then
+      if not (DecodedStr[I] in ['0'..'9', 'a'..'z', 'A'..'Z', ' ', '.', '-', '_']) then
+      //if not (DecodedStr[I] in ['0'..'9', 'a'..'z', 'A'..'Z', ' ']) then
         Result := Result + '%' + IntToHex(Ord(DecodedStr[I]), 2)
       else if not (DecodedStr[I] = ' ') then
         Result := Result + DecodedStr[I]
