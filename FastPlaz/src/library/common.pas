@@ -128,7 +128,7 @@ function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
 function ScanFolder(const APath: String; AWildCard:string = '*'):TStringList;
 function ZipFolder(APath: string; ATarget: string): boolean;
-function DownloadFile(const AURL: String;  const AFilePath: String):boolean;
+function DownloadFile(const AURL: String;  const AFilePath: String; AUserAgent: String = ''):boolean;
 function LoadFromFile(const AFileName: string): string;
 function SaveToFile(const AFileName: string; const AContent: string): boolean;
 
@@ -1020,7 +1020,8 @@ begin
   _Zipper.Free;
 end;
 
-function DownloadFile(const AURL: String; const AFilePath: String): boolean;
+function DownloadFile(const AURL: String; const AFilePath: String;
+  AUserAgent: String): boolean;
 begin
   Result := False;
   if (AURL='') or (AFilePath='') then
@@ -1030,6 +1031,8 @@ begin
   with TFPHTTPClient.Create(nil) do
   begin
     try
+      if not AUserAgent.IsEmpty then
+        AddHeader('User-Agent', AUserAgent);
       Get(AURL,AFilePath);
       Result := True;
     except
