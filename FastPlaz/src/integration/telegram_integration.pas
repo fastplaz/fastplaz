@@ -112,6 +112,7 @@ type
     function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
+    function getReplyFromID: string;
     function getText: string;
     function getUpdateID: integer;
     function getUserID: string;
@@ -177,6 +178,7 @@ type
     property UserName: string read getUserName;
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
+    property ReplyFromID: string read getReplyFromID;
     property IsGroup: boolean read getIsGroup;
     property IsAdmin: boolean read getIsAdmin;
     property IsBot: boolean read getIsBot;
@@ -400,6 +402,15 @@ begin
   Result := '';
   try
     Result := jsonData.GetPath('message.message_id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getReplyFromID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.id').AsString;
   except
   end;
 end;
