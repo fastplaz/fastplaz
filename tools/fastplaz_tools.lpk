@@ -21,7 +21,7 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit http://www.fastplaz.com
 "/>
-    <Version Minor="1" Release="2"/>
+    <Version Minor="1" Release="3"/>
     <Files Count="18">
       <Item1>
         <Filename Value="src\about_fastplaz.pas"/>

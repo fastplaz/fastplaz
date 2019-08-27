@@ -7,161 +7,162 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
+        <OtherUnitFiles Value="../FastPlaz/src/integration"/>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
     <Files Count="38">
       <Item1>
-        <Filename Value="alquranindonesia_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
       </Item1>
       <Item2>
-        <Filename Value="apixu_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/apixu_integration.pas"/>
         <UnitName Value="apixu_integration"/>
       </Item2>
       <Item3>
-        <Filename Value="bca_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/bca_integration.pas"/>
         <UnitName Value="bca_integration"/>
       </Item3>
       <Item4>
-        <Filename Value="bmkg_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/bmkg_integration.pas"/>
         <UnitName Value="bmkg_integration"/>
       </Item4>
       <Item5>
-        <Filename Value="botframework_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/botframework_integration.pas"/>
         <UnitName Value="botframework_integration"/>
       </Item5>
       <Item6>
-        <Filename Value="clarifai_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/clarifai_integration.pas"/>
         <UnitName Value="clarifai_integration"/>
       </Item6>
       <Item7>
-        <Filename Value="cognitiveanalyze_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/cognitiveanalyze_integration.pas"/>
         <UnitName Value="cognitiveanalyze_integration"/>
       </Item7>
       <Item8>
-        <Filename Value="cognitivecustomvision_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/cognitivecustomvision_integration.pas"/>
         <UnitName Value="cognitivecustomvision_integration"/>
       </Item8>
       <Item9>
-        <Filename Value="cognitivedomainspecific_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/cognitivedomainspecific_integration.pas"/>
         <UnitName Value="cognitivedomainspecific_integration"/>
       </Item9>
       <Item10>
-        <Filename Value="cognitiveocr_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/cognitiveocr_integration.pas"/>
         <UnitName Value="cognitiveocr_integration"/>
       </Item10>
       <Item11>
-        <Filename Value="currencyibacor_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/currencyibacor_integration.pas"/>
         <UnitName Value="currencyibacor_integration"/>
       </Item11>
       <Item12>
-        <Filename Value="facebookmessenger_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/facebookmessenger_integration.pas"/>
         <UnitName Value="facebookmessenger_integration"/>
       </Item12>
       <Item13>
-        <Filename Value="firebase_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/firebase_integration.pas"/>
         <UnitName Value="firebase_integration"/>
       </Item13>
       <Item14>
-        <Filename Value="googleanalytics_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/googleanalytics_integration.pas"/>
         <UnitName Value="googleanalytics_integration"/>
       </Item14>
       <Item15>
-        <Filename Value="googledistancematrix_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/googledistancematrix_integration.pas"/>
         <UnitName Value="googledistancematrix_integration"/>
       </Item15>
       <Item16>
-        <Filename Value="googleplacesearch_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/googleplacesearch_integration.pas"/>
         <UnitName Value="googleplacesearch_integration"/>
       </Item16>
       <Item17>
-        <Filename Value="ibacorpolicenumber_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/ibacorpolicenumber_integration.pas"/>
         <UnitName Value="ibacorpolicenumber_integration"/>
       </Item17>
       <Item18>
-        <Filename Value="ibacortrainschedule_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/ibacortrainschedule_integration.pas"/>
         <UnitName Value="ibacortrainschedule_integration"/>
       </Item18>
       <Item19>
-        <Filename Value="kamusibacor_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/kamusibacor_integration.pas"/>
         <UnitName Value="kamusibacor_integration"/>
       </Item19>
       <Item20>
-        <Filename Value="kamuskemdikbud_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/kamuskemdikbud_integration.pas"/>
         <UnitName Value="kamuskemdikbud_integration"/>
       </Item20>
       <Item21>
-        <Filename Value="kamussunda_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/kamussunda_integration.pas"/>
         <UnitName Value="kamussunda_integration"/>
       </Item21>
       <Item22>
-        <Filename Value="kawalpemilu_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/kawalpemilu_integration.pas"/>
         <UnitName Value="kawalpemilu_integration"/>
       </Item22>
       <Item23>
-        <Filename Value="kloudlesscalendar_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/kloudlesscalendar_integration.pas"/>
         <UnitName Value="kloudlesscalendar_integration"/>
       </Item23>
       <Item24>
-        <Filename Value="line_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/line_integration.pas"/>
         <UnitName Value="line_integration"/>
       </Item24>
       <Item25>
-        <Filename Value="maskofajadwalshalat_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/maskofajadwalshalat_integration.pas"/>
         <UnitName Value="maskofajadwalshalat_integration"/>
       </Item25>
       <Item26>
-        <Filename Value="ombd_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/ombd_integration.pas"/>
         <UnitName Value="ombd_integration"/>
       </Item26>
       <Item27>
-        <Filename Value="openweathermap_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/openweathermap_integration.pas"/>
         <UnitName Value="openweathermap_integration"/>
       </Item27>
       <Item28>
-        <Filename Value="portalpulsa_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/portalpulsa_integration.pas"/>
         <UnitName Value="portalpulsa_integration"/>
       </Item28>
       <Item29>
-        <Filename Value="rajaongkir_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/rajaongkir_integration.pas"/>
         <UnitName Value="rajaongkir_integration"/>
       </Item29>
       <Item30>
-        <Filename Value="resiibacor_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/resiibacor_integration.pas"/>
         <UnitName Value="resiibacor_integration"/>
       </Item30>
       <Item31>
-        <Filename Value="telegram_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/telegram_integration.pas"/>
         <UnitName Value="telegram_integration"/>
       </Item31>
       <Item32>
-        <Filename Value="whois_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/whois_integration.pas"/>
         <UnitName Value="whois_integration"/>
       </Item32>
       <Item33>
-        <Filename Value="witai_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/witai_integration.pas"/>
         <UnitName Value="witai_integration"/>
       </Item33>
       <Item34>
-        <Filename Value="yandextranslate_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/yandextranslate_integration.pas"/>
         <UnitName Value="yandextranslate_integration"/>
       </Item34>
       <Item35>
-        <Filename Value="zomato_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/zomato_integration.pas"/>
         <UnitName Value="zomato_integration"/>
       </Item35>
       <Item36>
-        <Filename Value="googlegeocoding_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/googlegeocoding_integration.pas"/>
         <UnitName Value="googlegeocoding_integration"/>
       </Item36>
       <Item37>
-        <Filename Value="thesaurus_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/thesaurus_integration.pas"/>
         <UnitName Value="thesaurus_integration"/>
       </Item37>
       <Item38>
-        <Filename Value="elasticsearch_integration.pas"/>
+        <Filename Value="../FastPlaz/src/integration/elasticsearch_integration.pas"/>
         <UnitName Value="elasticsearch_integration"/>
       </Item38>
     </Files>
