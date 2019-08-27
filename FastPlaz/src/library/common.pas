@@ -1032,7 +1032,11 @@ begin
   begin
     try
       if not AUserAgent.IsEmpty then
+      begin
         AddHeader('User-Agent', AUserAgent);
+        AddHeader('HTTP_USER_AGENT', AUserAgent);
+        AddHeader('USER_AGENT', AUserAgent);
+      end;
       Get(AURL,AFilePath);
       Result := True;
     except
