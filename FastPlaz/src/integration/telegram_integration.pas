@@ -110,6 +110,8 @@ type
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
+    function getIsPicture: boolean;
+    function getIsSticker: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
     function getReplyFromID: string;
@@ -203,6 +205,8 @@ type
 
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
+    property IsSticker: boolean read getIsSticker;
+    property IsPicture: boolean read getIsPicture;
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -379,6 +383,24 @@ begin
     Result := True;
     FLocationName := jsonData.GetPath('message.venue.title').AsString +
       ', ' + jsonData.GetPath('message.venue.address').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getIsPicture: boolean;
+begin
+  Result := isImage(False);
+end;
+
+function TTelegramIntegration.getIsSticker: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  try
+    s := jsonData.GetPath('message.sticker.file_id').AsString;
+    if not s.IsEmpty then
+      Result := True;
   except
   end;
 end;
