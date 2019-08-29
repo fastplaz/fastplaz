@@ -297,6 +297,10 @@ begin
   try
     Result := jsonData.GetPath('message.chat.type').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.chat.type').AsString;
+    except
+    end;
   end;
 end;
 
