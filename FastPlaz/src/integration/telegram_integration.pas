@@ -279,6 +279,10 @@ begin
     if Result = 'False' then
       Result := '';
   except
+    try
+      Result := jsonData.GetPath('edited_message.text').AsString;
+    except
+    end;
   end;
 end;
 
@@ -288,6 +292,10 @@ begin
   try
     Result := jsonData.GetPath('message.chat.id').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.chat.id').AsString;
+    except
+    end;
   end;
 end;
 
