@@ -464,6 +464,10 @@ begin
   try
     Result := jsonData.GetPath('message.from.id').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.id').AsString;
+    except
+    end;
   end;
 end;
 
@@ -473,6 +477,10 @@ begin
   try
     Result := jsonData.GetPath('message.from.username').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.username').AsString;
+    except
+    end;
   end;
 end;
 
