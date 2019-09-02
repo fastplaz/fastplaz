@@ -157,7 +157,7 @@ type
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
     function GroupMemberCount(AGroupID: string): integer;
-    function GroupAdminList(AGroupID: string): string;
+    function GroupAdminList(AGroupID: string; Formated: boolean = True): string;
 
     function isImage(ADetail: boolean = False): boolean;
     function KickUser(AChatID: string; AUserID: string; AReason: string; AUntilDate: Integer = 0):boolean;
@@ -464,6 +464,10 @@ begin
   try
     Result := jsonData.GetPath('message.from.id').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.id').AsString;
+    except
+    end;
   end;
 end;
 
@@ -473,6 +477,10 @@ begin
   try
     Result := jsonData.GetPath('message.from.username').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.username').AsString;
+    except
+    end;
   end;
 end;
 
@@ -1067,10 +1075,11 @@ begin
   Result := s2i(s);
 end;
 
-function TTelegramIntegration.GroupAdminList(AGroupID: string): string;
+function TTelegramIntegration.GroupAdminList(AGroupID: string; Formated: boolean
+  ): string;
 var
   i: integer;
-  s, urlTarget: string;
+  s, firstName, urlTarget: string;
   json: TJSONData;
 begin
   Result := '';
@@ -1095,17 +1104,24 @@ begin
   try
     json := GetJSON(FResultText);
     i := 0;
-    s := jsonGetData(json, 'result[0]/user/username');
+    s := jsonGetData(json, 'result[0]/user/id');
+    firstName := trim(jsonGetData(json, 'result[0]/user/first_name'));
+    s := '['+firstName+'](tg://user?id='+ s + ')';
     repeat
       if s <> '' then
-        Result := Result + s + ',';
+        Result := Result + s + ', ';
       i := i + 1;
-      s := jsonGetData(json, 'result[' + i2s(i) + ']/user/username');
+      s := jsonGetData(json, 'result[' + i2s(i) + ']/user/id');
+      if not s.IsEmpty then begin
+        firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/first_name'));
+        s := '['+firstName+'](tg://user?id='+ s + ')';
+      end;
     until s = '';
-    Result := copy(Result, 0, length(Result) - 1);
     json.Free;
   except
   end;
+  Result := Result.Trim;
+  Result := copy(Result, 0, length(Result) - 1);
 end;
 
 function TTelegramIntegration.isImage(ADetail: boolean): boolean;
