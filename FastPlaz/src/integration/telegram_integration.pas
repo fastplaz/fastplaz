@@ -114,6 +114,7 @@ type
     function getIsSticker: boolean;
     function getIsUserLeft: boolean;
     function getIsVoice: boolean;
+    function getLeftUserID: string;
     function getMessageID: string;
     function getReplyFromID: string;
     function getText: string;
@@ -178,6 +179,7 @@ type
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
     property UserID: string read getUserID;
+    property LeftUserID: string read getLeftUserID;
     property UserName: string read getUserName;
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
@@ -484,6 +486,17 @@ begin
     end;
   end;
 end;
+
+function TTelegramIntegration.getLeftUserID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.left_chat_member.id').AsString;
+  except
+  end;
+end;
+
+
 
 function TTelegramIntegration.getUserName: string;
 begin
