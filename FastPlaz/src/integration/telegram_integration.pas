@@ -112,6 +112,7 @@ type
     function getIsLocation: boolean;
     function getIsPicture: boolean;
     function getIsSticker: boolean;
+    function getIsUserLeft: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
     function getReplyFromID: string;
@@ -185,6 +186,7 @@ type
     property IsAdmin: boolean read getIsAdmin;
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
+    property IsUserLeft: boolean read getIsUserLeft;
 
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
@@ -386,6 +388,19 @@ begin
     Result := True;
 end;
 
+function TTelegramIntegration.getIsUserLeft: boolean;
+var
+  s: String;
+begin
+  Result := False;
+  try
+    s := jsonData.GetPath('message.left_chat_member.id').AsString;
+    Result := True;
+  except
+  end;
+end;
+
+
 function TTelegramIntegration.getIsLocation: boolean;
 begin
   Result := False;
@@ -416,7 +431,6 @@ begin
   except
   end;
 end;
-
 
 function TTelegramIntegration.getIsVoice: boolean;
 begin
