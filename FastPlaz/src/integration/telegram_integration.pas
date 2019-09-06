@@ -170,6 +170,9 @@ type
       ASendOther: boolean = false;
       ASendWebPreview: boolean = false
       ):boolean;
+
+    procedure SetWebHook(AValue: string);
+    function DeleteWebHook: boolean;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -221,6 +224,8 @@ type
     property ImagePath: string read FImagePath;
     property ImageCaption: string read getImageCaption;
 
+    property WebHook: string write SetWebHook;
+
   end;
 
 implementation
@@ -262,6 +267,26 @@ begin
     Exit;
   FToken := AValue;
   FURL := format(TELEGRAM_BASEURL, [FToken]);
+end;
+
+procedure TTelegramIntegration.SetWebHook(AValue: string);
+var
+  urlTarget: string;
+begin
+  if FURL.IsEmpty then Exit;
+  urlTarget := FURL + 'setWebhook?url=' + AValue;
+  file_get_contents(urlTarget);
+end;
+
+function TTelegramIntegration.DeleteWebHook: boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if FURL.IsEmpty then Exit;
+  urlTarget := FURL + 'setWebhook?url=';
+  file_get_contents(urlTarget);
+  //TODO: check if successfull
 end;
 
 procedure TTelegramIntegration.setRequestContent(AValue: string);
