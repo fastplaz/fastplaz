@@ -1131,7 +1131,7 @@ function TTelegramIntegration.GroupAdminList(AGroupID: string; Formated: boolean
   ): string;
 var
   i: integer;
-  s, firstName, urlTarget: string;
+  s, firstName, lastName, urlTarget: string;
   json: TJSONData;
 begin
   Result := '';
@@ -1158,6 +1158,8 @@ begin
     i := 0;
     s := jsonGetData(json, 'result[0]/user/id');
     firstName := trim(jsonGetData(json, 'result[0]/user/first_name'));
+    lastName := trim(jsonGetData(json, 'result[0]/user/last_name'));
+    firstName := trim(firstName+' '+lastName);
     s := '['+firstName+'](tg://user?id='+ s + ')';
     repeat
       if s <> '' then
@@ -1166,6 +1168,8 @@ begin
       s := jsonGetData(json, 'result[' + i2s(i) + ']/user/id');
       if not s.IsEmpty then begin
         firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/first_name'));
+        lastName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/last_name'));
+        firstName := trim(firstName+' '+lastName);
         s := '['+firstName+'](tg://user?id='+ s + ')';
       end;
     until s = '';
