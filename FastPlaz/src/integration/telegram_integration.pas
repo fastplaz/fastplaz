@@ -402,6 +402,8 @@ begin
   Result := False;
   try
     FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
+    FInvitedFullName := FInvitedFullName + ' ' + jsonData.GetPath('message.new_chat_member.last_name').AsString;
+    FInvitedFullName := trim(FInvitedFullName);
   except
   end;
   try
