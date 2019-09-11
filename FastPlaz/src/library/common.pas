@@ -837,6 +837,8 @@ var
   lst: TStringList;
 begin
   Result := '';
+  AName := AName.Replace('https://','');
+  AName := AName.Replace('http://','');
   AName := SafeText( AName);
   AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
   if not FileExists( AName) then
@@ -857,6 +859,8 @@ var
   lst: TStringList;
 begin
   Result := False;
+  AName := AName.Replace('https://','');
+  AName := AName.Replace('http://','');
   AName := SafeText( AName);
   AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
   lst := TStringList.Create;
