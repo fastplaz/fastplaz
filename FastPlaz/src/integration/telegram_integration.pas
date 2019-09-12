@@ -157,6 +157,8 @@ type
     function getUserName: string;
     procedure setRequestContent(AValue: string);
     procedure setToken(AValue: string);
+    procedure onGetUpdatesExecuteHandler;
+    procedure onGetUpdatesHandler( ATelegramResponse: String);
   public
     constructor Create;
     destructor Destroy;
@@ -164,8 +166,6 @@ type
     function getUpdates(const UpdateID: integer = 0): string;
 
     function getUpdatesDynamic(const UpdateID: integer = 0): Boolean;
-    procedure onGetUpdatesExecuteHandler;  //TODO: pindah ke private
-    procedure onGetUpdatesHandler( ATelegramResponse: String);  //TODO: pindah ke private
 
     function GetMe: string;
     function SendMessage(const ChatID: string = '0'; const Text: string = '';
@@ -268,7 +268,7 @@ type
     property ImageCaption: string read getImageCaption;
 
     property WebHook: string write SetWebHook;
-    property GetUpdatesContent: string read FGetUpdatesContent write FGetUpdatesContent; //TODO: hapus write
+    property GetUpdatesContent: string read FGetUpdatesContent;
   end;
 
 implementation
