@@ -71,6 +71,37 @@ const
 
 type
 
+  TShowStatusEvent = procedure(Status: String) of Object;
+  TExecuteHandlerEvent = procedure of Object;
+  TMessageHandler = procedure(AMessage: String; var AReply: String; var AHandled: Boolean) of Object;
+  TSendMessageEvent = procedure(const ChatID: string; const Text: string; const ReplyToMessageID: string) of Object;
+
+  { TTelegramSimpleThread }
+  TTelegramSimpleThread = class(TThread)
+  private
+    contentResult: String;
+    FOnExecuteHandler: TExecuteHandlerEvent;
+    FOnShowStatus: TShowStatusEvent;
+    procedure syncUpdate;
+  protected
+    procedure Execute; override;
+  public
+    property OnExecuteHandler: TExecuteHandlerEvent read FOnExecuteHandler write FOnExecuteHandler;
+    property OnShowStatus: TShowStatusEvent read FOnShowStatus write FOnShowStatus;
+  end;
+
+  { TTelegramSimpleSendThread }
+  TTelegramSimpleSendThread = class(TThread)
+  private
+    contentResult: String;
+    FOnExecuteHandler: TSendMessageEvent;
+  protected
+    procedure Execute; override;
+  public
+    ThreadChatID, ThreadChatText, ThreadReplyTo: string;
+    property OnExecuteHandler: TSendMessageEvent read FOnExecuteHandler write FOnExecuteHandler;
+  end;
+
   { TTelegramIntegration }
 
   TTelegramIntegration = class(TInterfacedObject)
@@ -85,6 +116,7 @@ type
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FOnMessage: TMessageHandler;
     FResultMessageID: string;
     FVoiceDuration: integer;
     FVoiceID: string;
@@ -100,6 +132,8 @@ type
     FResultText: string;
     FToken: string;
     FURL: string;
+    FGetUpdatesInProcess: Boolean;
+    FGetUpdatesContent: string;
     function getChatID: string;
     function getChatType: string;
     function getFullName: string;
@@ -128,11 +162,19 @@ type
     destructor Destroy;
 
     function getUpdates(const UpdateID: integer = 0): string;
+
+    function getUpdatesDynamic(const UpdateID: integer = 0): Boolean;
+    procedure onGetUpdatesExecuteHandler;  //TODO: pindah ke private
+    procedure onGetUpdatesHandler( ATelegramResponse: String);  //TODO: pindah ke private
+
     function GetMe: string;
     function SendMessage(const ChatID: string = '0'; const Text: string = '';
       const ReplyToMessageID: string = ''): boolean;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
       const ReplyToMessageID: integer = 0): boolean;
+    function SendMessageAsThread(const ChatID: string = '0'; const Text: string = '';
+      const ReplyToMessageID: string = ''): boolean;
+    procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
@@ -173,6 +215,7 @@ type
 
     procedure SetWebHook(AValue: string);
     function DeleteWebHook: boolean;
+    property OnMessage: TMessageHandler read FOnMessage write FOnMessage;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -225,7 +268,7 @@ type
     property ImageCaption: string read getImageCaption;
 
     property WebHook: string write SetWebHook;
-
+    property GetUpdatesContent: string read FGetUpdatesContent write FGetUpdatesContent; //TODO: hapus write
   end;
 
 implementation
@@ -257,6 +300,35 @@ const
 
 var
   Response: IHTTPResponse;
+
+{ TTelegramSimpleSendThread }
+
+procedure TTelegramSimpleSendThread.Execute;
+begin
+  if Assigned(FOnExecuteHandler) then
+  begin
+    FOnExecuteHandler(ThreadChatID,ThreadChatText,ThreadReplyTo);
+  end;
+end;
+
+{ TTelegramSimpleThread }
+
+procedure TTelegramSimpleThread.syncUpdate;
+begin
+  if Assigned(FOnShowStatus) then
+  begin
+    FOnShowStatus(contentResult);
+  end;
+end;
+
+procedure TTelegramSimpleThread.Execute;
+begin
+  if Assigned(FOnExecuteHandler) then
+  begin
+    FOnExecuteHandler();
+  end;
+  Synchronize(@syncUpdate);
+end;
 
 
 { TTelegramIntegration }
@@ -545,6 +617,7 @@ begin
   FLastUpdateID := 0;
   FIsSuccessfull := False;
   FDebug := True;
+  FGetUpdatesInProcess := False;
 end;
 
 destructor TTelegramIntegration.Destroy;
@@ -594,6 +667,73 @@ begin
     Free;
   end;
 
+end;
+
+function TTelegramIntegration.getUpdatesDynamic(const UpdateID: integer
+  ): Boolean;
+begin
+  Result := False;
+  if FGetUpdatesInProcess then Exit;
+  FGetUpdatesInProcess := True;
+  FGetUpdatesContent := '';
+  with TTelegramSimpleThread.Create(True) do
+  begin
+    FreeOnTerminate := True;
+    OnExecuteHandler := @onGetUpdatesExecuteHandler;
+    OnShowStatus := @onGetUpdatesHandler;
+    Start;
+  end;
+  Result := True;
+end;
+
+procedure TTelegramIntegration.onGetUpdatesExecuteHandler;
+begin
+  FGetUpdatesContent:= getUpdates(FLastUpdateID);
+end;
+
+procedure TTelegramIntegration.onGetUpdatesHandler(ATelegramResponse: String
+  );
+var
+  i, indexResult: integer;
+  s: string;
+  jData: TJSONData;
+  aData, item: TJSONArray;
+  aReply: string;
+  aHandled: boolean;
+begin
+  // get result from FGetUpdatesContent
+  if not Assigned(FOnMessage) then
+    Exit;
+
+  try
+    jData := GetJSON(FGetUpdatesContent);
+    if jData.GetPath('ok').AsBoolean then
+    begin
+      indexResult := TJSONObject(jData).IndexOfName('result');
+      if indexResult <> -1 then
+      begin
+        aData := TJSONArray(jData.Items[indexResult]);
+        i := aData.Count;
+        for i:= 0 to aData.count - 1 do
+        begin
+          s := jData.GetPath('result['+i2s(i)+']').AsJSON;
+          RequestContent := s;
+          FLastUpdateID := UpdateID+1;
+
+          aReply := '';
+          aHandled := false;
+          FOnMessage(Text, aReply, aHandled);
+          if aHandled then
+          begin
+            SendMessageAsThread(ChatID, aReply);
+          end;
+        end;
+      end;
+    end;
+  except
+  end;
+
+  FGetUpdatesInProcess := False;
 end;
 
 function TTelegramIntegration.GetMe: string;
@@ -680,6 +820,28 @@ begin
     SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID));
   except
   end;
+end;
+
+function TTelegramIntegration.SendMessageAsThread(const ChatID: string;
+  const Text: string; const ReplyToMessageID: string): boolean;
+begin
+  if ChatID.IsEmpty then Exit;
+  if Text.IsEmpty then Exit;
+  with TTelegramSimpleSendThread.Create(True) do
+  begin
+    ThreadChatID := ChatID;
+    ThreadChatText := Text;
+    ThreadReplyTo := ReplyToMessageID;
+    FreeOnTerminate := True;
+    OnExecuteHandler := @SendMessageAsThreadExecute;
+    Start;
+  end;
+end;
+
+procedure TTelegramIntegration.SendMessageAsThreadExecute(const ChatID: string;
+  const Text: string; const ReplyToMessageID: string);
+begin
+  SendMessage(ChatID, Text, ReplyToMessageID);
 end;
 
 function TTelegramIntegration.EditMessage(const ChatID: string;
