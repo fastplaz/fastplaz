@@ -10,6 +10,13 @@
         <OtherUnitFiles Value="../FastPlaz/src/integration"/>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
+      <Linking>
+        <Debugging>
+          <UseHeaptrc Value="True"/>
+          <TrashVariables Value="True"/>
+          <GenGProfCode Value="True"/>
+        </Debugging>
+      </Linking>
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz"/>
     <Files Count="38">

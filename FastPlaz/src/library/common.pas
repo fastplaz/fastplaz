@@ -262,7 +262,8 @@ function s2b(s: string): boolean;
 begin
   Result := False;
   try
-    Result := StrToBool(s);
+    //Result := StrToBool(s);
+    TryStrToBool(s, Result)
   except
   end;
   if s = 'on' then
