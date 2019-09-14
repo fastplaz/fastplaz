@@ -657,16 +657,21 @@ begin
       if i <> -1 then
       begin
         a := TJSONArray(j.Items[i]);
-        a := TJSONArray(a.Items[0]);
-        a := TJSONArray(a.Items[0]);
-        FLastUpdateID := StrToInt64(a.AsJSON) + 1;
+        if a.Count>1 then a := TJSONArray(a.Items[0]);
+        if a.Count>1 then
+        begin
+          a := TJSONArray(a.Items[0]);
+          FLastUpdateID := s2i(a.AsJSON) + 1;
+        end;
       end;
 
     except
+      on E:Exception do
+      begin
+      end;
     end;
     Free;
   end;
-
 end;
 
 function TTelegramIntegration.getUpdatesDynamic(const UpdateID: integer
