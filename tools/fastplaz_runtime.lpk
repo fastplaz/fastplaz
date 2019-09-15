@@ -12,12 +12,6 @@
         <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about;..\FastPlaz\src\model;..\FastPlaz\src\util;..\FastPlaz\src\integration;..\FastPlaz\src\helper"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
-      <Linking>
-        <Debugging>
-          <UseHeaptrc Value="True"/>
-          <TrashVariables Value="True"/>
-        </Debugging>
-      </Linking>
       <Other>
         <ConfigFile>
           <CustomConfigFile Value="True"/>
