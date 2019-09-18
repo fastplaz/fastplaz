@@ -177,6 +177,7 @@ type
     procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
+    function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
@@ -281,6 +282,7 @@ const
     'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_EDITMESSAGE =
     'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
+  TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
@@ -886,6 +888,39 @@ begin
     Free;
   end;
 
+  Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.DeleteMessage(const AChatID: string;
+  AMessageID: string): boolean;
+var
+  s, urlTarget: string;
+begin
+  Result := False;
+
+  if AChatID.IsEmpty or AMessageID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_DELETEMESSAGE,
+    [AChatID, AMessageID]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      Result := False;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
   Result := FIsSuccessfull;
 end;
 
