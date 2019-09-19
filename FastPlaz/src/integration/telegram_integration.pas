@@ -1036,20 +1036,19 @@ begin
   if (ChatID = '') or (AImageURL = '') or (FURL = '') then
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO,
-    [s2i(ChatID), Caption, FParseMode]);
+    [s2i(ChatID), UrlEncode(Caption), FParseMode]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
+  urlTarget := urlTarget + '&chat_id=' + ChatID;
+  urlTarget := urlTarget + '&photo=' + AImageURL;
   with THTTPLib.Create(urlTarget) do
   begin
     try
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
-      FormData['chat_id'] := ChatID;
-      FormData['caption'] := Caption;
-      FormData['photo'] := AImageURL;
-      Response := Post;
+      Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
 
