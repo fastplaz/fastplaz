@@ -162,6 +162,7 @@ procedure ta(const Message: variant; Width: integer = 800; Height: integer = 200
 procedure Die(const Message: string = ''; ACode: integer = 200); overload;
 procedure Die(const Number: integer; ACode: integer = 200); overload;
 procedure Die(const Message: TStringList; ACode: integer = 200); overload;
+procedure OutputJson(const ACode: integer; AMessage: string);
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
@@ -671,6 +672,15 @@ end;
 procedure Die(const Message: TStringList; ACode: integer);
 begin
   Die('<pre>' + Message.Text + '</pre>', ACode);
+end;
+
+procedure OutputJson(const ACode: integer; AMessage: string);
+var
+  s: string;
+begin
+  Application.Response.ContentType := 'application/json';
+  s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
+  die(s, ACode);
 end;
 
 function WordNumber(s: string): integer;
@@ -1553,6 +1563,7 @@ const
   end;
 
 begin
+  exitstatus:= 0;
   p := TProcess.Create(nil);
   p.Executable := AExeName;
   if high(AParameter) >= 0 then
