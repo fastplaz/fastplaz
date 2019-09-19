@@ -283,7 +283,7 @@ const
   TELEGRAM_COMMAND_EDITMESSAGE =
     'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
-  TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
+  TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
   TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
@@ -997,7 +997,7 @@ begin
     Exit;
   if not FileExists(FileName) then
     Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [ChatID, Caption, FParseMode]);
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [i2s(ChatID), Caption, FParseMode]);
   if ReplyToMessageID <> 0 then
     urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
 
@@ -1036,7 +1036,7 @@ begin
   if (ChatID = '') or (AImageURL = '') or (FURL = '') then
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO,
-    [s2i(ChatID), UrlEncode(Caption), FParseMode]);
+    [ChatID, UrlEncode(Caption), FParseMode]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
