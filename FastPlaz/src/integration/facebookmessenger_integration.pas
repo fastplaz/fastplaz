@@ -204,7 +204,7 @@ const
   _FACEBOOK_MESSENGER_SEND_AUDIO_JSON =
     '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"audio","payload":{"url":"%s"}}}}';
   _FACEBOOK_MESSENGER_SEND_IMAGE_JSON =
-    '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"image","payload":{"url":"%s"}}}}';
+    '{"recipient":{"id":"%s"},"message":{"attachment":{"type":"image","payload":{"url":"%s","is_reusable":true}}}}';
   _FACEBOOK_MESSENGER_ASK_LOCATION =
     '{"recipient": {"id": "%s"},"message": {"text": "%s","quick_replies": [{"content_type": "location"}]}}';
   _FACEBOOK_MESSENGER_SEND_CALL =

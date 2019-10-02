@@ -24,6 +24,8 @@ type
   private
     function getValue(const AKeyName: string): string;
   public
+    function IndexOfName(const AIndexName: string): Integer;
+    function Delete(const AIndexName: string): boolean;
     property Value[const AKeyName: string]: string read getValue;
   end;
 
@@ -41,6 +43,23 @@ begin
     Result := jsonGetData(Self, s);
   except
   end;
+end;
+
+function TJsonSmartHelper.IndexOfName(const AIndexName: string): Integer;
+begin
+  Result := TJSONObject(Self).IndexOfName(AIndexName);
+end;
+
+function TJsonSmartHelper.Delete(const AIndexName: string): boolean;
+var
+  indexOfField: integer;
+begin
+  Result := False;
+  indexOfField := TJSONObject(Self).IndexOfName(AIndexName);
+  if indexOfField = -1 then
+    Exit;
+  TJSONObject(Self).Delete(indexOfField);
+  Result := True;
 end;
 
 end.
