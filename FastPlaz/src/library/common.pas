@@ -74,7 +74,7 @@ const
 
 type
   CharSet=Set of Char;
-  TStringArray = array of string;
+  //TStringArray = array of string;
 
   { TLocalJSONParser }
 

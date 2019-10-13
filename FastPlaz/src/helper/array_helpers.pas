@@ -31,6 +31,10 @@ type
   TArraySmartHelper = type helper for TStringArray
     class function CreateFromDelimitedString(DelimString: String): TStringArray static;
     class function IndexOf(AString: String): integer static; overload; inline;
+  public
+    function Length: integer; overload; inline;
+    function Count: integer; overload; inline;
+    procedure Add(AString: String); overload; inline;
   end;
 
 
@@ -46,19 +50,29 @@ end;
 class function TArraySmartHelper.CreateFromDelimitedString(DelimString: String
   ): TStringArray;
 begin
-
+  //todo:
 end;
 
 class function TArraySmartHelper.IndexOf(AString: String): integer;
 begin
-
+  //todo:
 end;
 
-{ TArraySmartHelper }
+function TArraySmartHelper.Length: integer;
+begin
+  Result := Count;
+end;
 
+function TArraySmartHelper.Count: integer;
+begin
+  Result := system.Length(Self);
+end;
 
-
-
+procedure TArraySmartHelper.Add(AString: String);
+begin
+  SetLength(Self, system.Length(Self)+1);
+  Self[system.Length(Self)-1] := AString;
+end;
 
 end.
 
