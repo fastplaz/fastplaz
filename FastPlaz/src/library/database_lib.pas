@@ -670,7 +670,7 @@ begin
       begin
         LogUtil.add( E.Message, 'DB');
         LogUtil.add( Data.SQL.Text, 'DB');
-        s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
+        s := #10'<pre>'#10+Data.SQL.Text+#10'</pre>'#10;
       end;
       die( E.Message + s);
       DisplayError( E.Message + s);
