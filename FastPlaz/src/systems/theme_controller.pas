@@ -832,7 +832,7 @@ begin
   Result := '';
   //if SessionController.IsStarted then
   //  Exit;;
-  lst := TStrings.Create;
+  lst := TStringList.Create;
   lst.Text := SessionController.GetData;
   html := '<div class="debug">';
   html := html + '<fieldset>';

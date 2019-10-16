@@ -66,6 +66,7 @@ const
   _WORDPRESS_PLUGINS_POLYLANG = 'wordpress/plugins/polylang';
 
   OK = 'OK';
+  FAILED = 'FAILED';
 
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';

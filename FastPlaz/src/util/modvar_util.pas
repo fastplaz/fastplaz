@@ -48,7 +48,6 @@ function TModvarUtil.GetValue(Name: string): variant;
 var
   lst : TStrings;
   modname, varname, varvalue : string;
-  varresult : variant;
 begin
   Result := '';
   modname:= 'system';
