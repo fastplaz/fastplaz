@@ -86,7 +86,7 @@ type
 
     function All:boolean;
     function GetAll( Limit: Integer = 0; Offset: Integer = 0):boolean;
-    function AsJson(NoFieldName: boolean = False): TJSONArray;
+    function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
@@ -895,7 +895,7 @@ begin
   Result := true;
 end;
 
-function TSimpleModel.AsJson(NoFieldName: boolean): TJSONArray;
+function TSimpleModel.AsJsonArray(NoFieldName: boolean): TJSONArray;
 begin
   Result := TJSONArray.Create;
   DataToJSON(Data, Result, NoFieldName);

@@ -358,8 +358,8 @@ function StringHumanToNominal(StrHuman: string): string;
 begin
   Result := StrHuman;
   Result := ReplaceAll( Result,
-    ['satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan'],
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9'], False);
+    ['satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'enem', 'tujuh', 'delapan', 'lapan', 'sembilan'],
+    ['1', '2', '3', '4', '5', '6', '6', '7', '8', '8', '9'], False);
   Result := StringReplace( Result, 'puluh', '0', [rfReplaceAll]);
   Result := StringReplace( Result, 'ratus', '00', [rfReplaceAll]);
   Result := StringReplace( Result, 'rb', '000', [rfReplaceAll]);
