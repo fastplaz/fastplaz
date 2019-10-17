@@ -23,6 +23,8 @@ type
 
   TSimpleModel = class
   private
+    FFieldPrefix: string;
+    FRecordCountFromArray: Integer;
     AMessage: string;
     FConnector : TSQLConnector;
     FFieldList : TStrings;
@@ -69,6 +71,7 @@ type
     procedure SetFieldValue( FieldName: String; AValue: Variant);
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
+    property FieldPrefix: string read FFieldPrefix write FFieldPrefix;
     property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
@@ -82,7 +85,8 @@ type
     function Exec( ASQL:String): boolean;
 
     function All:boolean;
-    function GetAll:boolean;
+    function GetAll( Limit: Integer = 0; Offset: Integer = 0):boolean;
+    function AsJson(NoFieldName: boolean = False): TJSONArray;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
@@ -611,6 +615,11 @@ end;
 function TSimpleModel.GetRecordCount: Longint;
 begin
   Result := -1;
+  if FRecordCountFromArray > 0 then
+  begin
+    Result := FRecordCountFromArray;
+    Exit;
+  end;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
 end;
@@ -762,10 +771,10 @@ function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
   try
-    if Data.FieldByName( FieldName).AsVariant = null then
+    if Data.FieldByName( FFieldPrefix + FieldName).AsVariant = null then
       Result := ''
     else
-      Result := Data.FieldByName( FieldName).AsVariant;
+      Result := Data.FieldByName( FFieldPrefix + FieldName).AsVariant;
   except
     on E: Exception do begin
       die( 'getFieldValue: ' + e.Message);
@@ -794,9 +803,11 @@ begin
   FScriptWhere := '';
   FScriptLimit := '';
   FScriptOrderBy := '';
+  FFieldPrefix := '';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   AMessage := '';
+  FRecordCountFromArray := 0;
   FConnector := DB_Connector;
   if DefaultTableName = '' then
   begin
@@ -874,12 +885,21 @@ end;
 same with:
   Object.Find([]);
 }
-function TSimpleModel.GetAll: boolean;
+function TSimpleModel.GetAll(Limit: Integer; Offset: Integer): boolean;
 begin
   _queryPrepare;
   Data.SQL.Text := 'SELECT ' + FSelectField + ' FROM ' + FTableName;
+  if Limit > 0 then
+    Data.SQL.Add('LIMIT ' + i2s(Limit));
   _queryOpen;
   Result := true;
+end;
+
+function TSimpleModel.AsJson(NoFieldName: boolean): TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  DataToJSON(Data, Result, NoFieldName);
+  FRecordCountFromArray := Result.Count;
 end;
 
 function TSimpleModel.Find(const KeyIndex: integer): boolean;
