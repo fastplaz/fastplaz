@@ -23,6 +23,7 @@ type
   TStringSmartHelper = type helper(TStringHelper) for AnsiString
   public
     function AsDateTime: TDateTime; overload; inline;
+    function AsInteger: Integer; overload; inline;
     function UrlEncode: AnsiString; overload; inline;
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
@@ -45,6 +46,11 @@ implementation
 function TStringSmartHelper.AsDateTime: TDateTime;
 begin
   Result := StrToDateTime( Self);
+end;
+
+function TStringSmartHelper.AsInteger: Integer;
+begin
+  Result := s2i(Self);
 end;
 
 function TStringSmartHelper.UrlEncode: AnsiString;
