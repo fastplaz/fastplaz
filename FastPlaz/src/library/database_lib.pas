@@ -165,6 +165,11 @@ begin
   Result := False;
   AppData.useDatabase := True;
 
+  if DB_Connector.Connected then
+  begin
+    Result := True;
+  end;
+
   // multidb - prepare
   AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
   AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
@@ -372,6 +377,7 @@ begin
     Result := True;
   except
     on E: Exception do begin
+      DisplayError(e.Message);
     end;
   end;
 

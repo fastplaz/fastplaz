@@ -4,10 +4,11 @@
 
 unit fastplaz_extras;
 
+{$warn 5023 off : no warning about unused units}
 interface
 
 uses
-  fastplaz_extras_register, redis_lib, redis_controller;
+  fastplaz_extras_register, redis_lib, redis_controller, hash_tools;
 
 implementation
 

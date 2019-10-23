@@ -9,7 +9,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\FastPlaz"/>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about;..\FastPlaz\src\vendor\dcrypt"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -20,7 +20,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz Extras Library"/>
-    <Files Count="3">
+    <Files Count="4">
       <Item1>
         <Filename Value="src\fastplaz_extras_register.pas"/>
         <HasRegisterProc Value="True"/>
@@ -34,6 +34,10 @@
         <Filename Value="..\FastPlaz\src\systems\redis_controller.pas"/>
         <UnitName Value="redis_controller"/>
       </Item3>
+      <Item4>
+        <Filename Value="..\FastPlaz\src\vendor\dcrypt\hash_tools.pas"/>
+        <UnitName Value="hash_tools"/>
+      </Item4>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
