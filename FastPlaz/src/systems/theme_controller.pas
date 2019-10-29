@@ -1299,7 +1299,9 @@ procedure TThemeUtil.ForeachProcessor_Table_TagController(Sender: TObject;
   const TagString: string; TagParams: TStringList; out ReplaceText: string);
 var
   tagstring_custom : TStringList;
-  filter : string;
+  filter, dateAsString : string;
+  sdf: ansistring;
+  dateAsLongInt: LongInt;
   i : integer;
 begin
   if ForeachTable_Keyname = '' then
@@ -1337,12 +1339,27 @@ begin
   begin
     if tagstring_custom.Values['dateformat'] = 'human' then
     begin
-      ReplaceText := DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+      try
+        ReplaceText := DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+      except
+        dateAsString := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        ReplaceText := DateTimeHuman( dateAsString);
+      end;
     end
     else
-      ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
-        TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-      );
+    begin
+      try
+        ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
+          TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+        );
+      except
+        sdf := DefaultFormatSettings.ShortDateFormat;
+        DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd';
+        dateAsLongInt:= TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsInteger;
+        DefaultFormatSettings.ShortDateFormat := sdf;
+        ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'], UnixToDateTime(dateAsLongInt));
+      end;
+    end;
   end
   else
   begin

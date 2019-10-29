@@ -76,7 +76,7 @@ begin
   with str do
   begin
     Add('type');
-    Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
+    Add('  ' + ModulTypeName + ' = class(TMyCustomController)');
     //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
@@ -192,7 +192,7 @@ begin
         begin
           if edt_ModuleName.Text <> '' then
             ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]) + 'Module';
+              ' ', '', [rfReplaceAll]) + 'Controller';
           Permalink := edt_Permalink.Text;
           if Permalink = '' then
           begin

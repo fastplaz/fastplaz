@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'Module Generator - Simple';
+  rs_Mod_Default_Name = 'Controller Generator - Simple';
   rs_Mod_Default_Description = 'Create FastPlaz simple module';
 
 type
@@ -145,7 +145,7 @@ begin
   with str do
   begin
     Add('type');
-    Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
+    Add('  ' + ModulTypeName + ' = class(TMyCustomController)');
     //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     if not IsAPI then
@@ -316,7 +316,7 @@ begin
         begin
           if edt_ModuleName.Text <> '' then
             ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]) + 'Module';
+              ' ', '', [rfReplaceAll]) + 'Controller';
           Permalink := edt_Permalink.Text;
           if Permalink = '' then
           begin
@@ -329,7 +329,7 @@ begin
     end
     else
     begin
-      ModulTypeName := 'T' + ucwords(_GlobalProjectName) + 'Module';
+      ModulTypeName := 'T' + ucwords(_GlobalProjectName) + 'Controller';
       Permalink := 'main';
     end;
   end;

@@ -48,6 +48,14 @@ begin
 
   //ts.ShortDateFormat := 'yyyy/MM/dd h:nn';
   sdf := DefaultFormatSettings.ShortDateFormat;
+
+  DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd';
+  try
+    dateTmp := UnixToDateTime(s2i(TheDate));
+    TheDate := DateTimeToStr(dateTmp);
+  except
+  end;
+
   DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd h:nn';
   try
     //dateTmp := StrToDateTime(TheDate, ts);

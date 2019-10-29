@@ -1,5 +1,5 @@
 object fModuleSimpleWizard: TfModuleSimpleWizard
-  Left = 908
+  Left = 873
   Height = 247
   Top = 287
   Width = 407
@@ -12,7 +12,7 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   OnCreate = FormCreate
   Position = poScreenCenter
   SessionProperties = 'Top;Left'
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '2.0.4.0'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
@@ -29,8 +29,8 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
       Left = 6
       Height = 22
       Top = 4
-      Width = 204
-      Caption = 'Module Simple Wizard'
+      Width = 211
+      Caption = 'Simple Controller Wizard'
       Font.Height = -19
       ParentColor = False
       ParentFont = False
@@ -38,8 +38,8 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
   end
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 30
-    Top = 211
+    Height = 36
+    Top = 205
     Width = 395
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -58,15 +58,15 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     Left = 10
     Height = 16
     Top = 49
-    Width = 95
-    Caption = 'Module Name :'
+    Width = 106
+    Caption = 'Controller Name :'
     ParentColor = False
   end
   object edt_ModuleName: TEdit
-    Left = 94
-    Height = 22
+    Left = 126
+    Height = 21
     Top = 46
-    Width = 302
+    Width = 270
     OnChange = edt_ModuleNameChange
     TabOrder = 0
     Text = 'Sample'
@@ -78,7 +78,7 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     Width = 376
     Lines.Strings = (
       ''
-      'This is Module Generator for FastPlaz'
+      'This is Controller Generator for FastPlaz'
       ''
     )
     ReadOnly = True
@@ -88,15 +88,15 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     Left = 10
     Height = 16
     Top = 76
-    Width = 70
+    Width = 67
     Caption = 'Permalink :'
     ParentColor = False
   end
   object edt_Permalink: TEdit
-    Left = 94
-    Height = 22
+    Left = 126
+    Height = 21
     Top = 74
-    Width = 302
+    Width = 270
     OnChange = edt_PermalinkChange
     TabOrder = 1
     Text = 'sample'
@@ -105,7 +105,7 @@ object fModuleSimpleWizard: TfModuleSimpleWizard
     Left = 94
     Height = 16
     Top = 104
-    Width = 178
+    Width = 160
     Caption = 'http://yourdomain/sample/'
     ParentColor = False
   end
