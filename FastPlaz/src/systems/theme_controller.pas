@@ -118,6 +118,7 @@ type
     procedure AddHit( const URL:string);
 
     function wpautop( Content:string; BR:boolean = true):string;
+    function MultiFilter( AContent:string):string;
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
 
@@ -531,6 +532,11 @@ begin
   Result := html;
 end;
 
+function TThemeUtil.MultiFilter(AContent: string): string;
+begin
+  Result := FormatTextLikeForum(AContent);
+end;
+
 function TThemeUtil.GetHitCount(const URL: String): integer;
 var
   s : string;
@@ -595,6 +601,10 @@ begin
     'permalink' :
     begin
       Result := HTMLUtil.Permalink( Content);
+    end;
+    'multifilter' :
+    begin
+      Result := MultiFilter( Content);
     end;
   end;
 end;
@@ -851,7 +861,7 @@ begin
   Result := html;
 end;
 
-function TThemeUtil.GetVersionInfo: boolean;
+function TThemeUtil.GetVersionInfo(): boolean;
 begin
   if VersionInfo.FullVersion = '' then
   begin
@@ -1043,7 +1053,7 @@ begin
         'dataset' : begin
           html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], Match[2]);
         end;
-        'json' : begin
+        'jsondata' : begin
           html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], Match[2]);
         end;
         {$ifdef GREYHOUND}
