@@ -61,7 +61,6 @@ type
 
     function ReCaptcha(const PublicKey: string; const Version: string = 'v1'): string;
     function Permalink(Title: string): string;
-    function CleanURL(Title: string): string;
 
     function AddMenu(Title, Icon, URL: string; RgihtLabel: string = '';
       IsAjax: boolean = False; AjaxTarget: string = ''): TJSONObject;
@@ -481,12 +480,7 @@ end;
 
 function THTMLUtil.Permalink(Title: string): string;
 begin
-  Result := CleanUrl(Title);
-end;
-
-function THTMLUtil.CleanURL(Title: string): string;
-begin
-  Result := CleanUrl(Title);
+  Result := SafeText(Title.ToLower).Replace('--', '-').Replace('--', '-');
 end;
 
 function THTMLUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;

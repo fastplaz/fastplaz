@@ -73,6 +73,9 @@ const
 
   _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
 
+  __NORMAL_SENTENCES = '0-9a-zA-z\ \r\n\-\+*&#!?''".,:;=()';
+  __NORMAL_SENTENCES_WITH_SLASH = '0-9a-zA-z\ \/\r\n\-\+*&#!?''".,:;=()<>';
+
 type
   CharSet=Set of Char;
   //TStringArray = array of string;
@@ -174,6 +177,8 @@ function UrlDecode(const EncodedStr: string): string;
 function base64_encode(const AStr: string): string;
 function base64_decode(const AStr: string): string;
 function ucwords(const str: string): string;
+function HTMLDecode(const AStr: String): String;
+function FormatTextLikeForum(const AContent: String):String;
 
 function file_get_contents(TargetURL: string): string;
 function FileCopy(ASource, ATarget: string): boolean;
@@ -585,9 +590,9 @@ end;
 
 function SafeText(const SourceString: string): string;
 const
-  NotAllowed: array[1..24] of string =
+  NotAllowed: array[1..25] of string =
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
-    '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`'
+    '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`', ''''
     );
 begin
   Result := ReplaceAll(SourceString, NotAllowed, '-');
@@ -1373,6 +1378,96 @@ begin
       s[i + 1] := upcase(s[i + 1]);
   end;
   Result := trim(s);
+end;
+
+function HTMLDecode(const AStr: String): String;
+var
+  Sp, Rp, Cp, Tp: PChar;
+  S: String;
+  I, Code: Integer;
+begin
+  SetLength(Result, Length(AStr));
+  Sp := PChar(AStr);
+  Rp := PChar(Result);
+  Cp := Sp;
+  try
+    while Sp^ <> #0 do
+    begin
+      case Sp^ of
+        '&': begin
+               Cp := Sp;
+               Inc(Sp);
+               case Sp^ of
+                 'a': if AnsiStrPos(Sp, 'amp;') = Sp then  { do not localize }
+                      begin
+                        Inc(Sp, 3);
+                        Rp^ := '&';
+                      end;
+                 'l',
+                 'g': if (AnsiStrPos(Sp, 'lt;') = Sp) or (AnsiStrPos(Sp, 'gt;') = Sp) then { do not localize }
+                      begin
+                        Cp := Sp;
+                        Inc(Sp, 2);
+                        while (Sp^ <> ';') and (Sp^ <> #0) do
+                          Inc(Sp);
+                        if Cp^ = 'l' then
+                          Rp^ := '<'
+                        else
+                          Rp^ := '>';
+                      end;
+                 'n': if AnsiStrPos(Sp, 'nbsp;') = Sp then  { do not localize }
+                      begin
+                        Inc(Sp, 4);
+                        Rp^ := ' ';
+                      end;
+                 'q': if AnsiStrPos(Sp, 'quot;') = Sp then  { do not localize }
+                      begin
+                        Inc(Sp,4);
+                        Rp^ := '"';
+                      end;
+                 '#': begin
+                        Tp := Sp;
+                        Inc(Tp);
+                        while (Sp^ <> ';') and (Sp^ <> #0) do
+                          Inc(Sp);
+                        SetString(S, Tp, Sp - Tp);
+                        Val(S, I, Code);
+                        Rp^ := Chr((I));
+                      end;
+                 else
+                   Exit;
+               end;
+           end
+      else
+        Rp^ := Sp^;
+      end;
+      Inc(Rp);
+      Inc(Sp);
+    end;
+  except
+  end;
+  SetLength(Result, Rp - PChar(Result));
+end;
+
+function FormatTextLikeForum(const AContent: String): String;
+begin
+  Result := HtmlDecode(AContent);
+  Result := preg_replace('\[b:([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/b:([0-9a-z]+)\]', '<b>$2</b>', Result, True);
+  Result := preg_replace('\[i:([0-9a-z]+)\](.+)\[\/i:([0-9a-z]+)\]', '<i>$2</i>', Result, True);
+
+  Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
+  Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
+  Result := preg_replace('\[quote:([0-9a-z]+)\](.+)\[\/quote:([0-9a-z]+)\]', '<blockquote>$2</blockquote>', Result, True);
+
+  Result := preg_replace('\/dpr\/PNphpBB2-viewtopic-t-([0-9]+).pas', '/thread/unknown/$1/view-old-thread/', Result, True);
+  Result := preg_replace('\/dpr\/Forum-viewtopic-p-([0-9]+).pas', '/thread/unknown/$1/view-old-thread/', Result, True);
+  Result := preg_replace('\[url\](.+)\[\/url\]', '<a href="$1">$1</a>', Result, True);
+
+  Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](.*)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<code lang="pas">$3</code>', Result, True);
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
+
+  // force
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
 end;
 
 function file_get_contents(TargetURL: string): string;

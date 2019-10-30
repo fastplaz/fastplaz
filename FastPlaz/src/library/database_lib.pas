@@ -601,6 +601,7 @@ begin
       i:=i+1;
       Data.Next;
     end;
+    Data.First;
     Result:=True;
   except
     on E: Exception do begin
