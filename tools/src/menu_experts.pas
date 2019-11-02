@@ -43,7 +43,7 @@ begin
     bExpert := True;
     if edt_ModuleName.Text <> '' then
       ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]) + 'Module';
+        ' ', '', [rfReplaceAll]) + 'Controller';
     Permalink := edt_Permalink.Text;
     if Permalink = '' then
     begin
@@ -73,7 +73,7 @@ begin
     bExpert := True;
     if edt_ModuleName.Text <> '' then
       ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]) + 'Module';
+        ' ', '', [rfReplaceAll]) + 'Controller';
     Permalink := edt_Permalink.Text;
     if Permalink = '' then
     begin

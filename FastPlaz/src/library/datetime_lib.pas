@@ -106,7 +106,7 @@ begin
           [MonthsBetween(Now, TheDate)]);
       if diff > 360 then
         Result := Format(__(Prefix + ' %d years ' + Suffix),
-          [YearsBetween(Now, TheDate)]);
+          [YearsBetween(Now, TheDate)+1]);
     end
     else
     begin

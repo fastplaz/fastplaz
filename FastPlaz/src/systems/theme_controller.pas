@@ -1592,7 +1592,7 @@ begin
         else
           ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
       except
-        ReplaceText :='----';
+        ReplaceText :='[field not found]';
       end;
       ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
       FreeAndNil(tagstring_custom);
@@ -1803,8 +1803,10 @@ begin
     end;
   end;
 
-  if ReplaceText = '' then
+  if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
   begin
+    if filter='defaultempty' then
+      ReplaceText := '';
     // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
     //ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   end;
@@ -2051,6 +2053,8 @@ begin
   begin
     if Pos('</script',html[i])>0 then skip:=true;
     if Pos('<script',html[i])>0 then skip:=false;
+    if Pos('</code',html[i])>0 then skip:=true;
+    if Pos('<code',html[i])>0 then skip:=false;
     if (not skip) or ForceTrim then
     begin
       html[i]:=trim(html[i]);
