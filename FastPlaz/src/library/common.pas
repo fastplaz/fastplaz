@@ -73,8 +73,9 @@ const
 
   _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
 
-  __NORMAL_SENTENCES = '0-9a-zA-z\ \r\n\-\+*&#!?''".,:;=()';
-  __NORMAL_SENTENCES_WITH_SLASH = '0-9a-zA-z\ \/\r\n\-\+*&#!?''".,:;=()<>';
+  __URL_SEARCH = '(http|ftp|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?';
+  __NORMAL_SENTENCES = '0-9a-zA-z\ \r\n\-\+*&@$#!?%''".,:;=()';
+  __NORMAL_SENTENCES_WITH_SLASH = '0-9a-zA-z\ \/\r\n\-\+*&@$#!?%\[\{\}''".,:;=()<>';
 
 type
   CharSet=Set of Char;
@@ -1452,22 +1453,45 @@ end;
 function FormatTextLikeForum(const AContent: String): String;
 begin
   Result := HtmlDecode(AContent);
+  Result := preg_replace('\[size=([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/size:([0-9a-z]+)\]', '$3', Result, True);
   Result := preg_replace('\[b:([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/b:([0-9a-z]+)\]', '<b>$2</b>', Result, True);
-  Result := preg_replace('\[i:([0-9a-z]+)\](.+)\[\/i:([0-9a-z]+)\]', '<i>$2</i>', Result, True);
+  Result := preg_replace('\[b:([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/b:([0-9a-z]+)\]', '<b>$2</b>', Result, True);
+  Result := preg_replace('\[i:([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/i:([0-9a-z]+)\]', '<i>$2</i>', Result, True);
+  Result := preg_replace('\[i:([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/i:([0-9a-z]+)\]', '<i>$2</i>', Result, True);
+  Result := preg_replace('\[quote:([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote>$2</blockquote>', Result, True);
 
   Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
   Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
-  Result := preg_replace('\[quote:([0-9a-z]+)\](.+)\[\/quote:([0-9a-z]+)\]', '<blockquote>$2</blockquote>', Result, True);
 
+  Result := preg_replace('\[url\](.+)\[\/url\]', '<a href="$1" class="link">$1</a>', Result, True);
+  Result := preg_replace('\[url=(.+)\](.+)\[\/url\]', '<a href="$1" class="link">$2</a>', Result, True);
+
+  Result := preg_replace('\[pas\]\n(.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
+  Result := preg_replace('\[pas\](.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
+  Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<code lang="pas">$3</code>', Result, True);
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
+  Result := preg_replace('\[sql:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/sql:([0-9a-z]+):([0-9a-z]+)\]', '<code class="sql">$3</code>', Result, True);
+
+  Result := preg_replace('\[img:([0-9a-z]+)\]', '<img src="', Result, True);
+  Result := preg_replace('\[\/img:([0-9a-z]+)\]', '" onerror="this.style.display=''none''"/>', Result, True);
+  Result := preg_replace('\[img\]', '<img src="', Result, True);
+  Result := preg_replace('\[\/img\]', '" onerror="this.style.display=''none''"/>', Result, True);
+  Result := preg_replace('\[color=([0-9a-z]+):([0-9a-z]+)\](.*)\[\/color:([0-9a-z]+)\]', '<font style="color:$1;">$3</font>', Result, True);
+
+  // specific pascal-id.org
   Result := preg_replace('\/dpr\/PNphpBB2-viewtopic-t-([0-9]+).pas', '/thread/unknown/$1/view-old-thread/', Result, True);
   Result := preg_replace('\/dpr\/Forum-viewtopic-p-([0-9]+).pas', '/thread/unknown/$1/view-old-thread/', Result, True);
-  Result := preg_replace('\[url\](.+)\[\/url\]', '<a href="$1">$1</a>', Result, True);
-
-  Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](.*)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<code lang="pas">$3</code>', Result, True);
-  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
 
   // force
   Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
+  Result := preg_replace('\[code\]\n(.+?)\[\/code\]', '<code>$1</code>', Result, True);
+  Result := preg_replace('\[code\](.+?)\[\/code\]', '<code>$1</code>', Result, True);
+
+  // remove unused tag
+  Result := preg_replace('\[b:([0-9a-z]+)\]\[\/b:([0-9a-z]+)\]', '', Result, True);
+  Result := Result.Replace('[/URL]','');
+  Result := Result.Trim;
 end;
 
 function file_get_contents(TargetURL: string): string;
