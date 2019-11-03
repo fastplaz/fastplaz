@@ -1452,7 +1452,8 @@ end;
 
 function FormatTextLikeForum(const AContent: String): String;
 begin
-  Result := HtmlDecode(AContent);
+  Result := (AContent);
+  //Result := HtmlDecode(AContent);
   Result := preg_replace('\[size=([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/size:([0-9a-z]+)\]', '$3', Result, True);
   Result := preg_replace('\[b:([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/b:([0-9a-z]+)\]', '<b>$2</b>', Result, True);
   Result := preg_replace('\[b:([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/b:([0-9a-z]+)\]', '<b>$2</b>', Result, True);
@@ -1469,6 +1470,7 @@ begin
   Result := preg_replace('\[pas\]\n(.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
   Result := preg_replace('\[pas\](.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
   Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](.+?)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<code lang="pas">$3</code>', Result, True);
+  Result := preg_replace('\[code=([0-9a-z]+)\](.+?)\[\/code\]', '<code lang="$1">$2</code>', Result, True);
   Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
   Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
   Result := preg_replace('\[sql:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/sql:([0-9a-z]+):([0-9a-z]+)\]', '<code class="sql">$3</code>', Result, True);
