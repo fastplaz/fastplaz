@@ -29,9 +29,9 @@ const
   __FOREACH_START = '\[foreach([\.\$A-Za-z0-9=_ ]+)\]';
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
-  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ ]+)\]';
-  __CONDITIONAL_IF_VALUE = '([\.\$@A-Za-z0-9:=<">_\\/\-\n\r ]+)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
-  __CONDITIONAL_IF_END = '\[/if\]';
+  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "'']+)\]';
+  __CONDITIONAL_IF_VALUE = '([\.\$@A-Za-z0-9:=<"''\''>_\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  __CONDITIONAL_IF_END = '\[\/if\]';
 
   __HITS_FILENAME = 'hits.log';
 
@@ -141,6 +141,7 @@ type
     //-- [if ] processor
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
     function conditionIsEqual( Value1, Value2: variant): boolean;
+    function conditionIsNotEqual( Value1, Value2: variant): boolean;
 
 
     //-- foreach
@@ -982,48 +983,80 @@ begin
 end;
 
 function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
+
+  function DoConditioning(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
+  var
+    s, condition: String;
+    parameter: TStrings;
+    value1, value2: variant;
+  begin
+    Result := False;
+    parameter := Explode(ARegex.Match[1], ' ');
+    if (parameter.Count < 4) then
+    begin
+      Exit;
+    end;
+
+    value1 := VarValue[ parameter[1]];
+    value2 := '';
+    if not ((parameter[3] = '''''') or (parameter[3] = '""')) then
+    begin
+      value2 := VarValue[ parameter[3]];
+    end;
+    condition := parameter[2];
+    if condition = '=' then condition := 'eq';
+    case condition of
+      'eq':
+        begin
+          if conditionIsEqual( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
+
+      'neq':
+        begin
+          if conditionIsNotEqual( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+
+        end
+      // development: lt, gt
+
+    end;
+
+    Result := True;
+  end;
+
 var
   parameter : TStrings;
   condition,
   s : string;
   value1, value2 : variant;
+  regex : TRegExpr;
 begin
   s := '';
   Result := Content;
-  with TRegExpr.Create do
+  regex := TRegExpr.Create;
+  with regex do
   begin
     //Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     // \[if([\.\$A-Za-z_0-9=\ ]+)\]([a-z]+)(\[else\])?([a-z]+)\[/if\]
     Expression := Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     if Exec( Content) then
     begin
-      parameter := Explode( Match[1], ' ');
-      if (parameter.Count < 4) then
+      if not DoConditioning(regex, Result) then
       begin
-        FreeAndNil( parameter);
+        Free;
         Exit;
       end;
-
-      value1 := VarValue[ parameter[1]];
-      value2 := VarValue[ parameter[3]];
-      condition := parameter[2];
-
-      if condition = '=' then condition := 'eq';
-      case condition of
-        'eq':
-          begin
-            if conditionIsEqual( value1, value2) then
-              s := Match[2]
-            else
-              s := Match[4];
-            Result := StringReplace( Content, Match[0], s, [rfReplaceAll]);
-          end;
-
-        // development: lt, gt
-
+      while ExecNext do
+      begin
+        DoConditioning(regex, Result, True)
       end;
-      //die( Content);
-
     end;
 
     Free;
@@ -1034,6 +1067,13 @@ function TThemeUtil.conditionIsEqual(Value1, Value2: variant): boolean;
 begin
   Result := False;
   if Value1 = Value2 then
+    Result := True;
+end;
+
+function TThemeUtil.conditionIsNotEqual(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 <> Value2 then
     Result := True;
 end;
 
