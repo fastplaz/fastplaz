@@ -565,6 +565,8 @@ begin
 end;
 
 function TThemeUtil.FilterOutput(Content, Filter: string): string;
+var
+  i: Integer;
 begin
   Result := Content;
   if Filter = '' then
@@ -589,6 +591,14 @@ begin
     'dateformathuman' :
     begin
       Result := DateTimeHuman( Content);
+    end;
+    'date' :
+    begin
+      try
+        i := StrToInt(Content);
+        Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i));
+      except
+      end;
     end;
     'shorturl' :
     begin
