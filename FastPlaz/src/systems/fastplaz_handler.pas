@@ -323,7 +323,7 @@ type
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
-procedure Redirect(const URL: string; const FlashMessage: string = '');
+procedure Redirect(const URL: string; const FlashMessage: string = ''; AStatusCode: Integer = 302);
 
 procedure DisplayError(const Message: string; const Layout: string = 'error');
 procedure Debug(const Message: integer; const Key: string = '');
@@ -464,13 +464,15 @@ begin
   {$endif}
 end;
 
-procedure Redirect(const URL: string; const FlashMessage: string);
+procedure Redirect(const URL: string; const FlashMessage: string;
+  AStatusCode: Integer);
 begin
   if FlashMessage <> '' then
     ThemeUtil.FlashMessages := FlashMessage;
   Application.Response.Content := '';
   //Application.Response.SendRedirect(URL);
   //Application.Response.SendResponse;
+  Application.Response.Code := AStatusCode;
   Application.Response.Location := URL;
   Application.Response.SendHeaders;
   Application.Destroy;
