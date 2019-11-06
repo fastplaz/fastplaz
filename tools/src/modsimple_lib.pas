@@ -83,7 +83,7 @@ begin
     Add('');
     Add('initialization');
     Add('  Route[ ''info''] := TInfoModule;');
-    Add('  Route[ ''/''] := T' + ucwords(_GlobalProjectName) + 'Module; // Main Module');
+    Add('  Route[ ''/''] := T' + ucwords(_GlobalProjectName) + 'Controller; // Main Controller');
     Add('');
   end;
 

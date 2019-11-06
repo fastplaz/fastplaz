@@ -379,6 +379,7 @@ begin
 
     varshortint,
     varsmallint,
+    varint64,
     varinteger:
     begin
       if Assigned(El) and (not (El is TJSONIntegerNumber)) then
