@@ -993,6 +993,8 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
+  if Data.Active then
+    Data.Close;
   Data.UniDirectional:=False;
   Result := _queryOpen;
   Data.Last;
