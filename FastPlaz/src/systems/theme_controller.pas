@@ -997,6 +997,13 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
       Exit;
     end;
 
+    if FAssignVarStringMap.IndexOfName( parameter[1]) = -1 then
+    begin
+      AContent := StringReplace( AContent, ARegex.Match[0], '', [rfReplaceAll]);
+      Result := True;
+      Exit;
+    end;
+
     value1 := VarValue[ parameter[1]];
     value2 := '';
     if not ((parameter[3] = '''''') or (parameter[3] = '""')) then
