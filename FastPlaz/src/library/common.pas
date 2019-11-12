@@ -180,6 +180,7 @@ function base64_decode(const AStr: string): string;
 function ucwords(const str: string): string;
 function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
+function MarkdownToHTML(const AContent: String): String;
 
 function file_get_contents(TargetURL: string): string;
 function FileCopy(ASource, ATarget: string): boolean;
@@ -1494,6 +1495,34 @@ begin
   Result := preg_replace('\[b:([0-9a-z]+)\]\[\/b:([0-9a-z]+)\]', '', Result, True);
   Result := Result.Replace('[/URL]','');
   Result := Result.Trim;
+end;
+
+function MarkdownToHTML(const AContent: String): String;
+begin
+  Result := AContent;
+
+  Result := preg_replace('\!\[(.+?)\]\((.+?)\)', '<img src="$2" />', Result, True); // Image
+  Result := preg_replace('\[(.+?)\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
+  Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebar Miring
+  Result := preg_replace('\*\*(.*?)\*\*', '<i>$1</i> ', Result, True); // Miring
+  Result := preg_replace('\*(.+?)\*', '<b>$1</b> ', Result, True); // Tebal
+  //Result := preg_replace('_([^\*]*)_', '<i>$1</i> ', Result, True); // Miring
+  //Result := preg_replace('_(.*?)_', '<i>$1</i> ', Result, True); // Miring
+
+  //Result := preg_replace('> (.+?)\n', '<blockquote>$1</blockquote>'#10, Result, True); // Heading
+  Result := preg_replace('### (.+?)\n\n', '<h3>$1</h3>', Result, True); // Heading
+  Result := preg_replace('## (.+?)\n\n', '<h2>$1</h2>', Result, True); // Heading
+  Result := preg_replace('# (.+?)\n', '<h1>$1</h1>', Result, True); // Heading
+
+  //Result := preg_replace('> (.+?)<', '<blockquote>$1</blockquote><', Result, True); // Heading
+  //Result := preg_replace('### (.+?)<', '<h3>$1</h3><', Result, True); // Heading
+  //Result := preg_replace('## (.+?)<', '<h2>$1</h2><', Result, True); // Heading
+  //Result := preg_replace('# (.+?)<', '<h1>$1</h1><', Result, True); // Heading
+
+  Result := preg_replace('---\n', '<hr>'#10, Result, True); // Line
+
+  Result := preg_replace('```(.+?)```', '<code>$1</code>', Result, True); // Simple Code
+  Result := preg_replace('`(.+?)`', '<code>$1</code>', Result, True); // Simple Code
 end;
 
 function file_get_contents(TargetURL: string): string;
