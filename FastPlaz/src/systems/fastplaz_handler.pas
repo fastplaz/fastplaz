@@ -32,6 +32,7 @@ resourcestring
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
   __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
+  __Err_Theme_Template_NotFound = 'Unable to open file "%s"';
 
   __Result_Default_Get = 'Default GET Result';
   __Result_Default_Post = 'Default POST Result';

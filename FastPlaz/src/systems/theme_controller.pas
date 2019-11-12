@@ -1970,6 +1970,15 @@ begin
           + DirectorySeparator + 'master' + FThemeExtension;
   end;
 
+  if not FileExists(templateFilename) then
+  begin
+    if AppData.debug then
+      Result := Format(__Err_Theme_Template_NotFound, [templateFilename])
+    else
+      Result := Format(__Err_Theme_Template_NotFound, [ExtractFileName(templateFilename)]);
+    Exit;
+  end;
+
   try
     templateEngine := TFPTemplate.Create;
     templateEngine.FileName := templateFilename;

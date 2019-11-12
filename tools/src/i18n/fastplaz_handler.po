@@ -61,6 +61,10 @@ msgstr ""
 msgid "Template tag [%s] does not implemented yet."
 msgstr ""
 
+#: fastplaz_handler.__err_theme_template_notfound
+msgid "Unable to open file \"%s\""
+msgstr ""
+
 #: fastplaz_handler.__result_default_delete
 msgid "Default DELETE Result"
 msgstr ""
