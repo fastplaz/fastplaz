@@ -1523,6 +1523,9 @@ begin
 
   Result := preg_replace('```(.+?)```', '<code>$1</code>', Result, True); // Simple Code
   Result := preg_replace('`(.+?)`', '<code>$1</code>', Result, True); // Simple Code
+
+  Result := preg_replace(#10#10#10, '<br>', Result, True);
+  Result := preg_replace(#10#10, #10'<br>', Result, True);
 end;
 
 function file_get_contents(TargetURL: string): string;
