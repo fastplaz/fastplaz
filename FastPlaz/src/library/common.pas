@@ -1510,9 +1510,9 @@ begin
   //Result := preg_replace('_(.*?)_', '<i>$1</i> ', Result, True); // Miring
 
   //Result := preg_replace('> (.+?)\n', '<blockquote>$1</blockquote>'#10, Result, True); // Heading
-  Result := preg_replace('### (.+?)\n\n', '<h3>$1</h3>', Result, True); // Heading
-  Result := preg_replace('## (.+?)\n\n', '<h2>$1</h2>', Result, True); // Heading
-  Result := preg_replace('# (.+?)\n', '<h1>$1</h1>', Result, True); // Heading
+  Result := preg_replace('### (.+?)(\n|\r)', '<h3>$1</h3>', Result, True); // Heading
+  Result := preg_replace('## (.+?)(\n|\r)', '<h2>$1</h2>', Result, True); // Heading
+  Result := preg_replace('# (.+?)(\n|\r)', '<h1>$1</h1>', Result, True); // Heading
 
   //Result := preg_replace('> (.+?)<', '<blockquote>$1</blockquote><', Result, True); // Heading
   //Result := preg_replace('### (.+?)<', '<h3>$1</h3><', Result, True); // Heading
@@ -1524,8 +1524,8 @@ begin
   Result := preg_replace('```(.+?)```', '<code>$1</code>', Result, True); // Simple Code
   Result := preg_replace('`(.+?)`', '<code>$1</code>', Result, True); // Simple Code
 
-  Result := preg_replace(#10#10#10, '<br>', Result, True);
-  Result := preg_replace(#10#10, #10'<br>', Result, True);
+  Result := preg_replace(#13#10, #10, Result, True);
+  //Result := preg_replace(#10#10, #10'<br>', Result, True);
 end;
 
 function file_get_contents(TargetURL: string): string;
