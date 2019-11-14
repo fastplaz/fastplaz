@@ -44,8 +44,14 @@ type
 implementation
 
 function TStringSmartHelper.AsDateTime: TDateTime;
+var
+  tmpFormatSettings: TFormatSettings;
 begin
-  Result := StrToDateTime( Self);
+  tmpFormatSettings := FormatSettings;
+  tmpFormatSettings.DateSeparator := '-';
+  tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd hh:nn:ss';
+
+  Result := StrToDateTime( Self, tmpFormatSettings);
 end;
 
 function TStringSmartHelper.AsInteger: Integer;
