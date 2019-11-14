@@ -1503,9 +1503,9 @@ begin
 
   Result := preg_replace('\!\[(.+?)\]\((.+?)\)', '<img src="$2" />', Result, True); // Image
   Result := preg_replace('\[(.+?)\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
-  Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebar Miring
-  Result := preg_replace('\*\*(.*?)\*\*', '<i>$1</i> ', Result, True); // Miring
-  Result := preg_replace('\*(.+?)\*', '<b>$1</b> ', Result, True); // Tebal
+  Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebal Miring
+  Result := preg_replace('\*\*(.*?)\*\*', '<b>$1</b> ', Result, True); // Miring
+  Result := preg_replace('\*(.+?)\*', '<i>$1</i> ', Result, True); // Tebal
   //Result := preg_replace('_([^\*]*)_', '<i>$1</i> ', Result, True); // Miring
   //Result := preg_replace('_(.*?)_', '<i>$1</i> ', Result, True); // Miring
 
