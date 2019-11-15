@@ -1513,6 +1513,7 @@ begin
   Result := preg_replace('### (.+?)(\n|\r)', '<h3>$1</h3>', Result, True); // Heading
   Result := preg_replace('## (.+?)(\n|\r)', '<h2>$1</h2>', Result, True); // Heading
   Result := preg_replace('# (.+?)(\n|\r)', '<h1>$1</h1>', Result, True); // Heading
+  Result := preg_replace('(\ |\n|\r)#(.+?)(\ |\n|\r)', '<span class="tag">#$2</span>', Result, True); // Hashtag
 
   //Result := preg_replace('> (.+?)<', '<blockquote>$1</blockquote><', Result, True); // Heading
   //Result := preg_replace('### (.+?)<', '<h3>$1</h3><', Result, True); // Heading
