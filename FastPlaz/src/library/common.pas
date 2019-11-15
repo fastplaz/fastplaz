@@ -1468,13 +1468,13 @@ begin
   Result := preg_replace('\[url\](.+?)\[\/url\]', '<a href="$1" class="link">$1</a>', Result, True);
   Result := preg_replace('\[url=(.+?)\](.+?)\[\/url\]', '<a href="$1" class="link">$2</a>', Result, True);
 
-  Result := preg_replace('\[pas\]\n(.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
-  Result := preg_replace('\[pas\](.+?)\[\/pas\]', '<code lang="pascal">$1</code>', Result, True);
-  Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](.+?)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<code lang="pas">$3</code>', Result, True);
-  Result := preg_replace('\[code=([0-9a-z]+)\](.+?)\[\/code\]', '<code lang="$1">$2</code>', Result, True);
-  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
-  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<code>$3</code>', Result, True);
-  Result := preg_replace('\[sql:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/sql:([0-9a-z]+):([0-9a-z]+)\]', '<code class="sql">$3</code>', Result, True);
+  Result := preg_replace('\[pas\]\n(.+?)\[\/pas\]', '<pre><code lang="pascal">$1</code></pre>', Result, True);
+  Result := preg_replace('\[pas\](.+?)\[\/pas\]', '<pre><code lang="pascal">$1</code></pre>', Result, True);
+  Result := preg_replace('\[pas:([0-9a-z]+):([0-9a-z]+)\](.+?)\[\/pas:([0-9a-z]+):([0-9a-z]+)\]', '<pre><code lang="pas">$3</code></pre>', Result, True);
+  Result := preg_replace('\[code=([0-9a-z]+)\](.+?)\[\/code\]', '<pre><code lang="$1">$2</code></pre>', Result, True);
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<pre><code>$3</code></pre>', Result, True);
+  Result := preg_replace('\[code:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/code:([0-9a-z]+):([0-9a-z]+)\]', '<pre><code>$3</code></pre>', Result, True);
+  Result := preg_replace('\[sql:([0-9a-z]+):([0-9a-z]+)\](['+__NORMAL_SENTENCES+']+)\[\/sql:([0-9a-z]+):([0-9a-z]+)\]', '<pre><code class="sql">$3</code></pre>', Result, True);
 
   Result := preg_replace('\[img:([0-9a-z]+)\]', '<img src="', Result, True);
   Result := preg_replace('\[\/img:([0-9a-z]+)\]', '" onerror="this.style.display=''none''"/>', Result, True);
