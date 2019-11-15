@@ -1521,8 +1521,8 @@ begin
 
   Result := preg_replace('---\n', '<hr>'#10, Result, True); // Line
 
-  Result := preg_replace('```(.+?)```', '<code>$1</code>', Result, True); // Simple Code
-  Result := preg_replace('`(.+?)`', '<code>$1</code>', Result, True); // Simple Code
+  Result := preg_replace('```(.+?)```', '<pre><code>$1</code></pre>', Result, True); // Simple Code
+  Result := preg_replace('`(.+?)`', '<pre><code>$1</code></pre>', Result, True); // Simple Code
 
   Result := preg_replace(#13#10, #10, Result, True);
   //Result := preg_replace(#10#10, #10'<br>', Result, True);
