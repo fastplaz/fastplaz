@@ -1530,6 +1530,13 @@ begin
   end;
   fieldName := tagstring_custom.Values['index'];
 
+  if tagstring_custom.Values['assignto'] <> '' then
+  begin
+    FAssignVarStringMap.Values[tagstring_custom.Values['assignto']] :=
+      TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+    Exit;
+  end;
+
   try
     ReplaceText := TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
   except
