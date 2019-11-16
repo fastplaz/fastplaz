@@ -1086,58 +1086,82 @@ end;
 
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
+
+  function DoForeach(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
+  var
+    parameter: TStrings;
+    html : string;
+  begin
+    Result := False;
+    parameter := Explode(ARegex.Match[1], ' ');
+    ForeachTable_Keyname  := parameter.Values['from'];
+    ForeachTable_Itemname := parameter.Values['item'];
+
+    case parameter.Values['type'] of
+      '' : begin
+        DisplayError( 'field "type" is not define in "foreach ' + ARegex.Match[1] + '"');
+        //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
+      end;
+      'table' : begin
+        html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'dataset' : begin
+        html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'jsondata' : begin
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      {$ifdef GREYHOUND}
+      'ghtable' : begin
+        html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
+      end;
+      {$endif GREYHOUND}
+      'array' : begin
+        DisplayError( __( __Err_Theme_ForeachNotImplemented));
+        //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
+      end;
+    end;
+
+    //-- proccess conditional if
+    //html := ConditionalIfProcessor( TagProcessor, html);
+
+    ForeachTable_Keyname := '';
+    ForeachTable_Itemname := '';
+
+    html := StringReplace( AContent, ARegex.Match[0], html, [rfReplaceAll]);
+
+    //** call parent tag-controller
+
+    ForeachTable_Keyname := '';
+    ForeachTable_Itemname:= '';
+    FreeAndNil( parameter);
+
+    AContent := html;
+    Result := true;
+  end;
+
 var
   parameter : TStrings;
   html : string;
+  regex : TRegExpr;
 begin
   Result := Content;
-  with TRegExpr.Create do
+  regex := TRegExpr.Create;
+  with regex do
   begin
     Expression := Format('%s(.*?)%s', [ __FOREACH_START, __FOREACH_END]);
-    if Exec( Content) then
+    if Exec( Result) then
     begin
-      parameter := Explode( Match[1], ' ');
-      ForeachTable_Keyname  := parameter.Values['from'];
-      ForeachTable_Itemname := parameter.Values['item'];
-      case parameter.Values['type'] of
-        '' : begin
-          DisplayError( 'field "type" is not define in "foreach ' + Match[1] + '"');
-          //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
-        end;
-        'table' : begin
-          html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        'dataset' : begin
-          html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        'jsondata' : begin
-          html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        {$ifdef GREYHOUND}
-        'ghtable' : begin
-          html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        {$endif GREYHOUND}
-        'array' : begin
-          DisplayError( __( __Err_Theme_ForeachNotImplemented));
-          //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
-        end;
+      if not DoForeach(regex, Result) then
+      begin
+        Free;
+        Exit;
       end;
-
-      //-- proccess conditional if
-      //html := ConditionalIfProcessor( TagProcessor, html);
-
-      ForeachTable_Keyname := '';
-      ForeachTable_Itemname := '';
-
-      html := StringReplace( Content, Match[0], html, [rfReplaceAll]);
-
-      //** call parent tag-controller
-
-      ForeachTable_Keyname := '';
-      ForeachTable_Itemname:= '';
-      FreeAndNil( parameter);
-      Result := html;
+      while ExecNext do
+      begin
+        //die(result);
+        DoForeach(regex, Result, True)
+      end;
     end;
     Free;
   end;
