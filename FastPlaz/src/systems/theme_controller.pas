@@ -536,6 +536,7 @@ end;
 function TThemeUtil.MultiFilter(AContent: string): string;
 begin
   Result := FormatTextLikeForum(AContent);
+  Result := MarkdownToHTML(Result);
 end;
 
 function TThemeUtil.GetHitCount(const URL: String): integer;
