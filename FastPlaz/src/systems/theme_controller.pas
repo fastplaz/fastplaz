@@ -1562,6 +1562,8 @@ begin
     Exit;
   end;
 
+  //TODO: dateformat
+
   try
     ReplaceText := TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
   except
