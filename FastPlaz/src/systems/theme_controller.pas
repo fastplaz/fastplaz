@@ -30,7 +30,7 @@ const
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
   __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "'']+)\]';
-  __CONDITIONAL_IF_VALUE = '([\.\$#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  //__CONDITIONAL_IF_VALUE = '([\.\$#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
   __CONDITIONAL_IF_END = '\[\/if\]';
 
   __HITS_FILENAME = 'hits.log';
@@ -1038,6 +1038,9 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
 
     Result := True;
   end;
+
+const
+  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
 
 var
   parameter : TStrings;
