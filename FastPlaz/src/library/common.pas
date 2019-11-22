@@ -1464,6 +1464,7 @@ begin
 
   Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
   Result := preg_replace('\[quote:([0-9a-z]+)\=\"([0-9a-zA-Z\ _-]+)\"\](['+__NORMAL_SENTENCES_WITH_SLASH+']+)\[\/quote:([0-9a-z]+)\]', '<blockquote><b>@$2</b>: $3</blockquote>', Result, True);
+  Result := preg_replace('\[quote\](.+?)\[\/quote\]', '<blockquote>$1</blockquote>', Result, True);
 
   Result := preg_replace('\[url\](.+?)\[\/url\]', '<a href="$1" class="link">$1</a>', Result, True);
   Result := preg_replace('\[url=(.+?)\](.+?)\[\/url\]', '<a href="$1" class="link">$2</a>', Result, True);
