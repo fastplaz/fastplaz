@@ -1527,7 +1527,7 @@ begin
   Result := preg_replace('`(.+?)`', '<span class="code-inline">$1</span>', Result, True); // Simple Code
 
   Result := preg_replace(#13#10, #10, Result, True);
-  Result := preg_replace(#10#10, #10'<br>', Result, True);
+  Result := preg_replace(#10#10, #10, Result, True);
 end;
 
 function file_get_contents(TargetURL: string): string;
