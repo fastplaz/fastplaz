@@ -12,18 +12,19 @@ uses
   bmkg_integration, botframework_integration, clarifai_integration, 
   cognitiveanalyze_integration, cognitivecustomvision_integration, 
   cognitivedomainspecific_integration, cognitiveocr_integration, 
-  currencyibacor_integration, facebookmessenger_integration, 
-  firebase_integration, googleanalytics_integration, 
-  googledistancematrix_integration, googleplacesearch_integration, 
-  ibacorpolicenumber_integration, ibacortrainschedule_integration, 
-  kamusibacor_integration, kamuskemdikbud_integration, kamussunda_integration, 
-  kawalpemilu_integration, kloudlesscalendar_integration, line_integration, 
+  currencyibacor_integration, elasticsearch_integration, 
+  facebookmessenger_integration, firebase_integration, 
+  googleanalytics_integration, googledistancematrix_integration, 
+  googlegeocoding_integration, googleplacesearch_integration, 
+  graphql_integration, ibacorpolicenumber_integration, 
+  ibacortrainschedule_integration, kamusibacor_integration, 
+  kamuskemdikbud_integration, kamussunda_integration, kawalpemilu_integration, 
+  kloudlesscalendar_integration, line_integration, 
   maskofajadwalshalat_integration, ombd_integration, 
   openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
-  resiibacor_integration, telegram_integration, whois_integration, 
-  witai_integration, yandextranslate_integration, zomato_integration, 
-  googlegeocoding_integration, thesaurus_integration, 
-  elasticsearch_integration, LazarusPackageIntf;
+  resiibacor_integration, telegram_integration, thesaurus_integration, 
+  whois_integration, witai_integration, yandextranslate_integration, 
+  zomato_integration, LazarusPackageIntf;
 
 implementation
 
