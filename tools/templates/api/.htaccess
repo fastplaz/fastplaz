@@ -19,7 +19,7 @@ ErrorDocument 500 500.json
 </Files>
 
 # custom 404 error
-#ErrorDocument 404 "Request: %{THE_REQUEST} Referrer: %{HTTP_REFERER} Host: %{HTTP_HOST}"
+#ErrorDocument 404 "Request: %{THE_REQUEST} \nReferrer: %{HTTP_REFERER} \nHost: %{HTTP_HOST}"
 #RewriteRule ^ - [L,R=404]
 
 #environment
