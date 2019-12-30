@@ -579,6 +579,7 @@ end;
 
 function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
 begin
+  FJsonObject.Clear;
   try
     FJsonObject := TJSONObject(GetJSON(JsonString));
     Result := true;
