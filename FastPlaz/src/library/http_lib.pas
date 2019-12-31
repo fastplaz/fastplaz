@@ -76,7 +76,7 @@ uses
   strutils, Classes, SysUtils;
 
 const
-  FASTPLAZ_USERAGENT = 'fpc/'+{$i %FPCVERSION%}+';fastplaz;'+{$i %FPCTARGETOS%}+'/'+{$i %FPCTARGET%};
+  FASTPLAZ_USERAGENT = 'fastplaz;fpc/'+{$i %FPCVERSION%}+';'+{$i %FPCTARGETOS%}+'/'+{$i %FPCTARGET%};
 
 type
 

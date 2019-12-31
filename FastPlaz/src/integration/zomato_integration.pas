@@ -26,12 +26,15 @@ type
     FEntityID: integer;
     FEntityType: string;
     FKey: string;
+    FMarkDown: boolean;
     FResultCode: integer;
     FResultText: string;
     FURL: string;
+    FBold: string;
     jsonData: TJSONData;
     function getData(APath: string): string;
     function getDataAsFloat(APath: string): double;
+    procedure setMarkDown(AValue: boolean);
   public
     constructor Create;
     destructor Destroy;
@@ -40,6 +43,7 @@ type
     property ResultText: string read FResultText;
     property URL: string read FURL write FURL;
 
+    property MarkDown: boolean read FMarkDown write setMarkDown;
     property Key: string read FKey write FKey;
     property EntityType: string read FEntityType write FEntityType;
     property EntityID: integer read FEntityID write FEntityID;
@@ -80,11 +84,24 @@ begin
   end;
 end;
 
+procedure TZomatoIntegration.setMarkDown(AValue: boolean);
+begin
+  FMarkDown:=AValue;
+  if FMarkDown then
+  begin
+    FBold := '**';
+  end else begin
+    FBold := '*';
+  end;
+end;
+
 constructor TZomatoIntegration.Create;
 begin
   FEntityType := '';
   FEntityID := 94; //Indonesia
   FURL := ZOMATO_API_URL;
+  FMarkDown := true;
+  FBold := '**';
 end;
 
 destructor TZomatoIntegration.Destroy;
@@ -96,7 +113,7 @@ end;
 function TZomatoIntegration.ConvertJsonToTextInfo(AJson: string): string;
 var
   i: integer;
-  s: string;
+  s, place_url: string;
   jData: TJSONData;
 begin
   Result := '';
@@ -107,7 +124,7 @@ begin
     jData := GetJSON(AJson);
     for i := 0 to jData.Count - 1 do
     begin
-      Result := Result + '*' + jsonGetData(jData, '[' + i2s(i) + ']/name') + '*' + #10;
+      Result := Result + FBold + jsonGetData(jData, '[' + i2s(i) + ']/name') + FBold + #10;
       Result := Result + 'Rating: ' + jsonGetData(jData, '[' + i2s(i) +
         ']/rating') + #10;
       Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/address') + #10;
@@ -116,7 +133,12 @@ begin
       if Pos('?', s) > 0 then
         s := copy(s, 0, Pos('?', s) - 1);
       if jsonGetData(jData, '[' + i2s(i) + ']/maps') <> '' then
-        Result := Result + jsonGetData(jData, '[' + i2s(i) + ']/maps') + #10
+      begin
+        place_url := jsonGetData(jData, '[' + i2s(i) + ']/maps');
+        if FMarkDown then
+          place_url := '[Tampilkan Peta](' + place_url + ')';
+        Result := Result + place_url + #10
+      end
       else
         Result := Result + s + #10;
 

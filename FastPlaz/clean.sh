@@ -15,8 +15,10 @@ rm -rf src/library/lib
 rm -rf src/systems/backup/
 
 find ./ -type f -name *.~ -delete
+find ./ -type f -name *.s -delete
 find ./ -type f -name *.o -delete
 find ./ -type f -name *.oe -delete
+find ./ -type f -name *.rsj -delete
 find ./ -type f -name *.rst -delete
 find ./ -type f -name *.bak -delete
 find ./ -type f -name *.ppu -delete

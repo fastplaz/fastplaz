@@ -80,7 +80,7 @@ type
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
-    procedure LoadFromJsonString(const JsonString: string);
+    function LoadFromJsonString(const JsonString: string): boolean;
   end;
 
 
@@ -303,22 +303,18 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
-  ElName := '';
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), True, o, ElName);
-  if Assigned(El) and (not (El is TJSONArray)) then
+
+  if Assigned(El) then
   begin
-    I := O.IndexOfName(string(elName));
-    o.Delete(i);
-    El := nil;
+    i := o.IndexOfName(string(elName));
+    if (I <> -1) then
+      o.Delete(i);
   end;
-  if not Assigned(El) then
-  begin
-    o.Add(string(ElName), AValue);
-  end
-  else
-  begin
-    //--- todo: fill data
-  end;
+
+  o.Add(string(ElName), AValue);
 end;
 
 procedure TJSONUtil.SetValue(PathString: UnicodeString; AValue: variant);
@@ -383,6 +379,7 @@ begin
 
     varshortint,
     varsmallint,
+    varint64,
     varinteger:
     begin
       if Assigned(El) and (not (El is TJSONIntegerNumber)) then
@@ -580,9 +577,15 @@ begin
   end;
 end;
 
-procedure TJSONUtil.LoadFromJsonString(const JsonString: string);
+function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
 begin
-  FJsonObject := TJSONObject(GetJSON(JsonString));
+  FJsonObject.Clear;
+  try
+    FJsonObject := TJSONObject(GetJSON(JsonString));
+    Result := true;
+  except
+    Result := false;
+  end;
 end;
 
 end.

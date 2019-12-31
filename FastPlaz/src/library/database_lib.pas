@@ -23,6 +23,8 @@ type
 
   TSimpleModel = class
   private
+    FFieldPrefix: string;
+    FRecordCountFromArray: Integer;
     AMessage: string;
     FConnector : TSQLConnector;
     FFieldList : TStrings;
@@ -69,6 +71,7 @@ type
     procedure SetFieldValue( FieldName: String; AValue: Variant);
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
+    property FieldPrefix: string read FFieldPrefix write FFieldPrefix;
     property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
@@ -82,7 +85,8 @@ type
     function Exec( ASQL:String): boolean;
 
     function All:boolean;
-    function GetAll:boolean;
+    function GetAll( Limit: Integer = 0; Offset: Integer = 0):boolean;
+    function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
@@ -128,7 +132,7 @@ type
     function Open( AUniDirectional:Boolean = False): Boolean;
   end;
 
-function DataBaseInit( const RedirecURL:string = ''):boolean;
+function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
 
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
@@ -136,6 +140,9 @@ function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName
 function  QueryExecToJson( SQL: string; var ResultJSON: TJSONObject): boolean;
 function  QueryExec( SQL: string):boolean;
 function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName : boolean = True):boolean;
+
+var
+  QueryExecRowAffected: Integer;
 
 implementation
 
@@ -150,17 +157,29 @@ var
   DB_Transaction_Write : TSQLTransaction;
   DB_LibLoader_Write : TSQLDBLibraryLoader;
 
-function DataBaseInit(const RedirecURL: string):boolean;
+function DataBaseInit(const RedirecURL: string; const DBConfigName: string
+  ): boolean;
 var
   s : string;
 begin
   Result := False;
   AppData.useDatabase := True;
 
+  if DB_Connector.Connected then
+  begin
+    Result := True;
+  end;
+
   // multidb - prepare
   AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
   AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
   AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
+
+  if not DBConfigName.IsEmpty then
+  begin
+    AppData.databaseRead := DBConfigName;
+    AppData.databaseWrite := DBConfigName;
+  end;
 
   // currentdirectory mesti dipindah
   //s := GetCurrentDir + DirectorySeparator + string( Config.GetValue( format( _DATABASE_LIBRARY, [AppData.databaseRead]), ''));
@@ -358,6 +377,7 @@ begin
     Result := True;
   except
     on E: Exception do begin
+      DisplayError(e.Message);
     end;
   end;
 
@@ -445,6 +465,7 @@ var
   q : TSQLQuery;
 begin
   Result:=false;
+  QueryExecRowAffected := -1;
   q := TSQLQuery.Create(nil);
   q.UniDirectional:=True;
   if AppData.databaseRead = AppData.databaseWrite then
@@ -461,6 +482,7 @@ begin
     q.SQL.Text:= SQL;
     q.ExecSQL;
     ResultJSON.Add( 'count', q.RowsAffected);
+    QueryExecRowAffected := q.RowsAffected;
     TSQLConnector( q.DataBase).Transaction.Commit;
     //DB_Connector.Transaction.Commit;
     Result:=True;
@@ -479,7 +501,8 @@ function QueryExec(SQL: string): boolean;
 var
   q : TSQLQuery;
 begin
-  Result:=false;
+  Result := false;
+  QueryExecRowAffected := -1;
   q := TSQLQuery.Create(nil);
   q.UniDirectional:=True;
   if AppData.databaseRead = AppData.databaseWrite then
@@ -495,11 +518,14 @@ begin
   try
     q.SQL.Text:= SQL;
     q.ExecSQL;
+    QueryExecRowAffected := q.RowsAffected;
     TSQLConnector( q.DataBase).Transaction.Commit;
     //DB_Connector.Transaction.Commit;
     Result:=True;
   except
     on E: Exception do begin
+      if AppData.debug then
+        LogUtil.Add( E.Message, 'DB');
     end;
   end;
   {$ifdef debug}
@@ -575,6 +601,7 @@ begin
       i:=i+1;
       Data.Next;
     end;
+    Data.First;
     Result:=True;
   except
     on E: Exception do begin
@@ -595,6 +622,11 @@ end;
 function TSimpleModel.GetRecordCount: Longint;
 begin
   Result := -1;
+  if FRecordCountFromArray > 0 then
+  begin
+    Result := FRecordCountFromArray;
+    Exit;
+  end;
   if not Data.Active then Exit;
   Result := Data.RecordCount;
 end;
@@ -654,7 +686,7 @@ begin
       begin
         LogUtil.add( E.Message, 'DB');
         LogUtil.add( Data.SQL.Text, 'DB');
-        s := #13'<pre>'#13+Data.SQL.Text+#13'</pre>'#13;
+        s := #10'<pre>'#10+Data.SQL.Text+#10'</pre>'#10;
       end;
       die( E.Message + s);
       DisplayError( E.Message + s);
@@ -746,10 +778,10 @@ function TSimpleModel.GetFieldValue(FieldName: String): Variant;
 begin
   if not Data.Active then Exit;
   try
-    if Data.FieldByName( FieldName).AsVariant = null then
+    if Data.FieldByName( FFieldPrefix + FieldName).AsVariant = null then
       Result := ''
     else
-      Result := Data.FieldByName( FieldName).AsVariant;
+      Result := Data.FieldByName( FFieldPrefix + FieldName).AsVariant;
   except
     on E: Exception do begin
       die( 'getFieldValue: ' + e.Message);
@@ -778,9 +810,11 @@ begin
   FScriptWhere := '';
   FScriptLimit := '';
   FScriptOrderBy := '';
+  FFieldPrefix := '';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   AMessage := '';
+  FRecordCountFromArray := 0;
   FConnector := DB_Connector;
   if DefaultTableName = '' then
   begin
@@ -858,12 +892,21 @@ end;
 same with:
   Object.Find([]);
 }
-function TSimpleModel.GetAll: boolean;
+function TSimpleModel.GetAll(Limit: Integer; Offset: Integer): boolean;
 begin
   _queryPrepare;
   Data.SQL.Text := 'SELECT ' + FSelectField + ' FROM ' + FTableName;
+  if Limit > 0 then
+    Data.SQL.Add('LIMIT ' + i2s(Limit));
   _queryOpen;
   Result := true;
+end;
+
+function TSimpleModel.AsJsonArray(NoFieldName: boolean): TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  DataToJSON(Data, Result, NoFieldName);
+  FRecordCountFromArray := Result.Count;
 end;
 
 function TSimpleModel.Find(const KeyIndex: integer): boolean;
@@ -950,6 +993,8 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
+  if Data.Active then
+    Data.Close;
   Data.UniDirectional:=False;
   Result := _queryOpen;
   Data.Last;

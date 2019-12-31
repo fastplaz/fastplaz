@@ -83,29 +83,17 @@ begin
 
   if Response.ResultCode <> 200 then
     Exit;
-
-  return := StringCut( '<h2>', '</h2>', Response.ResultText);
-  return := StripHTML( return);
-  return := Trim( return);
   s := StringCut( '</h2>', '<hr />', Response.ResultText);
+  s := preg_replace('<span title="(.*)">(.*)<\/span>', '$1; ', s);
   s := StripHTML( s);
   s := Trim( s);
-  s := ReplaceAll(s, ['   ', '  '], '', True);
+  s := ReplaceAll(s, ['   ', '  '], ' ', True);
+  s := ReplaceAll(s, ['  '], ' ', True);
   s := ReplaceAll(s, [#13, #10], '\n', True);
   s := ReplaceAll(s, ['\n\n'], '\n', True);
   s := ReplaceAll(s, ['\n\n'], '\n', True);
+  s := ReplaceAll(s, ['; '], ';\n', True);
   return := return + '\n' + s;
-
-  {
-  return := copy(Response.ResultText, pos('<hr />', Response.ResultText) + 6);
-  return := copy(return, 1, pos('<hr />', return) - 1);
-
-  return := StringReplace(return, '<li>', '<li>\n- ', [rfReplaceAll]);
-  return := preg_replace(
-    '\<span title="([\.\$A-Za-z0-9=_ :;\-"]+)">([\.\$A-Za-z0-9=_ :;\-"]+)</span>',
-    '', return, True);
-  return := preg_replace('\<.*?>', '', return, True);
-  }
 
   if Pos( 'Entri tidak ditemukan', return) = 0 then
     Result := return;

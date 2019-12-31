@@ -71,6 +71,37 @@ const
 
 type
 
+  TShowStatusEvent = procedure(Status: String) of Object;
+  TExecuteHandlerEvent = procedure of Object;
+  TMessageHandler = procedure(AMessage: String; var AReply: String; var AHandled: Boolean) of Object;
+  TSendMessageEvent = procedure(const ChatID: string; const Text: string; const ReplyToMessageID: string) of Object;
+
+  { TTelegramSimpleThread }
+  TTelegramSimpleThread = class(TThread)
+  private
+    contentResult: String;
+    FOnExecuteHandler: TExecuteHandlerEvent;
+    FOnShowStatus: TShowStatusEvent;
+    procedure syncUpdate;
+  protected
+    procedure Execute; override;
+  public
+    property OnExecuteHandler: TExecuteHandlerEvent read FOnExecuteHandler write FOnExecuteHandler;
+    property OnShowStatus: TShowStatusEvent read FOnShowStatus write FOnShowStatus;
+  end;
+
+  { TTelegramSimpleSendThread }
+  TTelegramSimpleSendThread = class(TThread)
+  private
+    contentResult: String;
+    FOnExecuteHandler: TSendMessageEvent;
+  protected
+    procedure Execute; override;
+  public
+    ThreadChatID, ThreadChatText, ThreadReplyTo: string;
+    property OnExecuteHandler: TSendMessageEvent read FOnExecuteHandler write FOnExecuteHandler;
+  end;
+
   { TTelegramIntegration }
 
   TTelegramIntegration = class(TInterfacedObject)
@@ -81,9 +112,11 @@ type
     FImageURL: string;
     FInvitedFullName: string;
     FInvitedUserName: string;
+    FInvitedUserId: string;
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FOnMessage: TMessageHandler;
     FResultMessageID: string;
     FVoiceDuration: integer;
     FVoiceID: string;
@@ -99,34 +132,52 @@ type
     FResultText: string;
     FToken: string;
     FURL: string;
+    FGetUpdatesInProcess: Boolean;
+    FGetUpdatesContent: string;
     function getChatID: string;
     function getChatType: string;
     function getFullName: string;
     function getGroupName: string;
     function getImageCaption: string;
+    function getIsAdmin: boolean;
+    function getIsBot: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
+    function getIsPicture: boolean;
+    function getIsSticker: boolean;
+    function getIsUserLeft: boolean;
     function getIsVoice: boolean;
+    function getLeftUserID: string;
     function getMessageID: string;
+    function getReplyFromID: string;
     function getText: string;
     function getUpdateID: integer;
     function getUserID: string;
     function getUserName: string;
     procedure setRequestContent(AValue: string);
     procedure setToken(AValue: string);
+    procedure onGetUpdatesExecuteHandler;
+    procedure onGetUpdatesHandler( ATelegramResponse: String);
   public
     constructor Create;
     destructor Destroy;
 
     function getUpdates(const UpdateID: integer = 0): string;
+
+    function getUpdatesDynamic(const UpdateID: integer = 0): Boolean;
+
     function GetMe: string;
     function SendMessage(const ChatID: string = '0'; const Text: string = '';
       const ReplyToMessageID: string = ''): boolean;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
       const ReplyToMessageID: integer = 0): boolean;
+    function SendMessageAsThread(const ChatID: string = '0'; const Text: string = '';
+      const ReplyToMessageID: string = ''): boolean;
+    procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
+    function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
@@ -151,9 +202,21 @@ type
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
     function GroupMemberCount(AGroupID: string): integer;
-    function GroupAdminList(AGroupID: string): string;
+    function GroupAdminList(AGroupID: string; Formated: boolean = True): string;
 
     function isImage(ADetail: boolean = False): boolean;
+    function KickUser(AChatID: string; AUserID: string; AReason: string; AUntilDate: Integer = 0):boolean;
+    function RestrictUser(AChatID: string; AUserID: string;
+      AUntilDate: integer = 0;
+      ASendMessage: boolean = false;
+      ASendMedia: boolean = false;
+      ASendOther: boolean = false;
+      ASendWebPreview: boolean = false
+      ):boolean;
+
+    procedure SetWebHook(AValue: string);
+    function DeleteWebHook: boolean;
+    property OnMessage: TMessageHandler read FOnMessage write FOnMessage;
   published
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
@@ -163,12 +226,18 @@ type
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
     property UserID: string read getUserID;
+    property LeftUserID: string read getLeftUserID;
     property UserName: string read getUserName;
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
+    property ReplyFromID: string read getReplyFromID;
     property IsGroup: boolean read getIsGroup;
+    property IsAdmin: boolean read getIsAdmin;
+    property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
+    property IsUserLeft: boolean read getIsUserLeft;
 
+    property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
     property InvitedFullName: string read FInvitedFullName;
 
@@ -187,6 +256,8 @@ type
 
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
+    property IsSticker: boolean read getIsSticker;
+    property IsPicture: boolean read getIsPicture;
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -197,6 +268,8 @@ type
     property ImagePath: string read FImagePath;
     property ImageCaption: string read getImageCaption;
 
+    property WebHook: string write SetWebHook;
+    property GetUpdatesContent: string read FGetUpdatesContent;
   end;
 
 implementation
@@ -209,7 +282,8 @@ const
     'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_EDITMESSAGE =
     'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
-  TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%d&caption=%s&parse_mode=%s';
+  TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
+  TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
   TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
@@ -221,8 +295,42 @@ const
   TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
   TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
 
+  TELEGRAM_COMMAND_KICKUSER = 'kickChatMember?chat_id=%s&user_id=%s&until_date=%d';
+  TELEGRAM_COMMAND_RESTRICTUSER = 'restrictChatMember?chat_id=%s&user_id=%s&until_date=%d'
+    + '&can_send_messages=%s&can_send_media_messages=%s'
+    + '&can_send_other_messages=%s&can_add_web_page_previews=%s';
+
 var
   Response: IHTTPResponse;
+
+{ TTelegramSimpleSendThread }
+
+procedure TTelegramSimpleSendThread.Execute;
+begin
+  if Assigned(FOnExecuteHandler) then
+  begin
+    FOnExecuteHandler(ThreadChatID,ThreadChatText,ThreadReplyTo);
+  end;
+end;
+
+{ TTelegramSimpleThread }
+
+procedure TTelegramSimpleThread.syncUpdate;
+begin
+  if Assigned(FOnShowStatus) then
+  begin
+    FOnShowStatus(contentResult);
+  end;
+end;
+
+procedure TTelegramSimpleThread.Execute;
+begin
+  if Assigned(FOnExecuteHandler) then
+  begin
+    FOnExecuteHandler();
+  end;
+  Synchronize(@syncUpdate);
+end;
 
 
 { TTelegramIntegration }
@@ -233,6 +341,26 @@ begin
     Exit;
   FToken := AValue;
   FURL := format(TELEGRAM_BASEURL, [FToken]);
+end;
+
+procedure TTelegramIntegration.SetWebHook(AValue: string);
+var
+  urlTarget: string;
+begin
+  if FURL.IsEmpty then Exit;
+  urlTarget := FURL + 'setWebhook?url=' + AValue;
+  file_get_contents(urlTarget);
+end;
+
+function TTelegramIntegration.DeleteWebHook: boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if FURL.IsEmpty then Exit;
+  urlTarget := FURL + 'setWebhook?url=';
+  file_get_contents(urlTarget);
+  //TODO: check if successfull
 end;
 
 procedure TTelegramIntegration.setRequestContent(AValue: string);
@@ -254,6 +382,10 @@ begin
     if Result = 'False' then
       Result := '';
   except
+    try
+      Result := jsonData.GetPath('edited_message.text').AsString;
+    except
+    end;
   end;
 end;
 
@@ -263,6 +395,10 @@ begin
   try
     Result := jsonData.GetPath('message.chat.id').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.chat.id').AsString;
+    except
+    end;
   end;
 end;
 
@@ -272,6 +408,10 @@ begin
   try
     Result := jsonData.GetPath('message.chat.type').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.chat.type').AsString;
+    except
+    end;
   end;
 end;
 
@@ -305,6 +445,22 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getIsAdmin: boolean;
+begin
+  Result := False;
+
+  //TODO: check is admin
+end;
+
+function TTelegramIntegration.getIsBot: boolean;
+begin
+  Result := False;
+  try
+    Result := jsonData.GetPath('message.from.is_bot').AsBoolean;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getIsGroup: boolean;
 var
   s: string;
@@ -319,14 +475,34 @@ function TTelegramIntegration.getIsInvitation: boolean;
 begin
   Result := False;
   try
-    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
     FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
+    FInvitedFullName := FInvitedFullName + ' ' + jsonData.GetPath('message.new_chat_member.last_name').AsString;
+    FInvitedFullName := trim(FInvitedFullName);
+  except
+  end;
+  try
+    FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
+    FInvitedUserId := jsonData.GetPath('message.new_chat_member.id').AsString;
+    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
   except
   end;
 
   if FInvitedUserName <> '' then
     Result := True;
 end;
+
+function TTelegramIntegration.getIsUserLeft: boolean;
+var
+  s: String;
+begin
+  Result := False;
+  try
+    s := jsonData.GetPath('message.left_chat_member.id').AsString;
+    Result := True;
+  except
+  end;
+end;
+
 
 function TTelegramIntegration.getIsLocation: boolean;
 begin
@@ -341,6 +517,23 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getIsPicture: boolean;
+begin
+  Result := isImage(False);
+end;
+
+function TTelegramIntegration.getIsSticker: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  try
+    s := jsonData.GetPath('message.sticker.file_id').AsString;
+    if not s.IsEmpty then
+      Result := True;
+  except
+  end;
+end;
 
 function TTelegramIntegration.getIsVoice: boolean;
 begin
@@ -364,6 +557,15 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getReplyFromID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.id').AsString;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getUpdateID: integer;
 begin
   Result := 0;
@@ -379,8 +581,23 @@ begin
   try
     Result := jsonData.GetPath('message.from.id').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.id').AsString;
+    except
+    end;
   end;
 end;
+
+function TTelegramIntegration.getLeftUserID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.left_chat_member.id').AsString;
+  except
+  end;
+end;
+
+
 
 function TTelegramIntegration.getUserName: string;
 begin
@@ -388,6 +605,10 @@ begin
   try
     Result := jsonData.GetPath('message.from.username').AsString;
   except
+    try
+      Result := jsonData.GetPath('edited_message.from.username').AsString;
+    except
+    end;
   end;
 end;
 
@@ -398,6 +619,7 @@ begin
   FLastUpdateID := 0;
   FIsSuccessfull := False;
   FDebug := True;
+  FGetUpdatesInProcess := False;
 end;
 
 destructor TTelegramIntegration.Destroy;
@@ -437,16 +659,88 @@ begin
       if i <> -1 then
       begin
         a := TJSONArray(j.Items[i]);
-        a := TJSONArray(a.Items[0]);
-        a := TJSONArray(a.Items[0]);
-        FLastUpdateID := StrToInt64(a.AsJSON) + 1;
+        if a.Count>1 then a := TJSONArray(a.Items[0]);
+        if a.Count>1 then
+        begin
+          a := TJSONArray(a.Items[0]);
+          FLastUpdateID := s2i(a.AsJSON) + 1;
+        end;
       end;
 
     except
+      on E:Exception do
+      begin
+      end;
     end;
     Free;
   end;
+end;
 
+function TTelegramIntegration.getUpdatesDynamic(const UpdateID: integer
+  ): Boolean;
+begin
+  Result := False;
+  if FGetUpdatesInProcess then Exit;
+  FGetUpdatesInProcess := True;
+  FGetUpdatesContent := '';
+  with TTelegramSimpleThread.Create(True) do
+  begin
+    FreeOnTerminate := True;
+    OnExecuteHandler := @onGetUpdatesExecuteHandler;
+    OnShowStatus := @onGetUpdatesHandler;
+    Start;
+  end;
+  Result := True;
+end;
+
+procedure TTelegramIntegration.onGetUpdatesExecuteHandler;
+begin
+  FGetUpdatesContent:= getUpdates(FLastUpdateID);
+end;
+
+procedure TTelegramIntegration.onGetUpdatesHandler(ATelegramResponse: String
+  );
+var
+  i, indexResult: integer;
+  s: string;
+  jData: TJSONData;
+  aData, item: TJSONArray;
+  aReply: string;
+  aHandled: boolean;
+begin
+  // get result from FGetUpdatesContent
+  if not Assigned(FOnMessage) then
+    Exit;
+
+  try
+    jData := GetJSON(FGetUpdatesContent);
+    if jData.GetPath('ok').AsBoolean then
+    begin
+      indexResult := TJSONObject(jData).IndexOfName('result');
+      if indexResult <> -1 then
+      begin
+        aData := TJSONArray(jData.Items[indexResult]);
+        i := aData.Count;
+        for i:= 0 to aData.count - 1 do
+        begin
+          s := jData.GetPath('result['+i2s(i)+']').AsJSON;
+          RequestContent := s;
+          FLastUpdateID := UpdateID+1;
+
+          aReply := '';
+          aHandled := false;
+          FOnMessage(Text, aReply, aHandled);
+          if aHandled then
+          begin
+            SendMessageAsThread(ChatID, aReply);
+          end;
+        end;
+      end;
+    end;
+  except
+  end;
+
+  FGetUpdatesInProcess := False;
 end;
 
 function TTelegramIntegration.GetMe: string;
@@ -535,6 +829,28 @@ begin
   end;
 end;
 
+function TTelegramIntegration.SendMessageAsThread(const ChatID: string;
+  const Text: string; const ReplyToMessageID: string): boolean;
+begin
+  if ChatID.IsEmpty then Exit;
+  if Text.IsEmpty then Exit;
+  with TTelegramSimpleSendThread.Create(True) do
+  begin
+    ThreadChatID := ChatID;
+    ThreadChatText := Text;
+    ThreadReplyTo := ReplyToMessageID;
+    FreeOnTerminate := True;
+    OnExecuteHandler := @SendMessageAsThreadExecute;
+    Start;
+  end;
+end;
+
+procedure TTelegramIntegration.SendMessageAsThreadExecute(const ChatID: string;
+  const Text: string; const ReplyToMessageID: string);
+begin
+  SendMessage(ChatID, Text, ReplyToMessageID);
+end;
+
 function TTelegramIntegration.EditMessage(const ChatID: string;
   MessageID: string; Text: string): boolean;
 var
@@ -572,6 +888,39 @@ begin
     Free;
   end;
 
+  Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.DeleteMessage(const AChatID: string;
+  AMessageID: string): boolean;
+var
+  s, urlTarget: string;
+begin
+  Result := False;
+
+  if AChatID.IsEmpty or AMessageID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_DELETEMESSAGE,
+    [AChatID, AMessageID]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      Result := False;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
   Result := FIsSuccessfull;
 end;
 
@@ -648,7 +997,7 @@ begin
     Exit;
   if not FileExists(FileName) then
     Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [ChatID, Caption, FParseMode]);
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [i2s(ChatID), Caption, FParseMode]);
   if ReplyToMessageID <> 0 then
     urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
 
@@ -687,20 +1036,19 @@ begin
   if (ChatID = '') or (AImageURL = '') or (FURL = '') then
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO,
-    [s2i(ChatID), Caption, FParseMode]);
+    [ChatID, UrlEncode(Caption), FParseMode]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
+  urlTarget := urlTarget + '&chat_id=' + ChatID;
+  urlTarget := urlTarget + '&photo=' + AImageURL;
   with THTTPLib.Create(urlTarget) do
   begin
     try
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
-      FormData['chat_id'] := ChatID;
-      FormData['caption'] := Caption;
-      FormData['photo'] := AImageURL;
-      Response := Post;
+      Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
 
@@ -982,10 +1330,12 @@ begin
   Result := s2i(s);
 end;
 
-function TTelegramIntegration.GroupAdminList(AGroupID: string): string;
+function TTelegramIntegration.GroupAdminList(AGroupID: string; Formated: boolean
+  ): string;
 var
   i: integer;
-  s, urlTarget: string;
+  s, firstName, lastName, urlTarget: string;
+  json: TJSONData;
 begin
   Result := '';
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
@@ -1007,18 +1357,30 @@ begin
     Exit;
 
   try
-    jsonData := GetJSON(FResultText);
+    json := GetJSON(FResultText);
     i := 0;
-    s := jsonGetData(jsonData, 'result[0]/user/username');
+    s := jsonGetData(json, 'result[0]/user/id');
+    firstName := trim(jsonGetData(json, 'result[0]/user/first_name'));
+    lastName := trim(jsonGetData(json, 'result[0]/user/last_name'));
+    firstName := trim(firstName+' '+lastName);
+    s := '['+firstName+'](tg://user?id='+ s + ')';
     repeat
       if s <> '' then
-        Result := Result + s + ',';
+        Result := Result + s + ', ';
       i := i + 1;
-      s := jsonGetData(jsonData, 'result[' + i2s(i) + ']/user/username');
+      s := jsonGetData(json, 'result[' + i2s(i) + ']/user/id');
+      if not s.IsEmpty then begin
+        firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/first_name'));
+        lastName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/last_name'));
+        firstName := trim(firstName+' '+lastName);
+        s := '['+firstName+'](tg://user?id='+ s + ')';
+      end;
     until s = '';
-    Result := copy(Result, 0, length(Result) - 1);
+    json.Free;
   except
   end;
+  Result := Result.Trim;
+  Result := copy(Result, 0, length(Result) - 1);
 end;
 
 function TTelegramIntegration.isImage(ADetail: boolean): boolean;
@@ -1056,6 +1418,79 @@ begin
     Exit;
 
   FImageURL := format(TELEGRAM_FILEURL, [FToken]) + FImagePath;
+end;
+
+function TTelegramIntegration.KickUser(AChatID: string; AUserID: string;
+  AReason: string; AUntilDate: Integer): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if AChatID.IsEmpty then
+    Exit;
+  if AUserID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
+    [ChatID, AUserID, AUntilDate]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
+
+end;
+
+function TTelegramIntegration.RestrictUser(AChatID: string; AUserID: string;
+  AUntilDate: integer; ASendMessage: boolean; ASendMedia: boolean;
+  ASendOther: boolean; ASendWebPreview: boolean): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if AChatID.IsEmpty then
+    Exit;
+  if AUserID.IsEmpty then
+    Exit;
+
+  urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
+    [ChatID, AUserID, AUntilDate, b2s(ASendMessage), b2s(ASendMedia), b2s(ASendOther), b2s(ASendWebPreview)]);
+
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+    Free;
+  end;
 end;
 
 

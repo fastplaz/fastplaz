@@ -9,7 +9,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'Module Generator - Simple';
+  rs_Mod_Default_Name = 'Controller Generator - Simple';
   rs_Mod_Default_Description = 'Create FastPlaz simple module';
 
 type
@@ -83,7 +83,7 @@ begin
     Add('');
     Add('initialization');
     Add('  Route[ ''info''] := TInfoModule;');
-    Add('  Route[ ''/''] := T' + ucwords(_GlobalProjectName) + 'Module; // Main Module');
+    Add('  Route[ ''/''] := T' + ucwords(_GlobalProjectName) + 'Controller; // Main Controller');
     Add('');
   end;
 
@@ -113,7 +113,7 @@ begin
   Result := inherited GetInterfaceUsesSection;
   if not IsAPI then
     Result := Result + ', html_lib';
-  Result := Result + ', fpcgi, fpjson, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;
@@ -145,7 +145,7 @@ begin
   with str do
   begin
     Add('type');
-    Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
+    Add('  ' + ModulTypeName + ' = class(TMyCustomController)');
     //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     if not IsAPI then
@@ -177,7 +177,7 @@ begin
   begin
     if IsAPI then
     begin
-      Add('uses json_lib, common;');
+      Add('uses common;');
     end
     else
     begin
@@ -316,7 +316,7 @@ begin
         begin
           if edt_ModuleName.Text <> '' then
             ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]) + 'Module';
+              ' ', '', [rfReplaceAll]) + 'Controller';
           Permalink := edt_Permalink.Text;
           if Permalink = '' then
           begin
@@ -329,7 +329,7 @@ begin
     end
     else
     begin
-      ModulTypeName := 'T' + ucwords(_GlobalProjectName) + 'Module';
+      ModulTypeName := 'T' + ucwords(_GlobalProjectName) + 'Controller';
       Permalink := 'main';
     end;
   end;

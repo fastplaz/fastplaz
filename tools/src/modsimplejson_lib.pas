@@ -51,7 +51,7 @@ end;
 function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, fpjson, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
 end;
 
 function TFileDescJSONModule.GetLocalizedName: string;
@@ -76,7 +76,7 @@ begin
   with str do
   begin
     Add('type');
-    Add('  ' + ModulTypeName + ' = class(TMyCustomWebModule)');
+    Add('  ' + ModulTypeName + ' = class(TMyCustomController)');
     //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
@@ -85,6 +85,7 @@ begin
     Add('');
     Add('    procedure Get; override;');
     Add('    procedure Post; override;');
+    Add('    procedure Options; override;');
     Add('  end;');
     Add('');
   end;
@@ -101,7 +102,7 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('uses common, json_lib;');
+    Add('uses common;');
     Add('');
 
     Add('constructor ' + ModulTypeName +
@@ -146,6 +147,14 @@ begin
     Add('End;');
     Add('');
 
+    Add('// OPTIONS Method Handler');
+    Add('procedure ' + ModulTypeName + '.Options;');
+    Add('Begin');
+    Add('  Response.Code := 204;');
+    Add('  Response.Content := '''';');
+    Add('End;');
+    Add('');
+
     Add('');
     Add('');
   end;
@@ -183,7 +192,7 @@ begin
         begin
           if edt_ModuleName.Text <> '' then
             ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]) + 'Module';
+              ' ', '', [rfReplaceAll]) + 'Controller';
           Permalink := edt_Permalink.Text;
           if Permalink = '' then
           begin

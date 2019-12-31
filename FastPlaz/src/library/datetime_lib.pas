@@ -26,6 +26,8 @@ function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 30;
 
 implementation
 
+uses datetime_helpers;
+
 function _DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
 begin
   Result := ANow - AThen;
@@ -38,20 +40,26 @@ end;
 function DateTimeHuman(TheDate: string; MaxIntervalDate: integer;
   FormatDate: string): string;
 var
-  sdf: ansistring;
   dateTmp: TDateTime;
-  //ts: TFormatSettings;
+  fs: TFormatSettings;
 begin
   //{$WARN SYMBOL_PLATFORM OFF}
   //GetLocaleFormatSettings(0, ts);
   //{$WARN SYMBOL_PLATFORM ON}
 
-  //ts.ShortDateFormat := 'yyyy/MM/dd h:nn';
-  sdf := DefaultFormatSettings.ShortDateFormat;
-  DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd h:nn';
   try
-    //dateTmp := StrToDateTime(TheDate, ts);
-    dateTmp := StrToDateTime(TheDate);
+    if StrToInt64(TheDate) <> 0 then
+    begin
+      dateTmp := UnixToDateTime(StrtoInt64(TheDate));
+      TheDate := dateTmp.AsString;
+    end;
+  except
+  end;
+
+  fs := DefaultFormatSettings;
+  fs.ShortDateFormat := 'yyyy-MM-dd hh:nn';
+  try
+    dateTmp := StrToDateTime(TheDate, fs);
     Result := DateTimeHuman(dateTmp, MaxIntervalDate, FormatDate);
   except
     on e: Exception do
@@ -59,7 +67,6 @@ begin
       Result := e.Message + ': "' + TheDate + '"';
     end;
   end;
-  DefaultFormatSettings.ShortDateFormat := sdf;
 end;
 
 function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer;

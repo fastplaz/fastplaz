@@ -4,6 +4,9 @@ unit apixu_integration;
   Weather API and Geo
   https://www.apixu.com/
 
+  Apixu is now weatherstack
+  https://weatherstack.com/
+
   [x] USAGE
   with TApixuIntegration.Create do
   begin
@@ -54,7 +57,7 @@ type
 implementation
 
 const
-  _APIXU_API_URL = 'https://api.apixu.com/v1/current.json?key=%s&q=%s';
+  _APIXU_API_URL = 'http://api.weatherstack.com/current?units=m&access_key=%s&query=%s';
 
 var
   Response: IHTTPResponse;

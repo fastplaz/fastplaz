@@ -29,9 +29,9 @@ const
   __FOREACH_START = '\[foreach([\.\$A-Za-z0-9=_ ]+)\]';
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
-  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ ]+)\]';
-  __CONDITIONAL_IF_VALUE = '([\.\$@A-Za-z0-9:=<">_\\/\-\n\r ]+)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
-  __CONDITIONAL_IF_END = '\[/if\]';
+  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "'']+)\]';
+  //__CONDITIONAL_IF_VALUE = '([\.\$#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  __CONDITIONAL_IF_END = '\[\/if\]';
 
   __HITS_FILENAME = 'hits.log';
 
@@ -118,6 +118,7 @@ type
     procedure AddHit( const URL:string);
 
     function wpautop( Content:string; BR:boolean = true):string;
+    function MultiFilter( AContent:string):string;
     function FilterOutput( Content, Filter:string):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
 
@@ -140,6 +141,7 @@ type
     //-- [if ] processor
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
     function conditionIsEqual( Value1, Value2: variant): boolean;
+    function conditionIsNotEqual( Value1, Value2: variant): boolean;
 
 
     //-- foreach
@@ -531,6 +533,12 @@ begin
   Result := html;
 end;
 
+function TThemeUtil.MultiFilter(AContent: string): string;
+begin
+  Result := FormatTextLikeForum(AContent);
+  Result := MarkdownToHTML(Result);
+end;
+
 function TThemeUtil.GetHitCount(const URL: String): integer;
 var
   s : string;
@@ -559,6 +567,8 @@ begin
 end;
 
 function TThemeUtil.FilterOutput(Content, Filter: string): string;
+var
+  i: Integer;
 begin
   Result := Content;
   if Filter = '' then
@@ -584,6 +594,14 @@ begin
     begin
       Result := DateTimeHuman( Content);
     end;
+    'date' :
+    begin
+      try
+        i := StrToInt(Content);
+        Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i));
+      except
+      end;
+    end;
     'shorturl' :
     begin
       Result := HTMLUtil.Permalink( Content);
@@ -595,6 +613,10 @@ begin
     'permalink' :
     begin
       Result := HTMLUtil.Permalink( Content);
+    end;
+    'multifilter' :
+    begin
+      Result := MultiFilter( Content);
     end;
   end;
 end;
@@ -832,7 +854,7 @@ begin
   Result := '';
   //if SessionController.IsStarted then
   //  Exit;;
-  lst := TStrings.Create;
+  lst := TStringList.Create;
   lst.Text := SessionController.GetData;
   html := '<div class="debug">';
   html := html + '<fieldset>';
@@ -851,7 +873,7 @@ begin
   Result := html;
 end;
 
-function TThemeUtil.GetVersionInfo: boolean;
+function TThemeUtil.GetVersionInfo(): boolean;
 begin
   if VersionInfo.FullVersion = '' then
   begin
@@ -962,48 +984,90 @@ begin
 end;
 
 function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
+
+  function DoConditioning(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
+  var
+    s, condition: String;
+    parameter: TStrings;
+    value1, value2: variant;
+  begin
+    Result := False;
+    parameter := Explode(ARegex.Match[1], ' ');
+    if (parameter.Count < 4) then
+    begin
+      Exit;
+    end;
+
+    if FAssignVarStringMap.IndexOfName( parameter[1]) = -1 then
+    begin
+      AContent := StringReplace( AContent, ARegex.Match[0], '', [rfReplaceAll]);
+      Result := True;
+      Exit;
+    end;
+
+    value1 := VarValue[ parameter[1]];
+    value2 := '';
+    if not ((parameter[3] = '''''') or (parameter[3] = '""')) then
+    begin
+      value2 := VarValue[ parameter[3]];
+    end;
+    condition := parameter[2];
+    if condition = '=' then condition := 'eq';
+    case condition of
+      'eq':
+        begin
+          if conditionIsEqual( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
+
+      'neq':
+        begin
+          if conditionIsNotEqual( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+
+        end
+      // development: lt, gt
+
+    end;
+
+    Result := True;
+  end;
+
+const
+  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+
 var
   parameter : TStrings;
   condition,
   s : string;
   value1, value2 : variant;
+  regex : TRegExpr;
 begin
   s := '';
   Result := Content;
-  with TRegExpr.Create do
+  regex := TRegExpr.Create;
+  with regex do
   begin
     //Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     // \[if([\.\$A-Za-z_0-9=\ ]+)\]([a-z]+)(\[else\])?([a-z]+)\[/if\]
     Expression := Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     if Exec( Content) then
     begin
-      parameter := Explode( Match[1], ' ');
-      if (parameter.Count < 4) then
+      if not DoConditioning(regex, Result) then
       begin
-        FreeAndNil( parameter);
+        Free;
         Exit;
       end;
-
-      value1 := VarValue[ parameter[1]];
-      value2 := VarValue[ parameter[3]];
-      condition := parameter[2];
-
-      if condition = '=' then condition := 'eq';
-      case condition of
-        'eq':
-          begin
-            if conditionIsEqual( value1, value2) then
-              s := Match[2]
-            else
-              s := Match[4];
-            Result := StringReplace( Content, Match[0], s, [rfReplaceAll]);
-          end;
-
-        // development: lt, gt
-
+      while ExecNext do
+      begin
+        DoConditioning(regex, Result, True)
       end;
-      //die( Content);
-
     end;
 
     Free;
@@ -1017,60 +1081,91 @@ begin
     Result := True;
 end;
 
+function TThemeUtil.conditionIsNotEqual(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 <> Value2 then
+    Result := True;
+end;
+
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
+
+  function DoForeach(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
+  var
+    parameter: TStrings;
+    html : string;
+  begin
+    Result := False;
+    parameter := Explode(ARegex.Match[1], ' ');
+    ForeachTable_Keyname  := parameter.Values['from'];
+    ForeachTable_Itemname := parameter.Values['item'];
+
+    case parameter.Values['type'] of
+      '' : begin
+        DisplayError( 'field "type" is not define in "foreach ' + ARegex.Match[1] + '"');
+        //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
+      end;
+      'table' : begin
+        html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'dataset' : begin
+        html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'jsondata' : begin
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      {$ifdef GREYHOUND}
+      'ghtable' : begin
+        html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
+      end;
+      {$endif GREYHOUND}
+      'array' : begin
+        DisplayError( __( __Err_Theme_ForeachNotImplemented));
+        //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
+      end;
+    end;
+
+    //-- proccess conditional if
+    //html := ConditionalIfProcessor( TagProcessor, html);
+
+    ForeachTable_Keyname := '';
+    ForeachTable_Itemname := '';
+
+    html := StringReplace( AContent, ARegex.Match[0], html, [rfReplaceAll]);
+
+    //** call parent tag-controller
+
+    ForeachTable_Keyname := '';
+    ForeachTable_Itemname:= '';
+    FreeAndNil( parameter);
+
+    AContent := html;
+    Result := true;
+  end;
+
 var
   parameter : TStrings;
   html : string;
+  regex : TRegExpr;
 begin
   Result := Content;
-  with TRegExpr.Create do
+  regex := TRegExpr.Create;
+  with regex do
   begin
     Expression := Format('%s(.*?)%s', [ __FOREACH_START, __FOREACH_END]);
-    if Exec( Content) then
+    if Exec( Result) then
     begin
-      parameter := Explode( Match[1], ' ');
-      ForeachTable_Keyname  := parameter.Values['from'];
-      ForeachTable_Itemname := parameter.Values['item'];
-      case parameter.Values['type'] of
-        '' : begin
-          DisplayError( 'field "type" is not define in "foreach ' + Match[1] + '"');
-          //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
-        end;
-        'table' : begin
-          html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        'dataset' : begin
-          html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        'json' : begin
-          html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        {$ifdef GREYHOUND}
-        'ghtable' : begin
-          html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
-        end;
-        {$endif GREYHOUND}
-        'array' : begin
-          DisplayError( __( __Err_Theme_ForeachNotImplemented));
-          //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
-        end;
+      if not DoForeach(regex, Result) then
+      begin
+        Free;
+        Exit;
       end;
-
-      //-- proccess conditional if
-      //html := ConditionalIfProcessor( TagProcessor, html);
-
-      ForeachTable_Keyname := '';
-      ForeachTable_Itemname := '';
-
-      html := StringReplace( Content, Match[0], html, [rfReplaceAll]);
-
-      //** call parent tag-controller
-
-      ForeachTable_Keyname := '';
-      ForeachTable_Itemname:= '';
-      FreeAndNil( parameter);
-      Result := html;
+      while ExecNext do
+      begin
+        //die(result);
+        DoForeach(regex, Result, True)
+      end;
     end;
     Free;
   end;
@@ -1299,7 +1394,9 @@ procedure TThemeUtil.ForeachProcessor_Table_TagController(Sender: TObject;
   const TagString: string; TagParams: TStringList; out ReplaceText: string);
 var
   tagstring_custom : TStringList;
-  filter : string;
+  filter, dateAsString : string;
+  sdf: ansistring;
+  dateAsLongInt: LongInt;
   i : integer;
 begin
   if ForeachTable_Keyname = '' then
@@ -1337,12 +1434,27 @@ begin
   begin
     if tagstring_custom.Values['dateformat'] = 'human' then
     begin
-      ReplaceText := DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+      try
+        ReplaceText := DateTimeHuman( TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+      except
+        dateAsString := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        ReplaceText := DateTimeHuman( dateAsString);
+      end;
     end
     else
-      ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
-        TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-      );
+    begin
+      try
+        ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
+          TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+        );
+      except
+        sdf := DefaultFormatSettings.ShortDateFormat;
+        DefaultFormatSettings.ShortDateFormat := 'yyyy/MM/dd';
+        dateAsLongInt:= TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsInteger;
+        DefaultFormatSettings.ShortDateFormat := sdf;
+        ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'], UnixToDateTime(dateAsLongInt));
+      end;
+    end;
   end
   else
   begin
@@ -1445,6 +1557,15 @@ begin
     FreeAndNil( tag_with_filter);
   end;
   fieldName := tagstring_custom.Values['index'];
+
+  if tagstring_custom.Values['assignto'] <> '' then
+  begin
+    FAssignVarStringMap.Values[tagstring_custom.Values['assignto']] :=
+      TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+    Exit;
+  end;
+
+  //TODO: dateformat
 
   try
     ReplaceText := TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
@@ -1565,7 +1686,7 @@ begin
         else
           ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
       except
-        ReplaceText :='----';
+        ReplaceText :='[field not found]';
       end;
       ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
       FreeAndNil(tagstring_custom);
@@ -1776,8 +1897,10 @@ begin
     end;
   end;
 
-  if ReplaceText = '' then
+  if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
   begin
+    if filter='defaultempty' then
+      ReplaceText := '';
     // gunakan ini, jika nama variable ditampilkan saat variable tidak ditemukan
     //ReplaceText := ThemeUtil.StartDelimiter +  TagString + ThemeUtil.EndDelimiter;
   end;
@@ -1884,6 +2007,15 @@ begin
           + DirectorySeparator + 'master' + FThemeExtension;
   end;
 
+  if not FileExists(templateFilename) then
+  begin
+    if AppData.debug then
+      Result := Format(__Err_Theme_Template_NotFound, [templateFilename])
+    else
+      Result := Format(__Err_Theme_Template_NotFound, [ExtractFileName(templateFilename)]);
+    Exit;
+  end;
+
   try
     templateEngine := TFPTemplate.Create;
     templateEngine.FileName := templateFilename;
@@ -1908,6 +2040,9 @@ begin
       // only from module
       //Result := ForeachProcessor( TagProcessorAddress, Result);
     end;
+
+    //-- proccess conditional if
+    Result:= ConditionalIfProcessor( TagProcessorAddress, Result);
 
   except
     on e : Exception do
@@ -2024,6 +2159,8 @@ begin
   begin
     if Pos('</script',html[i])>0 then skip:=true;
     if Pos('<script',html[i])>0 then skip:=false;
+    if Pos('</code',html[i])>0 then skip:=true;
+    if Pos('<code',html[i])>0 then skip:=false;
     if (not skip) or ForceTrim then
     begin
       html[i]:=trim(html[i]);

@@ -32,13 +32,14 @@ resourcestring
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
   __Err_Theme_ForeachNotImplemented = 'foreach array still not implemented';
+  __Err_Theme_Template_NotFound = 'Unable to open file "%s"';
 
   __Result_Default_Get = 'Default GET Result';
   __Result_Default_Post = 'Default POST Result';
   __Result_Default_Put = 'Default PUT Result';
   __Result_Default_Delete = 'Default DELETE Result';
   __Result_Default_Patch = 'Default PATCH Result';
-  __Result_Default_Option = 'Default OPTIONS Result';
+  __Result_Default_Options = 'Default OPTIONS Result';
   __Result_Default_Handler = 'Fastplaz Request Handler Default';
 
   __Content_Not_Found = 'Nothing Found';
@@ -147,10 +148,10 @@ type
     procedure Put; virtual;
     procedure Delete; virtual;
     procedure Patch; virtual;
-    procedure Option; virtual;
+    procedure Options; virtual;
 
     procedure LanguageInit;
-    procedure CloseConnection;
+    procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
 
     property URI: string read GetURI;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
@@ -323,7 +324,7 @@ type
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
-procedure Redirect(const URL: string; const FlashMessage: string = '');
+procedure Redirect(const URL: string; const FlashMessage: string = ''; AStatusCode: Integer = 302);
 
 procedure DisplayError(const Message: string; const Layout: string = 'error');
 procedure Debug(const Message: integer; const Key: string = '');
@@ -464,13 +465,15 @@ begin
   {$endif}
 end;
 
-procedure Redirect(const URL: string; const FlashMessage: string);
+procedure Redirect(const URL: string; const FlashMessage: string;
+  AStatusCode: Integer);
 begin
   if FlashMessage <> '' then
     ThemeUtil.FlashMessages := FlashMessage;
   Application.Response.Content := '';
   //Application.Response.SendRedirect(URL);
   //Application.Response.SendResponse;
+  Application.Response.Code := AStatusCode;
   Application.Response.Location := URL;
   Application.Response.SendHeaders;
   Application.Destroy;
@@ -943,7 +946,7 @@ begin
     end;
     'OPTIONS':
     begin
-      Option;
+      Options;
     end;
 
     else
@@ -985,9 +988,9 @@ begin
   Response.Content := __Result_Default_Delete;
 end;
 
-procedure TMyCustomWebModule.Option;
+procedure TMyCustomWebModule.Options;
 begin
-  Response.Content := __Result_Default_Option;
+  Response.Content := __Result_Default_Options;
 end;
 
 procedure TMyCustomWebModule.LanguageInit;
@@ -1009,8 +1012,11 @@ begin
   _SESSION['lang'] := LANG;
 end;
 
-procedure TMyCustomWebModule.CloseConnection;
+procedure TMyCustomWebModule.CloseConnection(const AResponseContent: string;
+  ACode: Integer);
 begin
+  Response.Code := ACode;
+  Response.Content := AResponseContent;
   CustomHeader['Connection'] := 'close';
   Response.SendContent;
 end;
