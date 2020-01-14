@@ -257,8 +257,20 @@ begin
 end;
 
 function TJSONUtil.GetValueArray(PathString: UnicodeString): TJSONArray;
+var
+  o: TJSONObject;
+  El: TJSONData;
+  ElName: UnicodeString;
 begin
-  Result := Nil;
+  ElName := '';
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
+  El := FindElement(StripSlash(PathString), False, o, ElName);
+  if not Assigned(El) then
+    Exit;
+
+  if El.JSONType = jtArray then
+    Result := (El as TJSONArray);
 end;
 
 procedure TJSONUtil.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
