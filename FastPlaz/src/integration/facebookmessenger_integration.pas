@@ -106,13 +106,16 @@ type
   TFacebookMessengerIntegration = class(TInterfacedObject)
   private
     FBotName: string;
+    FFirtName: String;
     FImageCaption: string;
     FImageID: string;
     FImageURL: string;
     FIsSuccessfull: boolean;
+    FLastName: String;
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FProfilePicture: String;
     FQuickReply: TFacebookQuickReply;
     FRequestContent: string;
     FResultCode: integer;
@@ -121,6 +124,7 @@ type
     FToken: string;
 
     jsonData: TJSONData;
+    function getFullName: String;
     function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
@@ -157,6 +161,7 @@ type
     procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
     procedure SendTemplateCard(ATo: string; AContent: TJSONArray);
     procedure AskLocation(ATo: string);
+    function GetProfile(AUserId:String): boolean;
 
     function isCanSend: boolean;
     function isMessage: boolean;
@@ -181,6 +186,10 @@ type
     property TemplateCard: TFacebookTemplateCard read FTemplateCard write FTemplateCard;
 
   published
+    property FirtName: String read FFirtName;
+    property LastName: String read FLastName;
+    property FullName: String read getFullName;
+    property ProfilePicture: String read FProfilePicture;
     property ImageID: string read FImageID;
     property ImageURL: string read FImageURL;
     property ImageCaption: string read FImageCaption;
@@ -197,6 +206,7 @@ implementation
 const
   _FACEBOOK_MSG_MAXLENGTH = 635;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
+  _FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v2.6/';
   _FACEBOOK_MESSENGER_SEND_URL =
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
   _FACEBOOK_MESSENGER_SEND_JSON =
@@ -356,6 +366,14 @@ begin
       'entry[0].messaging[0].message.attachments[0].title').AsString;
   except
   end;
+end;
+
+function TFacebookMessengerIntegration.getFullName: String;
+begin
+  Result := FFirtName + ' ' + FLastName;
+  Result := Result.Trim;
+  if Result.IsEmpty then
+    Result := UserID;
 end;
 
 function TFacebookMessengerIntegration.getMessageID: string;
@@ -732,6 +750,37 @@ begin
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+end;
+
+function TFacebookMessengerIntegration.GetProfile(AUserId: String): boolean;
+var
+  json: TJSONUtil;
+begin
+  FIsSuccessfull := False;
+  if not isCanSend then
+    Exit;
+  if AUserId.IsEmpty then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_GRAPH_URL + AUserId + '?access_token=' + FToken) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      Response := Get;
+      if Response.ResultCode = 200 then
+      begin
+        json := TJSONUtil.Create;
+        json.LoadFromJsonString(Response.ResultText);
+        FFirtName := json['first_name'];
+        FLastName := json['last_name'];
+        FProfilePicture := json['profile_pic'];
+        json.Free;
+        Result := True;
+      end;
     except
     end;
     Free;
