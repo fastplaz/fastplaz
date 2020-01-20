@@ -300,7 +300,7 @@ begin
     exit;
   try
     {$ifdef synapse}
-    sock.ConnectionTimeout := FTimeOut;
+    sock.SocksTimeout := FTimeOut;
     sock.Connect(FServerAddress, FPort);
     FLastError := sock.LastError;
     if sock.LastError = 0 then
