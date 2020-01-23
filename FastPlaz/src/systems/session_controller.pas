@@ -384,7 +384,8 @@ begin
   inherited Create();
   FSessionVars := TStringList.Create;
   FLastAccess := 0;
-  FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
+  //FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
+  FHttpCookie := GetEnvironmentVariable( 'Cookie');
   FHttpCookie := StringReplace(FHttpCookie, ' ', '', [rfReplaceAll]);
   //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
   //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
