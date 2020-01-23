@@ -134,7 +134,7 @@ end;
 
 function TSessionController.GenerateSesionID: string;
 begin
-  Result := FCookieID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT'];
+  Result := FCookieID + '-' + Application.EnvironmentVariable['REMOTE_ADDR'];
   Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
     FCookieID + FSessionSuffix;
 end;
