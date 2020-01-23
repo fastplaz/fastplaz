@@ -365,6 +365,8 @@ end;
 
 
 procedure InitializeFastPlaz(Sender: TObject);
+var
+  _: String;
 begin
   if AppData.initialized then
     Exit;
@@ -440,6 +442,22 @@ begin
   if string(Config.GetValue(_SYSTEM_SESSION_STORAGE, 'file')) = 'database' then
     AppData.SessionStorage := _SESSION_STORAGE_DATABASE;
   SessionController.Storage := AppData.SessionStorage;
+  // force session with cookie
+  if SessionController.CookieID.IsEmpty then
+  begin
+    _ := Application.Request.CookieFields.Values['_'];
+    if _.IsEmpty then
+    begin
+      _ := RandomString(40, 'fastplaz');
+    end;
+    with Application.Response.Cookies.Add do
+    begin
+      Name := '_';
+      Value := _;
+      Expires := dateutils.IncDay(Now,3);
+    end;
+    SessionController.SessionID := _;
+  end;
   if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
   begin
     DataBaseInit;
