@@ -67,7 +67,7 @@ type
     destructor Destroy; override;
     property Values[variable: string]: string read GetValue write SetValue; default;
     property CookieID: string read FCookieID;
-    property SessionID: string read FSessionID;
+    property SessionID: string read FSessionID write FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
     property TimeOut: integer read GetTimeOut write SetTimeOut;
     property LastAccess: TDateTime read FLastAccess;
