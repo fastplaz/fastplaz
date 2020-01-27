@@ -1040,7 +1040,7 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
   end;
 
 const
-  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!,;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
 
 var
   parameter : TStrings;
