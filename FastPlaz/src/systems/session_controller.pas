@@ -133,8 +133,13 @@ end;
 { TSessionController }
 
 function TSessionController.GenerateSesionID: string;
+var
+  remoteAddr: String;
 begin
-  Result := FCookieID + '-' + Application.EnvironmentVariable['REMOTE_ADDR'];
+  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  if remoteAddr.IsEmpty then
+    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
+  Result := FCookieID + '-' + remoteAddr;
   Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
     FCookieID + FSessionSuffix;
 end;
@@ -301,11 +306,14 @@ end;
 
 function TSessionController.UpdateDatabase: boolean;
 var
-  sql: string;
+  sql, remoteAddr: string;
   uid: integer;
 begin
+  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  if remoteAddr.IsEmpty then
+    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
   uid := s2i(FSessionVars.Values[SESSION_FIELD_UID]);
-  sql := Format(_SESSION_SQL_UPDATE, [FSessionID, Application.Request.RemoteAddress,
+  sql := Format(_SESSION_SQL_UPDATE, [FSessionID, remoteAddr,
     uid, 0, c(FSessionVars.Text)]);
   Result := SessionTable.Exec(sql);
 end;
