@@ -12,14 +12,15 @@ Get a reCAPTCHA API Key
 interface
 
 uses
+  json_lib,
   fpcgi, fastplaz_handler, common,
   fphttpclient,
   Classes, SysUtils;
 
 const
   ReCaptcha_SignupUrl = 'https://www.google.com/recaptcha/admin';
-  ReCaptcha_SiteVerifyUrl_v1 = 'http://www.google.com/recaptcha/api/verify?';
-  ReCaptcha_SiteVerifyUrl_v2 = 'http://www.google.com/recaptcha/api/siteverify?';
+  ReCaptcha_SiteVerifyUrl_v1 = 'https://www.google.com/recaptcha/api/verify?';
+  ReCaptcha_SiteVerifyUrl_v2 = 'https://www.google.com/recaptcha/api/siteverify?';
   ReCaptcha_Version = 'php_1.0';
 
 type
@@ -80,7 +81,7 @@ end;
 constructor TReCaptcha.Create(SecretKey: string);
 begin
   FSecretKey := SecretKey;
-  FVersion := 'v1';
+  FVersion := 'v2';
 end;
 
 destructor TReCaptcha.Destroy;
@@ -95,7 +96,7 @@ begin
   Result := False;
   FVersion := _POST['recaptcha_version'];
   if FVersion = '' then
-    FVersion := 'v1';
+    FVersion := 'v2';
   response := _POST['g-recaptcha-response']; // v2
   if response = '' then
     response := _POST['recaptcha_response_field'];
@@ -112,6 +113,7 @@ function TReCaptcha.verifyResponse(
   const RemoteIP, ResponRecaptcha, Challenge: string): boolean;
 var
   s: string;
+  json: TJSONUtil;
 begin
   Result := False;
   if ((RemoteIP = '') or (ResponRecaptcha = '')) then
@@ -147,7 +149,15 @@ begin
     s := _submitHttpGet(ReCaptcha_SiteVerifyUrl_v2,
       ['secret=' + FSecretKey, 'remoteip=' + RemoteIP, 'response=' +
       ResponRecaptcha, 'v=' + ReCaptcha_Version]);
-
+    json := TJSONUtil.Create;
+    json.LoadFromJsonString(s);
+    s := json['success'];
+    FErrorCodes := jsonGetData(json.Data,'error-codes[0]');
+    if s = 'True' then
+    begin
+       FErrorCodes := '0';
+       Result := True;
+    end;
     // TODO: processing v2
   end;
 end;

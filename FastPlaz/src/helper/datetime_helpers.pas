@@ -6,13 +6,11 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 }
 unit datetime_helpers;
-
 {
-[x] USAGE
-  var
+  [x] USAGE
+  variable
     d : TDateTime;
     s : String;
-
 
   d.FromString( '17-08-1945 09:59:00');
   s := d.Format( 'yyyy-mm-dd HH:nn:ss');
@@ -23,7 +21,6 @@ unit datetime_helpers;
   if d.IsToday then begin end;
 
   if Tomorrow.IsSaturday then begin ... end;
-
   if d.HourOf = 9 then ....
 
   d := d.IncMinute(1);
