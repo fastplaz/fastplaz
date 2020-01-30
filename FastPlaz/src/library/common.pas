@@ -103,6 +103,7 @@ function StrInArray(const AValue : String;const AArrayOfString : Array of String
 function StreamToString(AStream: TStream): string;
 function StripNonAscii(const s: string): string;
 function StripCharsInSet(s:string; c:CharSet):string;
+function strstr(AText, ADelimiter: String; IsBeforeNeedle: Boolean = False): String;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
@@ -347,6 +348,19 @@ begin
       result[j]:=s[i];
     end;
   SetLength(result,j);
+end;
+
+function strstr(AText, ADelimiter: String; IsBeforeNeedle: Boolean): String;
+var
+  i: Integer;
+begin
+  Result := '';
+  i := Pos(ADelimiter, AText);
+  if i = 0 then
+    Exit;
+  if IsBeforeNeedle then
+    i := i - 1;
+  Result := Copy(AText,1, i);
 end;
 
 function StringCut(AStartString, AStopString: string; AText: string): string;
