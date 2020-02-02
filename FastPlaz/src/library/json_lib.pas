@@ -246,14 +246,17 @@ begin
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
     Exit;
-  if El.JSONType = jtString then
-    Result := El.AsString;
-  if El.JSONType = jtBoolean then
-    Result := El.AsBoolean;
-  if (El is TJSONIntegerNumber) then
-    Result := El.AsInteger;
-  if (El is TJSONFloatNumber) then
-    Result := El.AsFloat;
+  try
+    if El.JSONType = jtString then
+      Result := El.AsString;
+    if El.JSONType = jtBoolean then
+      Result := El.AsBoolean;
+    if (El is TJSONIntegerNumber) then
+      Result := El.AsInteger;
+    if (El is TJSONFloatNumber) then
+      Result := El.AsFloat;
+  except
+  end;
 end;
 
 function TJSONUtil.GetValueArray(PathString: UnicodeString): TJSONArray;
