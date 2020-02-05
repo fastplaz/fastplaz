@@ -21,6 +21,9 @@ unit verbal_expressions_lib;
   VE.Find('bird');
   varString := VE.Replace(varString, 'duck');
 
+  // or
+  varString := VE.Find('red').Replace('We have a red house', 'blue');
+
   inspiration from:
     https://github.com/VerbalExpressions/
 }
