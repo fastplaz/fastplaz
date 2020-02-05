@@ -56,7 +56,7 @@ type
     procedure Clean;
     function Sanitize(AValue: string): string;
 
-    function AddValue(AValue: string): TVerbalExpressions;
+    function Add(AValue: string): TVerbalExpressions;
     function StartOfLine(AEnable: boolean = True): TVerbalExpressions;
     function EndOfLine(AEnable: boolean = True): TVerbalExpressions;
     function AndThen(AValue: string; ASanitize: boolean = True): TVerbalExpressions;
@@ -138,7 +138,7 @@ begin
   Result := StringReplace(Result, '/', '\/', [rfReplaceAll]);
 end;
 
-function TVerbalExpressions.AddValue(AValue: string): TVerbalExpressions;
+function TVerbalExpressions.Add(AValue: string): TVerbalExpressions;
 begin
   FLastAdded := Avalue;
   FSource := FSource + AValue;
@@ -167,9 +167,9 @@ function TVerbalExpressions.AndThen(AValue: string; ASanitize: boolean
   ): TVerbalExpressions;
 begin
   if ASanitize then
-    AddValue('(' + REGEX_GROUP_LABEL + Sanitize(AValue) + ')')
+    Add('(' + REGEX_GROUP_LABEL + Sanitize(AValue) + ')')
   else
-    AddValue('(' + REGEX_GROUP_LABEL + AValue + ')');
+    Add('(' + REGEX_GROUP_LABEL + AValue + ')');
   Result := Self;
 end;
 
@@ -194,28 +194,28 @@ end;
 // Add a string to the expression that might appear once (or not).
 function TVerbalExpressions.Maybe(AValue: string): TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + Sanitize(AValue) + ')?');
+  Add('(' + REGEX_GROUP_LABEL + Sanitize(AValue) + ')?');
   Result := Self;
 end;
 
 // Anything but this chars
 function TVerbalExpressions.AnythingBut(AValue: string): TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']*)');
+  Add('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']*)');
   Result := Self;
 end;
 
 // Anything non-empty except for these chars
 function TVerbalExpressions.SomethingBut(AValue: string): TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']+b)');
+  Add('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']+b)');
   Result := Self;
 end;
 
 // Any of the listed chars
 function TVerbalExpressions.AnyOf(AValue: string): TVerbalExpressions;
 begin
-  AddValue('[' + Sanitize(AValue) + ']');
+  Add('[' + Sanitize(AValue) + ']');
   Result := Self;
 end;
 
@@ -227,47 +227,47 @@ end;
 // Adds a range to our expression
 function TVerbalExpressions.Range(AValue: string): TVerbalExpressions;
 begin
-  AddValue('[' + Sanitize(AValue) + ']');
+  Add('[' + Sanitize(AValue) + ']');
   Result := Self;
 end;
 
 // Accept any non-empty string
 function TVerbalExpressions.Something: TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + '.+)');
+  Add('(' + REGEX_GROUP_LABEL + '.+)');
   Result := Self;
 end;
 
 function TVerbalExpressions.Anything: TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + '.*)');
+  Add('(' + REGEX_GROUP_LABEL + '.*)');
   Result := Self;
 end;
 
 // Match any digit
 function TVerbalExpressions.Digit: TVerbalExpressions;
 begin
-  AddValue('\\d');
+  Add('\\d');
   Result := Self;
 end;
 
 // Match any alpha numeric
 function TVerbalExpressions.word: TVerbalExpressions;
 begin
-  AddValue('\\w');
+  Add('\\w');
   Result := Self;
 end;
 
 // Match tabs
 function TVerbalExpressions.Tab: TVerbalExpressions;
 begin
-  AddValue('\\t');
+  Add('\\t');
   Result := Self;
 end;
 
 function TVerbalExpressions.LineBreak: TVerbalExpressions;
 begin
-  AddValue('(' + REGEX_GROUP_LABEL + '\\n|(\\r\\n))');
+  Add('(' + REGEX_GROUP_LABEL + '\\n|(\\r\\n))');
   Result := Self;
 end;
 
