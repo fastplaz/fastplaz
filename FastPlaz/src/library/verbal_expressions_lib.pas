@@ -16,6 +16,10 @@ unit verbal_expressions_lib;
     // your code
   end;
 
+  // Replace String
+  varString := 'Replace bird with a duck';
+  VE.Find('bird');
+  varString := VE.Replace(varString, 'duck');
 
   inspiration from:
     https://github.com/VerbalExpressions/
@@ -52,6 +56,7 @@ type
     destructor Destroy; override;
 
     function IsMatch(const AText: string): boolean;
+    function Replace(const ASourceString, AValue: string): string;
 
     procedure Clean;
     function Sanitize(AValue: string): string;
@@ -119,6 +124,13 @@ end;
 function TVerbalExpressions.IsMatch(const AText: string): boolean;
 begin
   Result := preg_match(getExpression, AText);
+end;
+
+// Shorthand for preg_replace()
+function TVerbalExpressions.Replace(const ASourceString, AValue: string
+  ): string;
+begin
+  Result := preg_replace(Expression, AValue, ASourceString);
 end;
 
 // Deletes the current regex for a fresh start
