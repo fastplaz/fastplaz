@@ -20,9 +20,11 @@ unit verbal_expressions_lib;
   varString := 'Replace bird with a duck';
   VE.Find('bird');
   varString := VE.Replace(varString, 'duck');
+  //result: 'Replace bird with a bird'
 
   // or
   varString := VE.Find('red').Replace('We have a red house', 'blue');
+  //result: 'We have a blue house'
 
   inspiration from:
     http://verbalexpressions.github.io/
