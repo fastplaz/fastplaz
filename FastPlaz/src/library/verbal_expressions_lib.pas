@@ -25,7 +25,7 @@ unit verbal_expressions_lib;
   varString := VE.Find('red').Replace('We have a red house', 'blue');
 
   inspiration from:
-    https://github.com/VerbalExpressions/
+    http://verbalexpressions.github.io/
 }
 
 {$mode objfpc}{$H+}
@@ -77,6 +77,7 @@ type
     function AnyOf(AValue: string): TVerbalExpressions;
     function Any(AValue: string): TVerbalExpressions;
     function Range(AValue: string): TVerbalExpressions;
+    function Range(AValue: array of string): TVerbalExpressions;
     function Something: TVerbalExpressions;
     function Anything: TVerbalExpressions;
     function Digit: TVerbalExpressions;
@@ -130,8 +131,7 @@ begin
 end;
 
 // Shorthand for preg_replace()
-function TVerbalExpressions.Replace(const ASourceString, AValue: string
-  ): string;
+function TVerbalExpressions.Replace(const ASourceString, AValue: string): string;
 begin
   Result := preg_replace(Expression, AValue, ASourceString);
 end;
@@ -178,8 +178,8 @@ begin
 end;
 
 // Add a string to the expression
-function TVerbalExpressions.AndThen(AValue: string; ASanitize: boolean
-  ): TVerbalExpressions;
+function TVerbalExpressions.AndThen(AValue: string;
+  ASanitize: boolean): TVerbalExpressions;
 begin
   if ASanitize then
     Add('(' + REGEX_GROUP_LABEL + Sanitize(AValue) + ')')
@@ -188,20 +188,19 @@ begin
   Result := Self;
 end;
 
-function TVerbalExpressions.Has(AValue: string; ASanitize: boolean
-  ): TVerbalExpressions;
+function TVerbalExpressions.Has(AValue: string; ASanitize: boolean): TVerbalExpressions;
 begin
   Result := AndThen(AValue, ASanitize);
 end;
 
-function TVerbalExpressions.Have(AValue: string; ASanitize: boolean
-  ): TVerbalExpressions;
+function TVerbalExpressions.Have(AValue: string;
+  ASanitize: boolean): TVerbalExpressions;
 begin
   Result := AndThen(AValue, ASanitize);
 end;
 
-function TVerbalExpressions.Find(AValue: string; ASanitize: boolean
-  ): TVerbalExpressions;
+function TVerbalExpressions.Find(AValue: string;
+  ASanitize: boolean): TVerbalExpressions;
 begin
   Result := AndThen(AValue, ASanitize);
 end;
@@ -243,6 +242,23 @@ end;
 function TVerbalExpressions.Range(AValue: string): TVerbalExpressions;
 begin
   Add('[' + Sanitize(AValue) + ']');
+  Result := Self;
+end;
+
+// Adds a range to our expression
+// example:
+//   VE.Range(['a-z','0-9']);
+function TVerbalExpressions.Range(AValue: array of string): TVerbalExpressions;
+var
+  i: integer;
+  s: string;
+begin
+  s := '';
+  for i := low(AValue) to high(AValue) do
+  begin
+    s += AValue[i];
+  end;
+  Add('[' + s + ']');
   Result := Self;
 end;
 
