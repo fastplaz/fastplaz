@@ -109,6 +109,7 @@ type
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( ID: LongInt): boolean;
+    function  Update( AutoCommit:boolean=True):boolean;
 
     procedure First;
     procedure Prior;
@@ -946,6 +947,7 @@ begin
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
+  begin
     for i:=low(Where) to high(Where) do
     begin
       if sWhere = '' then
@@ -956,6 +958,8 @@ begin
       end;
 
     end;
+    sWhere := sWhere.Replace(' AND OR ', ' OR ');
+  end;
   if CustomField = '' then begin
     _queryPrepare;
     _selectField := FSelectField;
@@ -1233,6 +1237,13 @@ begin
   if primaryKey = '' then
     Exit;
   Result := Delete( primaryKey+'='+i2s(ID));
+end;
+
+function TSimpleModel.Update(AutoCommit: boolean): boolean;
+begin
+  Result := False;
+  if primaryKey.IsEmpty then Exit;
+  Result :=  Save(primaryKey+'='+primaryKeyValue, AutoCommit);
 end;
 
 procedure TSimpleModel.First;
