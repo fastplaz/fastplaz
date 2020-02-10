@@ -121,7 +121,7 @@ function _GetTickCount: DWord;
 function DateTimeToISO8601( ADateTime:TDateTime): string;
 function ISO8601ToDateTime( AString:string; AOffsetHours:integer = 7): TDateTime;
 
-function SafeText(const SourceString: string): string;
+function SafeText(const SourceString: string; const AReplacementString: string = '-'): string;
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
@@ -604,14 +604,15 @@ begin
   end;
 end;
 
-function SafeText(const SourceString: string): string;
+function SafeText(const SourceString: string; const AReplacementString: string
+  ): string;
 const
   NotAllowed: array[1..25] of string =
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
     '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`', ''''
     );
 begin
-  Result := ReplaceAll(SourceString, NotAllowed, '-');
+  Result := ReplaceAll(SourceString, NotAllowed, AReplacementString);
 end;
 
 function ReplaceAll(const Subject: string;
