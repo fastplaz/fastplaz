@@ -69,6 +69,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Clear;
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
     property Data: TJSONObject read FJsonObject;
@@ -568,6 +569,11 @@ begin
   if Assigned(FJsonObject) then
     FreeAndNil(FJsonObject);
   inherited Destroy;
+end;
+
+procedure TJSONUtil.Clear;
+begin
+  Data.Clear;
 end;
 
 procedure TJSONUtil.DeletePath(const PathString: UnicodeString);
