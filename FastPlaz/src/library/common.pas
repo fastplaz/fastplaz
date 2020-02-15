@@ -703,6 +703,7 @@ var
   s: string;
 begin
   Application.Response.ContentType := 'application/json';
+  Application.Response.Content := '';
   s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
   if AForceCode = 0 then
     die(s, ACode)
