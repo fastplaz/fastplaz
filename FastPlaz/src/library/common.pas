@@ -706,7 +706,7 @@ begin
   Application.Response.Content := '';
   s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
   if AForceCode = 0 then
-    die(s, ACode)
+    die(s, 200)
   else
     die(s, AForceCode);
 end;
@@ -1367,9 +1367,9 @@ begin
   LEncoder       := TBase64EncodingStream.Create(LEncodedStream);
   LEncoder.CopyFrom(LDecodedStream, LDecodedStream.Size);
   Result := LEncodedStream.DataString;
+  LEncoder.Free;
   LDecodedStream.Free;
   LEncodedStream.Free;
-  LEncoder.Free;
 end;
 
 function base64_decode(const AStr: string): string;
