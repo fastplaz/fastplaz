@@ -66,6 +66,7 @@ type
     constructor Create();
     destructor Destroy; override;
     property Values[variable: string]: string read GetValue write SetValue; default;
+    property HttpCookie: string read FHttpCookie;
     property CookieID: string read FCookieID;
     property SessionID: string read FSessionID write FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
