@@ -137,9 +137,10 @@ function TSessionController.GenerateSesionID: string;
 var
   remoteAddr: String;
 begin
-  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
-  if remoteAddr.IsEmpty then
-    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
+  //remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  //if remoteAddr.IsEmpty then
+  //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
+  remoteAddr := GetUserIpAddress;
   Result := FCookieID + '-' + remoteAddr;
   Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
     FCookieID + FSessionSuffix;
