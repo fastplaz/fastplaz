@@ -40,6 +40,7 @@ type
     FCookieID, FSessionID: string;
     FSessionDir: string;
     FSessionVars: TStringList;
+    FToken: string;
     function GenerateSesionID: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
@@ -68,6 +69,7 @@ type
     property Values[variable: string]: string read GetValue write SetValue; default;
     property HttpCookie: string read FHttpCookie;
     property CookieID: string read FCookieID;
+    property Token: string read FToken;
     property SessionID: string read FSessionID write FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
     property TimeOut: integer read GetTimeOut write SetTimeOut;
@@ -137,12 +139,13 @@ function TSessionController.GenerateSesionID: string;
 var
   remoteAddr: String;
 begin
-  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
-  if remoteAddr.IsEmpty then
-    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
-  Result := FCookieID + '-' + remoteAddr;
+  //remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  //if remoteAddr.IsEmpty then
+  //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
+  remoteAddr := GetUserIpAddress;
+  Result := Token + '-' + remoteAddr;
   Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
-    FCookieID + FSessionSuffix;
+    FToken + FSessionSuffix;
 end;
 
 function TSessionController.CreateIniFile(const FileName: string): TMemIniFile;
@@ -368,7 +371,7 @@ begin
     Result := Result + 0.5;
 end;
 
-function TSessionController.GetData: string;
+function TSessionController.GetData(): string;
 var
   lst: TStringList;
 begin
@@ -386,25 +389,21 @@ begin
   end;
 end;
 
-constructor TSessionController.Create;
+constructor TSessionController.Create();
 var
   lstr: TStrings;
 begin
   inherited Create();
   FSessionVars := TStringList.Create;
   FLastAccess := 0;
-  //FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
-  FHttpCookie := GetEnvironmentVariable( 'Cookie');
-  FHttpCookie := StringReplace(FHttpCookie, ' ', '', [rfReplaceAll]);
-  //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
-  //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
+  //FHttpCookie := GetEnvironmentVariable( 'Cookie');
+  FHttpCookie := FHttpCookie.Replace(' ', '');
   lstr := Explode(FHttpCookie, ';');
-  FCookieID := lstr.Values['__cfduid'];
+  //FCookieID := lstr.Values['__cfduid']; // from CF
+  FCookieID := lstr.Values['_'];
+  FToken := lstr.Values['token'];
   FreeAndNil(lstr);
-  if FCookieID = '' then
-  begin
-    //FCookieID := MD5Print(MD5String(FHttpCookie));
-  end;
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   FSessionExtension := '.ses';
