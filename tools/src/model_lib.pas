@@ -86,6 +86,9 @@ begin
   with str do
   begin
     Add('type');
+    Add('');
+    Add('{ '+ModelName+' }';
+    Add('');
     Add('  ' + ModelName + ' = class(TSimpleModel)');
     Add('  private');
     Add('  public');
