@@ -143,7 +143,6 @@ begin
   //if remoteAddr.IsEmpty then
   //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
   remoteAddr := GetUserIpAddress;
-  Result := Token + '-' + remoteAddr;
   Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
     FToken + FSessionSuffix;
 end;
