@@ -974,8 +974,9 @@ begin
       _joinSQL := _joinSQL + #13#10 + _join[0] + ' ' + _join[1]
         + ' ON ' + _join[1] + '.' + _join[2] + '=' + _join[3]
         ;
-      if _join[5] <> '' then
-        _joinSQL += ' AND ' + _join[5];
+      if _join.count > 5 then
+        if _join[5] <> '' then
+          _joinSQL += ' AND ' + _join[5];
       _selectField := _selectField + #13;
       if _join.count > 4 then begin  // if view joined field
         _joinfield := Explode( _join[4], ',');
