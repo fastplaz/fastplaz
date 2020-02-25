@@ -87,7 +87,7 @@ begin
   begin
     Add('type');
     Add('');
-    Add('{ '+ModelName+' }';
+    Add('{ '+ModelName+' }');
     Add('');
     Add('  ' + ModelName + ' = class(TSimpleModel)');
     Add('  private');
