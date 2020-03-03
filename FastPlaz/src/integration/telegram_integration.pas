@@ -620,6 +620,7 @@ begin
   FIsSuccessfull := False;
   FDebug := True;
   FGetUpdatesInProcess := False;
+  FResultMessageID := '0';
 end;
 
 destructor TTelegramIntegration.Destroy;
