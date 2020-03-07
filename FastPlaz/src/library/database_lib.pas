@@ -11,7 +11,7 @@ uses
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
-  sqlite3conn, pqconnection,
+  sqlite3conn, pqconnection, IBConnection,
   variants, Classes, SysUtils;
 
 type
