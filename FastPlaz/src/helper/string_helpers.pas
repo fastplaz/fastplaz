@@ -13,7 +13,7 @@ unit string_helpers;
 interface
 
 uses
-  common,
+  common, RegExpr,
   Classes, SysUtils;
 
 type
@@ -32,6 +32,9 @@ type
     function IsExists( AString: string): boolean; overload; inline;
     function IsJson: boolean; overload; inline;
     function IsNumeric: boolean; overload; inline;
+    function IsEmail: boolean; overload; inline;
+    function IsURL: boolean; overload; inline;
+    function IsDomain: boolean; overload; inline;
     function Encode64: AnsiString; overload; inline;
     function Decode64: AnsiString; overload; inline;
     function Cut( AStartText, AStopText: string):AnsiString; overload; inline;
@@ -106,6 +109,23 @@ begin
     Result := True;
   except
   end;
+end;
+
+function TStringSmartHelper.IsEmail: boolean;
+begin
+  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', Self);
+end;
+
+function TStringSmartHelper.IsURL: boolean;
+const
+  _REGEX_ISURL = '(http|https|ftp):\/\/([a-zA-Z0-9-]+)?(\/)?(.*)?$';
+begin
+  Result := preg_match(_REGEX_ISURL, Self);
+end;
+
+function TStringSmartHelper.IsDomain: boolean;
+begin
+  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', Self);
 end;
 
 function TStringSmartHelper.Encode64: AnsiString;
