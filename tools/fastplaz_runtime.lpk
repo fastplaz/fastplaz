@@ -23,7 +23,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Minor="2" Release="476" Build="1"/>
-    <Files Count="38">
+    <Files Count="39">
       <Item1>
         <Filename Value="..\FastPlaz\define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -177,6 +177,10 @@
         <Filename Value="..\FastPlaz\src\library\verbal_expressions_lib.pas"/>
         <UnitName Value="verbal_expressions_lib"/>
       </Item38>
+      <Item39>
+        <Filename Value="..\FastPlaz\src\helper\integer_helpers.pas"/>
+        <UnitName Value="integer_helpers"/>
+      </Item39>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

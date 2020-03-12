@@ -16,7 +16,8 @@ uses
   docs_controller, error_controller, exception_controller, fastplaz_handler, 
   info_controller, initialize_controller, module_controller, 
   session_controller, theme_controller, modvar_util, 
-  fastplaz_runtime_register, verbal_expressions_lib, LazarusPackageIntf;
+  fastplaz_runtime_register, verbal_expressions_lib, integer_helpers, 
+  LazarusPackageIntf;
 
 implementation
 
