@@ -81,6 +81,7 @@ type
     property IsTerminated: boolean read FSessionTerminated;
 
     function StartSession: boolean;
+    function RestartSession: boolean;
     procedure Clear;
     procedure DeleteKey(const Key: string);
     procedure EndSession(const Force: boolean = True);
@@ -432,6 +433,16 @@ begin
 
   if Storage = _SESSION_STORAGE_DATABASE then
     StartSessionWithDatabase;
+end;
+
+function TSessionController.RestartSession: boolean;
+begin
+  Clear;
+  ForceUpdate;
+  if Assigned(FIniFile) then
+    FreeAndNil(FIniFile);
+  FSessionStarted := False;
+  Result := StartSession;
 end;
 
 function TSessionController.StartSessionWithFile: boolean;
