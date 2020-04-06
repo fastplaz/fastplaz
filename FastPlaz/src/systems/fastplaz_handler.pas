@@ -86,6 +86,7 @@ type
     debug: boolean;
     debugLevel: integer;
     isReady: boolean;
+    cookiePath: string;
   end;
 
   TOnBlockController = procedure(Sender: TObject; FunctionName: string;
@@ -404,6 +405,7 @@ begin
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
 
   if AppData.baseUrl = '' then
   begin
@@ -454,6 +456,8 @@ begin
     begin
       Name := '_';
       Value := _;
+      if not AppData.cookiePath.IsEmpty then
+        Path := AppData.cookiePath;
       Expires := dateutils.IncDay(Now,3);
     end;
     SessionController.SessionID := _;
