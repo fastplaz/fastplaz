@@ -41,6 +41,7 @@ const
   _SYSTEM_SESSION_STORAGE = 'systems/session_storage';
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
+  _SYSTEM_COOKIE_PATH = 'systems/cookie_path';
 
   _DATABASE_OPTIONS_READ = 'database/options/read';
   _DATABASE_OPTIONS_WRITE = 'database/options/write';
