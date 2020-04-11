@@ -80,6 +80,9 @@ type
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
 
+    property SessionPrefix: string read FSessionPrefix write FSessionPrefix;
+    property SessionSuffix: string read FSessionSuffix write FSessionSuffix;
+
     function StartSession: boolean;
     function RestartSession: boolean;
     procedure Clear;
@@ -144,8 +147,11 @@ begin
   //if remoteAddr.IsEmpty then
   //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
   remoteAddr := GetUserIpAddress;
-  Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
-    FToken + FSessionSuffix;
+  Result := MD5Print(MD5String(Result));
+  if not FSessionPrefix.IsEmpty then
+    Result := FSessionPrefix + '-' + Result;
+  if not FSessionSuffix.IsEmpty then
+    Result := Result + '-' + FSessionSuffix;
 end;
 
 function TSessionController.CreateIniFile(const FileName: string): TMemIniFile;
@@ -404,6 +410,8 @@ begin
   FCookieID := lstr.Values['_'];
   FToken := lstr.Values['token'];
   FreeAndNil(lstr);
+  FSessionPrefix := '';
+  FSessionSuffix := '';
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   FSessionExtension := '.ses';
@@ -427,6 +435,7 @@ begin
   Result := False;
   if FSessionStarted then
     Exit;
+  FSessionID := GenerateSesionID();
 
   if Storage = _SESSION_STORAGE_FILE then
     StartSessionWithFile;

@@ -74,6 +74,7 @@ type
     cacheWrite: boolean;
     cacheTime: integer;
     tablePrefix: string;
+    sessionAutoStart: boolean;
     SessionID: string;
     SessionDir: string;
     SessionStorage: integer; // 1: file; 2 database
@@ -437,6 +438,7 @@ begin
   end;
 
   //-- session
+  AppData.sessionAutoStart := Config.GetValue(_SYSTEM_SESSION_AUTOSTART, True);
   AppData.SessionDir := string(Config.GetValue(_SYSTEM_SESSION_DIR, ''));
   if AppData.SessionDir <> '' then
     SessionController.SessionDir := AppData.SessionDir;
@@ -468,10 +470,13 @@ begin
   end;
   SessionController.TimeOut :=
     Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
-  if not SessionController.StartSession then
+  if AppData.sessionAutoStart then
   begin
-    //SessionController.EndSession;
-    //SessionController.StartSession;
+    if not SessionController.StartSession then
+    begin
+      //SessionController.EndSession;
+      //SessionController.StartSession;
+    end;
   end;
   //-- session - end
 
