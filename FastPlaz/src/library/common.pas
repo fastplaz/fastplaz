@@ -40,6 +40,7 @@ const
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
   _SYSTEM_SESSION_STORAGE = 'systems/session_storage';
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
+  _SYSTEM_SESSION_AUTOSTART = 'systems/session_autostart';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
   _SYSTEM_COOKIE_PATH = 'systems/cookie_path';
 
