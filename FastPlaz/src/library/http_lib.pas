@@ -50,6 +50,17 @@ unit http_lib;
     Free;
   end;
 
+  [x] POST RAW BODY
+  with THTTPLib.Create do
+  begin
+    URL:= 'http://address';
+    RequestBody := TStringStream.Create(s);
+    Response := Post();
+    ...
+
+    Free;
+  end;
+
   [x] SIMPLE UPLOAD FILE
   Response := UploadFile( [ 'fullpath/filename', 'otherfile', 'otherfiletoo' ] );
 

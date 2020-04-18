@@ -106,6 +106,8 @@ type
 
   TTelegramIntegration = class(TInterfacedObject)
   private
+    FCallbackData: TStrings;
+    FCallbackInstance: string;
     FDebug: boolean;
     FImageID: string;
     FImagePath: string;
@@ -141,6 +143,7 @@ type
     function getImageCaption: string;
     function getIsAdmin: boolean;
     function getIsBot: boolean;
+    function getIsCallbackQuery: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -198,6 +201,8 @@ type
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendDocument(const ChatID: string; const AFile: string;
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
+    function SendInlineKeyboard(const ChatId: string; const AText: string;
+      const AData: TJSONUtil): boolean;
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
@@ -236,6 +241,7 @@ type
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
     property IsUserLeft: boolean read getIsUserLeft;
+    property IsCallbackQuery: boolean read getIsCallbackQuery;
 
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
@@ -270,6 +276,9 @@ type
 
     property WebHook: string write SetWebHook;
     property GetUpdatesContent: string read FGetUpdatesContent;
+
+    property CallbackInstance: string read FCallbackInstance;
+    property CallbackData: TStrings read FCallbackData;
   end;
 
 implementation
@@ -461,6 +470,29 @@ begin
   end;
 end;
 
+{
+  if IsCallbackQuery then
+    stringValue = CallbackData.Values['key'];
+}
+function TTelegramIntegration.getIsCallbackQuery: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  try
+    s := jsonData.GetPath('callback_query').AsJSON;
+    if not s.IsEmpty then
+    begin
+      FCallbackInstance:= jsonData.GetPath('callback_query.chat_instance').AsString;
+      s := jsonData.GetPath('callback_query.data').AsJSON;
+      FCallbackData := Explode(s, '&');
+      Result := True;
+    end;
+  except
+  end;
+
+end;
+
 function TTelegramIntegration.getIsGroup: boolean;
 var
   s: string;
@@ -612,6 +644,7 @@ begin
   end;
 end;
 
+
 constructor TTelegramIntegration.Create;
 begin
   FURL := '';
@@ -621,10 +654,13 @@ begin
   FDebug := True;
   FGetUpdatesInProcess := False;
   FResultMessageID := '0';
+  FCallbackInstance := '';
 end;
 
 destructor TTelegramIntegration.Destroy;
 begin
+  if Assigned(FCallbackData) then
+    FCallbackData.Free;
   if Assigned(jsonData) then
     jsonData.Free;
 end;
@@ -1230,6 +1266,41 @@ begin
   end;
 
   Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.SendInlineKeyboard(const ChatId: string;
+  const AText: string; const AData: TJSONUtil): boolean;
+var
+  payloadAsString, urlTarget: string;
+  json: TJSONUtil;
+begin
+  Result := False;
+  if (ChatID = '') or (ChatID = '0') or (Text = '') or (FURL = '')
+    or (AData.Data.Count = 0) then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['chat_id'] := ChatId;
+  json['text'] := AText;
+  json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
+
+  payloadAsString := json.AsJSON;
+  json.Free;
+
+  urlTarget := URL + 'sendMessage';
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
+      if Response.ResultCode = 200 then
+        Result := True;
+    except
+    end;
+    Free;
+  end;
 end;
 
 // example result: "photo/file_2"
