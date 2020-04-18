@@ -1295,6 +1295,8 @@ begin
       AddHeader('Cache-Control', 'no-cache');
       RequestBody := TStringStream.Create(payloadAsString);
       Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
         Result := True;
     except
