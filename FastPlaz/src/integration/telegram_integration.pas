@@ -484,7 +484,7 @@ begin
     if not s.IsEmpty then
     begin
       FCallbackInstance:= jsonData.GetPath('callback_query.chat_instance').AsString;
-      s := jsonData.GetPath('callback_query.data').AsJSON;
+      s := jsonData.GetPath('callback_query.data').AsString;
       FCallbackData := Explode(s, '&');
       Result := True;
     end;
