@@ -409,6 +409,13 @@ begin
     except
     end;
   end;
+  if IsCallbackQuery then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.message.chat.id').AsString;
+    except
+    end;
+  end;
 end;
 
 function TTelegramIntegration.getChatType: string;
