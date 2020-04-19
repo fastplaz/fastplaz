@@ -1282,7 +1282,7 @@ var
   json: TJSONUtil;
 begin
   Result := False;
-  if (ChatID = '') or (ChatID = '0') or (Text = '') or (FURL = '')
+  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
     or (AData.Data.Count = 0) then
     Exit;
 
