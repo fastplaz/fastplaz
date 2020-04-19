@@ -107,6 +107,7 @@ type
   TTelegramIntegration = class(TInterfacedObject)
   private
     FCallbackData: TStrings;
+    FCallbackInlineKeyboard: TJSONUtil;
     FCallbackInstance: string;
     FDebug: boolean;
     FImageID: string;
@@ -180,6 +181,8 @@ type
     procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
     function EditMessage(const ChatID: string; MessageID: string;
       Text: string = ''): boolean;
+    function EditMessage(const AChatID: string; AMessageID: string;
+      AText: string; AData: TJSONUtil): boolean;
     function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
@@ -279,6 +282,7 @@ type
 
     property CallbackInstance: string read FCallbackInstance;
     property CallbackData: TStrings read FCallbackData;
+    property CallbackInlineKeyboard: TJSONUtil read FCallbackInlineKeyboard;
   end;
 
 implementation
@@ -493,6 +497,12 @@ begin
       FCallbackInstance:= jsonData.GetPath('callback_query.chat_instance').AsString;
       s := jsonData.GetPath('callback_query.data').AsString;
       FCallbackData := Explode(s, '&');
+
+      // get inline keyboard data
+      s := jsonData.GetPath('callback_query.message.reply_markup.inline_keyboard').AsJSON;
+      FCallbackInlineKeyboard := TJSONUtil.Create;
+      FCallbackInlineKeyboard.LoadFromJsonString(s);
+
       Result := True;
     end;
   except
@@ -673,6 +683,8 @@ end;
 
 destructor TTelegramIntegration.Destroy;
 begin
+  if Assigned(FCallbackInlineKeyboard) then
+    FCallbackInlineKeyboard.Free;
   if Assigned(FCallbackData) then
     FCallbackData.Free;
   if Assigned(jsonData) then
@@ -940,6 +952,45 @@ begin
   end;
 
   Result := FIsSuccessfull;
+end;
+
+function TTelegramIntegration.EditMessage(const AChatID: string;
+  AMessageID: string; AText: string; AData: TJSONUtil): boolean;
+var
+  urlTarget, payloadAsString: string;
+  json: TJSONUtil;
+begin
+  Result := False;
+  if (AChatId = '') or (AChatId = '0') or (AText = '') or (FURL = '')
+    or (AData.Data.Count = 0) then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['chat_id'] := AChatId;
+  json['message_id'] := AMessageID;
+  json['text'] := AText;
+  json['parse_mode'] := FParseMode;
+  json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
+
+  payloadAsString := json.AsJSON;
+  json.Free;
+
+  urlTarget := URL + 'editMessageText';
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      if Response.ResultCode = 200 then
+        Result := True;
+    except
+    end;
+    Free;
+  end;
 end;
 
 function TTelegramIntegration.DeleteMessage(const AChatID: string;
