@@ -1289,12 +1289,13 @@ begin
   json := TJSONUtil.Create;
   json['chat_id'] := ChatId;
   json['text'] := AText;
+  json['parse_mode'] := FParseMode;
   json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
 
   payloadAsString := json.AsJSON;
   json.Free;
 
-  urlTarget := URL + 'sendMessage';
+  urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
   with THTTPLib.Create(urlTarget) do
   begin
     try
