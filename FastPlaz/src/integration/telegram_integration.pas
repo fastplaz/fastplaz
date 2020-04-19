@@ -594,6 +594,13 @@ begin
     Result := jsonData.GetPath('message.message_id').AsString;
   except
   end;
+  if IsCallbackQuery then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.message.message_id').AsString;
+    except
+    end;
+  end;
 end;
 
 function TTelegramIntegration.getReplyFromID: string;
