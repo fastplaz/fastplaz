@@ -157,6 +157,8 @@ type
     procedure SendAudio(ATo: string; AAudioURL: string);
     procedure SendImage(ATo: string; AImageURL: string);
     procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
+    procedure SendButton(const ATo: string; const AText: string;
+      const AData: TJSONArray);
     procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
     procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
     procedure SendTemplateCard(ATo: string; AContent: TJSONArray);
@@ -593,6 +595,43 @@ begin
     Free;
   end;
 
+end;
+
+procedure TFacebookMessengerIntegration.SendButton(const ATo: string;
+  const AText: string; const AData: TJSONArray);
+var
+  json: TJSONUtil;
+begin
+  if not isCanSend then
+    Exit;
+  if ATo.IsEmpty or FToken.IsEmpty or (AData.Count = 0) then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['recipient/id'] := ATo;
+  json['message/attachment/type'] := 'template';
+  json['message/attachment/payload/template_type'] := 'button';
+  json['message/attachment/payload/text'] := AText;
+  json.ValueArray['message/attachment/payload/buttons'] := AData;
+
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(json.AsJSON);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+
+  //json.Free;
 end;
 
 procedure TFacebookMessengerIntegration.SendButtonURL(ATo: string; ATitle,

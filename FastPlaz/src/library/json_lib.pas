@@ -600,7 +600,8 @@ end;
 
 function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
 begin
-  FJsonObject.Clear;
+  if Assigned(FJsonObject) then
+    FJsonObject.Free;
   try
     FJsonObject := TJSONObject(GetJSON(JsonString));
     Result := true;
