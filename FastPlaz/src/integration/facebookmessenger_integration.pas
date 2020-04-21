@@ -223,6 +223,7 @@ const
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"phone_number","title":"%title%","payload":"%number%"}]}}}}';
   _FACEBOOK_MESSENGER_SEND_BUTTON_URL =
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","messenger_extensions": true,"webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
+  _FACEBOOK_PAYLOAD_DELIMITER = ':';
 
 var
   Response: IHTTPResponse;
@@ -903,10 +904,16 @@ end;
 function TFacebookMessengerIntegration.PayloadHandling: String;
 var
   i: Integer;
+  headerPayload: string;
+  lst: TStrings;
   h: TPayloadHandlerCallback;
 begin
   Result := '';
-  i := ___PayloadHandlerCallbackMap.IndexOf(getPayload);
+  lst := Explode(getPayload, _FACEBOOK_PAYLOAD_DELIMITER);
+  headerPayload := lst[0];
+  lst.Free;
+
+  i := ___PayloadHandlerCallbackMap.IndexOf(headerPayload);
   if i = -1 then
     Exit;
   h := ___PayloadHandlerCallbackMap.Data[i];
