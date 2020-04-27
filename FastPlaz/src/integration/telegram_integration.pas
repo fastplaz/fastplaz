@@ -459,6 +459,14 @@ begin
       UserName;
   except
   end;
+  if IsCallbackQuery then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.from.first_name').AsString
+        + ' ' + jsonData.GetPath('callback_query.from.last_name').AsString;
+    except
+    end;
+  end;
 end;
 
 function TTelegramIntegration.getGroupName: string;
@@ -656,6 +664,13 @@ begin
     except
     end;
   end;
+  if IsCallbackQuery then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.from.id').AsString;
+    except
+    end;
+  end;
 end;
 
 function TTelegramIntegration.getLeftUserID: string;
@@ -677,6 +692,13 @@ begin
   except
     try
       Result := jsonData.GetPath('edited_message.from.username').AsString;
+    except
+    end;
+  end;
+  if IsCallbackQuery then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.from.username').AsString;
     except
     end;
   end;

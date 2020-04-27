@@ -28,6 +28,7 @@ type
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
     function IsEmpty: boolean; overload; inline;
+    function IsNotEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
     function IsExists( AString: string): boolean; overload; inline;
     function IsJson: boolean; overload; inline;
@@ -80,6 +81,11 @@ end;
 function TStringSmartHelper.IsEmpty: boolean;
 begin
   Result := IsNullOrEmpty( Self);
+end;
+
+function TStringSmartHelper.IsNotEmpty: boolean;
+begin
+  Result := not IsNullOrEmpty( Self);
 end;
 
 function TStringSmartHelper.IsEqualTo(AString: string): boolean;
