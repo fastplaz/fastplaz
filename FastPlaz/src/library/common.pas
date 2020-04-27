@@ -186,7 +186,7 @@ function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
 function MarkdownToHTML(const AContent: String): String;
 
-function file_get_contents(TargetURL: string): string;
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true): string;
 function FileCopy(ASource, ATarget: string): boolean;
 
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
@@ -1561,7 +1561,8 @@ begin
   Result := preg_replace(#10#10, #10, Result, True);
 end;
 
-function file_get_contents(TargetURL: string): string;
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean
+  ): string;
 var
   s: string;
 begin
@@ -1574,7 +1575,8 @@ begin
     except
       on e: Exception do
       begin
-        Result := e.Message;
+        if AShowErrorMessageAsResult then
+          Result := e.Message;
       end;
     end;
 
