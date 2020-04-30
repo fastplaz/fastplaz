@@ -110,6 +110,7 @@ type
     FCallbackInlineKeyboard: TJSONUtil;
     FCallbackInstance: string;
     FDebug: boolean;
+    FFileName: string;
     FImageID: string;
     FImagePath: string;
     FImageURL: string;
@@ -145,6 +146,7 @@ type
     function getIsAdmin: boolean;
     function getIsBot: boolean;
     function getIsCallbackQuery: boolean;
+    function getIsDocument: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -226,6 +228,7 @@ type
     function DeleteWebHook: boolean;
     property OnMessage: TMessageHandler read FOnMessage write FOnMessage;
   published
+    property FileName: string read FFileName;
     property Debug: boolean read FDebug write FDebug;
     property RequestContent: string read FRequestContent write setRequestContent;
     property Text: string read getText;
@@ -267,6 +270,7 @@ type
     property IsLocation: boolean read getIsLocation;
     property IsSticker: boolean read getIsSticker;
     property IsPicture: boolean read getIsPicture;
+    property IsDocument: boolean read getIsDocument;
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -532,6 +536,18 @@ begin
 
 end;
 
+function TTelegramIntegration.getIsDocument: boolean;
+begin
+  Result := False;
+  FFileName := '';
+  try
+    FFileName := jsonData.GetPath('message.document.file_name').AsString;
+    //mime_type
+    Result := True;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getIsGroup: boolean;
 var
   s: string;
@@ -715,6 +731,7 @@ begin
   FGetUpdatesInProcess := False;
   FResultMessageID := '0';
   FCallbackInstance := '';
+  FFileName := '';
 end;
 
 destructor TTelegramIntegration.Destroy;
