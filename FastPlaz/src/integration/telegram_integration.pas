@@ -917,12 +917,14 @@ begin
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      json := TJSONUtil.Create;
-      json.LoadFromJsonString(FResultText);
-      FResultMessageID := json['result/message_id'];
-      json.Free;
-
-      Result := True;
+      if FIsSuccessfull then
+      begin
+        json := TJSONUtil.Create;
+        json.LoadFromJsonString(FResultText);
+        FResultMessageID := json['result/message_id'];
+        json.Free;
+        Result := True;
+      end;
     except
       on E: Exception do
       begin
