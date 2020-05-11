@@ -891,7 +891,7 @@ end;
 function TTelegramIntegration.SendMessage(const ChatID: string;
   const Text: string; const ReplyToMessageID: string): boolean;
 var
-  s, urlTarget: string;
+  s, urlTarget, payloadAsString: string;
   json: TJSONUtil;
 begin
   Result := False;
@@ -903,20 +903,27 @@ begin
     Exit;
 
   s := StringReplace(Text, '\n', #10, [rfReplaceAll]);
-  s := UrlEncode(s);
 
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDMESSAGE,
-    [ChatID, ReplyToMessageID, FParseMode, s]);
+  json := TJSONUtil.Create;
+  json['chat_id'] := ChatId;
+  json['text'] := s;
+  json['parse_mode'] := FParseMode;
+  json['reply_to_message_id'] := ReplyToMessageID;
+  json['disable_web_page_preview'] := 'false';
+  payloadAsString := json.AsJSON;
+  json.Free;
+
+  urlTarget := URL + 'sendMessage';
   with THTTPLib.Create(urlTarget) do
   begin
     try
+      ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      Response := Get;
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
-
       if FIsSuccessfull then
       begin
         json := TJSONUtil.Create;
