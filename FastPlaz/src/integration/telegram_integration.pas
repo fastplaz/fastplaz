@@ -297,8 +297,6 @@ const
   TELEGRAM_COMMAND_GETME = 'getMe';
   TELEGRAM_COMMAND_SENDMESSAGE =
     'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
-  TELEGRAM_COMMAND_EDITMESSAGE =
-    'editMessageText?chat_id=%s&message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
@@ -979,30 +977,38 @@ end;
 function TTelegramIntegration.EditMessage(const ChatID: string;
   MessageID: string; Text: string): boolean;
 var
-  s, urlTarget: string;
+  s, urlTarget, payloadAsString: string;
+  json: TJSONUtil;
 begin
   Result := False;
   FResultCode := 0;
   FResultText := '';
+  FResultMessageID := '';
   FIsSuccessfull := False;
   if (ChatID = '') or (ChatID = '0') or (Text = '') or (FURL = '') then
     Exit;
 
   s := StringReplace(Text, '\n', #10, [rfReplaceAll]);
-  s := UrlEncode(s);
+  json := TJSONUtil.Create;
+  json['chat_id'] := ChatId;
+  json['message_id'] := MessageID;
+  json['parse_mode'] := FParseMode;
+  json['disable_web_page_preview'] := 'false';
+  json['text'] := s;
+  payloadAsString := json.AsJSON;
+  json.Free;
 
-  urlTarget := URL + format(TELEGRAM_COMMAND_EDITMESSAGE,
-    [ChatID, MessageID, FParseMode, s]);
+  urlTarget := URL + 'editMessageText';
   with THTTPLib.Create(urlTarget) do
   begin
     try
+      ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      Response := Get;
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
-      Result := False;
     except
       on E: Exception do
       begin
