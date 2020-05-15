@@ -61,7 +61,7 @@ interface
 uses
   common, http_lib, json_lib, logutil_lib,
   fpjson, jsonparser,
-  Classes, SysUtils;
+  Classes, SysUtils, json_helpers;
 
 {$ifdef TELEGRAM_INTEGRATION}
 {$endif}
@@ -152,6 +152,7 @@ type
     function getIsLocation: boolean;
     function getIsPicture: boolean;
     function getIsSticker: boolean;
+    function getIsTextMentionExists: boolean;
     function getIsUserLeft: boolean;
     function getIsVoice: boolean;
     function getLeftUserID: string;
@@ -248,6 +249,7 @@ type
     property IsInvitation: boolean read getIsInvitation;
     property IsUserLeft: boolean read getIsUserLeft;
     property IsCallbackQuery: boolean read getIsCallbackQuery;
+    property IsTextMentionExists: boolean read getIsTextMentionExists;
 
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
@@ -618,6 +620,41 @@ begin
       Result := True;
   except
   end;
+end;
+
+function TTelegramIntegration.getIsTextMentionExists: boolean;
+var
+  i: integer;
+  entityType: string;
+  entities: TJSONArray;
+  item: TJSONData;
+begin
+  Result := False;
+
+  if IsCallbackQuery then
+  begin
+    try
+      entities := TJSONArray(jsonData.GetPath('callback_query.message.entities'));
+      if entities.Count > 0 then
+      begin
+        for i:=0 to entities.Count-1 do
+        begin
+          item := entities.Items[i];
+          entityType := item.ValueOfNameAsString('type');
+          if entityType = 'text_mention' then
+          begin
+            Result := True;
+            exit;
+          end;
+        end;
+      end;
+    except
+      on e: Exception do
+      begin
+        die('x:'+e.Message);
+      end;
+    end;
+  end;//IsCallbackQuery
 end;
 
 function TTelegramIntegration.getIsVoice: boolean;
