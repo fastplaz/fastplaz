@@ -197,8 +197,6 @@ type
       const Caption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendVideo(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
-    function SendVideo(const ChatID: integer; const FileName: string;
-      const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVenue(const ChatID: string; const AName: string;
       const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''): boolean;
     function SendContact(const ChatID: integer;
@@ -301,7 +299,7 @@ const
     'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
-  TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%d&caption=%s&parse_mode=%s';
+  TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
   TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
   //https://api.telegram.org/bot307478661:AAF9DGtgoASYsVF6KwHm7qhimXq8cHGIxTk/sendVenue?chat_id=2222647&latitude=-6.228018&longitude=106.82453&title=suatu%20tempat&address=alamatnya
@@ -956,6 +954,8 @@ begin
       AddHeader('Cache-Control', 'no-cache');
       RequestBody := TStringStream.Create(payloadAsString);
       Response := Post;
+      RequestBody.Free;
+      RequestBody := nil;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
@@ -1271,16 +1271,6 @@ end;
 function TTelegramIntegration.SendVideo(const ChatID: string;
   const FileName: string; const Caption: string;
   const ReplyToMessageID: integer): boolean;
-begin
-  try
-    SendVideo(StrToInt(ChatID), FileName, Caption, ReplyToMessageID);
-  except
-  end;
-end;
-
-function TTelegramIntegration.SendVideo(const ChatID: integer;
-  const FileName: string; const Caption: string;
-  const ReplyToMessageID: integer): boolean;
 var
   urlTarget: string;
 begin
@@ -1288,7 +1278,7 @@ begin
   FResultText := '';
   FIsSuccessfull := False;
   Result := False;
-  if (ChatID = 0) or (FileName = '') or (FURL = '') then
+  if (ChatID = '') or (FileName = '') or (FURL = '') then
     Exit;
   if not FileExists(FileName) then
     Exit;
@@ -1302,8 +1292,9 @@ begin
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
-      FormData['chat_id'] := IntToStr(ChatID);
+      FormData['chat_id'] := ChatID;
       FormData['caption'] := Caption;
+      FormData['parse_mode'] := FParseMode;
       AddFile(FileName, 'video');
       Response := Post;
       FResultCode := Response.ResultCode;
