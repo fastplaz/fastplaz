@@ -372,6 +372,7 @@ begin
       end;
     end;
     FIsSuccesfull := True;
+    HTTPClient.RequestHeaders.Clear;
   except
     on e: Exception do
     begin
