@@ -7,7 +7,7 @@ file that was distributed with this source code.
 }
 unit string_helpers;
 
-{$mode objfpc}
+{$mode objfpc}{$H+}
 {$modeswitch typehelpers}
 
 interface
