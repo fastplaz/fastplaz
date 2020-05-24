@@ -33,7 +33,7 @@ unit datetime_helpers;
 
 }
 
-{$mode objfpc}
+{$mode objfpc}{$H+}
 {$modeswitch typehelpers}
 
 interface

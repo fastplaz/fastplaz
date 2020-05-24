@@ -337,7 +337,7 @@ procedure TJSONUtil.SetValue(PathString: UnicodeString; AValue: variant);
 var
   o: TJSONObject;
   El: TJSONData;
-  ElName: UnicodeString;
+  valueAsString, ElName: UnicodeString;
   i: integer;
 begin
   ElName := '';
@@ -386,7 +386,9 @@ begin
       end;
       if not Assigned(El) then
       begin
-        El := TJSONString.Create(AValue);
+        valueAsString := AValue;
+        El := TJSONString.Create(valueAsString);
+        El.AsString := valueAsString;
         o.Add(string(ElName), El);
       end
       else
