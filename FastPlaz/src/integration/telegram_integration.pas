@@ -1204,7 +1204,7 @@ begin
     Exit;
   if not FileExists(FileName) then
     Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [i2s(ChatID), Caption, FParseMode]);
+  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [i2s(ChatID), UrlEncode(Caption), FParseMode]);
   if ReplyToMessageID <> 0 then
     urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
 
@@ -1215,7 +1215,7 @@ begin
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
       FormData['chat_id'] := IntToStr(ChatID);
-      FormData['caption'] := Caption;
+      //FormData['caption'] := Caption;
       AddFile(FileName, 'photo');
       Response := Post;
       FResultCode := Response.ResultCode;
