@@ -34,7 +34,7 @@ msgid "Nothing Found"
 msgstr ""
 
 #: fastplaz_handler.__errnomodulenameforrequest
-msgid "Could not determine HTTP module name for request"
+msgid "Could not determine HTTP module name \"%s\" for request"
 msgstr ""
 
 #: fastplaz_handler.__err_app_init

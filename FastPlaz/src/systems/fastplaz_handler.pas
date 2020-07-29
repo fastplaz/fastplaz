@@ -22,7 +22,7 @@ const
   TDateTimeEpsilon = 2.2204460493e-16;
 
 resourcestring
-  __ErrNoModuleNameForRequest = 'Could not determine HTTP module name for request';
+  __ErrNoModuleNameForRequest = 'Could not determine HTTP module name "%s" for request';
   __Err_Http_InvalidMethod = 'Invalid method request';
 
   // theme
@@ -1269,7 +1269,9 @@ begin
   if (Result = '') then
   begin
     if not Application.AllowDefaultModule then
-      raise EFPWebError.Create(__(__ErrNoModuleNameForRequest));
+    begin
+      raise EFPWebError.Create(__(format(__ErrNoModuleNameForRequest,[AppData.module])));
+    end;
     Result := GetDefaultModuleName;
   end;
 
