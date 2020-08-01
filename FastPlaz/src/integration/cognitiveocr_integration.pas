@@ -22,6 +22,9 @@ interface
 uses
   fpjson,
   common, http_lib, logutil_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 type

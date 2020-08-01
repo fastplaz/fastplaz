@@ -27,6 +27,9 @@ uses
   cthreads,
   {$ENDIF}
   common, http_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   RegExpr, fpjson, Classes, SysUtils;
 
 type

@@ -41,6 +41,9 @@ interface
 
 uses
   http_lib, common,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 {$ifdef ELASTICSEARCH_INTEGRATION}
