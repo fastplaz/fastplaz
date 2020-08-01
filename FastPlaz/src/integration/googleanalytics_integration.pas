@@ -39,6 +39,9 @@ interface
 uses
   common,
   http_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 {$ifdef GOOGLEANALYTICS_INTEGRATION}

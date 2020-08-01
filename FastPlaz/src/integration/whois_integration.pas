@@ -34,6 +34,9 @@ uses
   {$ENDIF}
   logutil_lib,
   Sockets, RegExpr, fpjson, common,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 const
