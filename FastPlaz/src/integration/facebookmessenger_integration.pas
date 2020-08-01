@@ -738,7 +738,7 @@ begin
     aButtons := TJSONArray.Create;
     oButton := TJSONObject.Create;
     oButton.Add('type', 'web_url');
-    oButton.Add('title', 'Tampilkan Peta');
+    oButton.Add('title', 'Detail');
     oButton.Add('url', jsonGetData(AContent.Items[i], 'url'));
     aButtons.Add(oButton);
     oItem.Add('buttons', aButtons);
