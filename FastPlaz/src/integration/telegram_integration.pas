@@ -210,6 +210,9 @@ type
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendInlineKeyboard(const ChatId: string; const AText: string;
       const AData: TJSONUtil): boolean;
+    function SendKeyboard(const ChatId: string; const AText: string;
+      const AData: TJSONUtil): boolean;
+    function RemoveKeyboard(const ChatId: string; const AText: string): boolean;
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
@@ -946,6 +949,7 @@ begin
   json['parse_mode'] := FParseMode;
   json['reply_to_message_id'] := ReplyToMessageID;
   json['disable_web_page_preview'] := 'false';
+  json['reply_markup/remove_keyboard'] := True;
   payloadAsString := json.AsJSON;
   json.Free;
 
@@ -1468,6 +1472,82 @@ begin
     end;
     Free;
   end;
+end;
+
+function TTelegramIntegration.SendKeyboard(const ChatId: string;
+  const AText: string; const AData: TJSONUtil): boolean;
+var
+  payloadAsString, urlTarget: string;
+  json: TJSONUtil;
+begin
+  Result := False;
+  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
+    or (AData.Data.Count = 0) then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['chat_id'] := ChatId;
+  json['text'] := AText;
+  json['parse_mode'] := FParseMode;
+  json.ValueArray['reply_markup/keyboard'] := TJSONArray(AData.Data);
+
+  payloadAsString := json.AsJSON;
+  json.Free;
+
+  urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      if Response.ResultCode = 200 then
+        Result := True;
+    except
+    end;
+    Free;
+  end;
+end;
+
+function TTelegramIntegration.RemoveKeyboard(const ChatId: string;
+  const AText: string): boolean;
+var
+  payloadAsString, urlTarget: string;
+  json: TJSONUtil;
+begin
+  Result := False;
+  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '') then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['chat_id'] := ChatId;
+  json['text'] := AText;
+  json['parse_mode'] := FParseMode;
+  json['reply_markup/remove_keyboard'] := True;
+
+  payloadAsString := json.AsJSON;
+  json.Free;
+
+  urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(payloadAsString);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      if Response.ResultCode = 200 then
+        Result := True;
+    except
+    end;
+    Free;
+  end;
+
 end;
 
 // example result: "photo/file_2"
