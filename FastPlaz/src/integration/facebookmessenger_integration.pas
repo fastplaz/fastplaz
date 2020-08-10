@@ -69,7 +69,7 @@ type
     destructor Destroy;
 
     procedure AddText( ATitle, APayload, AImageURL: string);
-    procedure AddLocation;
+    procedure AddLocation;//deprecated
     procedure AddEmail;
     procedure AddPhone;
 
@@ -120,6 +120,7 @@ type
     FLocationName: string;
     FProfilePicture: String;
     FQuickReply: TFacebookQuickReply;
+    FQuickReplyPayload: string;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -172,6 +173,7 @@ type
     function isMessage: boolean;
     function isImage(ADetail: boolean = False): boolean;
     function isPostback: boolean;
+    function isQuickReply: boolean;
 
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
@@ -188,6 +190,7 @@ type
 
     //
     property QuickReply: TFacebookQuickReply read FQuickReply write FQuickReply;
+    property QuickReplyPayload: string read FQuickReplyPayload;
     property TemplateCard: TFacebookTemplateCard read FTemplateCard write FTemplateCard;
 
   published
@@ -297,7 +300,7 @@ begin
   FItem.Add(o);
 end;
 
-procedure TFacebookQuickReply.AddLocation;
+procedure TFacebookQuickReply.AddLocation;//deprecated
 var
   o: TJSONObject;
 begin
@@ -449,6 +452,7 @@ constructor TFacebookMessengerIntegration.Create;
 begin
   ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
   FQuickReply := TFacebookQuickReply.Create;
+  FQuickReplyPayload := '';
   FTemplateCard := TFacebookTemplateCard.Create;
 end;
 
@@ -867,6 +871,17 @@ begin
   Result := False;
   try
     if jsonData.GetPath('entry[0].messaging[0].postback.payload').AsString <> '' then
+      Result := True;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.isQuickReply: boolean;
+begin
+  Result := False;
+  try
+    FQuickReplyPayload := jsonData.GetPath('entry[0].messaging[0].message.quick_reply.payload').AsString;
+    if FQuickReplyPayload <> '' then
       Result := True;
   except
   end;

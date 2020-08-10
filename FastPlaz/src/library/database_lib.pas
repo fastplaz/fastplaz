@@ -193,8 +193,9 @@ begin
   s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '')));
   if not FileExists( s) then
   begin
-    SetCurrentDir(ExtractFilePath(Application.ExeName));
-    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
+    //ulil
+    //SetCurrentDir(ExtractFilePath(Application.ExeName));
+    //DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
 
   if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '') <> '' then begin
