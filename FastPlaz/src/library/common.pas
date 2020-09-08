@@ -143,7 +143,7 @@ function SaveToFile(const AFileName: string; const AContent: string): boolean;
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
 function jsonGetString(J: TJsonData; index: string): string;
-function JsonFormatter(JsonString: string): string;
+function JsonFormatter(JsonString: string; Const UseUTF8 : Boolean = True): string;
 function IsJsonValid(JsonString: string): boolean;
 function HexToInt(HexStr: string): int64;
 
@@ -1197,7 +1197,7 @@ begin
   end;
 end;
 
-function JsonFormatter(JsonString: string): string;
+function JsonFormatter(JsonString: string; const UseUTF8: Boolean): string;
   // error line : VJSONParser.Scanner.CurRow;
 var
   VJSONData : TJSONData = nil;
@@ -1209,7 +1209,10 @@ begin
   if JsonString = '' then
     Exit;
 
-  VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8]);
+  if UseUTF8 then
+    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8])
+  else
+    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict]);
   try
     try
       setOptions := VJSONParser.Options;
