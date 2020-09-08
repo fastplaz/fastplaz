@@ -531,7 +531,7 @@ begin
       // get inline keyboard data
       s := jsonData.GetPath('callback_query.message.reply_markup.inline_keyboard').AsJSON;
       FCallbackInlineKeyboard := TJSONUtil.Create;
-      FCallbackInlineKeyboard.LoadFromJsonString(s);
+      FCallbackInlineKeyboard.LoadFromJsonString(s, False);
 
       Result := True;
     end;
