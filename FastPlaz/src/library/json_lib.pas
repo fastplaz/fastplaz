@@ -289,7 +289,7 @@ end;
 
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
 begin
-  Result := JsonFormatter(AsJSON);
+  Result := JsonFormatter(AsJSON, False);
 end;
 
 function TJSONUtil.GetItem(PathString: UnicodeString): TJSONUtilItem;
