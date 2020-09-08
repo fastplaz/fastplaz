@@ -81,7 +81,7 @@ type
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
-    function LoadFromJsonString(const JsonString: string): boolean;
+    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = True): boolean;
   end;
 
 
@@ -600,12 +600,13 @@ begin
   end;
 end;
 
-function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
+function TJSONUtil.LoadFromJsonString(const JsonString: string;
+  const UseUTF8: Boolean): boolean;
 begin
   if Assigned(FJsonObject) then
     FJsonObject.Free;
   try
-    FJsonObject := TJSONObject(GetJSON(JsonString));
+    FJsonObject := TJSONObject(GetJSON(JsonString, UseUTF8));
     Result := true;
   except
     Result := false;
