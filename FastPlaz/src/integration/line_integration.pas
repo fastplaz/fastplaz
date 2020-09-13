@@ -115,6 +115,7 @@ type
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FPostbackData: TStrings;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -161,6 +162,7 @@ type
     function isLocation: boolean;
     function isAudio: boolean;
     function isImage: boolean;
+    function isPostback: boolean;
     function isVoice: boolean;
     function isSticker: boolean;
     function isGroup: boolean;
@@ -173,6 +175,7 @@ type
     property LocationLatitude: double read FLocationLatitude;
     property LocationLongitude: double read FLocationLongitude;
     property LocationName: string read FLocationName;
+    property PostbackData: TStrings read FPostbackData;
   end;
 
 
@@ -394,6 +397,8 @@ end;
 
 destructor TLineIntegration.Destroy;
 begin
+  if Assigned(FPostbackData) then
+    FPostbackData.Free;
   if Assigned(jsonData) then
     jsonData.Free;
 end;
@@ -780,6 +785,20 @@ begin
   try
     if jsonData.GetPath('events[0].message.type').AsString = 'image' then
       Result := True;
+  except
+  end;
+end;
+
+function TLineIntegration.isPostback: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].type').AsString = 'postback' then
+      Result := True;
+    s := jsonData.GetPath('events[0].postback.data').AsString;
+    FPostbackData := Explode(s, '&');
   except
   end;
 end;
