@@ -1676,7 +1676,7 @@ begin
     Exit;
 
   try
-    json := GetJSON(FResultText);
+    json := GetJSON(FResultText, False);
     i := 0;
     s := jsonGetData(json, 'result[0]/user/id');
     firstName := trim(jsonGetData(json, 'result[0]/user/first_name'));
@@ -1694,6 +1694,8 @@ begin
         lastName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/last_name'));
         firstName := firstName+' '+lastName;
         firstName := trim(SafeText(firstName, ' '));
+        if firstName.IsEmpty then
+          firstName := 'user';
         s := '['+firstName+'](tg://user?id='+ s + ')';
       end;
     until s = '';
