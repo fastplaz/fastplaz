@@ -1695,7 +1695,7 @@ begin
         firstName := firstName+' '+lastName;
         firstName := trim(SafeText(firstName, ' '));
         if firstName.IsEmpty then
-          firstName := 'user';
+          firstName := 'Admin';
         s := '['+firstName+'](tg://user?id='+ s + ')';
       end;
     until s = '';
