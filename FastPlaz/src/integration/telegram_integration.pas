@@ -1695,6 +1695,8 @@ begin
         firstName := firstName+' '+lastName;
         firstName := trim(SafeText(firstName, ' '));
         if firstName.IsEmpty then
+          firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/username'));
+        if firstName.IsEmpty then
           firstName := 'Admin';
         s := '['+firstName+'](tg://user?id='+ s + ')';
       end;
