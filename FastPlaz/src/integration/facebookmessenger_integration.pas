@@ -334,7 +334,7 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue);
+  jsonData := GetJSON(AValue, False);
 end;
 
 function TFacebookMessengerIntegration.getText: string;
