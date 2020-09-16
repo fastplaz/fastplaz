@@ -323,7 +323,7 @@ procedure TLineTemplateMessage.AddColumnAsJson(AJsonString: string);
 var
   json: TJSONObject;
 begin
-  json := TJSONObject(GetJSON(AJsonString));
+  json := TJSONObject(GetJSON(AJsonString, False));
   jsonColumns.Add(json);
 end;
 
@@ -335,7 +335,7 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue);
+  jsonData := GetJSON(AValue, False);
 end;
 
 function TLineIntegration.getReplyToken: string;
