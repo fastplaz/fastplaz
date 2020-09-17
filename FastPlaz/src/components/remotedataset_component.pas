@@ -164,7 +164,7 @@ begin
       FErrorCode := 0;
       FResultAsText.Text := httpResponse.ResultText;
       try
-        if FResultAsJson.LoadFromJsonString(FResultAsText.Text) then
+        if FResultAsJson.LoadFromJsonString(FResultAsText.Text, False) then
         begin
           FCount := FResultAsJson['count'];
           FData := FResultAsJson.ValueArray['data'];

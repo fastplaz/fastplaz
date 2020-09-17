@@ -111,7 +111,7 @@ begin
     FResultText := Response.ResultText;
     if FResultCode = 200 then
     begin
-      jsonData := GetJSON(FResultText);
+      jsonData := GetJSON(FResultText, False);
       Result := FResultText;
     end;
     Free;

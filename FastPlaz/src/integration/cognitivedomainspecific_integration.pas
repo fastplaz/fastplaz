@@ -96,7 +96,7 @@ begin
   if Result = '' then
     Exit;
 
-  jsonData := GetJSON(Result);
+  jsonData := GetJSON(Result, False);
   Result := jsonGetData(jsonData, 'result.celebrities[0].name') + ' ' + jsonGetData(jsonData, 'result.celebrities[1].name');
   Result := Trim( Result);
 end;
