@@ -821,7 +821,7 @@ begin
       if Response.ResultCode = 200 then
       begin
         json := TJSONUtil.Create;
-        json.LoadFromJsonString(Response.ResultText);
+        json.LoadFromJsonString(Response.ResultText, False);
         FFirtName := json['first_name'];
         FLastName := json['last_name'];
         FProfilePicture := json['profile_pic'];

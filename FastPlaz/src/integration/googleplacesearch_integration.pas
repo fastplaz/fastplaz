@@ -173,7 +173,7 @@ begin
   if s = '' then
     Exit;
   try
-    _json := GetJSON(s);
+    _json := GetJSON(s, False);
     FCount := _json.GetPath('results').Count;
     s := '';
     if FCount > 4 then
@@ -271,7 +271,7 @@ begin
   if sJson = '' then
     Exit;
 
-  jSearch := GetJSON(sJson);
+  jSearch := GetJSON(sJson, False);
   oSearch := TJSONObject(jSearch);
 
   aResult := TJSONArray(oSearch.FindPath('results'));
@@ -351,7 +351,7 @@ begin
       if Response.ResultCode <> 200 then
         Exit;
 
-      FData := GetJSON( Response.ResultText);
+      FData := GetJSON( Response.ResultText, False);
       Result := Response.ResultText;
     except
     end;

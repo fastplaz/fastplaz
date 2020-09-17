@@ -809,7 +809,7 @@ begin
       Result := FResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      j := GetJSON(FResultText);
+      j := GetJSON(FResultText, False);
       i := TJSONObject(j).IndexOfName('result');
       if i <> -1 then
       begin
@@ -868,7 +868,7 @@ begin
     Exit;
 
   try
-    jData := GetJSON(FGetUpdatesContent);
+    jData := GetJSON(FGetUpdatesContent, False);
     if jData.GetPath('ok').AsBoolean then
     begin
       indexResult := TJSONObject(jData).IndexOfName('result');
@@ -969,7 +969,7 @@ begin
       if FIsSuccessfull then
       begin
         json := TJSONUtil.Create;
-        json.LoadFromJsonString(FResultText);
+        json.LoadFromJsonString(FResultText, False);
         FResultMessageID := json['result/message_id'];
         json.Free;
         Result := True;
@@ -1169,7 +1169,7 @@ begin
       FResultText := Response.ResultText;
 
       json := TJSONUtil.Create;
-      json.LoadFromJsonString(FResultText);
+      json.LoadFromJsonString(FResultText, False);
       errorCode := json['error_code'];
       json.Free;
 
@@ -1576,7 +1576,7 @@ begin
 
   json := TJSONUtil.Create;
   try
-    json.LoadFromJsonString(FResultText);
+    json.LoadFromJsonString(FResultText, False);
     Result := json['result/file_path'];
   except
   end;
@@ -1644,7 +1644,7 @@ begin
   if FResultCode <> 200 then
     Exit;
 
-  jsonData := GetJSON(FResultText);
+  jsonData := GetJSON(FResultText, False);
   s := jsonGetData(jsonData, 'result');
   Result := s2i(s);
 end;

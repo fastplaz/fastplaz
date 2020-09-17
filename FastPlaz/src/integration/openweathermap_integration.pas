@@ -140,7 +140,7 @@ begin
     if FResultCode = 200 then
     begin
       if FMode = 'json' then
-        jsonData := GetJSON(FResultText);
+        jsonData := GetJSON(FResultText, False);
       Result := FResultText;
     end;
     Free;
