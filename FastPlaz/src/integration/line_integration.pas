@@ -225,6 +225,7 @@ end;
 
 procedure TLineTemplateMessage.setThumbnailImageURL(AValue: string);
 begin
+  if AValue.IsEmpty then Exit;
   jsonTemplate.Strings['thumbnailImageUrl'] := AValue;
 end;
 
@@ -245,8 +246,8 @@ begin
 
   jsonTemplate := TJSONObject.Create;
   jsonTemplate.Strings['type'] := ATemplateType;
-  if ATemplateType = 'buttons' then
-    jsonTemplate.Strings['thumbnailImageUrl'] := '';
+  //if ATemplateType = 'buttons' then
+  //  jsonTemplate.Strings['thumbnailImageUrl'] := '';
   jsonTemplate.Strings['title'] := 'this is title';
   jsonTemplate.Strings['text'] := 'this is text';
 
