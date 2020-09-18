@@ -225,7 +225,7 @@ end;
 
 procedure TLineTemplateMessage.setThumbnailImageURL(AValue: string);
 begin
-  if AValue.IsEmpty then Exit;
+  if AValue.Trim.IsEmpty then Exit;
   jsonTemplate.Strings['thumbnailImageUrl'] := AValue;
 end;
 
