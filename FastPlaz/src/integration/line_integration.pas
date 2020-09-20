@@ -435,7 +435,7 @@ begin
       begin
         _jsonString.add('{');
         _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst[i]) + '"');
+        _jsonString.add('"text":"' + StringToJSONString(lst[i], False) + '"');
         _jsonString.add('}');
         if i <> lst.Count - 1 then
           _jsonString.Add(',');
@@ -443,7 +443,7 @@ begin
       }
       _jsonString.add('{');
       _jsonString.add('"type":"text",');
-      _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+      _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
       _jsonString.add('}');
 
       //--
@@ -503,7 +503,7 @@ begin
         _jsonString.Add('"messages":[');
         _jsonString.add('{');
         _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+        _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
         _jsonString.add('}');
       end;
 
@@ -558,7 +558,7 @@ begin
       urlAudio := StringReplace(urlAudio, '\n', '._', [rfReplaceAll]);
       urlAudio := StringReplace(urlAudio, #10, '._', [rfReplaceAll]);
 
-      urlAudio := StringToJSONString(Trim(urlAudio));
+      urlAudio := StringToJSONString(Trim(urlAudio), False);
       if Length(urlAudio) > 999 then
       begin
         urlAudio := copy(urlAudio, 0, 999);

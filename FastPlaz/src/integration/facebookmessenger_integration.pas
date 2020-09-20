@@ -491,7 +491,7 @@ begin
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s)]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -531,7 +531,7 @@ begin
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON,
-        [ATo, StringToJSONString(AAudioURL)]);
+        [ATo, StringToJSONString(AAudioURL, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
