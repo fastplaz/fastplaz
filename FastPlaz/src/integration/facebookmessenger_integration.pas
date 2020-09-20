@@ -165,7 +165,7 @@ type
       const AData: TJSONArray);
     procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
     procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
-    procedure SendTemplateCard(ATo: string; AContent: TJSONArray);
+    procedure SendTemplateCard(ATo: string; AContent: TJSONArray; AButtonTitleDefault: string = 'Detail');
     procedure AskLocation(ATo: string);
     function GetProfile(AUserId:String): boolean;
 
@@ -714,7 +714,7 @@ begin
 end;
 
 procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
-  AContent: TJSONArray);
+  AContent: TJSONArray; AButtonTitleDefault: string);
 var
   i: Integer;
   s: string;
@@ -742,7 +742,7 @@ begin
     aButtons := TJSONArray.Create;
     oButton := TJSONObject.Create;
     oButton.Add('type', 'web_url');
-    oButton.Add('title', 'Detail');
+    oButton.Add('title', AButtonTitleDefault);
     oButton.Add('url', jsonGetData(AContent.Items[i], 'url'));
     aButtons.Add(oButton);
     oItem.Add('buttons', aButtons);
