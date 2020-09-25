@@ -121,6 +121,9 @@ type
     FProfilePicture: String;
     FQuickReply: TFacebookQuickReply;
     FQuickReplyPayload: string;
+    FReferralRef: string;
+    FReferralSource: string;
+    FReferralType: string;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -173,8 +176,12 @@ type
     function isMessage: boolean;
     function isImage(ADetail: boolean = False): boolean;
     function isPostback: boolean;
+    function isReferral: boolean;
     function isQuickReply: boolean;
 
+    property ReferralSource: string read FReferralSource;
+    property ReferralType: string read FReferralType;
+    property ReferralRef: string read FReferralRef;
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
     property VoiceURL: string read getVoiceURL;
@@ -872,6 +879,18 @@ begin
   try
     if jsonData.GetPath('entry[0].messaging[0].postback.payload').AsString <> '' then
       Result := True;
+  except
+  end;
+end;
+
+function TFacebookMessengerIntegration.isReferral: boolean;
+begin
+  Result := False;
+  try
+    FReferralSource := jsonData.GetPath('entry[0].messaging[0].postback.referral.source').AsString;
+    FReferralType := jsonData.GetPath('entry[0].messaging[0].postback.referral.type').AsString;
+    FReferralRef := jsonData.GetPath('entry[0].messaging[0].postback.referral.ref').AsString;
+    Result := True;
   except
   end;
 end;
