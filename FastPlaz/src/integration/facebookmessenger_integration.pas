@@ -892,6 +892,13 @@ begin
     FReferralRef := jsonData.GetPath('entry[0].messaging[0].postback.referral.ref').AsString;
     Result := True;
   except
+    try
+      FReferralSource := jsonData.GetPath('entry[0].messaging[0].referral.source').AsString;
+      FReferralType := jsonData.GetPath('entry[0].messaging[0].referral.type').AsString;
+      FReferralRef := jsonData.GetPath('entry[0].messaging[0].referral.ref').AsString;
+      Result := True;
+    except
+    end;
   end;
 end;
 
