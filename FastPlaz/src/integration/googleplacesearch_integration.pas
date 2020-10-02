@@ -312,7 +312,7 @@ begin
       end;
       }
     end;
-    oItem.Add('subtitle', s);
+    oItem.Add('sub_title', s);
     oItem.Add('url', sURL);
     s := jsonGetData(aResult.Items[i], 'photos[0]/photo_reference');
     s := 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=2500&photoreference='

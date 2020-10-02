@@ -731,6 +731,8 @@ var
 begin
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
+  if AButtonTitleDefault.IsEmpty then
+    AButtonTitleDefault := 'View';
 
   aElements := TJSONArray.Create;
   for i := 0 to AContent.Count-1 do
