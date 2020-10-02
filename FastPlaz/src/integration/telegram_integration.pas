@@ -1255,7 +1255,7 @@ begin
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
   urlTarget := urlTarget + '&chat_id=' + ChatID;
-  urlTarget := urlTarget + '&photo=' + AImageURL;
+  urlTarget := urlTarget + '&photo=' + UrlEncode(AImageURL);
   with THTTPLib.Create(urlTarget) do
   begin
     try
