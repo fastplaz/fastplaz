@@ -629,7 +629,6 @@ begin
   json['message/attachment/payload/text'] := AText;
   json.ValueArray['message/attachment/payload/buttons'] := AData;
 
-
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
   begin
     try
@@ -679,8 +678,6 @@ begin
 
     Free;
   end;
-
-
 end;
 
 procedure TFacebookMessengerIntegration.SendQuickReply(ATo: string;
@@ -724,11 +721,12 @@ procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
   AContent: TJSONArray; AButtonTitleDefault: string);
 var
   i: Integer;
-  s: string;
+  s, actionType, actionData: string;
   o : TJSONUtil;
   aElements, aButtons: TJSONArray;
-  oItem, oDefaultAction, oButton: TJSONObject;
+  oItem, oButton: TJSONObject;
 begin
+  die(AContent.AsJSON);
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
   if AButtonTitleDefault.IsEmpty then
@@ -742,17 +740,22 @@ begin
     oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'subtitle'));
     oItem.Add('image_url', jsonGetData(AContent.Items[i], 'image_url'));
 
-    oDefaultAction := TJSONObject.Create;
-    oDefaultAction.Add('type', 'web_url');
-    oDefaultAction.Add('url', jsonGetData(AContent.Items[i], 'url'));
-    oDefaultAction.Add('webview_height_ratio', 'FULL');
-    //oItem.Add('default_action', oDefaultAction);
+    actionType := 'web_url';
+    actionData := jsonGetData(AContent.Items[i], 'url');
+    if actionData.IsEmpty then
+    begin
+      actionType := 'postback';
+      actionData := jsonGetData(AContent.Items[i], 'callback_data');
+    end;
 
     aButtons := TJSONArray.Create;
     oButton := TJSONObject.Create;
-    oButton.Add('type', 'web_url');
+    oButton.Add('type', actionType);
     oButton.Add('title', AButtonTitleDefault);
-    oButton.Add('url', jsonGetData(AContent.Items[i], 'url'));
+    if actionType = 'web_url' then
+      oButton.Add('url', actionData);
+    if actionType = 'postback' then
+      oButton.Add('payload', actionData);
     aButtons.Add(oButton);
     oItem.Add('buttons', aButtons);
 
