@@ -726,7 +726,6 @@ var
   aElements, aButtons: TJSONArray;
   oItem, oButton: TJSONObject;
 begin
-  die(AContent.AsJSON);
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
   if AButtonTitleDefault.IsEmpty then
@@ -737,7 +736,7 @@ begin
   begin
     oItem := TJSONObject.Create;
     oItem.Add('title', jsonGetData(AContent.Items[i], 'title'));
-    oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'subtitle'));
+    oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'sub_title'));
     oItem.Add('image_url', jsonGetData(AContent.Items[i], 'image_url'));
 
     actionType := 'web_url';
