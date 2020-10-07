@@ -726,7 +726,6 @@ var
   aElements, aButtons: TJSONArray;
   oItem, oButton: TJSONObject;
 begin
-  die(AContent.AsJSON);
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
   if AButtonTitleDefault.IsEmpty then
