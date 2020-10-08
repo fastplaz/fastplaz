@@ -148,7 +148,7 @@ begin
   for i := 0 to iCount-1 do
   begin
     Result := Result + FBOLD_CODE + jsonGetData(AData.Items[i], 'title') + FBOLD_CODE;
-    Result := Result + #10 + trim(jsonGetData(AData.Items[i], 'subtitle'));
+    Result := Result + #10 + trim(jsonGetData(AData.Items[i], 'sub_title'));
     if FMarkDown then
       Result := Result + #10'[Tampilkan Peta](' + jsonGetData(AData.Items[i], 'url') + ')'
     else
