@@ -82,6 +82,7 @@ type
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
     function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = True): boolean;
+    function SaveToFile(AFileName: string): boolean;
   end;
 
 
@@ -611,6 +612,27 @@ begin
   except
     Result := false;
   end;
+end;
+
+function TJSONUtil.SaveToFile(AFileName: string): boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  if AFileName.IsEmpty then
+    Exit;
+
+  lst := TStringList.Create;
+  try
+    lst.Text := String( FJsonObject.AsJSON).Trim;
+    lst.SaveToFile(AFileName);
+    Result := True;
+  except
+    on e:Exception do
+    begin
+    end;
+  end;
+  lst.Free;
 end;
 
 end.
