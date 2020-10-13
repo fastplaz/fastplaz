@@ -12,6 +12,7 @@ uses
   RegExpr,
   sqldb, gettext, session_controller, module_controller,
   config_lib,
+  fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   fpcgi, httpdefs, fpHTTP, fpWeb,
   //webutil,
   custweb, dateutils, variants,

@@ -8,8 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
-  fphttpclient,
-  //fphttpclient_with_ssl,
+  fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   RegExpr,
   //netdb,
   resolve,
@@ -188,6 +187,8 @@ function MarkdownToHTML(const AContent: String): String;
 
 function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true): string;
 function FileCopy(ASource, ATarget: string): boolean;
+procedure HttpClientGetSocketHandler(Sender: TObject;
+  const UseSSL: Boolean; out AHandler: TSocketHandler);
 
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
 function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
@@ -1574,6 +1575,8 @@ begin
   with TFPHTTPClient.Create(nil) do
   begin
     try
+      AddHeader('User-Agent','Mozilla/5.0 (compatible; fastplaz)');
+      AllowRedirect := True;
       s := Get(TargetURL);
       Result := s;
     except
@@ -1601,6 +1604,16 @@ begin
   except
   end;
   memBuffer.Free
+end;
+
+procedure HttpClientGetSocketHandler(Sender: TObject; const UseSSL: Boolean;
+  out AHandler: TSocketHandler);
+begin
+  If UseSSL then begin
+    AHandler := TSSLSocketHandler.Create;
+    TSSLSocketHandler(AHandler).SSLType := stTLSv1_1;
+  end else begin
+  end;
 end;
 
 // ref:
