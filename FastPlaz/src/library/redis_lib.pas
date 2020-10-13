@@ -69,6 +69,7 @@ type
     FServerAddress: string;
     FisAutoConnect: boolean;
     FLastError: integer;
+    FLastErrorMessage: string;
     FLastMessage: string;
     FPassword: string;
     FPort: string;
@@ -111,6 +112,7 @@ type
     property Port: string read FPort write SetPort;
     property TimeOut: integer read FTimeOut write FTimeOut;
     property LastError: integer read FLastError;
+    property LastErrorMessage: string read FLastErrorMessage;
     property LastMessage: string read FLastMessage;
     property Values[Key: string]: string read Get write SetValue; default;
     property ResponType: TRedisResponseType read FResponType;
@@ -364,6 +366,7 @@ var
   s: string;
 begin
   FLastError := 0;
+  FLastErrorMessage := '';
   FResponType := rrtError;
   FLastMessage := '';
   if not FisConnected then
@@ -405,10 +408,16 @@ begin
     if FLastError = 0 then
     begin
       FResponType := GetResponseType(FLastMessage);
+    end else
+    begin
+      FLastErrorMessage := FLastMessage;
+      FLastMessage := '';
     end;
   except
     on e: Exception do
-      FLastMessage := e.Message;
+    begin
+      FLastErrorMessage := e.Message;
+    end;
   end;
   Result := FLastMessage;
 end;

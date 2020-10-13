@@ -245,7 +245,10 @@ begin
   ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
-  El := FindElement(StripSlash(PathString), False, o, ElName);
+  try
+    El := FindElement(StripSlash(PathString), False, o, ElName);
+  except
+  end;
   if not Assigned(El) then
     Exit;
   try
