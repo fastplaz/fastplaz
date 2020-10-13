@@ -1076,6 +1076,7 @@ begin
     DeleteFile(AFilePath);
   with TFPHTTPClient.Create(nil) do
   begin
+    AllowRedirect := True;
     try
       if not AUserAgent.IsEmpty then
       begin
