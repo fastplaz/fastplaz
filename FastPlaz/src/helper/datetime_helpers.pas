@@ -52,7 +52,7 @@ type
     function AsString: String; overload; inline;
     function Format( AFormat: String = 'yyyy-mm-dd HH:nn:ss'): String; overload; inline;
     function HumanReadable: String; overload; inline;
-    function FromString( ADateTimeString: String): TDateTime; overload; inline;
+    function FromString( ADateTimeString: String; AFormat: String = 'yyyy-mm-dd HH:nn:ss'): TDateTime; overload; inline;
 
     function DayOfWeek: Word; overload; inline;
     function YearOf: Word; overload; inline;
@@ -109,9 +109,14 @@ begin
   Result := DateTimeHuman( Self);
 end;
 
-function TDateTimeSmartHelper.FromString(ADateTimeString: String): TDateTime;
+function TDateTimeSmartHelper.FromString(ADateTimeString: String;
+  AFormat: String): TDateTime;
+var
+  FS: TFormatSettings;
 begin
-  Self := StrToDateTime( ADateTimeString);
+  FS := DefaultFormatSettings;
+  FS.ShortDateFormat := AFormat;
+  Self := StrToDateTime( ADateTimeString, FS);
   Result := Self;
 end;
 

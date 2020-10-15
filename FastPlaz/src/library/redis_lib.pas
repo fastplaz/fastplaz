@@ -173,6 +173,8 @@ function TRedisLib.Get(Key: string): string;
 var
   i: integer;
 begin
+  if Key.IsEmpty then
+    Exit;
   SendString('GET ' + Key);
   i := Pos(#13#10, FLastMessage);
   FLastMessage := Copy(FLastMessage, i + 2, Length(FLastMessage) - i - 1);
@@ -238,6 +240,8 @@ end;
 
 procedure TRedisLib.SetValue(Key: string; AValue: string);
 begin
+  if Key.IsEmpty then
+    Exit;
   FLastMessage := '+OK';
   if FWriteToMaster then
   begin
