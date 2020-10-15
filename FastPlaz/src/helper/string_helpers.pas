@@ -42,6 +42,7 @@ type
     function SaveToFile( AFileName: string): boolean; overload; inline;
     function Has( AText: string): boolean; overload; inline;
     function UcWords: AnsiString; overload; inline;
+    function IsPregMatch( ARegex: string): boolean; overload; inline;
 
   end;
 
@@ -174,6 +175,11 @@ end;
 function TStringSmartHelper.UcWords: AnsiString;
 begin
   Result := common.ucwords(Self);
+end;
+
+function TStringSmartHelper.IsPregMatch(ARegex: string): boolean;
+begin
+  Result := common.preg_match(ARegex, Self);
 end;
 
 end.
