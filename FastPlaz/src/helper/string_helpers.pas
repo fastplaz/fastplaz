@@ -43,6 +43,7 @@ type
     function Has( AText: string): boolean; overload; inline;
     function UcWords: AnsiString; overload; inline;
     function IsPregMatch( ARegex: string): boolean; overload; inline;
+    function StrPos( AText: string): integer; overload; inline;
 
   end;
 
@@ -180,6 +181,11 @@ end;
 function TStringSmartHelper.IsPregMatch(ARegex: string): boolean;
 begin
   Result := common.preg_match(ARegex, Self);
+end;
+
+function TStringSmartHelper.StrPos(AText: string): integer;
+begin
+  Result := Pos( AText, Self);
 end;
 
 end.
