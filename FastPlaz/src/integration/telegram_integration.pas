@@ -154,6 +154,7 @@ type
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
     function getIsPicture: boolean;
+    function getIsReply: boolean;
     function getIsSticker: boolean;
     function getIsTextMentionExists: boolean;
     function getIsUserLeft: boolean;
@@ -254,6 +255,7 @@ type
     property IsUserLeft: boolean read getIsUserLeft;
     property IsCallbackQuery: boolean read getIsCallbackQuery;
     property IsTextMentionExists: boolean read getIsTextMentionExists;
+    property IsReply: boolean read getIsReply;
 
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
@@ -611,6 +613,13 @@ end;
 function TTelegramIntegration.getIsPicture: boolean;
 begin
   Result := isImage(False);
+end;
+
+function TTelegramIntegration.getIsReply: boolean;
+begin
+  Result := False;
+  if not getReplyFromID.IsEmpty then
+    Result := True;
 end;
 
 function TTelegramIntegration.getIsSticker: boolean;
