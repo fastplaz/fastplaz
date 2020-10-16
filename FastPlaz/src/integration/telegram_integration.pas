@@ -109,6 +109,8 @@ type
 
   TTelegramIntegration = class(TInterfacedObject)
   private
+    FAdminListAsJson: TJSONData;
+    FAdminListAsString: string;
     FCallbackData: TStrings;
     FCallbackInlineKeyboard: TJSONUtil;
     FCallbackInstance: string;
@@ -146,7 +148,6 @@ type
     function getFullName: string;
     function getGroupName: string;
     function getImageCaption: string;
-    function getIsAdmin: boolean;
     function getIsBot: boolean;
     function getIsCallbackQuery: boolean;
     function getIsDocument: boolean;
@@ -162,6 +163,8 @@ type
     function getLeftUserID: string;
     function getMessageID: string;
     function getReplyFromID: string;
+    function getReplyFromUserID: string;
+    function getReplyFromUserName: string;
     function getText: string;
     function getUpdateID: integer;
     function getUserID: string;
@@ -220,7 +223,9 @@ type
     function GroupMemberCount(AGroupID: string): integer;
     function GroupAdminList(AGroupID: string; Formated: boolean = True): string;
 
-    function isImage(ADetail: boolean = False): boolean;
+    function IsAdmin(AUserId: string = ''; Force: boolean = True): boolean;
+    function IsAdminFromUsername(AUserName: string = ''; Force: boolean = True): boolean;
+    function IsImage(ADetail: boolean = False): boolean;
     function KickUser(AChatID: string; AUserID: string; AReason: string; AUntilDate: Integer = 0):boolean;
     function RestrictUser(AChatID: string; AUserID: string;
       AUntilDate: integer = 0;
@@ -247,9 +252,13 @@ type
     property UserName: string read getUserName;
     property FullName: string read getFullName;
     property GroupName: string read getGroupName;
+    property AdminListAsJson: TJSONData read FAdminListAsJson;
+    property AdminListAsString: string read FAdminListAsString;
+
     property ReplyFromID: string read getReplyFromID;
+    property ReplyFromUserID: string read getReplyFromUserID;
+    property ReplyFromUserName: string read getReplyFromUserName;
     property IsGroup: boolean read getIsGroup;
-    property IsAdmin: boolean read getIsAdmin;
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
     property IsUserLeft: boolean read getIsUserLeft;
@@ -497,13 +506,6 @@ begin
   end;
 end;
 
-function TTelegramIntegration.getIsAdmin: boolean;
-begin
-  Result := False;
-
-  //TODO: check is admin
-end;
-
 function TTelegramIntegration.getIsBot: boolean;
 begin
   Result := False;
@@ -708,6 +710,24 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getReplyFromUserID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getReplyFromUserName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.username').AsString;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getUpdateID: integer;
 begin
   Result := 0;
@@ -780,6 +800,7 @@ begin
   FResultMessageID := '0';
   FCallbackInstance := '';
   FFileName := '';
+  FAdminListAsString := '';
 end;
 
 destructor TTelegramIntegration.Destroy;
@@ -790,6 +811,8 @@ begin
     FCallbackData.Free;
   if Assigned(jsonData) then
     jsonData.Free;
+  if Assigned(FAdminListAsJson) then
+    FAdminListAsJson.Free;
 end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
@@ -1663,7 +1686,6 @@ function TTelegramIntegration.GroupAdminList(AGroupID: string; Formated: boolean
 var
   i: integer;
   s, firstName, lastName, urlTarget: string;
-  json: TJSONData;
 begin
   Result := '';
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
@@ -1685,11 +1707,11 @@ begin
     Exit;
 
   try
-    json := GetJSON(FResultText, False);
+    FAdminListAsJson := GetJSON(FResultText, False);
     i := 0;
-    s := jsonGetData(json, 'result[0]/user/id');
-    firstName := trim(jsonGetData(json, 'result[0]/user/first_name'));
-    lastName := trim(jsonGetData(json, 'result[0]/user/last_name'));
+    s := jsonGetData(FAdminListAsJson, 'result[0]/user/id');
+    firstName := trim(jsonGetData(FAdminListAsJson, 'result[0]/user/first_name'));
+    lastName := trim(jsonGetData(FAdminListAsJson, 'result[0]/user/last_name'));
     firstName := firstName+' '+lastName;
     firstName := trim(SafeText(firstName, ' '));
     s := '['+firstName+'](tg://user?id='+ s + ')';
@@ -1697,27 +1719,100 @@ begin
       if s <> '' then
         Result := Result + s + ', ';
       i := i + 1;
-      s := jsonGetData(json, 'result[' + i2s(i) + ']/user/id');
+      s := jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/id');
       if not s.IsEmpty then begin
-        firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/first_name'));
-        lastName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/last_name'));
+        firstName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/first_name'));
+        lastName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/last_name'));
         firstName := firstName+' '+lastName;
         firstName := trim(SafeText(firstName, ' '));
         if firstName.IsEmpty then
-          firstName := trim(jsonGetData(json, 'result[' + i2s(i) + ']/user/username'));
+          firstName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/username'));
         if firstName.IsEmpty then
           firstName := 'Admin';
         s := '['+firstName+'](tg://user?id='+ s + ')';
       end;
     until s = '';
-    json.Free;
   except
   end;
+
+  s := FAdminListAsJson.GetPath('result').AsJSON;
+  FAdminListAsJson.Free;
+  FAdminListAsJson := GetJSON(s, False);
+
   Result := Result.Trim;
   Result := copy(Result, 0, length(Result) - 1);
 end;
 
-function TTelegramIntegration.isImage(ADetail: boolean): boolean;
+function TTelegramIntegration.IsAdmin(AUserId: string; Force: boolean): boolean;
+var
+  i: integer;
+  s, sid: string;
+  entities: TJSONArray;
+  item: TJSONData;
+begin
+  Result := False;
+  if AUserId.IsEmpty then
+    AUserId := getUserID;
+
+  if Force then
+  begin
+    FAdminListAsString := GroupAdminList(getChatID, False);
+    if (not Assigned(FAdminListAsJson)) then
+      Exit;
+  end;
+
+  try
+    entities := TJSONArray(FAdminListAsJson);
+    for i:=0 to entities.Count-1 do
+    begin
+      item := entities.Items[i];
+      sid := jsonGetData(item,'user/id');
+      if sid = AUserId then
+      begin
+        Result := True;
+        Break;
+      end;
+    end;
+  except
+  end;
+end;
+
+function TTelegramIntegration.IsAdminFromUsername(AUserName: string;
+  Force: boolean): boolean;
+var
+  i: integer;
+  s, sid: string;
+  entities: TJSONArray;
+  item: TJSONData;
+begin
+  Result := False;
+  if AUserName.IsEmpty then
+    AUserName := getUserName;
+
+  if Force then
+  begin
+    FAdminListAsString := GroupAdminList(getChatID, False);
+    if (not Assigned(FAdminListAsJson)) then
+      Exit;
+  end;
+
+  try
+    entities := TJSONArray(FAdminListAsJson);
+    for i:=0 to entities.Count-1 do
+    begin
+      item := entities.Items[i];
+      sid := jsonGetData(item,'user/username');
+      if sid = AUserName then
+      begin
+        Result := True;
+        Break;
+      end;
+    end;
+  except
+  end;
+end;
+
+function TTelegramIntegration.IsImage(ADetail: boolean): boolean;
 begin
   Result := False;
 
@@ -1765,8 +1860,18 @@ begin
   if AUserID.IsEmpty then
     Exit;
 
-  urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
-    [ChatID, AUserID, AUntilDate]);
+  if AUntilDate = 0 then
+  begin
+    urlTarget := TELEGRAM_COMMAND_KICKUSER;
+    urlTarget := urlTarget.Replace('&until_date=%d','');
+    urlTarget := URL + Format(urlTarget, [ChatID,AUserID]);
+  end
+  else
+  begin
+    urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
+      [ChatID, AUserID, AUntilDate]);
+  end;
+
   with THTTPLib.Create(urlTarget) do
   begin
     try
