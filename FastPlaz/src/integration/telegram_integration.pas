@@ -163,6 +163,7 @@ type
     function getLeftUserID: string;
     function getMessageID: string;
     function getReplyFromID: string;
+    function getReplyFromMessageID: string;
     function getReplyFromUserID: string;
     function getReplyFromUserName: string;
     function getText: string;
@@ -258,6 +259,7 @@ type
     property ReplyFromID: string read getReplyFromID;
     property ReplyFromUserID: string read getReplyFromUserID;
     property ReplyFromUserName: string read getReplyFromUserName;
+    property ReplyFromMessageID: string read getReplyFromMessageID;
     property IsGroup: boolean read getIsGroup;
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
@@ -706,6 +708,15 @@ begin
   Result := '';
   try
     Result := jsonData.GetPath('message.reply_to_message.from.id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getReplyFromMessageID: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.message_id').AsString;
   except
   end;
 end;
