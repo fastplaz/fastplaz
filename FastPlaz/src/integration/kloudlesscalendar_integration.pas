@@ -198,9 +198,11 @@ begin
     lst := Explode(s, '#');
 
     s := lst[0];
-    startTime := ISO8601ToDateTime(s, 7);
+    //startTime := ISO8601ToDateTime(s, 7);
+    startTime := ISO8601ToDate(s, False);
     s := lst[1];
-    endTime := ISO8601ToDateTime(s, 7);
+    //endTime := ISO8601ToDateTime(s, 7);
+    endTime := ISO8601ToDate(s, False);
     s := '🗓' + '*' + FormatDateTime('d MMM YY', startTime) + '*';
     if s <> tgl then
     begin
