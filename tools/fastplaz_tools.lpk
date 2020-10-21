@@ -21,7 +21,7 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit http://www.fastplaz.com
 "/>
-    <Version Minor="1" Release="5" Build="2"/>
+    <Version Minor="1" Release="5" Build="3"/>
     <Files Count="18">
       <Item1>
         <Filename Value="src\about_fastplaz.pas"/>
@@ -99,6 +99,7 @@ for more information visit http://www.fastplaz.com
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
+      <OutDir Value="src\i18n"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
     <RequiredPkgs Count="4">
