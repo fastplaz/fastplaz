@@ -720,10 +720,11 @@ end;
 procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
   AContent: TJSONArray; AButtonTitleDefault: string);
 var
-  i: Integer;
+  i, j: Integer;
+  buttonListExists: boolean;
   s, actionType, actionData: string;
   o : TJSONUtil;
-  aElements, aButtons: TJSONArray;
+  aElements, aButtons, aContentButtons: TJSONArray;
   oItem, oButton: TJSONObject;
 begin
   if ATo.IsEmpty or FToken.IsEmpty then
@@ -748,15 +749,47 @@ begin
     end;
 
     aButtons := TJSONArray.Create;
-    oButton := TJSONObject.Create;
-    oButton.Add('type', actionType);
-    oButton.Add('title', AButtonTitleDefault);
-    if actionType = 'web_url' then
-      oButton.Add('url', actionData);
-    if actionType = 'postback' then
-      oButton.Add('payload', actionData);
-    aButtons.Add(oButton);
-    oItem.Add('buttons', aButtons);
+    buttonListExists := False;
+    try
+      aContentButtons := TJSONArray(AContent.Items[i].GetPath('button'));
+      buttonListExists := True;
+      if aContentButtons.Count > 0 then
+      begin
+        for j := 0 to aContentButtons.Count - 1 do
+        begin
+          actionType := 'web_url';
+          actionData := jsonGetData(aContentButtons.Items[j], 'url');
+          if actionData.IsEmpty then
+          begin
+            actionType := 'postback';
+            actionData := jsonGetData(aContentButtons.Items[j], 'callback_data');
+          end;
+          oButton := TJSONObject.Create;
+          oButton.Add('type', actionType);
+          oButton.Add('title', jsonGetData(aContentButtons.Items[j], 'title'));
+          if actionType = 'web_url' then
+            oButton.Add('url', actionData);
+          if actionType = 'postback' then
+            oButton.Add('payload', actionData);
+          aButtons.Add(oButton);
+        end;
+        oItem.Add('buttons', aButtons);
+      end;
+    except
+    end;
+
+    if not buttonListExists then
+    begin
+      oButton := TJSONObject.Create;
+      oButton.Add('type', actionType);
+      oButton.Add('title', AButtonTitleDefault);
+      if actionType = 'web_url' then
+        oButton.Add('url', actionData);
+      if actionType = 'postback' then
+        oButton.Add('payload', actionData);
+      aButtons.Add(oButton);
+      oItem.Add('buttons', aButtons);
+    end;
 
     aElements.Add(oItem);
   end;
