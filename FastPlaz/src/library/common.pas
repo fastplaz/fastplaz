@@ -111,6 +111,7 @@ function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
+function UCStoString(AText: string; BIsPair: boolean = false): string;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -470,6 +471,50 @@ end;
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
   Result := StringsExists( ASubstring, AFullString);
+end;
+
+function UCStoString(AText: string; BIsPair: boolean): string;
+var
+  i: integer;
+  s, itemString, pattern: string;
+  vUCS4Str: UCS4String;
+  re: TRegExpr;
+  lst: TStrings;
+begin
+  Result := AText;
+  pattern := '\\u[0-9a-fA-F]{4}';
+  if BIsPair then
+    pattern := '\\u[0-9a-fA-F]{4}\\u[0-9a-fA-F]{4}';
+  SetLength(vUCS4Str, 2);
+
+  re := TRegExpr.Create;
+  re.Expression := pattern;
+  if re.Exec(AText) then
+  begin
+    itemString := re.Match[0];
+    lst := Explode(re.Match[0], '\u');
+    vUCS4Str[0] := Hex2Dec(lst[1]);
+    if BIsPair then
+      vUCS4Str[1] := Hex2Dec(lst[2]);
+    s := UCS4StringToWideString(vUCS4Str);
+    lst.Free;
+    Result := Result.Replace(itemString, s, [rfReplaceAll]);
+
+    while re.ExecNext do
+    begin
+      itemString := re.Match[0];
+      lst := Explode(re.Match[0], '\u');
+      vUCS4Str[0] := Hex2Dec(lst[1]);
+      if BIsPair then
+        vUCS4Str[1] := Hex2Dec(lst[2]);
+      s := UCS4StringToWideString(vUCS4Str);
+      lst.Free;
+      Result := Result.Replace(itemString, s, [rfReplaceAll]);
+    end;
+
+  end;
+
+  re.Free;
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
