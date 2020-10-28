@@ -403,7 +403,7 @@ begin
     Exit;
   FRequestContent := AValue;
   try
-    jsonData := GetJSON(AValue);
+    jsonData := GetJSON(AValue, False);
   except
   end;
 end;
