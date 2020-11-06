@@ -11,7 +11,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_ProjectAPI_Name = 'Create New API Application';
+  rs_ProjectAPI_Name = 'API Application';
   rs_ProjectAPI_Description = 'create API application based on FastPlaz';
 
 type

@@ -6,21 +6,24 @@ interface
 
 uses
   Dialogs, LazarusPackageIntf, ProjectIntf, NewItemIntf, IDEMsgIntf, IDEExternToolIntf,
-  PackageIntf, Classes, SysUtils;
+  FileUtil, PackageIntf, Classes, SysUtils;
 
 const
   FastPlaz = 'FastPlaz';
-  _APP_SLOGAN = 'Fast Pascal Framework for Web Development';
+  _APP_SLOGAN = 'Fast Web Development Framework for Pascal';
   {$ifdef windows}
   _APP_EXTENSION = '.exe';
   {$else}
   _APP_EXTENSION = '.bin';
+
   {$endif}
 
 
 procedure Register;
-procedure log(const Msg: string; AFileName: string = ''; ATheUrgency: TMessageLineUrgency = mluNote);
+procedure log(const Msg: string; AFileName: string = '';
+  ATheUrgency: TMessageLineUrgency = mluNote);
 function ucwords(const str: string): string;
+function ScanDirAndCopy(SourceDirectory, TargetDirectory: string; AProjectName: string = 'fastplaz'): boolean;
 
 var
   bCreateProject: boolean = False;
@@ -48,10 +51,48 @@ begin
   Result := trim(s);
 end;
 
-procedure log(const Msg: string; AFileName: string;
-  ATheUrgency: TMessageLineUrgency);
+function ScanDirAndCopy(SourceDirectory, TargetDirectory: string;
+  AProjectName: string): boolean;
+var
+  Rec: TSearchRec;
+  R: integer;
+  lsFileSource, lsFileTarget, lsSubDir: string;
+  targetFileName: string;
 begin
-  IDEMessagesWindow.AddCustomMessage( ATheUrgency, Msg, AFileName, 0, 0, FastPlaz);
+  Result := True;
+  try
+    R := FindFirst(SourceDirectory, faAnyFile, Rec);
+    while R = 0 do
+    begin
+      if ((Rec.Attr and faDirectory) <> 0) and (Rec.Name <> '.') and
+        (Rec.Name <> '..') then
+      begin
+        lsSubDir := extractfilepath(SourceDirectory) + Rec.Name;
+        ForceDirectories(TargetDirectory + DirectorySeparator + Rec.Name);
+        ScanDirAndCopy(lsSubDir + DirectorySeparator + '*', TargetDirectory +
+          DirectorySeparator + Rec.Name);
+      end
+      else
+      begin
+        if ((Rec.Name <> '.') and (Rec.Name <> '..')) then
+        begin
+          lsFileSource := extractfilepath(SourceDirectory) + Rec.Name;
+          targetFileName := Rec.Name;
+          targetFileName := StringReplace(targetFileName, '%projectname%', AProjectName, [rfReplaceAll]);
+          lsFileTarget := TargetDirectory + DirectorySeparator + targetFileName;
+          CopyFile(lsFileSource, lsFileTarget);
+        end;
+      end;
+      R := FindNext(Rec);
+    end;
+  finally
+    FindClose(Rec);
+  end;
+end;
+
+procedure log(const Msg: string; AFileName: string; ATheUrgency: TMessageLineUrgency);
+begin
+  IDEMessagesWindow.AddCustomMessage(ATheUrgency, Msg, AFileName, 0, 0, FastPlaz);
 end;
 
 procedure Register;
@@ -62,6 +103,7 @@ begin
   RegisterNewItemCategory(TNewIDEItemCategory.Create(FastPlaz));
   RegisterProjectDescriptor(TProjectFastPlazDescriptor.Create, FastPlaz);
   RegisterProjectDescriptor(TProjectAPIFastPlazDescriptor.Create, FastPlaz);
+
   RegisterProjectFileDescriptor(TFileDescDefaultModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescModel.Create, FastPlaz);

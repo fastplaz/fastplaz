@@ -10,7 +10,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Project_Name = 'Create New FastPlaz Application';
+  rs_Project_Name = 'Simple Application';
   rs_Project_Description = 'create web application based on FastPlaz';
 
 type

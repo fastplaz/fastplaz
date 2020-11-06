@@ -6,6 +6,6 @@ msgid "create web application based on FastPlaz"
 msgstr ""
 
 #: project_lib.rs_project_name
-msgid "Create New FastPlaz Application"
+msgid "Simple Application"
 msgstr ""
 
