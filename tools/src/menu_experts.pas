@@ -6,7 +6,7 @@ interface
 
 uses
   Controls, Dialogs,
-  LazIDEIntf, MenuIntf, IDECommands, ProjectIntf,
+  LazIDEIntf, MenuIntf, IDECommands, ProjectIntf, IDEExternToolIntf,
   Classes, SysUtils;
 
 const
@@ -22,7 +22,8 @@ procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 implementation
 
 uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd,
-  modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd;
+  modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd,
+  packageapp_wzd, packageapp_lib;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
 begin
@@ -113,6 +114,40 @@ begin
   end;
 end;
 
+procedure CreatePackage_Proc(ASender: TObject);
+var
+  projectTitle, projectName, projectFileName, targetDir: string;
+begin
+  with TfPackageWizard.Create(nil) do
+  begin
+    if ShowModal <> mrOk then
+    begin
+      Free;
+      Exit;
+    end;
+
+    projectTitle := ucwords(edt_ProjectName.Text);
+    projectName := LowerCase(edt_ProjectName.Text);
+    projectName := StringReplace(projectName, ' ', '', [rfReplaceAll]);
+    projectName := StringReplace(projectName, '.', '', [rfReplaceAll]);
+    targetDir := IncludeTrailingPathDelimiter(edt_TargetDir.Text);
+    Free;
+  end;
+
+  with TPackageAppLib.Create do
+  begin
+    GenerateStructure(targetDir, 'Simple', projectName);
+    Free;
+  end;
+
+  projectName := 'fastplaz'; // force
+  projectFileName := targetDir + 'source' + DirectorySeparator +
+    'app' + DirectorySeparator + projectName + '.lpr';
+  log('Full Package App installed on: ' + targetDir, '', mluProgress);
+  log('Project File: ' + projectFileName, '', mluImportant);
+  LazarusIDE.DoOpenProjectFile(projectFileName, [ofProjectLoading]);
+end;
+
 procedure CreateWebStructure_Proc(ASender: TObject);
 begin
   with TfWebStructure.Create(nil) do
@@ -131,7 +166,7 @@ begin
   begin
     if ShowModal = mrOk then
     begin
-      CreateTheme( edt_ThemeName.Text, edt_TargetDir.Text);
+      CreateTheme(edt_ThemeName.Text, edt_TargetDir.Text);
     end;
     Free;
   end;
@@ -155,25 +190,27 @@ begin
 
   // prepare for next features
   {
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_AppCreator',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_AppCreator',
     rs_Project_Name, nil, @NewAppGenerator_Proc, nil);
   CreateIDEMenuSeparator(oMenuExpert);
   }
 
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_ModuleCreator',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModuleCreator',
     rs_Mod_Default_Name, nil, @SimpleModuleGenerator_Proc, nil);
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_ModuleJsonCreator',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModuleJsonCreator',
     rs_Mod_JSON_Name, nil, @JsonModuleGenerator_Proc, nil);
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_ModelCreator',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModelCreator',
     rs_Model_Name, nil, @ModelGenerator_Proc, nil);
 
   CreateIDEMenuSeparator(oMenuExpert);
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_CreateWebStructure',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_FullPackage',
+    'Create Full Package Application', nil, @CreatePackage_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateWebStructure',
     'Create Web Directory Structure', nil, @CreateWebStructure_Proc, nil);
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaze_CreateThemeStructure',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
   CreateIDEMenuSeparator(oMenuExpert);
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlazAbout', 'About',
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
     nil, @About_Proc, nil, 'icon_information');
 end;
 

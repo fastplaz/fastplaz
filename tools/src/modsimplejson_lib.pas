@@ -9,8 +9,8 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_JSON_Name = 'JSON module';
-  rs_Mod_JSON_Description = 'create fastplaz simple json module';
+  rs_Mod_JSON_Name = 'Create API Controller (JSON)';
+  rs_Mod_JSON_Description = 'Create API Controller (JSON)';
 
 type
 

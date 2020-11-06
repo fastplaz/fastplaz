@@ -1,0 +1,129 @@
+object fPackageWizard: TfPackageWizard
+  Left = 681
+  Height = 290
+  Top = 444
+  Width = 538
+  BorderStyle = bsDialog
+  Caption = 'Package App Wizard'
+  ClientHeight = 290
+  ClientWidth = 538
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '2.0.10.0'
+  object pnl_Top: TPanel
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 538
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 34
+    ClientWidth = 538
+    Color = 4210752
+    ParentColor = False
+    TabOrder = 0
+    object lbl_Title: TLabel
+      Left = 6
+      Height = 22
+      Top = 4
+      Width = 253
+      Caption = 'FastPlaz Package App Wizard'
+      Font.Color = clWhite
+      Font.Height = -19
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object pnl_Button: TButtonPanel
+    Left = 6
+    Height = 36
+    Top = 248
+    Width = 526
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    OKButton.OnClick = OKButtonClick
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    CancelButton.OnClick = CancelButtonClick
+    TabOrder = 2
+    ShowButtons = [pbOK, pbCancel]
+  end
+  object Label1: TLabel
+    Left = 10
+    Height = 16
+    Top = 49
+    Width = 89
+    Caption = 'Project Name :'
+    ParentColor = False
+  end
+  object edt_ProjectName: TEdit
+    Left = 152
+    Height = 22
+    Top = 44
+    Width = 364
+    CharCase = ecLowerCase
+    TabOrder = 1
+    Text = 'fastplaz'
+  end
+  object edt_TargetDir: TDirectoryEdit
+    Left = 152
+    Height = 22
+    Top = 72
+    Width = 364
+    ShowHidden = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    TabOrder = 4
+    Spacing = 2
+  end
+  object Label2: TLabel
+    Left = 10
+    Height = 16
+    Top = 76
+    Width = 102
+    Caption = 'Target Directory:'
+    ParentColor = False
+  end
+  object mem: TMemo
+    Left = 48
+    Height = 88
+    Top = 136
+    Width = 468
+    Color = clBtnFace
+    Lines.Strings = (
+      'This wizard will generate Full Package Fastplaz Project.'
+      ''
+      'Type your project name,'
+      'and (optional), you can generate fastplaz web directory/files structure too.'
+    )
+    ReadOnly = True
+    TabOrder = 5
+  end
+  object Label3: TLabel
+    Left = 10
+    Height = 16
+    Top = 104
+    Width = 92
+    Caption = 'Package Type :'
+    ParentColor = False
+  end
+  object cbb_Type: TComboBox
+    Left = 152
+    Height = 20
+    Top = 100
+    Width = 100
+    ItemHeight = 26
+    ItemIndex = 0
+    Items.Strings = (
+      'Simple'
+    )
+    Style = csDropDownList
+    TabOrder = 3
+    Text = 'Simple'
+  end
+end

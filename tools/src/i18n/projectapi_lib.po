@@ -6,6 +6,6 @@ msgid "create API application based on FastPlaz"
 msgstr ""
 
 #: projectapi_lib.rs_projectapi_name
-msgid "Create New API Application"
+msgid "API Application"
 msgstr ""
 
