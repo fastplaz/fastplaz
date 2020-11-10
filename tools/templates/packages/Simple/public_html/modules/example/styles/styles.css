@@ -1,0 +1,14 @@
+/* your custom style */
+.container code, code {
+	display: block;
+	width: 100%;
+	margin: 10px 0 0 10px;
+	padding: 10px;
+	color: gray;
+	background:#eceaea;
+	white-space: pre !important;
+}
+
+.separator {
+	border-bottom: 1px solid gray;
+}

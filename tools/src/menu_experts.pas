@@ -18,6 +18,7 @@ var
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
+procedure CreatePackage_Proc(ASender: TObject);
 
 implementation
 
@@ -205,6 +206,7 @@ begin
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_FullPackage',
     'Create Full Package Application', nil, @CreatePackage_Proc, nil);
+  CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateWebStructure',
     'Create Web Directory Structure', nil, @CreateWebStructure_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',

@@ -25,13 +25,55 @@ type
       AProjectName: string = 'fastplaz'): boolean;
   end;
 
+  { TPackageAppDescriptor }
+
+  TPackageAppDescriptor = class(TProjectDescriptor)
+  private
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    function GetLocalizedName: string; override;
+    function GetLocalizedDescription: string; override;
+    function InitProject(AProject: TLazProject): TModalResult; override;
+  end;
+
 
 implementation
 
-uses fastplaz_tools_register, packageapp_wzd;
+uses fastplaz_tools_register, packageapp_wzd, menu_experts;
 
 const
   CSS_PACKAGESTRUCTURE_FAILED = 'Failed create directory structure';
+
+{ TPackageAppDescriptor }
+
+constructor TPackageAppDescriptor.Create;
+begin
+  inherited Create;
+  Name := 'FFastPlazPackageApplication';
+end;
+
+destructor TPackageAppDescriptor.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TPackageAppDescriptor.GetLocalizedName: string;
+begin
+  Result := rs_PackageApp_Name;
+end;
+
+function TPackageAppDescriptor.GetLocalizedDescription: string;
+begin
+  Result := rs_PackageApp_Description;
+end;
+
+function TPackageAppDescriptor.InitProject(AProject: TLazProject): TModalResult;
+begin
+  //Result := inherited InitProject(AProject);
+  CreatePackage_Proc(nil);
+  Result := mrCancel;
+end;
 
 { TPackageAppLib }
 

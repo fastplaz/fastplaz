@@ -1,0 +1,22 @@
+#database table thead {
+	background: silver;
+}
+
+#database p {
+	font-weight: 300;
+}
+.container code, code {
+	display: block;
+	width: 100%;
+	margin: 10px 0 0 10px;
+	background:#eceaea;
+	white-space: pre !important;
+}
+
+.info p {
+	margin-top: 10px !important;
+}
+
+.separator {
+	border-bottom: 1px solid gray;
+}

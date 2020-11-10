@@ -4,7 +4,8 @@ program fastplaz;
 
 uses
   {$IFNDEF Windows}cthreads,{$ENDIF}
-  fpcgi, sysutils, fastplaz_handler, common, app_controller, app_routes;
+  fpcgi, sysutils, fastplaz_handler, common, app_controller, app_routes,
+  example_controller, warehouse_model, database_controller;
 
 begin
   Application.Title:='Fastplaz';

@@ -47,6 +47,8 @@ end;
 // GET Method Handler
 procedure TFastplazController.Get;
 begin
+  ThemeUtil.Assign('$Greeting', 'Welcome To Our Example Tour!');
+
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   ThemeUtil.Layout := 'home';
   Response.Content := ThemeUtil.Render();

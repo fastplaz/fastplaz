@@ -6,6 +6,8 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 }
 {
+  https://developers.facebook.com/docs/messenger-platform/discovery/facebook-chat-plugin
+
   [x] USAGE
 
   Facebook := TFacebookMessengerIntegration.Create;
@@ -38,6 +40,7 @@ file that was distributed with this source code.
 
 
 }
+
 unit facebookmessenger_integration;
 
 {$mode objfpc}{$H+}

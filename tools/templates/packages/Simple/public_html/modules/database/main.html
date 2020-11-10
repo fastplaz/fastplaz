@@ -1,0 +1,58 @@
+<link rel="stylesheet" href="[baseurl]modules/database/style/style.css">
+
+<section id="database">
+    [if $databaseActive eq 0]
+    <div class="warning container bg-danger text-white xd-flex xjustify-content-center">
+        <h3>Database Error</h3>
+        <p>Konfigurasi database terletak di file <span class="code text-warning">public_html/config/config.json</span>, dan kode sumber sql-nya ada di file <span class="code text-warning">source/sql/db.sql</span></p>
+    </div>
+    [/if]
+<div class="container">
+	<div class="row"><div class="col-lg-12">
+        <h3>Warehouse (ORM Model)</h3>
+        <table>
+            <thead>
+                <tr><th>Code</th><th>Name</th><th>Country</th></tr>
+            </thead>
+            <tbody>
+                [foreach from=$Warehouses item=aItem type=table]
+                <tr><td>[aItem.code]</td><td>[aItem.name]</td><td>[aItem.country]</td></tr>
+                [/foreach from=$Warehouses]
+            </tbody>
+        </table>
+	</div></div>
+
+</div>
+
+<div class="container separator">
+    <div class="row">
+        &nbsp;
+    </div>
+</div>
+    
+    <div class="container info">
+        <div class="row"><div class="col-lg-12">
+            <p>Halaman ini merupakan contoh cara akses database menggunakan cara <i>ORM (Object Relation Mapping)</i>. Langkah-langkahnya akan semakin lebih mudah karena hanya perlu mendefinisikan field apa yang akan ditampilkan serta tabel relasinya. <br>Contoh kode sumbernya sebagai berikut:</p>
+<code>  
+    warehouses.AddJoin('locations', 'id', 'warehouses.location_id', ['code','name country']);
+    if not warehouses.Find(whereAsArray) then
+    begin
+      //
+    end;
+      
+</code>
+<div class="container">
+    <hr />
+  </div>
+<p>File-file kode yang berkaitan dengan halaman ini adalah:</p>
+<code> pascal: source/app/controllers/model_controller.pas
+ model : source/common/database/warehouse_model.pas
+ html  : public_html/database/model/main.html
+
+</code>
+        </div></div>
+    </div>
+
+    
+</section>
+
