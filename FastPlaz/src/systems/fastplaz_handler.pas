@@ -1294,6 +1294,9 @@ begin
   begin
     pathInfo := ARequest.PathInfo;
     pathInfo := IncludeLeadingPathDelimiter(pathInfo);
+    {$IFDEF Windows}
+    if pathInfo = '\' then pathInfo:= '/';
+    {$ENDIF}
 
     // check with Regex - redefine variable
     try
