@@ -15,6 +15,20 @@ Desain struktur direktori dan theme/template dibuat sedemikian rupa agar memudah
 
 ## Instalasi
 
+Jika Anda adalah pengguna Lazarus, instalasi untuk penggunaan dasar FastPlaz amat sangat mudah, cukup lakukan langkah ini:
 
+1. Buka file `tools/fastplaz_runtime.lpk`, lalu *compile*.
+2. Buka file `tools/fastplaz_tools.lpk`, lalu *compile* dan *install*.
+
+Hasilnya akan keluar menu seperti ini di toolbar menu FastPlaz.
+
+![menu](docs/images/menu.png)
+
+Dan akan terlihat tambahan pilihan baru di menu `File|New Project ...` seperti ini
+
+![menu](docs/images/menu-new-project.png)
+
+
+Selamat Mencoba
 
 
