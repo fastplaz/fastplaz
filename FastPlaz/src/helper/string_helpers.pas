@@ -27,6 +27,7 @@ type
     function UrlEncode: AnsiString; overload; inline;
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
+    function Explode( ADelimiter:string = ','): TStrings; overload; inline;
     function IsEmpty: boolean; overload; inline;
     function IsNotEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
@@ -43,6 +44,7 @@ type
     function Has( AText: string): boolean; overload; inline;
     function UcWords: AnsiString; overload; inline;
     function IsPregMatch( ARegex: string): boolean; overload; inline;
+    function Split( ADelimiter:string = ','): TStrings; overload; inline;
     function StrPos( AText: string): integer; overload; inline;
 
   end;
@@ -78,6 +80,11 @@ end;
 function TStringSmartHelper.EscapeString: AnsiString;
 begin
   Result := mysql_real_escape_string(Self);
+end;
+
+function TStringSmartHelper.Explode(ADelimiter: string): TStrings;
+begin
+  Result := common.Explode(Self, ADelimiter);
 end;
 
 function TStringSmartHelper.IsEmpty: boolean;
@@ -181,6 +188,11 @@ end;
 function TStringSmartHelper.IsPregMatch(ARegex: string): boolean;
 begin
   Result := common.preg_match(ARegex, Self);
+end;
+
+function TStringSmartHelper.Split(ADelimiter: string): TStrings;
+begin
+  Result := Self.Explode(ADelimiter);
 end;
 
 function TStringSmartHelper.StrPos(AText: string): integer;
