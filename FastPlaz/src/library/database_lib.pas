@@ -11,7 +11,7 @@ uses
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
-  sqlite3conn, pqconnection,
+  sqlite3conn, pqconnection, IBConnection,
   variants, Classes, SysUtils;
 
 type
@@ -94,10 +94,10 @@ type
     function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
-    procedure AddJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
-    procedure AddLeftJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
-    procedure AddInnerJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
-    procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string);
+    procedure AddJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
+    procedure AddLeftJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
+    procedure AddInnerJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
+    procedure AddCustomJoin( const JointType:string; const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
 
     procedure GroupBy( const GroupField:string);
     function RecordsTotalFiltered( const ASQL:string = ''; ForceClose: boolean = True):integer;
@@ -109,6 +109,7 @@ type
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( ID: LongInt): boolean;
+    function  Update( AutoCommit:boolean=True):boolean;
 
     procedure First;
     procedure Prior;
@@ -192,8 +193,9 @@ begin
   s := GetCurrentDir + DirectorySeparator + ExtractFileName( string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '')));
   if not FileExists( s) then
   begin
-    SetCurrentDir(ExtractFilePath(Application.ExeName));
-    DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
+    //ulil
+    //SetCurrentDir(ExtractFilePath(Application.ExeName));
+    //DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ AppData.databaseRead, s]));
   end;
 
   if Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), '') <> '' then begin
@@ -946,6 +948,7 @@ begin
   Result := false;
   sWhere := '';
   if high(Where)>=0 then
+  begin
     for i:=low(Where) to high(Where) do
     begin
       if sWhere = '' then
@@ -956,6 +959,8 @@ begin
       end;
 
     end;
+    sWhere := sWhere.Replace(' AND OR ', ' OR ');
+  end;
   if CustomField = '' then begin
     _queryPrepare;
     _selectField := FSelectField;
@@ -967,9 +972,12 @@ begin
   if FJoinList.Count > 0 then begin
     for i:=0 to FJoinList.Count-1 do begin
       _join := Explode( FJoinList[i], '|');
-      _joinSQL:= _joinSQL + #13#10 + _join[0] + ' ' + _join[1]
+      _joinSQL := _joinSQL + #13#10 + _join[0] + ' ' + _join[1]
         + ' ON ' + _join[1] + '.' + _join[2] + '=' + _join[3]
         ;
+      if _join.count > 5 then
+        if _join[5] <> '' then
+          _joinSQL += ' AND ' + _join[5];
       _selectField := _selectField + #13;
       if _join.count > 4 then begin  // if view joined field
         _joinfield := Explode( _join[4], ',');
@@ -1013,28 +1021,28 @@ end;
 
 procedure TSimpleModel.AddJoin(const JoinTable: string;
   const JoinField: string; const RefField: string;
-  const FieldNameList: array of string);
+  const FieldNameList: array of string; const AJoinWhere: string);
 begin
-  AddCustomJoin( 'LEFT', JoinTable, JoinField, RefField, FieldNameList);
+  AddCustomJoin( '', JoinTable, JoinField, RefField, FieldNameList, AJoinWhere);
 end;
 
 procedure TSimpleModel.AddLeftJoin(const JoinTable: string;
   const JoinField: string; const RefField: string;
-  const FieldNameList: array of string);
+  const FieldNameList: array of string; const AJoinWhere: string);
 begin
-  AddCustomJoin( 'LEFT', JoinTable, JoinField, RefField, FieldNameList);
+  AddCustomJoin( 'LEFT', JoinTable, JoinField, RefField, FieldNameList, AJoinWhere);
 end;
 
 procedure TSimpleModel.AddInnerJoin(const JoinTable: string;
   const JoinField: string; const RefField: string;
-  const FieldNameList: array of string);
+  const FieldNameList: array of string; const AJoinWhere: string);
 begin
-  AddCustomJoin( 'INNER', JoinTable, JoinField, RefField, FieldNameList);
+  AddCustomJoin( 'INNER', JoinTable, JoinField, RefField, FieldNameList, AJoinWhere);
 end;
 
 procedure TSimpleModel.AddCustomJoin(const JointType: string;
   const JoinTable: string; const JoinField: string; const RefField: string;
-  const FieldNameList: array of string);
+  const FieldNameList: array of string; const AJoinWhere: string);
 var
   i : integer;
   s : string;
@@ -1046,7 +1054,7 @@ begin
     else
       s := s + ','+FieldNameList[i];
   end;
-  FJoinList.Add( JointType + ' JOIN|'+AppData.tablePrefix+JoinTable+'|'+JoinField+'|'+AppData.tablePrefix+RefField+'|'+s);
+  FJoinList.Add( JointType + ' JOIN|'+AppData.tablePrefix+JoinTable+'|'+JoinField+'|'+AppData.tablePrefix+RefField+'|'+s+'|'+AJoinWhere);
 end;
 
 procedure TSimpleModel.GroupBy(const GroupField: string);
@@ -1233,6 +1241,13 @@ begin
   if primaryKey = '' then
     Exit;
   Result := Delete( primaryKey+'='+i2s(ID));
+end;
+
+function TSimpleModel.Update(AutoCommit: boolean): boolean;
+begin
+  Result := False;
+  if primaryKey.IsEmpty then Exit;
+  Result :=  Save(primaryKey+'='+primaryKeyValue, AutoCommit);
 end;
 
 procedure TSimpleModel.First;

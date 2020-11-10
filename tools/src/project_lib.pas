@@ -10,7 +10,7 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Project_Name = 'Create New FastPlaz Application';
+  rs_Project_Name = 'Simple Application';
   rs_Project_Description = 'create web application based on FastPlaz';
 
 type
@@ -116,7 +116,8 @@ begin
     Add('');
     Add('  Application.OnGetModule := @FastPlasAppandler.OnGetModule;');
     Add('  Application.PreferModuleName := True;');
-    Add('  {$if (fpc_version=3) and (fpc_release>=0) and (fpc_patch>=4)}');
+    Add('  //{$if (fpc_version=3) and (fpc_release>=0) and (fpc_patch>=4)}');
+    Add('  {$if FPC_FULlVERSION >= 30004}');
     Add('  Application.LegacyRouting := True;');
     Add('  {$endif}');
     Add('');

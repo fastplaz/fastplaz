@@ -1,0 +1,9 @@
+{"version":1,"strings":[
+{"hash":232009428,"name":"tfpackagewizard.caption","sourcebytes":[80,97,99,107,97,103,101,32,65,112,112,32,87,105,122,97,114,100],"value":"Package App Wizard"},
+{"hash":124160660,"name":"tfpackagewizard.lbl_title.caption","sourcebytes":[70,97,115,116,80,108,97,122,32,80,97,99,107,97,103,101,32,65,112,112,32,87,105,122,97,114,100],"value":"FastPlaz Package App Wizard"},
+{"hash":237537322,"name":"tfpackagewizard.label1.caption","sourcebytes":[80,114,111,106,101,99,116,32,78,97,109,101,32,58],"value":"Project Name :"},
+{"hash":145454154,"name":"tfpackagewizard.edt_projectname.text","sourcebytes":[102,97,115,116,112,108,97,122],"value":"fastplaz"},
+{"hash":127226266,"name":"tfpackagewizard.label2.caption","sourcebytes":[84,97,114,103,101,116,32,68,105,114,101,99,116,111,114,121,58],"value":"Target Directory:"},
+{"hash":35725098,"name":"tfpackagewizard.label3.caption","sourcebytes":[80,97,99,107,97,103,101,32,84,121,112,101,32,58],"value":"Package Type :"},
+{"hash":94390053,"name":"tfpackagewizard.cbb_type.text","sourcebytes":[83,105,109,112,108,101],"value":"Simple"}
+]}

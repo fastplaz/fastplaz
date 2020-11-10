@@ -8,22 +8,20 @@ file that was distributed with this source code.
 unit datetime_helpers;
 
 {
-[x] USAGE
-  var
+  [x] USAGE
+  variable
     d : TDateTime;
     s : String;
 
-
   d.FromString( '17-08-1945 09:59:00');
   s := d.Format( 'yyyy-mm-dd HH:nn:ss');
-  s := d.AsString;
+  d.AsString;
 
   if d.IsAM then begin end;
   if d.IsPM then begin end;
   if d.IsToday then begin end;
 
   if Tomorrow.IsSaturday then begin ... end;
-
   if d.HourOf = 9 then ....
 
   d := d.IncMinute(1);
@@ -35,7 +33,7 @@ unit datetime_helpers;
 
 }
 
-{$mode objfpc}
+{$mode objfpc}{$H+}
 {$modeswitch typehelpers}
 
 interface
@@ -54,7 +52,7 @@ type
     function AsString: String; overload; inline;
     function Format( AFormat: String = 'yyyy-mm-dd HH:nn:ss'): String; overload; inline;
     function HumanReadable: String; overload; inline;
-    function FromString( ADateTimeString: String): TDateTime; overload; inline;
+    function FromString( ADateTimeString: String; AFormat: String = 'yyyy-mm-dd HH:nn:ss'): TDateTime; overload; inline;
 
     function DayOfWeek: Word; overload; inline;
     function YearOf: Word; overload; inline;
@@ -111,9 +109,14 @@ begin
   Result := DateTimeHuman( Self);
 end;
 
-function TDateTimeSmartHelper.FromString(ADateTimeString: String): TDateTime;
+function TDateTimeSmartHelper.FromString(ADateTimeString: String;
+  AFormat: String): TDateTime;
+var
+  FS: TFormatSettings;
 begin
-  Self := StrToDateTime( ADateTimeString);
+  FS := DefaultFormatSettings;
+  FS.ShortDateFormat := AFormat;
+  Self := StrToDateTime( ADateTimeString, FS);
   Result := Self;
 end;
 

@@ -54,7 +54,8 @@ end;
 function TFileDescModel.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpjson, database_lib, string_helpers, dateutils,'
+    + #10'  datetime_helpers, array_helpers';
 end;
 
 function TFileDescModel.GetLocalizedName: string;
@@ -86,6 +87,9 @@ begin
   with str do
   begin
     Add('type');
+    Add('');
+    Add('{ '+ModelName+' }');
+    Add('');
     Add('  ' + ModelName + ' = class(TSimpleModel)');
     Add('  private');
     Add('  public');
@@ -106,6 +110,9 @@ begin
   str := TStringList.Create;
   with str do
   begin
+    Add('');
+    Add('uses common;');
+    Add('');
     Add('constructor ' + ModelName + '.Create(const DefaultTableName: string = '''');');
     Add('Begin');
     Add('  inherited Create( DefaultTableName); // table name = ' +

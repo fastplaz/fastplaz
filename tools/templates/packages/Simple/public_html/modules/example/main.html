@@ -1,0 +1,70 @@
+<link rel="stylesheet" href="[baseurl]modules/example/styles/styles.css">
+<section id="direct">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3>[$Title filter=ucwords]</h3>
+        <p>Halaman ini merupakan isi dari modul "example".</p>
+        <p>[$variableName]</p>
+        <span class="small">[date] [time]<br />random date: [$currentDate filter=dateformathuman] ([$currentDate])</span>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <hr />
+  </div>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <p>File-file kode yang berkaitan dengan halaman ini adalah:</p>
+<code class="bash">controller file: source/app/controllers/example_controller.pas
+html template  : public_html/modules/example/main.html
+layout theme   : public_html/themes/[$theme]/templates/master.html
+</code>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <hr />
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <a href="https://www.fastplaz.com"><b>FastPlaz</b></a> mengelompokkan kode sumber dengan format struktur direktori seperti ini, yang diharapkan akan lebih memudahkan dalam proses development, baik dalam <i>proses bisnis-nya</i> maupun dari sisi tampilannya <i>(ui/frontend)</i>.
+<code>  .
+  ├── docs
+  ├── public_html
+  │   ├── config
+  │   ├── files
+  │   │   └── *
+  │   ├── modules
+  │   │   └── example
+  │   │       ├── js
+  │   │       └── styles
+  │   ├── themes
+  │   │   └── [themeName]
+  │   │       ├── assets
+  │   │       │   ├── css
+  │   │       │   └── js
+  │   │       ├── plugins
+  │   │       └── templates
+  │   └── ztemp  
+  └── source
+      ├── api
+      ├── app
+      │   ├── controllers
+      │   └── routes
+      ├── common
+      │   ├── controllers
+      │   └── models
+      └── sql
+  
+</code>        
+
+      </div>
+    </div>
+  </div>
+
+</section>

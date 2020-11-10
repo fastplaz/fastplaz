@@ -69,6 +69,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Clear;
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
     property Data: TJSONObject read FJsonObject;
@@ -80,7 +81,8 @@ type
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
-    function LoadFromJsonString(const JsonString: string): boolean;
+    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = True): boolean;
+    function SaveToFile(AFileName: string): boolean;
   end;
 
 
@@ -243,22 +245,40 @@ begin
   ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
-  El := FindElement(StripSlash(PathString), False, o, ElName);
+  try
+    El := FindElement(StripSlash(PathString), False, o, ElName);
+  except
+  end;
   if not Assigned(El) then
     Exit;
-  if El.JSONType = jtString then
-    Result := El.AsString;
-  if El.JSONType = jtBoolean then
-    Result := El.AsBoolean;
-  if (El is TJSONIntegerNumber) then
-    Result := El.AsInteger;
-  if (El is TJSONFloatNumber) then
-    Result := El.AsFloat;
+  try
+    if El.JSONType = jtString then
+      Result := El.AsString;
+    if El.JSONType = jtBoolean then
+      Result := El.AsBoolean;
+    if (El is TJSONIntegerNumber) then
+      Result := El.AsInteger;
+    if (El is TJSONFloatNumber) then
+      Result := El.AsFloat;
+  except
+  end;
 end;
 
 function TJSONUtil.GetValueArray(PathString: UnicodeString): TJSONArray;
+var
+  o: TJSONObject;
+  El: TJSONData;
+  ElName: UnicodeString;
 begin
-  Result := Nil;
+  ElName := '';
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
+  El := FindElement(StripSlash(PathString), False, o, ElName);
+  if not Assigned(El) then
+    Exit;
+
+  if El.JSONType = jtArray then
+    Result := (El as TJSONArray);
 end;
 
 procedure TJSONUtil.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
@@ -273,7 +293,7 @@ end;
 
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
 begin
-  Result := JsonFormatter(AsJSON);
+  Result := JsonFormatter(AsJSON, False);
 end;
 
 function TJSONUtil.GetItem(PathString: UnicodeString): TJSONUtilItem;
@@ -321,7 +341,7 @@ procedure TJSONUtil.SetValue(PathString: UnicodeString; AValue: variant);
 var
   o: TJSONObject;
   El: TJSONData;
-  ElName: UnicodeString;
+  valueAsString, ElName: UnicodeString;
   i: integer;
 begin
   ElName := '';
@@ -370,7 +390,9 @@ begin
       end;
       if not Assigned(El) then
       begin
-        El := TJSONString.Create(AValue);
+        valueAsString := AValue;
+        El := TJSONString.Create(valueAsString);
+        El.AsString := valueAsString;
         o.Add(string(ElName), El);
       end
       else
@@ -555,6 +577,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TJSONUtil.Clear;
+begin
+  Data.Clear;
+end;
+
 procedure TJSONUtil.DeletePath(const PathString: UnicodeString);
 var
   P: UnicodeString;
@@ -577,15 +604,38 @@ begin
   end;
 end;
 
-function TJSONUtil.LoadFromJsonString(const JsonString: string):boolean;
+function TJSONUtil.LoadFromJsonString(const JsonString: string;
+  const UseUTF8: Boolean): boolean;
 begin
-  FJsonObject.Clear;
+  if Assigned(FJsonObject) then
+    FJsonObject.Free;
   try
-    FJsonObject := TJSONObject(GetJSON(JsonString));
+    FJsonObject := TJSONObject(GetJSON(JsonString, UseUTF8));
     Result := true;
   except
     Result := false;
   end;
+end;
+
+function TJSONUtil.SaveToFile(AFileName: string): boolean;
+var
+  lst: TStringList;
+begin
+  Result := False;
+  if AFileName.IsEmpty then
+    Exit;
+
+  lst := TStringList.Create;
+  try
+    lst.Text := String( FJsonObject.AsJSON).Trim;
+    lst.SaveToFile(AFileName);
+    Result := True;
+  except
+    on e:Exception do
+    begin
+    end;
+  end;
+  lst.Free;
 end;
 
 end.

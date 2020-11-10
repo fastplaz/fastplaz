@@ -40,6 +40,7 @@ type
     FCookieID, FSessionID: string;
     FSessionDir: string;
     FSessionVars: TStringList;
+    FToken: string;
     function GenerateSesionID: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
@@ -66,8 +67,10 @@ type
     constructor Create();
     destructor Destroy; override;
     property Values[variable: string]: string read GetValue write SetValue; default;
+    property HttpCookie: string read FHttpCookie;
     property CookieID: string read FCookieID;
-    property SessionID: string read FSessionID;
+    property Token: string read FToken;
+    property SessionID: string read FSessionID write FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
     property TimeOut: integer read GetTimeOut write SetTimeOut;
     property LastAccess: TDateTime read FLastAccess;
@@ -77,7 +80,11 @@ type
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
 
+    property SessionPrefix: string read FSessionPrefix write FSessionPrefix;
+    property SessionSuffix: string read FSessionSuffix write FSessionSuffix;
+
     function StartSession: boolean;
+    function RestartSession: boolean;
     procedure Clear;
     procedure DeleteKey(const Key: string);
     procedure EndSession(const Force: boolean = True);
@@ -133,10 +140,18 @@ end;
 { TSessionController }
 
 function TSessionController.GenerateSesionID: string;
+var
+  remoteAddr: String;
 begin
-  Result := FCookieID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT'];
-  Result := FSessionPrefix + MD5Print(MD5String(Result)) + '-' +
-    FCookieID + FSessionSuffix;
+  //remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  //if remoteAddr.IsEmpty then
+  //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
+  remoteAddr := GetUserIpAddress;
+  Result := MD5Print(MD5String(Result));
+  if not FSessionPrefix.IsEmpty then
+    Result := FSessionPrefix + '-' + Result;
+  if not FSessionSuffix.IsEmpty then
+    Result := Result + '-' + FSessionSuffix;
 end;
 
 function TSessionController.CreateIniFile(const FileName: string): TMemIniFile;
@@ -301,11 +316,14 @@ end;
 
 function TSessionController.UpdateDatabase: boolean;
 var
-  sql: string;
+  sql, remoteAddr: string;
   uid: integer;
 begin
+  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
+  if remoteAddr.IsEmpty then
+    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
   uid := s2i(FSessionVars.Values[SESSION_FIELD_UID]);
-  sql := Format(_SESSION_SQL_UPDATE, [FSessionID, Application.Request.RemoteAddress,
+  sql := Format(_SESSION_SQL_UPDATE, [FSessionID, remoteAddr,
     uid, 0, c(FSessionVars.Text)]);
   Result := SessionTable.Exec(sql);
 end;
@@ -359,7 +377,7 @@ begin
     Result := Result + 0.5;
 end;
 
-function TSessionController.GetData: string;
+function TSessionController.GetData(): string;
 var
   lst: TStringList;
 begin
@@ -377,7 +395,7 @@ begin
   end;
 end;
 
-constructor TSessionController.Create;
+constructor TSessionController.Create();
 var
   lstr: TStrings;
 begin
@@ -385,14 +403,15 @@ begin
   FSessionVars := TStringList.Create;
   FLastAccess := 0;
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
-  FHttpCookie := StringReplace(FHttpCookie, ' ', '', [rfReplaceAll]);
-  //FCookieID := Copy(FHttpCookie, Pos('__cfduid=', FHttpCookie) + 9,
-  //  Length(FHttpCookie) - Pos('__cfduid=', FSessionID) - 9);
+  //FHttpCookie := GetEnvironmentVariable( 'Cookie');
+  FHttpCookie := FHttpCookie.Replace(' ', '');
   lstr := Explode(FHttpCookie, ';');
-  FCookieID := lstr.Values['__cfduid'];
-  if FCookieID = '' then
-    FCookieID := MD5Print(MD5String(FHttpCookie));
+  //FCookieID := lstr.Values['__cfduid']; // from CF
+  FCookieID := lstr.Values['_'];
+  FToken := lstr.Values['token'];
   FreeAndNil(lstr);
+  FSessionPrefix := '';
+  FSessionSuffix := '';
   FSessionID := GenerateSesionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   FSessionExtension := '.ses';
@@ -416,12 +435,23 @@ begin
   Result := False;
   if FSessionStarted then
     Exit;
+  FSessionID := GenerateSesionID();
 
   if Storage = _SESSION_STORAGE_FILE then
     StartSessionWithFile;
 
   if Storage = _SESSION_STORAGE_DATABASE then
     StartSessionWithDatabase;
+end;
+
+function TSessionController.RestartSession: boolean;
+begin
+  Clear;
+  ForceUpdate;
+  if Assigned(FIniFile) then
+    FreeAndNil(FIniFile);
+  FSessionStarted := False;
+  Result := StartSession;
 end;
 
 function TSessionController.StartSessionWithFile: boolean;

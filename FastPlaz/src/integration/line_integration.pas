@@ -55,6 +55,9 @@ interface
 uses
   common, http_lib, logutil_lib,
   fpjson, strutils,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 type
@@ -112,6 +115,7 @@ type
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FPostbackData: TStrings;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -158,6 +162,7 @@ type
     function isLocation: boolean;
     function isAudio: boolean;
     function isImage: boolean;
+    function isPostback: boolean;
     function isVoice: boolean;
     function isSticker: boolean;
     function isGroup: boolean;
@@ -170,6 +175,7 @@ type
     property LocationLatitude: double read FLocationLatitude;
     property LocationLongitude: double read FLocationLongitude;
     property LocationName: string read FLocationName;
+    property PostbackData: TStrings read FPostbackData;
   end;
 
 
@@ -219,6 +225,7 @@ end;
 
 procedure TLineTemplateMessage.setThumbnailImageURL(AValue: string);
 begin
+  if AValue.Trim.IsEmpty then Exit;
   jsonTemplate.Strings['thumbnailImageUrl'] := AValue;
 end;
 
@@ -239,8 +246,8 @@ begin
 
   jsonTemplate := TJSONObject.Create;
   jsonTemplate.Strings['type'] := ATemplateType;
-  if ATemplateType = 'buttons' then
-    jsonTemplate.Strings['thumbnailImageUrl'] := '';
+  //if ATemplateType = 'buttons' then
+  //  jsonTemplate.Strings['thumbnailImageUrl'] := '';
   jsonTemplate.Strings['title'] := 'this is title';
   jsonTemplate.Strings['text'] := 'this is text';
 
@@ -317,7 +324,7 @@ procedure TLineTemplateMessage.AddColumnAsJson(AJsonString: string);
 var
   json: TJSONObject;
 begin
-  json := TJSONObject(GetJSON(AJsonString));
+  json := TJSONObject(GetJSON(AJsonString, False));
   jsonColumns.Add(json);
 end;
 
@@ -329,7 +336,7 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue);
+  jsonData := GetJSON(AValue, False);
 end;
 
 function TLineIntegration.getReplyToken: string;
@@ -391,6 +398,8 @@ end;
 
 destructor TLineIntegration.Destroy;
 begin
+  if Assigned(FPostbackData) then
+    FPostbackData.Free;
   if Assigned(jsonData) then
     jsonData.Free;
 end;
@@ -426,7 +435,7 @@ begin
       begin
         _jsonString.add('{');
         _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst[i]) + '"');
+        _jsonString.add('"text":"' + StringToJSONString(lst[i], False) + '"');
         _jsonString.add('}');
         if i <> lst.Count - 1 then
           _jsonString.Add(',');
@@ -434,7 +443,7 @@ begin
       }
       _jsonString.add('{');
       _jsonString.add('"type":"text",');
-      _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+      _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
       _jsonString.add('}');
 
       //--
@@ -494,7 +503,7 @@ begin
         _jsonString.Add('"messages":[');
         _jsonString.add('{');
         _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst.Text) + '"');
+        _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
         _jsonString.add('}');
       end;
 
@@ -549,7 +558,7 @@ begin
       urlAudio := StringReplace(urlAudio, '\n', '._', [rfReplaceAll]);
       urlAudio := StringReplace(urlAudio, #10, '._', [rfReplaceAll]);
 
-      urlAudio := StringToJSONString(Trim(urlAudio));
+      urlAudio := StringToJSONString(Trim(urlAudio), False);
       if Length(urlAudio) > 999 then
       begin
         urlAudio := copy(urlAudio, 0, 999);
@@ -777,6 +786,20 @@ begin
   try
     if jsonData.GetPath('events[0].message.type').AsString = 'image' then
       Result := True;
+  except
+  end;
+end;
+
+function TLineIntegration.isPostback: boolean;
+var
+  s: string;
+begin
+  Result := False;
+  try
+    if jsonData.GetPath('events[0].type').AsString = 'postback' then
+      Result := True;
+    s := jsonData.GetPath('events[0].postback.data').AsString;
+    FPostbackData := Explode(s, '&');
   except
   end;
 end;

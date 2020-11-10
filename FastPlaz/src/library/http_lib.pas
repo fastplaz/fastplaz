@@ -50,6 +50,17 @@ unit http_lib;
     Free;
   end;
 
+  [x] POST RAW BODY
+  with THTTPLib.Create do
+  begin
+    URL:= 'http://address';
+    RequestBody := TStringStream.Create(s);
+    Response := Post();
+    ...
+
+    Free;
+  end;
+
   [x] SIMPLE UPLOAD FILE
   Response := UploadFile( [ 'fullpath/filename', 'otherfile', 'otherfiletoo' ] );
 
@@ -73,6 +84,9 @@ uses
   {$else fpc_fullversion >= 20701}
   fgl,
   {$endif fpc_fullversion >= 20701}
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets, fpopenssl,
+  {$endif}
   strutils, Classes, SysUtils;
 
 const
@@ -155,12 +169,14 @@ type
     FWorker: TWorkerHTTP;
     FResponseTime: Dword;
     FStopProcessing: boolean;
+    function GetAllowRedirect: boolean;
     function GetCookies: TStrings;
     function GetPostFormData(variable: string): string;
     function getIsSuccessfull: boolean;
     function GetRequestHeaders: string;
     function getStreamSize: int64;
     function getURL: string;
+    procedure SetAllowRedirect(AValue: boolean);
     procedure SetCookies(AValue: TStrings);
     procedure SetPostFormData(variable: string; AValue: string);
     procedure setURL(AValue: string);
@@ -188,6 +204,7 @@ type
       read GetPostFormData write SetPostFormData; default;
   published
     property URL: string read getURL write setURL;
+    property AllowRedirect: boolean read GetAllowRedirect write SetAllowRedirect;
     property ContentType: string read FContentType write FContentType;
     property RequestBody: TStream read FRequestBody write FRequestBody;
     property Cookies: TStrings read GetCookies write SetCookies;
@@ -361,6 +378,7 @@ begin
       end;
     end;
     FIsSuccesfull := True;
+    HTTPClient.RequestHeaders.Clear;
   except
     on e: Exception do
     begin
@@ -436,6 +454,11 @@ begin
   Result := FWorker.URL;
 end;
 
+procedure THTTPLib.SetAllowRedirect(AValue: boolean);
+begin
+  FWorker.HTTPClient.AllowRedirect := AValue;
+end;
+
 procedure THTTPLib.SetCookies(AValue: TStrings);
 begin
   if getCookies = AValue then
@@ -460,6 +483,11 @@ end;
 function THTTPLib.GetCookies: TStrings;
 begin
   Result := FWorker.HTTPClient.Cookies;
+end;
+
+function THTTPLib.GetAllowRedirect: boolean;
+begin
+  Result := FWorker.HTTPClient.AllowRedirect;
 end;
 
 function THTTPLib.GetPostFormData(variable: string): string;

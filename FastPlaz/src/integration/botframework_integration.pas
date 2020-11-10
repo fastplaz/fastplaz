@@ -22,6 +22,9 @@ interface
 uses
   fpjson,
   common, http_lib, logutil_lib, json_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 type
@@ -162,7 +165,7 @@ begin
     Exit;
   FRequestContent := trim(AValue);
   try
-    jsonData := GetJSON(FRequestContent);
+    jsonData := GetJSON(FRequestContent, False);
   except
   end;
 end;
@@ -191,7 +194,7 @@ begin
   if Result = '' then
     Exit;
   try
-    _jsonData := GetJSON(Result);
+    _jsonData := GetJSON(Result, False);
     FToken := jsonGetData(_jsonData, 'access_token');
     Result := FToken;
     FTokenType := jsonGetData(_jsonData, 'token_type');

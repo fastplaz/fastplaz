@@ -6,6 +6,8 @@ For the full copyright and license information, please view the LICENSE
 file that was distributed with this source code.
 }
 {
+  https://developers.facebook.com/docs/messenger-platform/discovery/facebook-chat-plugin
+
   [x] USAGE
 
   Facebook := TFacebookMessengerIntegration.Create;
@@ -38,6 +40,7 @@ file that was distributed with this source code.
 
 
 }
+
 unit facebookmessenger_integration;
 
 {$mode objfpc}{$H+}
@@ -47,6 +50,9 @@ interface
 
 uses
   common, http_lib, logutil_lib, json_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   fpjson, strutils, fgl, Classes, SysUtils;
 
 type
@@ -66,7 +72,7 @@ type
     destructor Destroy;
 
     procedure AddText( ATitle, APayload, AImageURL: string);
-    procedure AddLocation;
+    procedure AddLocation;//deprecated
     procedure AddEmail;
     procedure AddPhone;
 
@@ -106,14 +112,21 @@ type
   TFacebookMessengerIntegration = class(TInterfacedObject)
   private
     FBotName: string;
+    FFirtName: String;
     FImageCaption: string;
     FImageID: string;
     FImageURL: string;
     FIsSuccessfull: boolean;
+    FLastName: String;
     FLocationLatitude: double;
     FLocationLongitude: double;
     FLocationName: string;
+    FProfilePicture: String;
     FQuickReply: TFacebookQuickReply;
+    FQuickReplyPayload: string;
+    FReferralRef: string;
+    FReferralSource: string;
+    FReferralType: string;
     FRequestContent: string;
     FResultCode: integer;
     FResultText: string;
@@ -121,6 +134,7 @@ type
     FToken: string;
 
     jsonData: TJSONData;
+    function getFullName: String;
     function getIsLocation: boolean;
     function getIsVoice: boolean;
     function getMessageID: string;
@@ -153,16 +167,24 @@ type
     procedure SendAudio(ATo: string; AAudioURL: string);
     procedure SendImage(ATo: string; AImageURL: string);
     procedure SendCall(ATo: string; APhoneNumber:string; ATitle: string = 'Call'; ADescription: string = '');
+    procedure SendButton(const ATo: string; const AText: string;
+      const AData: TJSONArray);
     procedure SendButtonURL(ATo: string; ATitle, AURL: string; ADescription: string);
     procedure SendQuickReply(ATo: string; ACaption: string = 'Quick Reply');
-    procedure SendTemplateCard(ATo: string; AContent: TJSONArray);
+    procedure SendTemplateCard(ATo: string; AContent: TJSONArray; AButtonTitleDefault: string = 'Detail');
     procedure AskLocation(ATo: string);
+    function GetProfile(AUserId:String): boolean;
 
     function isCanSend: boolean;
     function isMessage: boolean;
     function isImage(ADetail: boolean = False): boolean;
     function isPostback: boolean;
+    function isReferral: boolean;
+    function isQuickReply: boolean;
 
+    property ReferralSource: string read FReferralSource;
+    property ReferralType: string read FReferralType;
+    property ReferralRef: string read FReferralRef;
     property IsVoice: boolean read getIsVoice;
     property IsLocation: boolean read getIsLocation;
     property VoiceURL: string read getVoiceURL;
@@ -178,9 +200,14 @@ type
 
     //
     property QuickReply: TFacebookQuickReply read FQuickReply write FQuickReply;
+    property QuickReplyPayload: string read FQuickReplyPayload;
     property TemplateCard: TFacebookTemplateCard read FTemplateCard write FTemplateCard;
 
   published
+    property FirtName: String read FFirtName;
+    property LastName: String read FLastName;
+    property FullName: String read getFullName;
+    property ProfilePicture: String read FProfilePicture;
     property ImageID: string read FImageID;
     property ImageURL: string read FImageURL;
     property ImageCaption: string read FImageCaption;
@@ -197,6 +224,7 @@ implementation
 const
   _FACEBOOK_MSG_MAXLENGTH = 635;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
+  _FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v2.6/';
   _FACEBOOK_MESSENGER_SEND_URL =
     'https://graph.facebook.com/v2.6/me/messages?access_token=';
   _FACEBOOK_MESSENGER_SEND_JSON =
@@ -211,6 +239,7 @@ const
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"phone_number","title":"%title%","payload":"%number%"}]}}}}';
   _FACEBOOK_MESSENGER_SEND_BUTTON_URL =
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","messenger_extensions": true,"webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
+  _FACEBOOK_PAYLOAD_DELIMITER = ':';
 
 var
   Response: IHTTPResponse;
@@ -281,7 +310,7 @@ begin
   FItem.Add(o);
 end;
 
-procedure TFacebookQuickReply.AddLocation;
+procedure TFacebookQuickReply.AddLocation;//deprecated
 var
   o: TJSONObject;
 begin
@@ -315,7 +344,7 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue);
+  jsonData := GetJSON(AValue, False);
 end;
 
 function TFacebookMessengerIntegration.getText: string;
@@ -356,6 +385,14 @@ begin
       'entry[0].messaging[0].message.attachments[0].title').AsString;
   except
   end;
+end;
+
+function TFacebookMessengerIntegration.getFullName: String;
+begin
+  Result := FFirtName + ' ' + FLastName;
+  Result := Result.Trim;
+  if Result.IsEmpty then
+    Result := UserID;
 end;
 
 function TFacebookMessengerIntegration.getMessageID: string;
@@ -425,6 +462,7 @@ constructor TFacebookMessengerIntegration.Create;
 begin
   ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
   FQuickReply := TFacebookQuickReply.Create;
+  FQuickReplyPayload := '';
   FTemplateCard := TFacebookTemplateCard.Create;
 end;
 
@@ -463,7 +501,7 @@ begin
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s)]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -503,7 +541,7 @@ begin
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON,
-        [ATo, StringToJSONString(AAudioURL)]);
+        [ATo, StringToJSONString(AAudioURL, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -577,6 +615,42 @@ begin
 
 end;
 
+procedure TFacebookMessengerIntegration.SendButton(const ATo: string;
+  const AText: string; const AData: TJSONArray);
+var
+  json: TJSONUtil;
+begin
+  if not isCanSend then
+    Exit;
+  if ATo.IsEmpty or FToken.IsEmpty or (AData.Count = 0) then
+    Exit;
+
+  json := TJSONUtil.Create;
+  json['recipient/id'] := ATo;
+  json['message/attachment/type'] := 'template';
+  json['message/attachment/payload/template_type'] := 'button';
+  json['message/attachment/payload/text'] := AText;
+  json.ValueArray['message/attachment/payload/buttons'] := AData;
+
+  with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      RequestBody := TStringStream.Create(json.AsJSON);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+
+    Free;
+  end;
+
+  //json.Free;
+end;
+
 procedure TFacebookMessengerIntegration.SendButtonURL(ATo: string; ATitle,
   AURL: string; ADescription: string);
 var
@@ -607,8 +681,6 @@ begin
 
     Free;
   end;
-
-
 end;
 
 procedure TFacebookMessengerIntegration.SendQuickReply(ATo: string;
@@ -649,38 +721,78 @@ begin
 end;
 
 procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
-  AContent: TJSONArray);
+  AContent: TJSONArray; AButtonTitleDefault: string);
 var
-  i: Integer;
-  s: string;
+  i, j: Integer;
+  buttonListExists: boolean;
+  s, actionType, actionData: string;
   o : TJSONUtil;
-  aElements, aButtons: TJSONArray;
-  oItem, oDefaultAction, oButton: TJSONObject;
+  aElements, aButtons, aContentButtons: TJSONArray;
+  oItem, oButton: TJSONObject;
 begin
   if ATo.IsEmpty or FToken.IsEmpty then
     Exit;
+  if AButtonTitleDefault.IsEmpty then
+    AButtonTitleDefault := 'View';
 
   aElements := TJSONArray.Create;
   for i := 0 to AContent.Count-1 do
   begin
     oItem := TJSONObject.Create;
     oItem.Add('title', jsonGetData(AContent.Items[i], 'title'));
-    oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'subtitle'));
+    oItem.Add('subtitle', jsonGetData(AContent.Items[i], 'sub_title'));
     oItem.Add('image_url', jsonGetData(AContent.Items[i], 'image_url'));
 
-    oDefaultAction := TJSONObject.Create;
-    oDefaultAction.Add('type', 'web_url');
-    oDefaultAction.Add('url', jsonGetData(AContent.Items[i], 'url'));
-    oDefaultAction.Add('webview_height_ratio', 'FULL');
-    //oItem.Add('default_action', oDefaultAction);
+    actionType := 'web_url';
+    actionData := jsonGetData(AContent.Items[i], 'url');
+    if actionData.IsEmpty then
+    begin
+      actionType := 'postback';
+      actionData := jsonGetData(AContent.Items[i], 'callback_data');
+    end;
 
     aButtons := TJSONArray.Create;
-    oButton := TJSONObject.Create;
-    oButton.Add('type', 'web_url');
-    oButton.Add('title', 'Tampilkan Peta');
-    oButton.Add('url', jsonGetData(AContent.Items[i], 'url'));
-    aButtons.Add(oButton);
-    oItem.Add('buttons', aButtons);
+    buttonListExists := False;
+    try
+      aContentButtons := TJSONArray(AContent.Items[i].GetPath('button'));
+      buttonListExists := True;
+      if aContentButtons.Count > 0 then
+      begin
+        for j := 0 to aContentButtons.Count - 1 do
+        begin
+          actionType := 'web_url';
+          actionData := jsonGetData(aContentButtons.Items[j], 'url');
+          if actionData.IsEmpty then
+          begin
+            actionType := 'postback';
+            actionData := jsonGetData(aContentButtons.Items[j], 'callback_data');
+          end;
+          oButton := TJSONObject.Create;
+          oButton.Add('type', actionType);
+          oButton.Add('title', jsonGetData(aContentButtons.Items[j], 'title'));
+          if actionType = 'web_url' then
+            oButton.Add('url', actionData);
+          if actionType = 'postback' then
+            oButton.Add('payload', actionData);
+          aButtons.Add(oButton);
+        end;
+        oItem.Add('buttons', aButtons);
+      end;
+    except
+    end;
+
+    if not buttonListExists then
+    begin
+      oButton := TJSONObject.Create;
+      oButton.Add('type', actionType);
+      oButton.Add('title', AButtonTitleDefault);
+      if actionType = 'web_url' then
+        oButton.Add('url', actionData);
+      if actionType = 'postback' then
+        oButton.Add('payload', actionData);
+      aButtons.Add(oButton);
+      oItem.Add('buttons', aButtons);
+    end;
 
     aElements.Add(oItem);
   end;
@@ -738,6 +850,37 @@ begin
   end;
 end;
 
+function TFacebookMessengerIntegration.GetProfile(AUserId: String): boolean;
+var
+  json: TJSONUtil;
+begin
+  FIsSuccessfull := False;
+  if not isCanSend then
+    Exit;
+  if AUserId.IsEmpty then
+    Exit;
+
+  with THTTPLib.Create(_FACEBOOK_GRAPH_URL + AUserId + '?access_token=' + FToken) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      Response := Get;
+      if Response.ResultCode = 200 then
+      begin
+        json := TJSONUtil.Create;
+        json.LoadFromJsonString(Response.ResultText, False);
+        FFirtName := json['first_name'];
+        FLastName := json['last_name'];
+        FProfilePicture := json['profile_pic'];
+        json.Free;
+        Result := True;
+      end;
+    except
+    end;
+    Free;
+  end;
+end;
+
 function TFacebookMessengerIntegration.isCanSend: boolean;
 begin
   Result := False;
@@ -780,6 +923,36 @@ begin
   end;
 end;
 
+function TFacebookMessengerIntegration.isReferral: boolean;
+begin
+  Result := False;
+  try
+    FReferralSource := jsonData.GetPath('entry[0].messaging[0].postback.referral.source').AsString;
+    FReferralType := jsonData.GetPath('entry[0].messaging[0].postback.referral.type').AsString;
+    FReferralRef := jsonData.GetPath('entry[0].messaging[0].postback.referral.ref').AsString;
+    Result := True;
+  except
+    try
+      FReferralSource := jsonData.GetPath('entry[0].messaging[0].referral.source').AsString;
+      FReferralType := jsonData.GetPath('entry[0].messaging[0].referral.type').AsString;
+      FReferralRef := jsonData.GetPath('entry[0].messaging[0].referral.ref').AsString;
+      Result := True;
+    except
+    end;
+  end;
+end;
+
+function TFacebookMessengerIntegration.isQuickReply: boolean;
+begin
+  Result := False;
+  try
+    FQuickReplyPayload := jsonData.GetPath('entry[0].messaging[0].message.quick_reply.payload').AsString;
+    if FQuickReplyPayload <> '' then
+      Result := True;
+  except
+  end;
+end;
+
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
 begin
   Result := False;
@@ -815,10 +988,16 @@ end;
 function TFacebookMessengerIntegration.PayloadHandling: String;
 var
   i: Integer;
+  headerPayload: string;
+  lst: TStrings;
   h: TPayloadHandlerCallback;
 begin
   Result := '';
-  i := ___PayloadHandlerCallbackMap.IndexOf(getPayload);
+  lst := Explode(getPayload, _FACEBOOK_PAYLOAD_DELIMITER);
+  headerPayload := lst[0];
+  lst.Free;
+
+  i := ___PayloadHandlerCallbackMap.IndexOf(headerPayload);
   if i = -1 then
     Exit;
   h := ___PayloadHandlerCallbackMap.Data[i];

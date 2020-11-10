@@ -54,6 +54,9 @@ interface
 
 uses
   http_lib, json_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 {$ifdef FIREBASE_INTEGRATION}
@@ -159,7 +162,7 @@ begin
 
   try
     if FhttpResponse.ResultText <> 'null' then
-      FData.LoadFromJsonString( FhttpResponse.ResultText);
+      FData.LoadFromJsonString( FhttpResponse.ResultText, False);
   except
   end;
 

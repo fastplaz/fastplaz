@@ -7,13 +7,13 @@ file that was distributed with this source code.
 }
 unit string_helpers;
 
-{$mode objfpc}
+{$mode objfpc}{$H+}
 {$modeswitch typehelpers}
 
 interface
 
 uses
-  common,
+  common, RegExpr,
   Classes, SysUtils;
 
 type
@@ -27,17 +27,25 @@ type
     function UrlEncode: AnsiString; overload; inline;
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
+    function Explode( ADelimiter:string = ','): TStrings; overload; inline;
     function IsEmpty: boolean; overload; inline;
+    function IsNotEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
     function IsExists( AString: string): boolean; overload; inline;
     function IsJson: boolean; overload; inline;
     function IsNumeric: boolean; overload; inline;
+    function IsEmail: boolean; overload; inline;
+    function IsURL: boolean; overload; inline;
+    function IsDomain: boolean; overload; inline;
     function Encode64: AnsiString; overload; inline;
     function Decode64: AnsiString; overload; inline;
     function Cut( AStartText, AStopText: string):AnsiString; overload; inline;
     function SaveToFile( AFileName: string): boolean; overload; inline;
     function Has( AText: string): boolean; overload; inline;
     function UcWords: AnsiString; overload; inline;
+    function IsPregMatch( ARegex: string): boolean; overload; inline;
+    function Split( ADelimiter:string = ','): TStrings; overload; inline;
+    function StrPos( AText: string): integer; overload; inline;
 
   end;
 
@@ -74,9 +82,19 @@ begin
   Result := mysql_real_escape_string(Self);
 end;
 
+function TStringSmartHelper.Explode(ADelimiter: string): TStrings;
+begin
+  Result := common.Explode(Self, ADelimiter);
+end;
+
 function TStringSmartHelper.IsEmpty: boolean;
 begin
   Result := IsNullOrEmpty( Self);
+end;
+
+function TStringSmartHelper.IsNotEmpty: boolean;
+begin
+  Result := not IsNullOrEmpty( Self);
 end;
 
 function TStringSmartHelper.IsEqualTo(AString: string): boolean;
@@ -106,6 +124,23 @@ begin
     Result := True;
   except
   end;
+end;
+
+function TStringSmartHelper.IsEmail: boolean;
+begin
+  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', Self);
+end;
+
+function TStringSmartHelper.IsURL: boolean;
+const
+  _REGEX_ISURL = '(http|https|ftp):\/\/([a-zA-Z0-9-]+)?(\/)?(.*)?$';
+begin
+  Result := preg_match(_REGEX_ISURL, Self);
+end;
+
+function TStringSmartHelper.IsDomain: boolean;
+begin
+  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', Self);
 end;
 
 function TStringSmartHelper.Encode64: AnsiString;
@@ -148,6 +183,21 @@ end;
 function TStringSmartHelper.UcWords: AnsiString;
 begin
   Result := common.ucwords(Self);
+end;
+
+function TStringSmartHelper.IsPregMatch(ARegex: string): boolean;
+begin
+  Result := common.preg_match(ARegex, Self);
+end;
+
+function TStringSmartHelper.Split(ADelimiter: string): TStrings;
+begin
+  Result := Self.Explode(ADelimiter);
+end;
+
+function TStringSmartHelper.StrPos(AText: string): integer;
+begin
+  Result := Pos( AText, Self);
 end;
 
 end.

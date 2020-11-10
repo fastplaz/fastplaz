@@ -26,6 +26,7 @@ type
   public
     function IndexOfName(const AIndexName: string): Integer;
     function ValueOfName(const AIndexName: string): TJSONData;
+    function ValueOfNameAsString(const AIndexName: string): string;
     function Delete(const AIndexName: string): boolean;
     property Value[const AKeyName: string]: string read getValue;
   end;
@@ -55,8 +56,19 @@ function TJsonSmartHelper.ValueOfName(const AIndexName: string): TJSONData;
 var
   i: Integer;
 begin
+  Result := Nil;
   i := TJSONObject(Self).IndexOfName(AIndexName);
-  Result := TJSONObject(Self).Items[i];
+  if i <> -1 then
+    Result := TJSONObject(Self).Items[i];
+end;
+
+function TJsonSmartHelper.ValueOfNameAsString(const AIndexName: string): string;
+begin
+  Result := '';
+  try
+    Result := ValueOfName(AIndexName).AsString;
+  except
+  end;
 end;
 
 function TJsonSmartHelper.Delete(const AIndexName: string): boolean;

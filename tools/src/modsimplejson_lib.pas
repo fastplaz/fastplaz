@@ -9,8 +9,8 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_JSON_Name = 'JSON module';
-  rs_Mod_JSON_Description = 'create fastplaz simple json module';
+  rs_Mod_JSON_Name = 'Create API Controller (JSON)';
+  rs_Mod_JSON_Description = 'Create API Controller (JSON)';
 
 type
 
@@ -51,7 +51,7 @@ end;
 function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers, json_helpers';
 end;
 
 function TFileDescJSONModule.GetLocalizedName: string;

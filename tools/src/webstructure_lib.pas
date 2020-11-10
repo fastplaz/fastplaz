@@ -32,7 +32,7 @@ uses fastplaz_tools_register;
 
 const
   CSS_WEBSTRUCTURE_FAILED = 'Failed create directory structure';
-  CSS_APP_TEMPLATEFOLDER = 'app';
+  CSS_WEB_TEMPLATEFOLDER = 'web';
 
 
 { TWebStructure }
@@ -63,7 +63,7 @@ begin
   fastplaz_package_dir := Pkg.DirectoryExpanded;
   ScanDirAndCopy(fastplaz_package_dir +
     DirectorySeparator + 'templates' +
-    DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
+    DirectorySeparator + CSS_WEB_TEMPLATEFOLDER +
     DirectorySeparator + '*',
     TargetDirectory);
 
@@ -77,7 +77,7 @@ begin
   with TStringList.Create do
   begin
     LoadFromFile(fastplaz_package_dir + 'templates' +
-      DirectorySeparator + CSS_APP_TEMPLATEFOLDER +
+      DirectorySeparator + CSS_WEB_TEMPLATEFOLDER +
       DirectorySeparator + '.htaccess');
     Text := StringReplace(Text, 'your_binary_file', s, [rfReplaceAll]);
     try

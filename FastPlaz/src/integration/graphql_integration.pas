@@ -49,6 +49,9 @@ interface
 uses
   Dialogs,
   http_lib, json_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   fpjson, Classes, SysUtils;
 
 {$ifdef EXAMPLE_INTEGRATION}

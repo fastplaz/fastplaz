@@ -19,10 +19,10 @@
       </Linking>
     </CompilerOptions>
     <Description Value="Tools Generator for FastPlaz
-for more information visit http://www.fastplaz.com
+for more information visit https://www.fastplaz.com
 "/>
-    <Version Minor="1" Release="3"/>
-    <Files Count="18">
+    <Version Minor="1" Release="5" Build="4"/>
+    <Files Count="20">
       <Item1>
         <Filename Value="src\about_fastplaz.pas"/>
         <UnitName Value="about_fastplaz"/>
@@ -61,44 +61,53 @@ for more information visit http://www.fastplaz.com
         <UnitName Value="modsimplejson_lib"/>
       </Item9>
       <Item10>
-        <Filename Value="src\project_lib.pas"/>
-        <UnitName Value="project_lib"/>
+        <Filename Value="src\packageapp_lib.pas"/>
+        <UnitName Value="packageapp_lib"/>
       </Item10>
       <Item11>
-        <Filename Value="src\project_wzd.pas"/>
-        <UnitName Value="project_wzd"/>
+        <Filename Value="src\packageapp_wzd.pas"/>
+        <UnitName Value="packageapp_wzd"/>
       </Item11>
       <Item12>
-        <Filename Value="src\projectapi_lib.pas"/>
-        <UnitName Value="projectapi_lib"/>
+        <Filename Value="src\project_lib.pas"/>
+        <UnitName Value="project_lib"/>
       </Item12>
       <Item13>
-        <Filename Value="src\projectapi_wzd.pas"/>
-        <UnitName Value="projectapi_wzd"/>
+        <Filename Value="src\project_wzd.pas"/>
+        <UnitName Value="project_wzd"/>
       </Item13>
       <Item14>
-        <Filename Value="src\projectgenerator_lib.pas"/>
-        <UnitName Value="projectgenerator_lib"/>
+        <Filename Value="src\projectapi_lib.pas"/>
+        <UnitName Value="projectapi_lib"/>
       </Item14>
       <Item15>
-        <Filename Value="src\themestructure_wzd.pas"/>
-        <UnitName Value="themestructure_wzd"/>
+        <Filename Value="src\projectapi_wzd.pas"/>
+        <UnitName Value="projectapi_wzd"/>
       </Item15>
       <Item16>
-        <Filename Value="src\webstructure_lib.pas"/>
-        <UnitName Value="webstructure_lib"/>
+        <Filename Value="src\projectgenerator_lib.pas"/>
+        <UnitName Value="projectgenerator_lib"/>
       </Item16>
       <Item17>
-        <Filename Value="src\webstructure_wzd.pas"/>
-        <UnitName Value="webstructure_wzd"/>
+        <Filename Value="src\themestructure_wzd.pas"/>
+        <UnitName Value="themestructure_wzd"/>
       </Item17>
       <Item18>
+        <Filename Value="src\webstructure_lib.pas"/>
+        <UnitName Value="webstructure_lib"/>
+      </Item18>
+      <Item19>
+        <Filename Value="src\webstructure_wzd.pas"/>
+        <UnitName Value="webstructure_wzd"/>
+      </Item19>
+      <Item20>
         <Filename Value="src\webstructure_wzd.lfm"/>
         <Type Value="LFM"/>
-      </Item18>
+      </Item20>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
+      <OutDir Value="src\i18n"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
     <RequiredPkgs Count="4">

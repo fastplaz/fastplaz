@@ -13,11 +13,11 @@ object fAboutFastplaz: TfAboutFastplaz
   OnKeyDown = FormKeyDown
   Position = poScreenCenter
   UseDockManager = True
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '2.0.6.0'
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 30
-    Top = 304
+    Height = 36
+    Top = 298
     Width = 366
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -36,13 +36,13 @@ object fAboutFastplaz: TfAboutFastplaz
     Height = 277
     Top = 2
     Width = 370
-    ActivePage = TabSheet1
-    TabIndex = 0
+    ActivePage = TabSheet2
+    TabIndex = 1
     TabOrder = 1
     TabPosition = tpBottom
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 238
+      ClientHeight = 255
       ClientWidth = 364
       object mem: TMemo
         Left = 8
@@ -129,18 +129,18 @@ object fAboutFastplaz: TfAboutFastplaz
     end
     object TabSheet2: TTabSheet
       Caption = 'Credit'
-      ClientHeight = 249
-      ClientWidth = 362
+      ClientHeight = 255
+      ClientWidth = 364
       object mem1: TMemo
         Left = 0
-        Height = 249
+        Height = 255
         Top = 0
-        Width = 362
+        Width = 364
         Align = alClient
         BorderStyle = bsNone
         Lines.Strings = (
           '[+] Developer Team :'
-          'Luri Darmawan (KiOSS.com)'
+          'Luri Darmawan (Carik.id)'
           'Agung Wicaksana ( KiOSS.com )'
           'FastPlaz.Com'
           ''

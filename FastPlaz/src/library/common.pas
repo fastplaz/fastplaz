@@ -8,8 +8,7 @@ interface
 uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
-  fphttpclient,
-  //fphttpclient_with_ssl,
+  fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   RegExpr,
   //netdb,
   resolve,
@@ -40,7 +39,9 @@ const
   _SYSTEM_SESSION_DIR = 'systems/session_dir';
   _SYSTEM_SESSION_STORAGE = 'systems/session_storage';
   _SYSTEM_SESSION_TIMEOUT = 'systems/session_timeout';
+  _SYSTEM_SESSION_AUTOSTART = 'systems/session_autostart';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
+  _SYSTEM_COOKIE_PATH = 'systems/cookie_path';
 
   _DATABASE_OPTIONS_READ = 'database/options/read';
   _DATABASE_OPTIONS_WRITE = 'database/options/write';
@@ -103,12 +104,14 @@ function StrInArray(const AValue : String;const AArrayOfString : Array of String
 function StreamToString(AStream: TStream): string;
 function StripNonAscii(const s: string): string;
 function StripCharsInSet(s:string; c:CharSet):string;
+function strstr(AText, ADelimiter: String; IsBeforeNeedle: Boolean = False): String;
 function StringCut(AStartString, AStopString: string; AText: string): string;
 function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
+function UCStoString(AText: string; BIsPair: boolean = false): string;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
@@ -120,7 +123,7 @@ function _GetTickCount: DWord;
 function DateTimeToISO8601( ADateTime:TDateTime): string;
 function ISO8601ToDateTime( AString:string; AOffsetHours:integer = 7): TDateTime;
 
-function SafeText(const SourceString: string): string;
+function SafeText(const SourceString: string; const AReplacementString: string = '-'): string;
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean = False): string;
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
@@ -140,7 +143,7 @@ function SaveToFile(const AFileName: string; const AContent: string): boolean;
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
 function jsonGetString(J: TJsonData; index: string): string;
-function JsonFormatter(JsonString: string): string;
+function JsonFormatter(JsonString: string; Const UseUTF8 : Boolean = True): string;
 function IsJsonValid(JsonString: string): boolean;
 function HexToInt(HexStr: string): int64;
 
@@ -167,11 +170,12 @@ procedure ta(const Message: variant; Width: integer = 800; Height: integer = 200
 procedure Die(const Message: string = ''; ACode: integer = 200); overload;
 procedure Die(const Number: integer; ACode: integer = 200); overload;
 procedure Die(const Message: TStringList; ACode: integer = 200); overload;
-procedure OutputJson(const ACode: integer; AMessage: string);
+procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer = 0);
 
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function isURL( const AURL: string): boolean;
+function isLookLikeURL( const AURL: string): boolean;
 function CleanUrl(URL: string; Separator: string = '-'): string;
 function UrlEncode(const DecodedStr: string; Pluses: boolean = True): string;
 function UrlDecode(const EncodedStr: string): string;
@@ -182,8 +186,10 @@ function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
 function MarkdownToHTML(const AContent: String): String;
 
-function file_get_contents(TargetURL: string): string;
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true): string;
 function FileCopy(ASource, ATarget: string): boolean;
+procedure HttpClientGetSocketHandler(Sender: TObject;
+  const UseSSL: Boolean; out AHandler: TSocketHandler);
 
 function preg_match(const RegexExpression: string; SourceString: string): boolean;
 function preg_replace(const RegexExpression, ReplaceString, SourceString: string;
@@ -349,6 +355,19 @@ begin
   SetLength(result,j);
 end;
 
+function strstr(AText, ADelimiter: String; IsBeforeNeedle: Boolean): String;
+var
+  i: Integer;
+begin
+  Result := '';
+  i := Pos(ADelimiter, AText);
+  if i = 0 then
+    Exit;
+  if IsBeforeNeedle then
+    i := i - 1;
+  Result := Copy(AText,1, i);
+end;
+
 function StringCut(AStartString, AStopString: string; AText: string): string;
 var
   i: integer;
@@ -452,6 +471,50 @@ end;
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
   Result := StringsExists( ASubstring, AFullString);
+end;
+
+function UCStoString(AText: string; BIsPair: boolean): string;
+var
+  i: integer;
+  s, itemString, pattern: string;
+  vUCS4Str: UCS4String;
+  re: TRegExpr;
+  lst: TStrings;
+begin
+  Result := AText;
+  pattern := '\\u[0-9a-fA-F]{4}';
+  if BIsPair then
+    pattern := '\\u[0-9a-fA-F]{4}\\u[0-9a-fA-F]{4}';
+  SetLength(vUCS4Str, 2);
+
+  re := TRegExpr.Create;
+  re.Expression := pattern;
+  if re.Exec(AText) then
+  begin
+    itemString := re.Match[0];
+    lst := Explode(re.Match[0], '\u');
+    vUCS4Str[0] := Hex2Dec(lst[1]);
+    if BIsPair then
+      vUCS4Str[1] := Hex2Dec(lst[2]);
+    s := UCS4StringToWideString(vUCS4Str);
+    lst.Free;
+    Result := Result.Replace(itemString, s, [rfReplaceAll]);
+
+    while re.ExecNext do
+    begin
+      itemString := re.Match[0];
+      lst := Explode(re.Match[0], '\u');
+      vUCS4Str[0] := Hex2Dec(lst[1]);
+      if BIsPair then
+        vUCS4Str[1] := Hex2Dec(lst[2]);
+      s := UCS4StringToWideString(vUCS4Str);
+      lst.Free;
+      Result := Result.Replace(itemString, s, [rfReplaceAll]);
+    end;
+
+  end;
+
+  re.Free;
 end;
 
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
@@ -590,14 +653,15 @@ begin
   end;
 end;
 
-function SafeText(const SourceString: string): string;
+function SafeText(const SourceString: string; const AReplacementString: string
+  ): string;
 const
   NotAllowed: array[1..25] of string =
     (' ', ';', '/', '?', ':', '@', '=', '&', '#', '+', '_',
     '<', '>', '"', '%', '{', '}', '|', '\', '^', '~', '[', ']', '`', ''''
     );
 begin
-  Result := ReplaceAll(SourceString, NotAllowed, '-');
+  Result := ReplaceAll(SourceString, NotAllowed, AReplacementString);
 end;
 
 function ReplaceAll(const Subject: string;
@@ -682,13 +746,18 @@ begin
   Die('<pre>' + Message.Text + '</pre>', ACode);
 end;
 
-procedure OutputJson(const ACode: integer; AMessage: string);
+procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer
+  );
 var
   s: string;
 begin
   Application.Response.ContentType := 'application/json';
+  Application.Response.Content := '';
   s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
-  die(s, ACode);
+  if AForceCode = 0 then
+    die(s, 200)
+  else
+    die(s, AForceCode);
 end;
 
 function WordNumber(s: string): integer;
@@ -1053,6 +1122,7 @@ begin
     DeleteFile(AFilePath);
   with TFPHTTPClient.Create(nil) do
   begin
+    AllowRedirect := True;
     try
       if not AUserAgent.IsEmpty then
       begin
@@ -1174,7 +1244,7 @@ begin
   end;
 end;
 
-function JsonFormatter(JsonString: string): string;
+function JsonFormatter(JsonString: string; const UseUTF8: Boolean): string;
   // error line : VJSONParser.Scanner.CurRow;
 var
   VJSONData : TJSONData = nil;
@@ -1186,7 +1256,10 @@ begin
   if JsonString = '' then
     Exit;
 
-  VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8]);
+  if UseUTF8 then
+    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8])
+  else
+    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict]);
   try
     try
       setOptions := VJSONParser.Options;
@@ -1280,6 +1353,14 @@ begin
   Result := preg_match(_REGEX_ISURL, AURL);
 end;
 
+function isLookLikeURL(const AURL: string): boolean;
+const
+  _REGEX_ISURL = '[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,7}';
+  //_REGEX_ISURL = '[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.([a-z]+)';
+begin
+  Result := preg_match(_REGEX_ISURL, AURL);
+end;
+
 function CleanUrl(URL: string; Separator: string): string;
 begin
   Result := LowerCase(Trim(URL));
@@ -1347,9 +1428,9 @@ begin
   LEncoder       := TBase64EncodingStream.Create(LEncodedStream);
   LEncoder.CopyFrom(LDecodedStream, LDecodedStream.Size);
   Result := LEncodedStream.DataString;
+  LEncoder.Free;
   LDecodedStream.Free;
   LEncodedStream.Free;
-  LEncoder.Free;
 end;
 
 function base64_decode(const AStr: string): string;
@@ -1530,7 +1611,8 @@ begin
   Result := preg_replace(#10#10, #10, Result, True);
 end;
 
-function file_get_contents(TargetURL: string): string;
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean
+  ): string;
 var
   s: string;
 begin
@@ -1538,12 +1620,15 @@ begin
   with TFPHTTPClient.Create(nil) do
   begin
     try
+      AddHeader('User-Agent','Mozilla/5.0 (compatible; fastplaz)');
+      AllowRedirect := True;
       s := Get(TargetURL);
       Result := s;
     except
       on e: Exception do
       begin
-        Result := e.Message;
+        if AShowErrorMessageAsResult then
+          Result := e.Message;
       end;
     end;
 
@@ -1564,6 +1649,16 @@ begin
   except
   end;
   memBuffer.Free
+end;
+
+procedure HttpClientGetSocketHandler(Sender: TObject; const UseSSL: Boolean;
+  out AHandler: TSocketHandler);
+begin
+  If UseSSL then begin
+    AHandler := TSSLSocketHandler.Create;
+    TSSLSocketHandler(AHandler).SSLType := stTLSv1_1;
+  end else begin
+  end;
 end;
 
 // ref:

@@ -21,6 +21,9 @@ interface
 uses
   fpjson,
   common, http_lib, logutil_lib,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 type
@@ -145,7 +148,7 @@ begin
   for i := 0 to iCount-1 do
   begin
     Result := Result + FBOLD_CODE + jsonGetData(AData.Items[i], 'title') + FBOLD_CODE;
-    Result := Result + #10 + trim(jsonGetData(AData.Items[i], 'subtitle'));
+    Result := Result + #10 + trim(jsonGetData(AData.Items[i], 'sub_title'));
     if FMarkDown then
       Result := Result + #10'[Tampilkan Peta](' + jsonGetData(AData.Items[i], 'url') + ')'
     else
@@ -170,7 +173,7 @@ begin
   if s = '' then
     Exit;
   try
-    _json := GetJSON(s);
+    _json := GetJSON(s, False);
     FCount := _json.GetPath('results').Count;
     s := '';
     if FCount > 4 then
@@ -268,7 +271,7 @@ begin
   if sJson = '' then
     Exit;
 
-  jSearch := GetJSON(sJson);
+  jSearch := GetJSON(sJson, False);
   oSearch := TJSONObject(jSearch);
 
   aResult := TJSONArray(oSearch.FindPath('results'));
@@ -309,7 +312,7 @@ begin
       end;
       }
     end;
-    oItem.Add('subtitle', s);
+    oItem.Add('sub_title', s);
     oItem.Add('url', sURL);
     s := jsonGetData(aResult.Items[i], 'photos[0]/photo_reference');
     s := 'https://maps.googleapis.com/maps/api/place/photo?maxwidth=2500&photoreference='
@@ -348,7 +351,7 @@ begin
       if Response.ResultCode <> 200 then
         Exit;
 
-      FData := GetJSON( Response.ResultText);
+      FData := GetJSON( Response.ResultText, False);
       Result := Response.ResultText;
     except
     end;

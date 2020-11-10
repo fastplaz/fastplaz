@@ -9,8 +9,8 @@ uses
   Classes, SysUtils;
 
 resourcestring
-  rs_Mod_Default_Name = 'Controller Generator - Simple';
-  rs_Mod_Default_Description = 'Create FastPlaz simple module';
+  rs_Mod_Default_Name = 'Create Simple Controller';
+  rs_Mod_Default_Description = 'Create Simple Controller';
 
 type
 

@@ -1040,7 +1040,7 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
   end;
 
 const
-  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
+  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!,;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
 
 var
   parameter : TStrings;
@@ -1535,6 +1535,7 @@ var
   tag_with_filter, lst : TStrings;
   fieldName, filter, s : string;
   i : integer;
+  tmpFormatSettings: TFormatSettings;
 begin
   if ForeachTable_Keyname = '' then
     Exit;
@@ -1565,10 +1566,15 @@ begin
     Exit;
   end;
 
-  //TODO: dateformat
-
   try
     ReplaceText := TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+    if tagstring_custom.Values['dateformat'] <> '' then
+    begin
+      tmpFormatSettings := FormatSettings;
+      tmpFormatSettings.DateSeparator := '-';
+      tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd';
+      ReplaceText := FormatDateTime(tagstring_custom.Values['dateformat'], StrToDateTime(ReplaceText, tmpFormatSettings));
+    end;
   except
     on e : Exception do begin
       if e.Message = 'Access violation' then

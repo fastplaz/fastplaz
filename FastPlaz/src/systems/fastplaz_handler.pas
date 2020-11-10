@@ -12,6 +12,7 @@ uses
   RegExpr,
   sqldb, gettext, session_controller, module_controller,
   config_lib,
+  fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   fpcgi, httpdefs, fpHTTP, fpWeb,
   //webutil,
   custweb, dateutils, variants,
@@ -22,7 +23,7 @@ const
   TDateTimeEpsilon = 2.2204460493e-16;
 
 resourcestring
-  __ErrNoModuleNameForRequest = 'Could not determine HTTP module name for request';
+  __ErrNoModuleNameForRequest = 'Could not determine HTTP module name "%s" for request';
   __Err_Http_InvalidMethod = 'Invalid method request';
 
   // theme
@@ -74,6 +75,7 @@ type
     cacheWrite: boolean;
     cacheTime: integer;
     tablePrefix: string;
+    sessionAutoStart: boolean;
     SessionID: string;
     SessionDir: string;
     SessionStorage: integer; // 1: file; 2 database
@@ -86,6 +88,7 @@ type
     debug: boolean;
     debugLevel: integer;
     isReady: boolean;
+    cookiePath: string;
   end;
 
   TOnBlockController = procedure(Sender: TObject; FunctionName: string;
@@ -365,6 +368,8 @@ end;
 
 
 procedure InitializeFastPlaz(Sender: TObject);
+var
+  _: String;
 begin
   if AppData.initialized then
     Exit;
@@ -402,6 +407,7 @@ begin
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
 
   if AppData.baseUrl = '' then
   begin
@@ -433,6 +439,7 @@ begin
   end;
 
   //-- session
+  AppData.sessionAutoStart := Config.GetValue(_SYSTEM_SESSION_AUTOSTART, True);
   AppData.SessionDir := string(Config.GetValue(_SYSTEM_SESSION_DIR, ''));
   if AppData.SessionDir <> '' then
     SessionController.SessionDir := AppData.SessionDir;
@@ -440,16 +447,37 @@ begin
   if string(Config.GetValue(_SYSTEM_SESSION_STORAGE, 'file')) = 'database' then
     AppData.SessionStorage := _SESSION_STORAGE_DATABASE;
   SessionController.Storage := AppData.SessionStorage;
+  // force session with cookie
+  if SessionController.CookieID.IsEmpty then
+  begin
+    _ := Application.Request.CookieFields.Values['_'];
+    if _.IsEmpty then
+    begin
+      _ := RandomString(40, 'fastplaz');
+    end;
+    with Application.Response.Cookies.Add do
+    begin
+      Name := '_';
+      Value := _;
+      if not AppData.cookiePath.IsEmpty then
+        Path := AppData.cookiePath;
+      Expires := dateutils.IncDay(Now,3);
+    end;
+    SessionController.SessionID := _;
+  end;
   if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
   begin
     DataBaseInit;
   end;
   SessionController.TimeOut :=
     Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
-  if not SessionController.StartSession then
+  if AppData.sessionAutoStart then
   begin
-    //SessionController.EndSession;
-    //SessionController.StartSession;
+    if not SessionController.StartSession then
+    begin
+      //SessionController.EndSession;
+      //SessionController.StartSession;
+    end;
   end;
   //-- session - end
 
@@ -1242,7 +1270,9 @@ begin
   if (Result = '') then
   begin
     if not Application.AllowDefaultModule then
-      raise EFPWebError.Create(__(__ErrNoModuleNameForRequest));
+    begin
+      raise EFPWebError.Create(__(format(__ErrNoModuleNameForRequest,[AppData.module])));
+    end;
     Result := GetDefaultModuleName;
   end;
 

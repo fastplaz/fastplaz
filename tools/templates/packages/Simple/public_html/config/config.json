@@ -1,0 +1,42 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz Example",
+    "slogan" : "FastPlaz App Example",
+    "baseurl" : "",
+    "admin_email" : "webmaster@coba.com",
+    "development" : true,
+    "debug" : true,
+    "module_default" : "main",
+    "language_default" : "id",
+    "theme_enable" : true,
+    "theme" : "simple",
+    "cache" : "none",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "session_timeout" : 0,
+    "error_redirect" : false
+  },
+  "database" : {
+    "default" : {
+      "driver" : "MySQL 5.7",
+      "hostname" : "localhost",
+      "port" : "",
+      "username" : "your_username",
+      "password" : "your_password",
+      "database_name" : "the_database_name",
+      "charset" : "",
+      "prefix" : "",
+      "library" : ""
+    }
+  },
+  "mailer" : {
+    "default" : {
+      "hostname" : "your.smtp.server",
+      "username" : "your_username",
+      "password" : "the_password",
+      "smtp_port" : "465",
+      "ssl" : true,
+      "tls" : true
+    }
+  }
+}

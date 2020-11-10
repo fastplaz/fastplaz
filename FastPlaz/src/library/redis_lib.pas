@@ -69,6 +69,7 @@ type
     FServerAddress: string;
     FisAutoConnect: boolean;
     FLastError: integer;
+    FLastErrorMessage: string;
     FLastMessage: string;
     FPassword: string;
     FPort: string;
@@ -111,6 +112,7 @@ type
     property Port: string read FPort write SetPort;
     property TimeOut: integer read FTimeOut write FTimeOut;
     property LastError: integer read FLastError;
+    property LastErrorMessage: string read FLastErrorMessage;
     property LastMessage: string read FLastMessage;
     property Values[Key: string]: string read Get write SetValue; default;
     property ResponType: TRedisResponseType read FResponType;
@@ -171,6 +173,8 @@ function TRedisLib.Get(Key: string): string;
 var
   i: integer;
 begin
+  if Key.IsEmpty then
+    Exit;
   SendString('GET ' + Key);
   i := Pos(#13#10, FLastMessage);
   FLastMessage := Copy(FLastMessage, i + 2, Length(FLastMessage) - i - 1);
@@ -236,6 +240,8 @@ end;
 
 procedure TRedisLib.SetValue(Key: string; AValue: string);
 begin
+  if Key.IsEmpty then
+    Exit;
   FLastMessage := '+OK';
   if FWriteToMaster then
   begin
@@ -300,7 +306,7 @@ begin
     exit;
   try
     {$ifdef synapse}
-    sock.ConnectionTimeout := FTimeOut;
+    sock.SocksTimeout := FTimeOut;
     sock.Connect(FServerAddress, FPort);
     FLastError := sock.LastError;
     if sock.LastError = 0 then
@@ -364,6 +370,7 @@ var
   s: string;
 begin
   FLastError := 0;
+  FLastErrorMessage := '';
   FResponType := rrtError;
   FLastMessage := '';
   if not FisConnected then
@@ -405,10 +412,16 @@ begin
     if FLastError = 0 then
     begin
       FResponType := GetResponseType(FLastMessage);
+    end else
+    begin
+      FLastErrorMessage := FLastMessage;
+      FLastMessage := '';
     end;
   except
     on e: Exception do
-      FLastMessage := e.Message;
+    begin
+      FLastErrorMessage := e.Message;
+    end;
   end;
   Result := FLastMessage;
 end;

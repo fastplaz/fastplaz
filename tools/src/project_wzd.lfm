@@ -1,7 +1,7 @@
 object fProjectWizard: TfProjectWizard
-  Left = 239
+  Left = 184
   Height = 255
-  Top = 572
+  Top = 503
   Width = 534
   BorderStyle = bsDialog
   Caption = 'FastPlaz Project Wizard'
@@ -9,7 +9,7 @@ object fProjectWizard: TfProjectWizard
   ClientWidth = 534
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '2.0.10.0'
   object pnl_Top: TPanel
     Left = 0
     Height = 34
@@ -26,7 +26,7 @@ object fProjectWizard: TfProjectWizard
       Left = 6
       Height = 22
       Top = 4
-      Width = 213
+      Width = 201
       Caption = 'FastPlaz Project Wizard'
       Font.Color = clWhite
       Font.Height = -19
@@ -36,8 +36,8 @@ object fProjectWizard: TfProjectWizard
   end
   object pnl_Button: TButtonPanel
     Left = 6
-    Height = 30
-    Top = 219
+    Height = 36
+    Top = 213
     Width = 522
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -56,7 +56,7 @@ object fProjectWizard: TfProjectWizard
     Left = 10
     Height = 16
     Top = 49
-    Width = 92
+    Width = 89
     Caption = 'Project Name :'
     ParentColor = False
   end
@@ -91,7 +91,7 @@ object fProjectWizard: TfProjectWizard
     Left = 10
     Height = 16
     Top = 76
-    Width = 126
+    Width = 122
     Caption = 'WebRoot Directory :'
     ParentColor = False
   end
@@ -111,7 +111,7 @@ object fProjectWizard: TfProjectWizard
     Left = 152
     Height = 18
     Top = 100
-    Width = 258
+    Width = 244
     Caption = 'Generate Web Directory/Files Structure'
     TabOrder = 5
   end

@@ -14,6 +14,9 @@ interface
 uses
   common, http_lib, json_lib, logutil_lib,
   fpjson,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 type
@@ -99,7 +102,7 @@ begin
     Exit;
 
   json := TJSONUtil.Create;
-  json.LoadFromJsonString(Result);
+  json.LoadFromJsonString(Result, False);
   Result := json['_text'];
   if Result = 'null' then
     Result := '';

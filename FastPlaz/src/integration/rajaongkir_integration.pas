@@ -26,6 +26,9 @@ interface
 uses
   common,
   http_lib, fpjson,
+  {$if FPC_FULlVERSION >= 30200}
+  opensslsockets,
+  {$endif}
   Classes, SysUtils;
 
 {$ifdef RAJAONGKIR_INTEGRATION}
