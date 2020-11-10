@@ -13,7 +13,25 @@ Desain struktur direktori dan theme/template dibuat sedemikian rupa agar memudah
 * Lazarus (optional)
 
 
-## Instalasi
+## Persiapan
+
+### Download
+
+Download atau clone terlebih dahulu repositori ini. 
+
+```bash
+# git clone -b development https://github.com/fastplaz/fastplaz.git
+```
+
+Disarankan menggunakan cara _clone_ ini dibandingkan dengan download manual. Jika nanti ada update atau perubahan, Anda cukup melakukan `pull` saja.
+
+```bash
+# git pull
+```
+
+Dengan cara ini yang akan diambil hanya perubahannya saja, tidak perlu mengunduh ulang keseluruhan file. Selanjutnya Anda cukup _compile_ ulang saja file-file package-nya.
+
+### Instalasi
 
 Jika Anda adalah pengguna Lazarus, instalasi untuk penggunaan dasar FastPlaz amat sangat mudah, cukup lakukan langkah ini:
 
