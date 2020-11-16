@@ -6,7 +6,7 @@
     {
       "label": "Build App",
       "type": "shell",
-      "command": "cd source/app && ./build.sh app",
+      "command": "cd source/app && ./build.sh fastplaz",
       "problemMatcher": []
     },
     {
