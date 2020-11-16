@@ -128,6 +128,9 @@ end;
 
 function TStringSmartHelper.IsEmail: boolean;
 begin
+  Result := False;
+  if Self.IsEmpty then
+    Exit;
   Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', Self);
 end;
 
@@ -140,6 +143,9 @@ end;
 
 function TStringSmartHelper.IsDomain: boolean;
 begin
+  Result := False;
+  if Self.IsEmpty then
+    Exit;
   Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', Self);
 end;
 
