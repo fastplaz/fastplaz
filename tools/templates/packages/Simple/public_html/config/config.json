@@ -9,7 +9,7 @@
     "module_default" : "main",
     "language_default" : "id",
     "theme_enable" : true,
-    "theme" : "simple",
+    "theme" : "Simple",
     "cache" : "none",
     "temp" : "ztemp",
     "error_url" : "\/",
