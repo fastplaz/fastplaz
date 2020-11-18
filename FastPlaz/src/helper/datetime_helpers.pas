@@ -50,6 +50,7 @@ type
   private
   public
     function AsString: String; overload; inline;
+    function AsUnixTime(AIsUTC:boolean = False): Int64; overload; inline;
     function Format( AFormat: String = 'yyyy-mm-dd HH:nn:ss'): String; overload; inline;
     function HumanReadable: String; overload; inline;
     function FromString( ADateTimeString: String; AFormat: String = 'yyyy-mm-dd HH:nn:ss'): TDateTime; overload; inline;
@@ -97,6 +98,11 @@ implementation
 function TDateTimeSmartHelper.AsString: String;
 begin
   Result := Format;
+end;
+
+function TDateTimeSmartHelper.AsUnixTime(AIsUTC: boolean): Int64;
+begin
+  Result := DateTimeToUnix(Self, AIsUTC);
 end;
 
 function TDateTimeSmartHelper.Format(AFormat: String): String;

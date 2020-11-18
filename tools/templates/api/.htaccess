@@ -12,7 +12,7 @@ AddHandler cgi-script .pas
 AddHandler cgi-script .exe
 Options +ExecCGI
 
-DirectoryIndex your_binary_file
+DirectoryIndex your_binary_file index.html
 ErrorDocument 500 500.json
 <Files "500.json">
    ForceType application/json
