@@ -1187,6 +1187,7 @@ begin
   i := 1;
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     ThemeUtil.Assign('foreach_index', i2s(i mod 2));
     if (i mod 2) = 1 then
       ThemeUtil.Assign('foreach_odd', 'odd')
@@ -1219,6 +1220,7 @@ end;
 function TThemeUtil.ForeachProcessor_Dataset(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
+  i: integer;
   html : string;
   templateEngine : TFPTemplate;
 begin
@@ -1228,8 +1230,10 @@ begin
   end;
 
   html := '';
+  i := 1;
   while not TDataSet( assignVarMap[KeyName]^).EOF do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
@@ -1246,6 +1250,7 @@ begin
     html := ConditionalIfProcessor( TagProcessor, html);
 
     TDataSet( assignVarMap[KeyName]^).Next;
+    i := i + 1;
   end;
   Result := html;
 end;
@@ -1267,6 +1272,7 @@ begin
   foreachJsonIndex := 0;
   for i := 0 to TJSONData( assignVarMap[KeyName]^).Count - 1 do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;

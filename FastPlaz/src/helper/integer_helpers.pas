@@ -17,7 +17,7 @@ unit integer_helpers;
 interface
 
 uses
-  StrUtils, Classes, SysUtils;
+  dateutils, StrUtils, Classes, SysUtils;
 
 
 type
@@ -27,6 +27,7 @@ type
   TIntegerSmartHelper = type helper(TIntegerHelper) for Integer
   public
     function InRange(const ValueMin, ValueMax: integer): boolean; overload; inline;
+    function AsDateTime(AIsUTC:boolean = False): TDateTime; overload; inline;
   end;
 
 
@@ -41,6 +42,11 @@ begin
   Result := False;
   if (Self>=ValueMin) and (Self<=ValueMax) then
     Result := True;
+end;
+
+function TIntegerSmartHelper.AsDateTime(AIsUTC: boolean): TDateTime;
+begin
+  Result := UnixToDateTime(Self, AIsUTC);
 end;
 
 end.
