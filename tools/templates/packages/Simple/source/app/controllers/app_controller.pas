@@ -48,6 +48,7 @@ end;
 procedure TFastplazController.Get;
 begin
   ThemeUtil.Assign('$Greeting', 'Welcome To Our Example Tour!');
+  ThemeUtil.Assign('$ModuleName', 'Dashboard');
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   ThemeUtil.Layout := 'home';

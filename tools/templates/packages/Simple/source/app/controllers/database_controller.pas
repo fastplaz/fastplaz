@@ -73,7 +73,7 @@ begin
     ThemeUtil.Assign('$databaseActive', '1');
   end;
 
-  ThemeUtil.Assign('$Title', 'DB Model');
+  ThemeUtil.Assign('$Title', 'Database Model');
   ThemeUtil.Layout := 'master'; // custom layout: master.html
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Response.Content := ThemeUtil.Render();

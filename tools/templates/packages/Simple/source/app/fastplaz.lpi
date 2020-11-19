@@ -31,7 +31,7 @@
         <PackageName Value="fastplaz_runtime"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="7">
       <Unit0>
         <Filename Value="fastplaz.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -56,6 +56,10 @@
         <Filename Value="controllers/database_controller.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit5>
+      <Unit6>
+        <Filename Value="controllers/example_form_controller.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

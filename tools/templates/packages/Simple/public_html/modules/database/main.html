@@ -1,22 +1,22 @@
 <link rel="stylesheet" href="[baseurl]modules/database/style/style.css">
 
-<section id="database">
+<section id="database" class="module">
     [if $databaseActive eq 0]
     <div class="warning container bg-danger text-white xd-flex xjustify-content-center">
         <h3>Database Error</h3>
         <p>Konfigurasi database terletak di file <span class="code text-warning">public_html/config/config.json</span>, dan kode sumber sql-nya ada di file <span class="code text-warning">source/sql/db.sql</span></p>
     </div>
     [/if]
-<div class="container">
+<div class="container" class="module">
 	<div class="row"><div class="col-lg-12">
         <h3>Warehouse (ORM Model)</h3>
         <table>
             <thead>
-                <tr><th>Code</th><th>Name</th><th>Country</th></tr>
+                <tr><th>&nbsp;</th><th>Code</th><th>Name</th><th>Country</th></tr>
             </thead>
             <tbody>
                 [foreach from=$Warehouses item=aItem type=table]
-                <tr><td>[aItem.code]</td><td>[aItem.name]</td><td>[aItem.country]</td></tr>
+                <tr><td>[$index].</td><td>[aItem.code]</td><td>[aItem.name]</td><td>[aItem.country]</td></tr>
                 [/foreach from=$Warehouses]
             </tbody>
         </table>
@@ -41,6 +41,16 @@
     end;
       
 </code>
+<p>Database yang saat ini didukung sesuai dengan yang didukung oleh Free Pascal, yaitu:
+    <ul>
+        <li>Firebird</li>
+        <li>MySQL</li>
+        <li>ODBC</li>
+        <li>Oracle</li>
+        <li>PostgreSQL</li>
+        <li>SQLite3</li>
+    </ul>
+</p>
 <div class="container">
     <hr />
   </div>
