@@ -14,15 +14,15 @@
 	border-bottom: 1px solid gray;
 }
 
-#example a {
+#form-example a {
 	color: rgb(0, 30, 255);
 }
 
-#example a:hover {
+#form-example a:hover {
 	font-weight: bold;
 }
 
-#example blockquote {
+#form-example blockquote {
 	display: block;
 	margin-top: 0px;
 	padding-top: 0.5em;
@@ -33,9 +33,23 @@
 	color: gray;
 	quotes: "\201C""\201D""\2018""\2019";
 }
-#example blockquote:before {
+#form-example blockquote:before {
 	content: open-quote;
 }
-#example blockquote:after {
+#form-example blockquote:after {
 	content: close-quote;
+}
+span.note {
+	display: block;
+	margin-left: 10px;
+	font-size: 12px;
+}
+
+.full-width {
+	display: block !important;
+}
+.upload-note {
+	display: block !important;
+	padding: 10px;
+	background: #eceaea !important;
 }
