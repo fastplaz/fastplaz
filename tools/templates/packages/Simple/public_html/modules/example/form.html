@@ -1,10 +1,9 @@
 <link rel="stylesheet" href="[baseurl]modules/example/styles/styles.css">
-<section id="direct">
+<section id="direct" class="module">
   <div class="container">
     <div class="row">
       <div class="col-lg-6">
         [flashmessages]
-        <h3>Form Example</h3>
         <p>Halaman ini merupakan contoh pengelolaan formulir isian. Menggunakan metode <b>POST</b> biasa tanpa ajax dan tanpa validasi. Proteksi dilakukan dengan <b>CSRF</b> (<i>Cross-site Request Forgery</i>) <b>Token</b> sederhana.</p>
         <form method="POST">
           [csrf-token name="example"]

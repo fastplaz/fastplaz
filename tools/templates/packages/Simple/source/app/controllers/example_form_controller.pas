@@ -46,6 +46,8 @@ end;
 // GET Method Handler
 procedure TFormController.Get;
 begin
+  ThemeUtil.Assign('$Title', 'Form Example');
+
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   ThemeUtil.Layout := 'master';
   Response.Content := ThemeUtil.Render();
@@ -77,6 +79,7 @@ begin
 
   //TODO: Save to database
 
+  ThemeUtil.Assign('$Title', 'Form Example');
   ThemeUtil.Assign('$fullName', fullName);
   ThemeUtil.Assign('$email', email);
   ThemeUtil.Assign('$message', message);

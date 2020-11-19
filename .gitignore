@@ -245,6 +245,7 @@ tools/lib/*
 public_html/ztemp/cache/*
 public_html/ztemp/error_log/*
 public_html/ztemp/sessions/*
+backup/
 
 *.dll
 *.exe
