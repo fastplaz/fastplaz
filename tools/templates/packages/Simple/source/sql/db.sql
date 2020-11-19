@@ -267,6 +267,35 @@ LOCK TABLES `warehouses` WRITE;
 INSERT INTO `warehouses` VALUES (1,'IDW01','Raw Material ID',1),(2,'IDW02','Finished Goods ID',1),(3,'MYW01','Raw Material MY',2),(4,'MYW02','Finished Goods MY',2),(5,'SAW01','Raw Material SA',3),(6,'SAW02','Finished Goods SA',3);
 /*!40000 ALTER TABLE `warehouses` ENABLE KEYS */;
 UNLOCK TABLES;
+
+DROP TABLE IF EXISTS `contacts`;
+
+CREATE TABLE `contacts` (
+  `cid` bigint(20) NOT NULL AUTO_INCREMENT,
+  `first_name` varchar(45) DEFAULT NULL,
+  `middle_name` varchar(45) DEFAULT NULL,
+  `last_name` varchar(45) DEFAULT NULL,
+  `sex` tinyint(4) DEFAULT '0' COMMENT '1. Laki\n2. Perempuan\n',
+  `salutation` tinyint(4) DEFAULT '0' COMMENT '0.\n1. Mr\n2. Mrs\n3. Miss',
+  `title` varchar(20) DEFAULT NULL,
+  `address` text,
+  `notes` text,
+  `created_date` int(11) DEFAULT NULL,
+  `created_by` bigint(20) DEFAULT '0',
+  `status_id` tinyint(4) DEFAULT '1',
+  PRIMARY KEY (`cid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `contacts` WRITE;
+/*!40000 ALTER TABLE `contacts` DISABLE KEYS */;
+INSERT INTO `contacts` (`cid`, `first_name`, `middle_name`, `last_name`, `sex`, `salutation`, `title`, `address`, `notes`, `created_date`, `created_by`, `status_id`)
+VALUES
+  (1,'Agus',NULL,'Darmawan',1,NULL,NULL,'Alamat lengkap',NULL,NULL,0,0),
+  (2,'Budi',NULL,'Buna',0,0,NULL,'Jalan Bunga',NULL,NULL,0,0);
+
+/*!40000 ALTER TABLE `contacts` ENABLE KEYS */;
+UNLOCK TABLES;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
