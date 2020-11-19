@@ -1,6 +1,7 @@
 /* your custom style */
 .container code, code {
 	display: block;
+	overflow-x: auto;
 	width: 100%;
 	margin: 10px 0 0 10px;
 	padding: 10px;
@@ -11,4 +12,30 @@
 
 .separator {
 	border-bottom: 1px solid gray;
+}
+
+#example a {
+	color: rgb(0, 30, 255);
+}
+
+#example a:hover {
+	font-weight: bold;
+}
+
+#example blockquote {
+	display: block;
+	margin-top: 0px;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	padding-left: 20px;
+	padding-right: 20px;
+	background:#eceaea;
+	color: gray;
+	quotes: "\201C""\201D""\2018""\2019";
+}
+#example blockquote:before {
+	content: open-quote;
+}
+#example blockquote:after {
+	content: close-quote;
 }

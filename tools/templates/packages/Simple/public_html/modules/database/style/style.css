@@ -20,3 +20,8 @@
 .separator {
 	border-bottom: 1px solid gray;
 }
+
+li {
+	font-weight: 300;
+	color: #7f8082;
+}
