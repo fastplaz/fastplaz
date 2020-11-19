@@ -25,3 +25,7 @@ li {
 	font-weight: 300;
 	color: #7f8082;
 }
+
+.padding-5 {
+	padding: 15px !important;
+}
