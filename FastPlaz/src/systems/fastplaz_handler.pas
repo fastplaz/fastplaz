@@ -157,6 +157,7 @@ type
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
 
     property URI: string read GetURI;
+    property Environment[const KeyName: string]: string read GetEnvirontment;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
     property Header[const KeyName: string]: string read GetHeader;
     property CustomHeader[const KeyName: string]: string read GetCustomHeader write SetCustomHeader;
