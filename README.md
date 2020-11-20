@@ -1,13 +1,15 @@
 
 # FastPlaz
 
+![FastPlaz Hero Banner](docs/images/hero-01.png)
+
 **[FastPlaz](https://www.fastplaz.com)** adalah satu satu web framework dengan menggunakan bahasa  free pascal  . Dibuat sedemikian rupa sehingga requirement server yang diperlukan pun sederhana dan minimal, dan bahkan bisa di  compile  langsung dari console/terminal tanpa memerlukan ide/editor  Lazarus. Cukup dengan menggunakan  apache  biasa seperti di shared hosting, fastplaz sudah bisa langsung digunakan.
 
 Desain struktur direktori dan theme/template dibuat sedemikian rupa agar memudahkan dalam melakukan pengembangan aplikasi. 
 
 
 
-## Requirement
+## Prerequisite
 
 * FPC / Free Pascal Compiler, version 3.2.0
 * Lazarus (optional)
@@ -48,5 +50,24 @@ Dan akan terlihat tambahan pilihan baru di menu `File|New Project ...` seperti i
 
 
 Selamat Mencoba
+
+
+## Related Content
+
+* [FastPlaz Official](https://fastplaz.com)
+* [FastPlaz Initiator Github](https://github.com/luridarmawan/)
+* [Pascal Indonesia Community](https://pascal-id.org)
+* [Free Pascal](https://www.freepascal.org/)
+* [Lazarus IDE](https://www.lazarus-ide.org/)
+
+
+## Contributing
+Just make issue and PR if you want to contribute. we will review your PR. See [Contributing Docs](CONTRIBUTING.md).
+
+## License
+See [License](LICENSE.txt)
+
+
+
 
 
