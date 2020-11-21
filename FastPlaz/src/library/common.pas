@@ -71,6 +71,7 @@ const
 
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
+  _ERR_DATABASE_NOT_INITIALIZED = 'The database connection has not been initialized.';
 
   _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
 
