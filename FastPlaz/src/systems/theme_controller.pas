@@ -405,6 +405,14 @@ begin
   except
   end;
 
+  // get direct string value
+  if preg_match('(["''])(.*?)(["''])', varname) then
+  begin
+    tmpvalue := varname.Replace('"','').Replace('''','');
+    Result := tmpvalue;
+    Exit;
+  end;
+
   // check from varstring first
   if FAssignVarStringMap.IndexOfName( varname) <> -1 then
   begin
@@ -1420,6 +1428,8 @@ begin
   begin
     FTagAssign_Variable.Values[tagstring_custom.Values['assignto']]:='s|'
       + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    FAssignVarStringMap.Values[tagstring_custom.Values['assignto']]:=
+      TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
     Exit;
   end;
   if tagstring_custom.Values['addassignto'] <> '' then
@@ -2115,14 +2125,14 @@ begin
       html.Text := Content;
   end;
 
-  //-- proccess conditional if
-  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
-
   //-- proccess foreach
   if RenderType = rtSmarty then
   begin
     html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
   end;
+
+  //-- proccess conditional if
+  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   templateEngine := TFPTemplate.Create;
   templateEngine.Template := html.Text;
