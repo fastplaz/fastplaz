@@ -944,6 +944,11 @@ var
   _joinfield,
   _join : TStrings;
 begin
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
+  end;
+
   primaryKeyValue := '';
   Result := false;
   sWhere := '';
@@ -1211,6 +1216,11 @@ begin
     begin
       DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
     end;
+  end;
+
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
   end;
 
   s := 'DELETE FROM ' + TableName + ' WHERE ';
