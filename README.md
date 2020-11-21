@@ -55,6 +55,7 @@ Selamat Mencoba
 ## Related Content
 
 * [FastPlaz Official](https://fastplaz.com)
+* [FastPlaz Documentation](https://fastplaz.github.io/)
 * [FastPlaz Initiator Github](https://github.com/luridarmawan/)
 * [Pascal Indonesia Community](https://pascal-id.org)
 * [Free Pascal](https://www.freepascal.org/)
