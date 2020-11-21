@@ -74,7 +74,7 @@ begin
   if not isValidCSRF then
   begin
     FlashMessages := 'Maaf, gunakan pengisian form ini dengan sebaik-baiknya.';
-    //Redirect('/example/form/');
+    Redirect('/example/form/');
   end;
 
   // Validasi sederhana

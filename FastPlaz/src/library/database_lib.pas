@@ -1129,6 +1129,11 @@ begin
     end;
   end;
 
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
+  end;
+
   sSQL := TStringList.Create;
   if Where <> '' then
   begin
