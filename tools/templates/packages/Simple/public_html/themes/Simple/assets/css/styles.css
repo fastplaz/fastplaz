@@ -6,3 +6,23 @@ section.header {
 section.module {
   padding: 0 0 60px 0;
 }
+
+
+#page-login a {
+  color: #343a40;
+}
+
+#contact-container a {
+  color: #343a40;
+}
+#contact-container td {
+  padding-left: 10px;
+}
+
+.flex-grow-1 {
+  flex-grow: 1 !important;
+}
+.bg-login-image {
+  background-position: 50%;
+  background-size: cover;
+}
