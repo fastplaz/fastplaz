@@ -100,7 +100,7 @@ end;
 initialization
   // -> http://yourdomainname/contact
   // The following line should be moved to a file "routes.pas"
-  Route[ 'contact'] := TContactController;
+  Route[ '/contact'] := TContactController;
 
 end.
 
