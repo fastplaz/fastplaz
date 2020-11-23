@@ -6,7 +6,7 @@ on:
       - development
 
 jobs:
-  generate_readme:
+  generate_update:
 
     runs-on: ubuntu-latest
     steps:
@@ -49,4 +49,5 @@ jobs:
         uses: ad-m/github-push-action@v0.5.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
           force: true
