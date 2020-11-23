@@ -13,7 +13,7 @@ object fAboutFastplaz: TfAboutFastplaz
   OnKeyDown = FormKeyDown
   Position = poScreenCenter
   UseDockManager = True
-  LCLVersion = '2.0.6.0'
+  LCLVersion = '2.0.10.0'
   object pnl_Button: TButtonPanel
     Left = 6
     Height = 36
