@@ -17,7 +17,7 @@ uses
   {$endif}
   fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
-  RegExpr, db, sqldb,
+  regexpr_lib, db, sqldb,
   common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
   Classes, SysUtils;
 

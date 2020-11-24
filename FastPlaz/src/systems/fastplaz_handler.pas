@@ -9,7 +9,7 @@ uses
   {$IFDEF HEAPTRACE}
   heaptrc,
   {$ENDIF}
-  RegExpr,
+  regexpr_lib,
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
@@ -1282,7 +1282,7 @@ end;
 procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
-  s, pathInfo: string;
+  s, pathInfo, groupName: string;
   i, j: integer;
   reg: TRegExpr;
   //m: TCustomHTTPModule;
@@ -1316,6 +1316,11 @@ begin
               ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
               if j = 3 then
                 ARequest.QueryFields.Values['act'] := reg.Match[j];
+            end;
+            for j := 1 to reg.GroupCount do
+            begin
+              groupName := reg.GroupName[j];
+              ARequest.QueryFields.Values[groupName] := reg.MatchFromName(groupName);
             end;
             Break;
           end;
