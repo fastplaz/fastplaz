@@ -9,27 +9,7 @@ unit datetime_helpers;
 
 {
   [x] USAGE
-  variable
-    d : TDateTime;
-    s : String;
-
-  d.FromString( '17-08-1945 09:59:00');
-  s := d.Format( 'yyyy-mm-dd HH:nn:ss');
-  d.AsString;
-
-  if d.IsAM then begin end;
-  if d.IsPM then begin end;
-  if d.IsToday then begin end;
-
-  if Tomorrow.IsSaturday then begin ... end;
-  if d.HourOf = 9 then ....
-
-  d := d.IncMinute(1);
-
-  if d.YearsDiff( Now) > 40 then begin ... end;
-
-  s := d.HumanReadable;
-  // 'more than 73 years ago'
+  see https://fastplaz.github.io/docs/helper#datetime_helper
 
 }
 

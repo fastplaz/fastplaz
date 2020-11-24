@@ -9,7 +9,7 @@ uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
-  RegExpr,
+  regexpr_lib,
   //netdb,
   resolve,
   zipper, strutils, dateutils, base64,
