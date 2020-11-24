@@ -45,8 +45,7 @@ type
 implementation
 
 const
-  _BCA_SANDBOX_AUTHORIZATION =
-    'jk5ZTkyYzgtYzAzNC00YmNhLWE0OTAtYWM4NGI0YTZiMjQxOjNmYWIwNGI1LWM4ODctNGZmMi05OGNkLTE1YjJmYTcyNzA1NA=="';
+  _BCA_SANDBOX_AUTHORIZATION = '';
   _BCA_SANDBOX_URL = 'https://sandbox.bca.co.id/';
   _BCA_URL_GETTOKEN = 'api/oauth/token';
 
