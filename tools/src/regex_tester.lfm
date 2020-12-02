@@ -1,0 +1,250 @@
+object fRegex: TfRegex
+  Left = 307
+  Height = 346
+  Top = 240
+  Width = 737
+  BorderStyle = bsSizeToolWin
+  Caption = 'Regex Tester'
+  ClientHeight = 346
+  ClientWidth = 737
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
+  Position = poScreenCenter
+  LCLVersion = '2.0.10.0'
+  object Panel1: TPanel
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 737
+    Align = alTop
+    ClientHeight = 34
+    ClientWidth = 737
+    TabOrder = 0
+    object cbbExpression: TComboBox
+      Cursor = crHandPoint
+      Left = 132
+      Height = 20
+      Top = 6
+      Width = 516
+      ItemHeight = 19
+      OnChange = cbbExpressionChange
+      OnKeyDown = cbbExpressionKeyDown
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+    end
+    object LSLabel1: TLabel
+      Left = 8
+      Height = 16
+      Top = 9
+      Width = 114
+      Caption = 'Regex Expression :'
+      ParentColor = False
+    end
+    object btnCheck: TBitBtn
+      Cursor = crHandPoint
+      Left = 651
+      Height = 30
+      Top = 2
+      Width = 81
+      Caption = '&Check'
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000064000000640000000000000000000000FFFFFF00FFFF
+        FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+        FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+        FF00FFFFFF00FFFFFF00FFFFFF003D8FFF774E98FFF23D8DFFDD1B77FF39217B
+        FF002680FF002381FF005783C20089837A0081818100FFFFFF00000000000000
+        000000000000000000000000000067A5FBFF96C2FFFF8BBBFFFF4E96FFE81D79
+        FF3B2580FF002381FF005783C20089837A0081818100FFFFFF00000000000000
+        0000BE7A45FFBE7A45FF7855395879A5E3FF98C5FFFF81B6FFFF8CBCFFFF5A94
+        ECFF9C7B6EFF1E80FF005483C50089837A0081818100FFFFFF0000000000BE7A
+        45FFE3CDBCFFD2A786FFBE7A45FFB29482FF87B5F2FF99C5FFFF85B8FFFF95C1
+        FFFF569AF8FFAE7B58FF6484B10088837C0081818100FFFFFF0000000000BE7A
+        45FFD2A786FFDAB89DFFDAB89DFFDAB89DFFC4B4AFFF8AB6F2FFA2CAFFFF8ABE
+        FFFF689ADEFF918378FF858584678383835A81818117FFFFFF00000000007855
+        3958BE7A45FFE3CDBCFFCFA17CFFBD7F4CF8C38656FFA9836BF684B2EEFF7EA8
+        E1FFC4C4C5FFA9A6A3FF9E9F9FFF959595FF828282EC82828262BE7A45FFBE7A
+        45FFC79064FFDAB89DFFBD7F4CF8B78256CD78553959A56F43C0B17F5AF5979A
+        A0FFB8B3ADFFCFCFCFFFBBBBBBFFC5C5C5FF9F9F9FFF858585E8BE7A45FFE3CD
+        BCFFDAB89DFFDAB89DFFC38656FF7855395960A5FF0078553959C38656FFC3AD
+        9BFFB7B5B2FFCDCDCDFF8F8A87FFA1A1A1FE9B9B9BFF898989FDBE7A45FFBE7A
+        45FFC79064FFDAB89DFFBA7A46F49C6B42AE785539598F633F97BA7C49EEC4AD
+        9CFFAFB0B0FFE5E5E5FFACABABFF8F8F8FC18E8E8EB28D8D8D90000000007855
+        3958BE7A45FFDAB89DFFCFA17CFFBA7A46F4C38656FFBA7A46F4D1A582FFD4B5
+        9DFF9E9995FFBBBBBBFFAEAEAEFF969696B48D8D8D00FFFFFF0000000000BE7A
+        45FFD2A786FFDAB89DFFDAB89DFFDAB89DFFDAB89DFFDAB89DFFDAB89DFFDAB8
+        9DFFBEA48FFFA09A95FF9B9B9BF999999992FFFFFF00FFFFFF0000000000BE7A
+        45FFE3CDBCFFD2A786FFBE7A45FFC79064FFDAB89DFFC79064FFBE7A45FFD2A7
+        86FFE3CDBCFFBE7A45FF00000000FFFFFF00FFFFFF00FFFFFF00000000007855
+        3958BE7A45FFBE7A45FF78553958BE7A45FFE3CDBCFFBE7A45FF78553958BE7A
+        45FFBE7A45FF0000000000000000FFFFFF00FFFFFF00FFFFFF00000000000000
+        0000000000000000000000000000BE7A45FFBE7A45FFBE7A45FF000000000000
+        0000000000000000000000000000FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+        FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+        FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00
+      }
+      ImageIndex = 25
+      OnClick = btnCheckClick
+      TabOrder = 1
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Height = 34
+    Top = 312
+    Width = 737
+    Align = alBottom
+    ClientHeight = 34
+    ClientWidth = 737
+    TabOrder = 1
+    object LSLabel2: TLabel
+      Left = 8
+      Height = 16
+      Top = 9
+      Width = 45
+      Caption = 'Result :'
+      ParentColor = False
+    end
+    object edtResult: TEdit
+      Left = 60
+      Height = 22
+      Top = 5
+      Width = 528
+      ReadOnly = True
+      TabOrder = 0
+    end
+  end
+  object mem: TMemo
+    Left = 0
+    Height = 278
+    Top = 34
+    Width = 533
+    Align = alClient
+    BorderStyle = bsNone
+    Font.Height = -16
+    Lines.Strings = (
+      'fastplaz.com'
+    )
+    ParentFont = False
+    ScrollBars = ssAutoBoth
+    TabOrder = 2
+  end
+  object mem_email: TMemo
+    Left = 80
+    Height = 60
+    Top = 64
+    Width = 394
+    Lines.Strings = (
+      'lksjdfhalksdjfhauhyrqwpoeixcmnjbzvxvcbmnbu zsdkjiask kjasfdhgasdfwe qweriuqwie qqiasdnm asdlasd '
+      'test@aksiide.com asfpiuawerlkjawewerw waerquoiytroqiwutosdf aosidfa @@ #poip(*&%'
+      ''
+      'email list:'
+      '- test@fastplaz.com'
+      '- test@carik.id'
+      '- test@aksiide.com'
+    )
+    TabOrder = 3
+    Visible = False
+  end
+  object mem_url: TMemo
+    Left = 80
+    Height = 58
+    Top = 132
+    Width = 394
+    Lines.Strings = (
+      'lksjdfhalksdjfhauhyrqwpoeixcmnjbzvxvcbmnbu'
+      'zsdkjiask kjasfdhgasdfwe qweriuqwie qqiasdnm asdlasd http://www.fastplaz.com asfpiuawerlkjawe '
+      'waerquoiytroqiwutosdf aosidfa @@ #poip(*&%'
+      ''
+      'Partner list:'
+      '- https://fastplaz.com'
+      '- https://carik.id'
+      '- https://aksiide.com'
+    )
+    TabOrder = 4
+    Visible = False
+  end
+  object Panel3: TPanel
+    Left = 538
+    Height = 278
+    Top = 34
+    Width = 199
+    Align = alRight
+    ClientHeight = 278
+    ClientWidth = 199
+    TabOrder = 5
+    object Panel4: TPanel
+      Left = 1
+      Height = 17
+      Top = 1
+      Width = 197
+      Align = alTop
+      Caption = 'Result'
+      Font.Height = -12
+      ParentFont = False
+      TabOrder = 0
+    end
+    object lbResult: TListBox
+      Left = 1
+      Height = 110
+      Top = 18
+      Width = 197
+      Align = alTop
+      BorderStyle = bsNone
+      ItemHeight = 0
+      TabOrder = 1
+    end
+    object Splitter1: TSplitter
+      Cursor = crVSplit
+      Left = 1
+      Height = 5
+      Top = 128
+      Width = 197
+      Align = alTop
+      ResizeAnchor = akTop
+    end
+    object Panel5: TPanel
+      Left = 1
+      Height = 144
+      Top = 133
+      Width = 197
+      Align = alClient
+      Caption = 'Panel5'
+      ClientHeight = 144
+      ClientWidth = 197
+      TabOrder = 3
+      object Panel6: TPanel
+        Left = 1
+        Height = 17
+        Top = 1
+        Width = 195
+        Align = alTop
+        Caption = 'Group Name'
+        Font.Height = -12
+        ParentFont = False
+        TabOrder = 0
+      end
+      object cbbGroup: TListBox
+        Left = 1
+        Height = 125
+        Top = 18
+        Width = 195
+        Align = alClient
+        BorderStyle = bsNone
+        ItemHeight = 0
+        TabOrder = 1
+      end
+    end
+  end
+  object Splitter2: TSplitter
+    Left = 533
+    Height = 278
+    Top = 34
+    Width = 5
+    Align = alRight
+    ResizeAnchor = akRight
+  end
+end

@@ -1,5 +1,12 @@
 # Development Changes
 
+## 20201203.0344
+
+- Tools: Database Explorer
+- Tools: Json Formatter & Validator
+- Tools: Regex Tester
+- config lib: set json data value
+
 ## 20201124.2145
 
 - url routing with group name regex

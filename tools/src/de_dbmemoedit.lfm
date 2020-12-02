@@ -1,0 +1,53 @@
+object fMemoEdit: TfMemoEdit
+  Left = 298
+  Height = 170
+  Top = 185
+  Width = 375
+  BorderStyle = bsSizeToolWin
+  Caption = 'Edit Memo'
+  ClientHeight = 170
+  ClientWidth = 375
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  Position = poOwnerFormCenter
+  LCLVersion = '2.0.10.0'
+  object edt: TMemo
+    Left = 14
+    Height = 79
+    Top = 11
+    Width = 322
+    Lines.Strings = (    )
+    ReadOnly = True
+    TabOrder = 0
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 26
+    Top = 144
+    Width = 375
+    Align = alBottom
+    ClientHeight = 26
+    ClientWidth = 375
+    TabOrder = 1
+    object SpeedButton1: TSpeedButton
+      Left = 0
+      Height = 22
+      Top = 3
+      Width = 55
+      Caption = 'OK'
+      Enabled = False
+      Flat = True
+      OnClick = SpeedButton1Click
+    end
+    object SpeedButton2: TSpeedButton
+      Left = 56
+      Height = 22
+      Top = 3
+      Width = 56
+      Caption = 'Cancel'
+      Flat = True
+      OnClick = SpeedButton2Click
+    end
+  end
+end

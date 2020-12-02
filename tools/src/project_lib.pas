@@ -5,8 +5,8 @@ unit project_lib;
 interface
 
 uses
-  Forms, Dialogs, Controls, LazIDEIntf, LazarusPackageIntf, ProjectIntf,
-  PackageIntf,
+  Forms, Dialogs, Controls,
+  LazIDEIntf, LazarusPackageIntf, ProjectIntf, PackageIntf,
   Classes, SysUtils;
 
 resourcestring

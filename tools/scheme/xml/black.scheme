@@ -1,0 +1,77 @@
+[Attribute Name]
+Background=536870911
+Foreground=16754856
+Style=0
+StyleMask=0
+
+[Attribute Value]
+Background=536870911
+Foreground=16768477
+Style=0
+StyleMask=0
+
+[CDATA Section]
+Background=536870911
+Foreground=32896
+Style=2
+StyleMask=0
+
+[Comment]
+Background=12632256
+Foreground=8421504
+Style=3
+StyleMask=0
+
+[DOCTYPE Section]
+Background=536870911
+Foreground=16745604
+Style=2
+StyleMask=0
+
+[Element Name]
+Background=536870911
+Foreground=12713983
+Style=0
+StyleMask=0
+
+[Entity Reference]
+Background=536870911
+Foreground=16754342
+Style=1
+StyleMask=0
+
+[Namespace Attribute Name]
+Background=536870911
+Foreground=65535
+Style=0
+StyleMask=0
+
+[Namespace Attribute Value]
+Background=536870911
+Foreground=65535
+Style=1
+StyleMask=0
+
+[Processing Instruction]
+Background=536870911
+Foreground=16750487
+Style=0
+StyleMask=0
+
+[Symbol]
+Background=536870911
+Foreground=12058623
+Style=0
+StyleMask=0
+
+[Text]
+Background=536870911
+Foreground=16777215
+Style=1
+StyleMask=0
+
+[Whitespace]
+Background=536870911
+Foreground=65535
+Style=0
+StyleMask=0
