@@ -12,7 +12,7 @@ uses
   Buttons, DBGrids,
   // INTF
   {$ifndef FDE_DESKTOP}
-  PackageIntf, IDEWindowIntf, LazIDEIntf,
+  PackageIntf, IDEWindowIntf, IDEExternToolIntf, LazIDEIntf,
   {$endif}
   // Editor
   SynEdit, SynHighlighterSQL, SynCompletion, SynEditKeyCmds,
@@ -96,7 +96,7 @@ type
     procedure EnableControl;
     procedure PreviewTable(ATableName: string);
     procedure Disconnect;
-    procedure Log(AMessage: string; AGroup: string = '');
+    procedure Log(AMessage: string; AGroup: string = ''; UrgencyLevel: TMessageLineUrgency = mluNone);
 
   end;
 
@@ -220,7 +220,7 @@ begin
     on E: Exception do
     begin
       s := E.Message.Replace(#13, ' ').Replace(#10, ' ');
-      Log(s, 'ERROR');
+      Log(s, 'ERROR', mluError);
       barBottom.Panels[1].Text := s;
     end;
   end;
@@ -724,7 +724,7 @@ begin
   exit; //ulil
   if AStatus <> 0 then
   begin
-    Log(AMessage, 'Error');
+    Log(AMessage, 'Error', mluError);
     barBottom.Panels[1].Text := 'Error: ' + AMessage;
     ShowMessage('Error: ' + AMessage);
   end;
@@ -780,7 +780,8 @@ begin
 
 end;
 
-procedure TIDEFDEBrowserWindow.Log(AMessage: string; AGroup: string);
+procedure TIDEFDEBrowserWindow.Log(AMessage: string; AGroup: string;
+  UrgencyLevel: TMessageLineUrgency);
 var
   s: string;
 begin

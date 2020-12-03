@@ -19,7 +19,7 @@
       </Linking>
       <Other>
         <Verbosity>
-          <ShowNotes Value="False"/>
+          <ShowWarn Value="False"/>
           <ShowHints Value="False"/>
         </Verbosity>
       </Other>

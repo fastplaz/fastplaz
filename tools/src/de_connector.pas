@@ -130,7 +130,7 @@ type
 
     procedure UpdateView;
 
-    procedure log(AMessage: string; ACategory: string = '');
+    procedure log(AMessage: string; ACategory: string = ''; UrgencyLevel: TMessageLineUrgency = mluNone);
     procedure BrowserOpen;
     procedure LoadConfiguration;
 
@@ -199,17 +199,18 @@ begin
   //EndUpdate;
 end;
 
-procedure TIDEFDEWindow.log(AMessage: string; ACategory: string);
+procedure TIDEFDEWindow.log(AMessage: string; ACategory: string;
+  UrgencyLevel: TMessageLineUrgency);
 begin
   {$ifdef FDE_DESKTOP}
   barBottom.SimpleText := ACategory + ': ' + AMessage;
   {$else}
-  IDEMessagesWindow.AddCustomMessage(mluNote, AMessage, ACategory, 0, 0, 'FastPlaz');
+  IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' + AMessage, '', 0, 0, 'FastPlaz');
   {$endif}
 
   if Assigned(IDEFDEBrowserWindow) then
   begin
-    IDEFDEBrowserWindow.Log(AMessage, ACategory);
+    IDEFDEBrowserWindow.Log(AMessage, ACategory, UrgencyLevel);
   end;
 end;
 
@@ -283,6 +284,8 @@ begin
     Password := getConfigValue(AIndex, 'password');
     DatabaseName := getConfigValue(AIndex, 'database_name');
 
+    //TODO: Load Library
+
     AfterConnect := @onConnectorAfterConnect;
     AfterDisconnect := @onConnectorAfterDisconnect;
     LogEvents := [detExecute, detActualSQL];
@@ -343,9 +346,9 @@ begin
   try
     DatabaseController.SQLConnector.Open;
   except
-    on E:Exception do
+    on E: Exception do
     begin
-      log(E.Message);
+      log(E.Message, 'FDE', mluError);
       Exit;
     end;
   end;
@@ -377,9 +380,9 @@ begin
   try
     DatabaseController.SQLConnector.Open;
   except
-    on E:Exception do
+    on E: Exception do
     begin
-      log(E.Message);
+      log(E.Message, 'FDE', mluError);
       Exit;
     end;
   end;
@@ -432,9 +435,9 @@ begin
       Exit;
     DatabaseController.SQLConnector.GetTableNames(tableList, False);
   except
-    on E:Exception do
+    on E: Exception do
     begin
-      log(E.Message);
+      log(E.Message, 'FDE', mluError);
     end;
   end;
 end;
@@ -597,7 +600,7 @@ begin
       IDEFDEBrowserWindow.Disconnect;
     end;
 
-    log('Connecting to ' + tvConnectionList.Selected.Text, 'FDE');
+    log('Connecting to ' + tvConnectionList.Selected.Text, 'FDE', mluProgress);
     PrepareDatabaseController;
     PrepareConnection(tvConnectionList.Selected.Index);
 
@@ -648,7 +651,7 @@ end;
 
 procedure TIDEFDEWindow.onConnectorAfterConnect(Sender: TObject);
 begin
-  log('Database connected');
+  log('Database connected', 'FDE');
   if Assigned(IDEFDEBrowserWindow) then
   begin
     IDEFDEBrowserWindow.pgMain.Enabled := True;
@@ -660,7 +663,7 @@ end;
 
 procedure TIDEFDEWindow.onConnectorAfterDisconnect(Sender: TObject);
 begin
-  log('Database disconnected');
+  log('Database disconnected', 'FDE');
   if Assigned(IDEFDEBrowserWindow) then
   begin
     IDEFDEBrowserWindow.editor.Clear;
@@ -675,7 +678,7 @@ procedure TIDEFDEWindow.onConnectorLog(Sender: TSQLConnection;
   EventType: TDBEventType; const Msg: string);
 begin
   if EventType = detActualSQL then
-    log(Msg);
+    log(Msg.Replace(#13, ' ').Replace(#10, ' '), 'SQL', mluNote);
 end;
 
 procedure TIDEFDEWindow.onQueryAfterOpen(DataSet: TDataSet);
@@ -799,7 +802,7 @@ begin
   if lastActiveNode <> nil then
     lastActiveNode.DeleteChildren;
   if DatabaseController.Connected then
-    DatabaseController.Close(False);
+    DatabaseController.Close(True);
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
@@ -855,8 +858,8 @@ var
   i: integer;
   s, dbName: string;
 begin
-  if MessageDlg(rsConfirmation, rsAskCancelOperation,
-    mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  if MessageDlg(rsConfirmation, rsAskCancelOperation, mtConfirmation,
+    [mbYes, mbNo], 0) = mrYes then
   begin
     Exit;
   end;
@@ -925,17 +928,17 @@ begin
 
     with fDatabaseConnectionEditor do
     begin
-      databaseAsData.Items[i].FindPath('name').Value:= edtName.Text;
-      databaseAsData.Items[i].FindPath('type').Value:= dbType;
-      databaseAsData.Items[i].FindPath('driver').Value:= cbbDriver.Text;
-      databaseAsData.Items[i].FindPath('hostname').Value:= edtHostname.Text;
-      databaseAsData.Items[i].FindPath('port').Value:= edtPort.Text;
-      databaseAsData.Items[i].FindPath('username').Value:= edtUsername.Text;
-      databaseAsData.Items[i].FindPath('password').Value:= edtPassword.Text;
-      databaseAsData.Items[i].FindPath('database_name').Value:= edtDatabaseName.Text;
-      databaseAsData.Items[i].FindPath('charset').Value:= '';
-      databaseAsData.Items[i].FindPath('prefix').Value:= '';
-      databaseAsData.Items[i].FindPath('library').Value:= edtLibrary.Text;
+      databaseAsData.Items[i].FindPath('name').Value := edtName.Text;
+      databaseAsData.Items[i].FindPath('type').Value := dbType;
+      databaseAsData.Items[i].FindPath('driver').Value := cbbDriver.Text;
+      databaseAsData.Items[i].FindPath('hostname').Value := edtHostname.Text;
+      databaseAsData.Items[i].FindPath('port').Value := edtPort.Text;
+      databaseAsData.Items[i].FindPath('username').Value := edtUsername.Text;
+      databaseAsData.Items[i].FindPath('password').Value := edtPassword.Text;
+      databaseAsData.Items[i].FindPath('database_name').Value := edtDatabaseName.Text;
+      databaseAsData.Items[i].FindPath('charset').Value := '';
+      databaseAsData.Items[i].FindPath('prefix').Value := '';
+      databaseAsData.Items[i].FindPath('library').Value := edtLibrary.Text;
     end;
 
     Config.SetDataValue('databases', databaseAsData);
