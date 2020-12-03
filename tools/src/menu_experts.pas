@@ -6,7 +6,7 @@ interface
 
 uses
   Controls, Dialogs,
-  LazIDEIntf, MenuIntf, IDECommands, ProjectIntf, IDEExternToolIntf,
+  LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf, IDEExternToolIntf,
   Classes, SysUtils;
 
 const
@@ -24,7 +24,10 @@ implementation
 
 uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd,
   modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd,
-  packageapp_wzd, packageapp_lib;
+  packageapp_wzd, packageapp_lib,
+  json_tools, regex_tester,
+  //Database Explorer
+  de_connector, de_dbbrowser, de_common;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
 begin
@@ -173,6 +176,20 @@ begin
   end;
 end;
 
+procedure JSONTools_Proc(ASender: TObject);
+begin
+  if not Assigned(fJSONTools) then
+    fJSONTools := TfJSONTools.Create(nil);
+  fJSONTools.Show;
+end;
+
+procedure RegexTester_Proc(ASender: TObject);
+begin
+  if not Assigned(fRegex) then
+    fRegex := TfRegex.Create(nil);
+  fRegex.Show;
+end;
+
 procedure About_Proc(ASender: TObject);
 begin
   if fAboutFastplaz = nil then
@@ -211,9 +228,26 @@ begin
     'Create Web Directory Structure', nil, @CreateWebStructure_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
+
+  // Database Explorer, JSON Tools
+  CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_DatabaseExplorer',
+    RS_DATABASE_EXPLORER_MENU, nil, @ViewDBConnector, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_JSONTools',
+    RS_JSON_TOOLS_MENU, nil, @JSONTools_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_RegexTester',
+    RS_REGEX_TESTER_MENU, nil, @RegexTester_Proc, nil);
+
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
     nil, @About_Proc, nil, 'icon_information');
+
+  // register FDE window
+  IDEWindowCreators.Add(FDE_WINDOW_NAME, @CreateIDEConnectorWindow,
+    nil, '250', '250', '', '');
+  IDEWindowCreators.Add(FDE_BROWSER_WINDOW_NAME, @CreateIDEBrowserWindow,
+    nil, '250', '250', '', '');
+
 end;
 
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);

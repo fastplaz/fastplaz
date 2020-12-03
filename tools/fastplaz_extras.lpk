@@ -9,10 +9,14 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\FastPlaz"/>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about;..\FastPlaz\src\vendor\dcrypt"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\systems;..\FastPlaz\src\library;..\FastPlaz\src\vendor;..\FastPlaz\src\app\about;..\FastPlaz\src\vendor\dcrypt;..\FastPlaz\src\helper;..\FastPlaz\src\model"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
+        <Verbosity>
+          <ShowWarn Value="False"/>
+          <ShowHints Value="False"/>
+        </Verbosity>
         <ConfigFile>
           <CustomConfigFile Value="True"/>
           <ConfigFilePath Value="extra.cfg"/>

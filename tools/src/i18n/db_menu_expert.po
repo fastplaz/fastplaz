@@ -1,0 +1,7 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: db_menu_expert.rs_database_explorer_menu
+msgid "Database Explorer"
+msgstr ""
+

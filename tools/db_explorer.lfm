@@ -1,0 +1,106 @@
+object fDB: TfDB
+  Left = 240
+  Height = 240
+  Top = 422
+  Width = 320
+  Caption = 'Database Explorer'
+  ClientHeight = 240
+  ClientWidth = 320
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poDefault
+  LCLVersion = '2.0.10.0'
+  object barHeader: TToolBar
+    Left = 0
+    Top = 0
+    Width = 320
+    AutoSize = True
+    ButtonHeight = 46
+    ButtonWidth = 23
+    ShowCaptions = True
+    TabOrder = 0
+  end
+  object BtnPanel: TPanel
+    Left = 0
+    Height = 28
+    Top = 32
+    Width = 320
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 28
+    ClientWidth = 320
+    TabOrder = 1
+    object OpenButton: TSpeedButton
+      AnchorSideLeft.Control = BtnPanel
+      AnchorSideTop.Control = BtnPanel
+      AnchorSideTop.Side = asrCenter
+      Left = 2
+      Height = 25
+      Top = 2
+      Width = 25
+      Align = alLeft
+      AllowAllUp = True
+      AutoSize = True
+      BorderSpacing.Around = 2
+      Constraints.MinHeight = 25
+      Constraints.MinWidth = 25
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object DirectoryHierarchyButton: TSpeedButton
+      AnchorSideLeft.Control = OpenButton
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = OpenButton
+      AnchorSideTop.Side = asrCenter
+      Left = 40
+      Height = 25
+      Top = 2
+      Width = 25
+      AllowAllUp = True
+      AutoSize = True
+      BorderSpacing.Left = 11
+      BorderSpacing.Around = 2
+      Constraints.MinHeight = 25
+      Constraints.MinWidth = 25
+      GroupIndex = 1
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object SortAlphabeticallyButton: TSpeedButton
+      AnchorSideLeft.Control = DirectoryHierarchyButton
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = OpenButton
+      AnchorSideTop.Side = asrCenter
+      Left = 67
+      Height = 25
+      Top = 2
+      Width = 25
+      AllowAllUp = True
+      AutoSize = True
+      BorderSpacing.Around = 2
+      Constraints.MinHeight = 25
+      Constraints.MinWidth = 25
+      GroupIndex = 2
+      ShowHint = True
+      ParentShowHint = False
+    end
+  end
+  object barBottom: TStatusBar
+    Left = 0
+    Height = 18
+    Top = 222
+    Width = 320
+    Panels = <>
+  end
+  object tvConnectionList: TTreeView
+    Left = 0
+    Height = 162
+    Top = 60
+    Width = 320
+    Align = alClient
+    TabOrder = 3
+    OnClick = tvConnectionListClick
+    OnDblClick = tvConnectionListDblClick
+  end
+end

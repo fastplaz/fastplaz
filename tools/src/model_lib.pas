@@ -36,9 +36,18 @@ type
   end;
 
 
+var
+  GenerateFromFDE: boolean = False;
+  CustomTableName: string = '';
+  ModelName, TableName: string;
+
 implementation
 
-uses fastplaz_tools_register, model_wzd;
+uses
+  fastplaz_tools_register,
+  {$ifndef FDESelfPackage}
+  {$endif}
+  model_wzd;
 
 { TFileDescModel }
 
@@ -115,9 +124,18 @@ begin
     Add('');
     Add('constructor ' + ModelName + '.Create(const DefaultTableName: string = '''');');
     Add('Begin');
-    Add('  inherited Create( DefaultTableName); // table name = ' +
-      LowerCase(TableName) + 's') ;
-    Add('  //inherited Create(''yourtablename''); // if use custom tablename');
+    if CustomTableName.IsEmpty then
+    begin
+      Add('  inherited Create( DefaultTableName); // table name = ' +
+        LowerCase(TableName) + 's') ;
+      Add('  //inherited Create(''yourtablename''); // if use custom tablename');
+    end
+    else
+    begin
+      Add('  //inherited Create( DefaultTableName); // table name = ' +
+        LowerCase(TableName) + 's') ;
+      Add('  inherited Create('''+LowerCase(CustomTableName)+'''); // if use custom tablename');
+    end;
     Add('End;');
     Add('');
   end;
@@ -135,19 +153,24 @@ end;
 function TFileDescModel.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
-  if not bExpert then
-  begin;
-    ModelName := 'Sample';
-    with TfModelWizard.Create(nil) do
-    begin
-      if ShowModal = mrOk then
+  if not GenerateFromFDE then
+  begin
+    if (not bExpert) then
+    begin;
+      ModelName := 'Sample';
+      with TfModelWizard.Create(nil) do
       begin
-        if edt_ModelName.Text <> '' then
-          ModelName := edt_ModelName.Text;
+        if ShowModal = mrOk then
+        begin
+          if edt_ModelName.Text <> '' then
+            ModelName := edt_ModelName.Text;
+        end;
+        Free;
       end;
-      Free;
     end;
   end;
+  GenerateFromFDE := False;
+
   DefaultFilename := LowerCase(ModelName) + '_model.pas';
   DefaultFileExt := '.pas';
   DefaultSourceName := LowerCase(ModelName) + '_model';

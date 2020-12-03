@@ -1,0 +1,9 @@
+{"version":1,"strings":[
+{"hash":2586210,"name":"tfregex.caption","sourcebytes":[82,101,103,101,120,32,84,101,115,116,101,114],"value":"Regex Tester"},
+{"hash":199033946,"name":"tfregex.lslabel1.caption","sourcebytes":[82,101,103,101,120,32,69,120,112,114,101,115,115,105,111,110,32,58],"value":"Regex Expression :"},
+{"hash":44690331,"name":"tfregex.btncheck.caption","sourcebytes":[38,67,104,101,99,107],"value":"&Check"},
+{"hash":212612026,"name":"tfregex.lslabel2.caption","sourcebytes":[82,101,115,117,108,116,32,58],"value":"Result :"},
+{"hash":93105204,"name":"tfregex.panel4.caption","sourcebytes":[82,101,115,117,108,116],"value":"Result"},
+{"hash":90721269,"name":"tfregex.panel5.caption","sourcebytes":[80,97,110,101,108,53],"value":"Panel5"},
+{"hash":203534165,"name":"tfregex.panel6.caption","sourcebytes":[71,114,111,117,112,32,78,97,109,101],"value":"Group Name"}
+]}

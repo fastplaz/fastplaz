@@ -30,7 +30,6 @@ var
   bExpert: boolean = False;
   FastPlazRuntimeDirectory: string;
   ModulTypeName, Permalink: string;
-  ModelName, TableName: string;
 
 implementation
 
