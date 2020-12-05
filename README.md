@@ -7,6 +7,7 @@
 
 Desain struktur direktori dan theme/template dibuat sedemikian rupa agar memudahkan dalam melakukan pengembangan aplikasi. 
 
+Tutorial lengkap tentang [FastPlaz](https://www.fastplaz.com) bisa dipelajari melalui situs [fastplaz.github.io](https://fastplaz.github.io/)
 
 
 ## Prerequisite
@@ -22,13 +23,14 @@ Desain struktur direktori dan theme/template dibuat sedemikian rupa agar memudah
 Download atau clone terlebih dahulu repositori ini. 
 
 ```bash
-# git clone -b development https://github.com/fastplaz/fastplaz.git
+ git clone -b development https://github.com/fastplaz/fastplaz.git
 ```
 
 Disarankan menggunakan cara _clone_ ini dibandingkan dengan download manual. Jika nanti ada update atau perubahan, Anda cukup melakukan `pull` saja.
 
 ```bash
-# git pull
+ git reset --hard HEAD
+ git pull
 ```
 
 Dengan cara ini yang akan diambil hanya perubahannya saja, tidak perlu mengunduh ulang keseluruhan file. Selanjutnya Anda cukup _compile_ ulang saja file-file package-nya.
@@ -50,6 +52,23 @@ Dan akan terlihat tambahan pilihan baru di menu `File|New Project ...` seperti i
 
 
 Selamat Mencoba
+
+## Utilitas Pendukung
+
+Beberapa utilitas pendukung untuk pengembangan aplikasi juga telah disediakan.
+
+### Database Explorer
+
+![Database Explorer](https://fastplaz.github.io/img/tools/field-copy-2.png)
+
+### JSON Validator & Formatter
+
+![JSON Validator](https://fastplaz.github.io/img/tools/json-validator.png)
+
+### Regex Tester
+
+![Regex Tester](https://fastplaz.github.io/img/tools/regex-tester.png)
+
 
 
 ## Related Content
