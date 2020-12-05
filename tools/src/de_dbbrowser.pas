@@ -397,20 +397,19 @@ begin
   updateCursorPosition(TSynEdit(Sender), TSynEdit(Sender).CaretX);
 end;
 
-procedure TIDEFDEBrowserWindow.FormClose(Sender: TObject;
-  var CloseAction: TCloseAction);
-begin
-end;
-
 procedure TIDEFDEBrowserWindow.FormCloseQuery(Sender: TObject;
   var CanClose: boolean);
 begin
   saveFormState;
 end;
 
+procedure TIDEFDEBrowserWindow.FormClose(Sender: TObject;
+  var CloseAction: TCloseAction);
+begin
+end;
+
 procedure TIDEFDEBrowserWindow.FormDestroy(Sender: TObject);
 begin
-
 end;
 
 procedure TIDEFDEBrowserWindow.FormKeyDown(Sender: TObject; var Key: word;
@@ -769,15 +768,15 @@ end;
 
 procedure TIDEFDEBrowserWindow.saveFormState;
 begin
-  PropStorage.WriteInteger('left', Left);
-  PropStorage.WriteInteger('top', Top);
+  PropStorage.WriteInteger('left', Parent.Left);
+  PropStorage.WriteInteger('top', Parent.Top);
+  PropStorage.Save;
 end;
 
 procedure TIDEFDEBrowserWindow.restoreFormState;
 var
   i: integer;
 begin
-  exit;
   i := PropStorage.ReadInteger('left',0);
   if i > 0 then
     Left := i;

@@ -2,11 +2,11 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
   Left = 459
   Height = 394
   Top = 214
-  Width = 321
+  Width = 325
   BorderStyle = bsToolWindow
   Caption = 'Database Connection Editor'
   ClientHeight = 394
-  ClientWidth = 321
+  ClientWidth = 325
   KeyPreview = True
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
@@ -212,12 +212,16 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
     Caption = 'Library '
     ParentColor = False
   end
-  object edtLibrary: TEdit
+  object edtLibrary: TFileNameEdit
     Left = 132
     Height = 22
     Top = 256
     Width = 163
-    OnKeyPress = edtNameKeyPress
+    FilterIndex = 0
+    HideDirectories = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
     TabOrder = 8
   end
 end
