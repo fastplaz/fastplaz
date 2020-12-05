@@ -1429,9 +1429,9 @@ finalization
   FreeAndNil( DB_Transaction);
   FreeAndNil( DB_LibLoader);
 
-  if not Assigned( DB_Connector_Write) then FreeAndNil( DB_Connector_Write);
-  if not Assigned( DB_Transaction_Write) then FreeAndNil( DB_Transaction_Write);
-  if not Assigned( DB_LibLoader_Write) then FreeAndNil( DB_LibLoader_Write);
+  if Assigned( DB_Connector_Write) then FreeAndNil( DB_Connector_Write);
+  if Assigned( DB_Transaction_Write) then FreeAndNil( DB_Transaction_Write);
+  if Assigned( DB_LibLoader_Write) then FreeAndNil( DB_LibLoader_Write);
 
 end.
 

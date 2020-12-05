@@ -1,9 +1,9 @@
 object IDEFDEWindow: TIDEFDEWindow
-  Left = 76
+  Left = 213
   Height = 356
-  Top = 95
+  Top = 379
   Width = 203
-  Caption = '::IDEFDEWindow'
+  Caption = ':: IDEFDEWindow'
   ClientHeight = 356
   ClientWidth = 203
   KeyPreview = True
@@ -11,7 +11,10 @@ object IDEFDEWindow: TIDEFDEWindow
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
+  OnResize = FormResize
   OnShow = FormShow
+  OnStartDock = FormStartDock
+  OnUnDock = FormUnDock
   Position = poDefault
   LCLVersion = '2.0.10.0'
   object barHeader: TToolBar
@@ -99,6 +102,18 @@ object IDEFDEWindow: TIDEFDEWindow
       Top = 2
       Action = actTest
     end
+  end
+  object pnlLoading: TPanel
+    Left = 56
+    Height = 20
+    Top = 92
+    Width = 92
+    Caption = 'Loading ...'
+    Color = 1310684
+    Font.Color = 16724740
+    ParentColor = False
+    ParentFont = False
+    TabOrder = 4
   end
   object DBImages: TImageList
     Left = 53
@@ -752,12 +767,7 @@ object IDEFDEWindow: TIDEFDEWindow
     Top = 280
   end
   object PropStorage: TIniPropStorage
-    StoredValues = <    
-      item
-        Name = 'left'
-        Value = '100'
-        KeyString = 'left'
-      end>
+    StoredValues = <>
     IniSection = 'FDEConnector'
     Left = 148
     Top = 280

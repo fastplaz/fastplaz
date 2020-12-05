@@ -55,6 +55,7 @@ type
   public
     Transaction: TSQLTransaction;
     SQLConnector: TSQLConnector;
+    LibraryLoader: TSQLDBLibraryLoader;
     Query: TSQLQuery;
     constructor Create(CreateSuspended: boolean);
     destructor Destroy; override;
@@ -66,6 +67,7 @@ type
       ACallBack: TOnSQLCallback = nil): boolean;
     procedure Close(ForceClose: boolean = False);
 
+    function LoadLibrary(ALibraryFileName: string): boolean;
   published
     property Connected: boolean read getConnected;
     property SQL: TStringList read getSQL write setSQL;
@@ -176,6 +178,7 @@ begin
   except
     on E: Exception do
     begin
+      FMessage := E.Message;
     end;
   end;
 end;
@@ -208,6 +211,8 @@ destructor TDatabaseController.Destroy;
 begin
   if SQLConnector.Connected then
     SQLConnector.Close(True);
+  if Assigned(LibraryLoader) then
+    LibraryLoader.Free;
   Query.Free;
   SQLConnector.Free;
   Transaction.Free;
@@ -273,6 +278,30 @@ end;
 procedure TDatabaseController.Close(ForceClose: boolean);
 begin
   SQLConnector.Close(ForceClose);
+end;
+
+function TDatabaseController.LoadLibrary(ALibraryFileName: string): boolean;
+begin
+  Result := False;
+  if (ALibraryFileName.IsEmpty) or
+    (not FileExists(ALibraryFileName)) then
+    Exit;
+
+  if not Assigned(LibraryLoader) then
+    LibraryLoader := TSQLDBLibraryLoader.Create(nil);
+
+  try
+    LibraryLoader.ConnectionType := SQLConnector.ConnectorType;
+    LibraryLoader.LibraryName := ALibraryFileName;
+    LibraryLoader.Enabled := True;
+    LibraryLoader.LoadLibrary;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      FMessage := E.Message;
+    end;
+  end;
 end;
 
 finalization

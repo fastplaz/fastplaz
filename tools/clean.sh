@@ -6,8 +6,8 @@ rm -rf *.ppu
 rm -rf *.o
 rm -rf *.compiled
 rm -rf lib/*
-rm -rf backup/
-rm -rf src/backup/
+rm -rf backup
+rm -rf src/backup
 rm -rf src/integration/lib
 
 find ./ -type f -name *.~ -delete

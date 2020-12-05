@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Buttons,
-  StdCtrls;
+  StdCtrls, EditBtn;
 
 type
 
@@ -14,8 +14,8 @@ type
 
   TfDatabaseConnectionEditor = class(TForm)
     cbbDriver: TComboBox;
-    edtLibrary: TEdit;
     edtTablePrefix: TEdit;
+    edtLibrary: TFileNameEdit;
     Label10: TLabel;
     lblDriver: TLabel;
     Label8: TLabel;

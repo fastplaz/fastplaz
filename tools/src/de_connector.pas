@@ -21,7 +21,7 @@ uses
   // LazUtils
   LazUTF8Classes, LazFileUtils, LazFileCache, LazLoggerBase,
   // Codetools
-  CodeCache, CodeToolManager, BasicCodeTools, FileProcs,
+  //CodeCache, CodeToolManager, BasicCodeTools, FileProcs,
   // IDEIntf
   LazIDEIntf, PackageIntf, ProjectIntf, PackageDependencyIntf,
   IDEWindowIntf, IDEMsgIntf, IDEImagesIntf,
@@ -49,6 +49,7 @@ type
     barBottom: TStatusBar;
     barHeader: TToolBar;
     DBImages: TImageList;
+    pnlLoading: TPanel;
     PropStorage: TIniPropStorage;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
@@ -85,7 +86,11 @@ type
     procedure FormCloseQuery(Sender: TObject; var {%H-}CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormStartDock(Sender: TObject; var DragObject: TDragDockObject);
+    procedure FormUnDock(Sender: TObject; Client: TControl;
+      NewTarget: TWinControl; var Allow: Boolean);
     procedure popupMenuMainPopup(Sender: TObject);
     procedure tvConnectionListClick(Sender: TObject);
     procedure tvConnectionListDblClick(Sender: TObject);
@@ -132,7 +137,8 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure log(AMessage: string; ACategory: string = ''; UrgencyLevel: TMessageLineUrgency = mluNone);
+    procedure log(AMessage: string; ACategory: string = '';
+      UrgencyLevel: TMessageLineUrgency = mluNone);
     procedure BrowserOpen;
     procedure LoadConfiguration;
 
@@ -179,6 +185,8 @@ begin
   LoadConfiguration;
   BuildTreeView;
   barHeader.Hide;
+  pnlLoading.Hide;
+  pnlLoading.Left := (Width-pnlLoading.Width) div 2;
   actTest.Visible := False;
 end;
 
@@ -200,7 +208,8 @@ begin
   {$ifdef FDE_DESKTOP}
   barBottom.SimpleText := ACategory + ': ' + AMessage;
   {$else}
-  IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' + AMessage, '', 0, 0, 'FastPlaz');
+  IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' +
+    AMessage, '', 0, 0, 'FastPlaz');
   {$endif}
 
   if Assigned(IDEFDEBrowserWindow) then
@@ -271,6 +280,8 @@ begin
 end;
 
 procedure TIDEFDEWindow.PrepareConnection(AIndex: integer);
+var
+  libraryFileName: string;
 begin
   if DatabaseController.SQLConnector.Connected then
     DatabaseController.SQLConnector.Close(True);
@@ -282,7 +293,10 @@ begin
     Password := getConfigValue(AIndex, 'password');
     DatabaseName := getConfigValue(AIndex, 'database_name');
 
-    //TODO: Load Library
+    //Custom Library
+    libraryFileName := getConfigValue(AIndex, 'library');
+    if not libraryFileName.IsEmpty then
+      DatabaseController.LoadLibrary(libraryFileName);
 
     AfterConnect := @onConnectorAfterConnect;
     AfterDisconnect := @onConnectorAfterDisconnect;
@@ -528,9 +542,24 @@ begin
   //  ModalResult:=mrCancel;
 end;
 
+procedure TIDEFDEWindow.FormResize(Sender: TObject);
+begin
+  pnlLoading.Left := (Width-pnlLoading.Width) div 2;
+end;
+
 procedure TIDEFDEWindow.FormShow(Sender: TObject);
 begin
   restoreFormState;
+end;
+
+procedure TIDEFDEWindow.FormStartDock(Sender: TObject;
+  var DragObject: TDragDockObject);
+begin
+end;
+
+procedure TIDEFDEWindow.FormUnDock(Sender: TObject; Client: TControl;
+  NewTarget: TWinControl; var Allow: Boolean);
+begin
 end;
 
 procedure TIDEFDEWindow.popupMenuMainPopup(Sender: TObject);
@@ -740,6 +769,7 @@ end;
 
 procedure TIDEFDEWindow.disableControl;
 begin
+  pnlLoading.Show;
   tvConnectionList.BackgroundColor := $f0f0f0;
   tvConnectionList.Enabled := False;
   tvConnectionList.Cursor := crHourGlass;
@@ -747,6 +777,7 @@ end;
 
 procedure TIDEFDEWindow.enableControl;
 begin
+  pnlLoading.Hide;
   tvConnectionList.BackgroundColor := clWhite;
   tvConnectionList.Enabled := True;
   tvConnectionList.Cursor := crDefault;
@@ -754,19 +785,19 @@ end;
 
 procedure TIDEFDEWindow.saveFormState;
 begin
-  PropStorage.WriteInteger('left', IDEFDEBrowserWindow.Left);
-  PropStorage.WriteInteger('top', IDEFDEBrowserWindow.Top);
+  PropStorage.WriteInteger('left', Parent.Left);
+  PropStorage.WriteInteger('top', Parent.Top);
+  PropStorage.Save;
 end;
 
 procedure TIDEFDEWindow.restoreFormState;
 var
   i: integer;
 begin
-  exit;
-  i := PropStorage.ReadInteger('left',0);
+  i := PropStorage.ReadInteger('left', 0);
   if i > 0 then
     Left := i;
-  i := PropStorage.ReadInteger('top',0);
+  i := PropStorage.ReadInteger('top', 0);
   if i > 0 then
     Top := i;
 end;
@@ -874,6 +905,10 @@ var
   i: integer;
   s, dbName: string;
 begin
+  if ((tvConnectionList.Selected.Level <> 1) or
+    (tvConnectionList.Selected.Index = -1)) then
+    Exit;
+
   if MessageDlg(rsConfirmation, rsAskCancelOperation, mtConfirmation,
     [mbYes, mbNo], 0) = mrYes then
   begin
