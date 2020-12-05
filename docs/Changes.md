@@ -1,5 +1,9 @@
 # Development Changes
 
+## 20201206.0001
+
+- Reveal File in Explorer/Finder
+
 ## 20201205.1405
 
 - Tools: JSON Visualization (TreeView)
