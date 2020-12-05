@@ -1,7 +1,8 @@
 # Development Changes
 
-## 20201205.2215
-- Reveal in Finder/Explorer
+## 20201206.0001
+
+- Reveal File in Explorer/Finder
 
 ## 20201205.1405
 

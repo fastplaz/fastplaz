@@ -172,12 +172,12 @@ begin
     processUTF8 := TProcessUTF8.Create(nil);
     try
       {$ifdef WINDOWS}
-      processUTF8.CommandLine := 'explorer /e,"' + pathName + '"';
-      processUTF8.Parameters.Text := '/e,"' + pathName + '"';
+      processUTF8.CommandLine := 'explorer /select,"' + srcEdit.FileName + '"';
+      processUTF8.Parameters.Text := '/select,"' + srcEdit.FileName + '"';
       {$endif}
       {$ifdef DARWIN}
-      processUTF8.CommandLine := 'open "' + pathName + '"';
-      processUTF8.Parameters.Text := '"' + pathName + '"';
+      processUTF8.CommandLine := 'open -R "' + srcEdit.FileName + '"';
+      processUTF8.Parameters.Text := '-R "' + srcEdit.FileName + '"';
       {$endif}
       {$ifdef LINUX}
       processUTF8.CommandLine := 'xdg-open "' + pathName + '"';
