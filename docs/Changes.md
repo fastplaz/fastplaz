@@ -1,5 +1,11 @@
 # Development Changes
 
+## 20201205.1405
+
+- Tools: JSON Visualization (TreeView)
+- FDE: Load custom DB Library
+- Bug: release secondary db memory
+
 ## 20201203.0344
 
 - Tools: Database Explorer
