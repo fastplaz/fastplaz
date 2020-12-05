@@ -8,8 +8,10 @@ object fMemoEdit: TfMemoEdit
   ClientHeight = 170
   ClientWidth = 375
   KeyPreview = True
+  OnClose = FormClose
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
+  OnShow = FormShow
   Position = poOwnerFormCenter
   LCLVersion = '2.0.10.0'
   object edt: TMemo
@@ -49,5 +51,11 @@ object fMemoEdit: TfMemoEdit
       Flat = True
       OnClick = SpeedButton2Click
     end
+  end
+  object PropStorage: TIniPropStorage
+    StoredValues = <>
+    IniSection = 'MemoEdit'
+    Left = 320
+    Top = 104
   end
 end

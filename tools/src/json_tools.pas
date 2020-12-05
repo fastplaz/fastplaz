@@ -1,4 +1,7 @@
 unit json_tools;
+{
+  enhancement from existing jsonviewer example
+}
 
 {$mode objfpc}{$H+}
 
@@ -31,15 +34,20 @@ type
 
   TfJSONTools = class(TForm)
     barBottom: TStatusBar;
-    Images: TImageList;
     edt: TSynEdit;
+    ilJSON: TImageList;
+    Images: TImageList;
+    pgMain: TPageControl;
     SynJScriptSyn1: TSynJScriptSyn;
+    tbsRaw: TTabSheet;
+    tbsVisual: TTabSheet;
     ToolBar1: TToolBar;
     btnGo: TToolButton;
     btnClear: TToolButton;
     ToolButton2: TToolButton;
     btnOpenFile: TToolButton;
     ToolButton5: TToolButton;
+    tvJson: TTreeView;
     procedure btnClearClick(Sender: TObject);
     procedure btnGoClick(Sender: TObject);
     procedure btnOpenFileClick(Sender: TObject);
@@ -51,11 +59,15 @@ type
       Shift: TShiftState; X, Y: integer);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     fEndOfLine: boolean;
     iLastPosX, iLastPosY: integer;
+    jsonData: TJSONData;
     procedure setupScheme;
     procedure updateCursorPosition(AControl: TSynEdit; ACurrentPostX: integer);
+    procedure showVisualTreeView();
+    procedure showJSONData(AParent: TTreeNode; AData: TJSONData);
   public
 
   end;
@@ -65,7 +77,14 @@ var
 
 implementation
 
+uses de_common;
+
 {$R *.lfm}
+
+const
+  ImageTypeMap: array[TJSONtype] of integer =
+    //      jtUnknown, jtNumber, jtString, jtBoolean, jtNull, jtArray, jtObject
+    (-1, 8, 9, 7, 6, 5, 4);
 
 { TfJSONTools }
 
@@ -76,13 +95,22 @@ end;
 
 procedure TfJSONTools.FormCreate(Sender: TObject);
 begin
+  pgMain.Align := alClient;
+  pgMain.ActivePage := tbsRaw;
+  tvJson.Align := alClient;
+  edt.Align := alClient;
   edt.Clear;
   setupScheme();
 end;
 
+procedure TfJSONTools.FormDestroy(Sender: TObject);
+begin
+  if Assigned(jsonData) then
+    jsonData.Free;
+end;
+
 procedure TfJSONTools.setupScheme;
 begin
-  edt.Align := alClient;
   edt.Font.Name := 'Courier New';
   edt.Font.Size := 12;
   edt.Font.color := $3A4546;
@@ -112,12 +140,90 @@ begin
     AControl.CaretX := lineLength;
 end;
 
+procedure TfJSONTools.showVisualTreeView();
+begin
+  try
+    tvJson.Items.Clear;
+    if Assigned(jsonData) then
+      jsonData.Free;
+    jsonData := GetJSON(edt.Text);
+    showJSONData(nil, jsonData);
+    tvJson.FullExpand;
+  except
+  end;
+end;
+
+procedure TfJSONTools.showJSONData(AParent: TTreeNode; AData: TJSONData);
+var
+  N, N2: TTreeNode;
+  I: integer;
+  D: TJSONData;
+  C: string;
+  S: TStringList;
+
+begin
+  if not Assigned(AData) then
+    exit;
+  if (AParent <> nil) then
+    N := AParent
+  else
+    N := tvJson.Items.AddChild(AParent, '');
+  case AData.JSONType of
+    jtArray,
+    jtObject:
+    begin
+      if (AData.JSONType = jtArray) then
+        C := rsJsonSArray
+      else
+        C := rsJsonSObject;
+      C := Format(C, [AData.Count]);
+      S := TStringList.Create;
+      try
+        for I := 0 to AData.Count - 1 do
+          if AData.JSONtype = jtArray then
+            S.AddObject(IntToStr(I), AData.items[i])
+          else
+            S.AddObject(TJSONObject(AData).Names[i], AData.items[i]);
+        if (AData.JSONType = jtObject) then
+          S.Sort;
+        for I := 0 to S.Count - 1 do
+        begin
+          N2 := TVJSON.Items.AddChild(N, S[i]);
+          D := TJSONData(S.Objects[i]);
+          N2.ImageIndex := ImageTypeMap[D.JSONType];
+          N2.SelectedIndex := ImageTypeMap[D.JSONType];
+          showJSONData(N2, D);
+        end
+      finally
+        S.Free;
+      end;
+    end;
+    jtNull:
+      C := rsJsonSNull;
+    else
+      C := AData.AsString;
+      if (AData.JSONType = jtString) then
+        C := '"' + C + '"';
+  end;
+  if Assigned(N) then
+  begin
+    if N.Text = '' then
+      N.Text := C
+    else
+      N.Text := N.Text + ': ' + C;
+    N.ImageIndex := ImageTypeMap[AData.JSONType];
+    N.SelectedIndex := ImageTypeMap[AData.JSONType];
+    N.Data := AData;
+  end;
+end;
+
 procedure TfJSONTools.btnGoClick(Sender: TObject);
 var
   VJSONData: TJSONData = nil;
   VJSONParser: TLocalJSONParser;
   posX, posY: integer;
 begin
+  tvJson.Items.Clear;
   barBottom.Panels[0].Text := '';
   barBottom.Panels[2].Text := '';
   edt.Text := edt.Text.Trim;
@@ -130,8 +236,8 @@ begin
       VJSONData := VJSONParser.Parse;
       edt.Text := VJSONData.FormatJSON([], 2);
       //edt.Color := $00C2EFE7;
+      showVisualTreeView;
       barBottom.Panels[0].Text := 'OK';
-      //Application.MessageBox('Valid JSON!', PChar(Caption), MB_ICONINFORMATION + MB_OK);
     except
       on E: Exception do
       begin
@@ -143,6 +249,7 @@ begin
         edt.CaretY := posY;
         //edt.SelectedColor.Background := $004080FF;
         edt.SelectedColor.Background := clRed;
+        edt.SelectedColor.Foreground := clYellow;
         edt.SelectLine;
         edt.SetFocus;
       end;
@@ -228,6 +335,11 @@ begin
         VK_R:
         begin
           btnGo.Click;
+          Key := 0;
+        end;
+        VK_A:
+        begin
+          TSynEdit(Sender).SelectAll;
           Key := 0;
         end;
       end;

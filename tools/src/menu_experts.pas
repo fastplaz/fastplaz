@@ -242,6 +242,11 @@ begin
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
     nil, @About_Proc, nil, 'icon_information');
 
+  // add a menu item in the file menu
+  CreateIDEMenuSeparator(itmFileNew);
+  RegisterIDEMenuCommand(itmFileNew, 'mnu_FastPlaz_File_New',
+    'New Web Application Package ...', nil, @CreatePackage_Proc, nil);
+
   // register FDE window
   IDEWindowCreators.Add(FDE_WINDOW_NAME, @CreateIDEConnectorWindow,
     nil, '250', '250', '', '');

@@ -27,8 +27,8 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit https://www.fastplaz.com
 "/>
-    <Version Minor="12" Release="3" Build="233"/>
-    <Files Count="24">
+    <Version Minor="12" Release="3" Build="367"/>
+    <Files Count="28">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -42,90 +42,106 @@ for more information visit https://www.fastplaz.com
         <Type Value="LFM"/>
       </Item3>
       <Item4>
-        <Filename Value="src\de_common.pas"/>
-        <UnitName Value="de_common"/>
+        <Filename Value="src\db_controller.pas"/>
+        <UnitName Value="db_controller"/>
       </Item4>
       <Item5>
+        <Filename Value="src\de_common.pas"/>
+        <UnitName Value="de_common"/>
+      </Item5>
+      <Item6>
+        <Filename Value="src\de_connection_editor.pas"/>
+        <UnitName Value="de_connection_editor"/>
+      </Item6>
+      <Item7>
+        <Filename Value="src\de_connector.pas"/>
+        <UnitName Value="de_connector"/>
+      </Item7>
+      <Item8>
+        <Filename Value="src\de_dbbrowser.pas"/>
+        <UnitName Value="de_dbbrowser"/>
+      </Item8>
+      <Item9>
         <Filename Value="src\fastplaz_tools_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_tools_register"/>
-      </Item5>
-      <Item6>
-        <Filename Value="src\json_tools.pas"/>
-        <UnitName Value="json_tools"/>
-      </Item6>
-      <Item7>
-        <Filename Value="src\menu_experts.pas"/>
-        <UnitName Value="menu_experts"/>
-      </Item7>
-      <Item8>
-        <Filename Value="src\model_lib.pas"/>
-        <UnitName Value="model_lib"/>
-      </Item8>
-      <Item9>
-        <Filename Value="src\model_wzd.pas"/>
-        <UnitName Value="model_wzd"/>
       </Item9>
       <Item10>
-        <Filename Value="src\modsimple_lib.pas"/>
-        <UnitName Value="modsimple_lib"/>
+        <Filename Value="src\json_tools.pas"/>
+        <UnitName Value="json_tools"/>
       </Item10>
       <Item11>
-        <Filename Value="src\modsimple_wzd.pas"/>
-        <UnitName Value="modsimple_wzd"/>
+        <Filename Value="src\menu_experts.pas"/>
+        <UnitName Value="menu_experts"/>
       </Item11>
       <Item12>
-        <Filename Value="src\modsimplejson_lib.pas"/>
-        <UnitName Value="modsimplejson_lib"/>
+        <Filename Value="src\model_lib.pas"/>
+        <UnitName Value="model_lib"/>
       </Item12>
       <Item13>
-        <Filename Value="src\packageapp_lib.pas"/>
-        <UnitName Value="packageapp_lib"/>
+        <Filename Value="src\model_wzd.pas"/>
+        <UnitName Value="model_wzd"/>
       </Item13>
       <Item14>
-        <Filename Value="src\packageapp_wzd.pas"/>
-        <UnitName Value="packageapp_wzd"/>
+        <Filename Value="src\modsimple_lib.pas"/>
+        <UnitName Value="modsimple_lib"/>
       </Item14>
       <Item15>
-        <Filename Value="src\project_lib.pas"/>
-        <UnitName Value="project_lib"/>
+        <Filename Value="src\modsimple_wzd.pas"/>
+        <UnitName Value="modsimple_wzd"/>
       </Item15>
       <Item16>
-        <Filename Value="src\project_wzd.pas"/>
-        <UnitName Value="project_wzd"/>
+        <Filename Value="src\modsimplejson_lib.pas"/>
+        <UnitName Value="modsimplejson_lib"/>
       </Item16>
       <Item17>
-        <Filename Value="src\projectapi_lib.pas"/>
-        <UnitName Value="projectapi_lib"/>
+        <Filename Value="src\packageapp_lib.pas"/>
+        <UnitName Value="packageapp_lib"/>
       </Item17>
       <Item18>
-        <Filename Value="src\projectapi_wzd.pas"/>
-        <UnitName Value="projectapi_wzd"/>
+        <Filename Value="src\packageapp_wzd.pas"/>
+        <UnitName Value="packageapp_wzd"/>
       </Item18>
       <Item19>
-        <Filename Value="src\projectgenerator_lib.pas"/>
-        <UnitName Value="projectgenerator_lib"/>
+        <Filename Value="src\project_lib.pas"/>
+        <UnitName Value="project_lib"/>
       </Item19>
       <Item20>
-        <Filename Value="src\regex_tester.pas"/>
-        <UnitName Value="regex_tester"/>
+        <Filename Value="src\project_wzd.pas"/>
+        <UnitName Value="project_wzd"/>
       </Item20>
       <Item21>
-        <Filename Value="src\themestructure_wzd.pas"/>
-        <UnitName Value="themestructure_wzd"/>
+        <Filename Value="src\projectapi_lib.pas"/>
+        <UnitName Value="projectapi_lib"/>
       </Item21>
       <Item22>
-        <Filename Value="src\webstructure_lib.pas"/>
-        <UnitName Value="webstructure_lib"/>
+        <Filename Value="src\projectapi_wzd.pas"/>
+        <UnitName Value="projectapi_wzd"/>
       </Item22>
       <Item23>
-        <Filename Value="src\webstructure_wzd.pas"/>
-        <UnitName Value="webstructure_wzd"/>
+        <Filename Value="src\projectgenerator_lib.pas"/>
+        <UnitName Value="projectgenerator_lib"/>
       </Item23>
       <Item24>
+        <Filename Value="src\regex_tester.pas"/>
+        <UnitName Value="regex_tester"/>
+      </Item24>
+      <Item25>
+        <Filename Value="src\themestructure_wzd.pas"/>
+        <UnitName Value="themestructure_wzd"/>
+      </Item25>
+      <Item26>
+        <Filename Value="src\webstructure_lib.pas"/>
+        <UnitName Value="webstructure_lib"/>
+      </Item26>
+      <Item27>
+        <Filename Value="src\webstructure_wzd.pas"/>
+        <UnitName Value="webstructure_wzd"/>
+      </Item27>
+      <Item28>
         <Filename Value="src\webstructure_wzd.lfm"/>
         <Type Value="LFM"/>
-      </Item24>
+      </Item28>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>

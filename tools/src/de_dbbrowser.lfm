@@ -1,13 +1,15 @@
 object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
-  Left = 282
+  Left = 261
   Height = 405
-  Top = 330
+  Top = 160
   Width = 786
   Caption = ':: DB Browser'
   ClientHeight = 405
   ClientWidth = 786
   Enabled = False
   KeyPreview = True
+  OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
@@ -34,9 +36,9 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     Height = 266
     Top = 116
     Width = 666
-    ActivePage = tabStructure
+    ActivePage = tabEditor
     MultiLine = True
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 1
     TabPosition = tpBottom
     Options = [nboMultiLine]
@@ -565,6 +567,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         Columns = <>
         DataSource = DataSource
         Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDblClickAutoSize]
+        PopupMenu = popupGrid
         TabOrder = 1
         OnDrawColumnCell = GridDrawColumnCell
         OnDblClick = GridDblClick
@@ -599,10 +602,10 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         TabOrder = 0
         ColWidths = (
           64
-          144
-          144
-          144
-          147
+          148
+          148
+          148
+          150
         )
       end
       object Panel1: TPanel
@@ -695,8 +698,8 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
   end
   object DataSource: TDataSource
-    Left = 532
-    Top = 284
+    Left = 560
+    Top = 308
   end
   object SynSQL: TSynSQLSyn
     DefaultFilter = 'SQL Files (*.sql)|*.sql'
@@ -744,6 +747,11 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
       ImageIndex = 15
       OnExecute = actOpenFileExecute
     end
+    object actFieldCopy: TAction
+      Category = 'Grid'
+      Caption = 'actFieldCopy'
+      OnExecute = actFieldCopyExecute
+    end
   end
   object popupEditor: TPopupMenu
     Left = 412
@@ -751,5 +759,19 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     object MenuItem2: TMenuItem
       Action = actExecQuery
     end
+  end
+  object popupGrid: TPopupMenu
+    Left = 474
+    Top = 308
+    object MenuItem1: TMenuItem
+      Action = actFieldCopy
+      Caption = 'Copy'
+    end
+  end
+  object PropStorage: TIniPropStorage
+    StoredValues = <>
+    IniSection = 'FDEBrowser'
+    Left = 632
+    Top = 308
   end
 end
