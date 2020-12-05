@@ -52,6 +52,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         Top = 0
         Width = 660
         Align = alTop
+        Enabled = False
         Font.Height = -13
         Font.Name = 'Courier New'
         Font.Pitch = fpFixed
