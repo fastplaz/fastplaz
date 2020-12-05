@@ -17,6 +17,26 @@ msgstr ""
 msgid "DB Explorer"
 msgstr ""
 
+#: de_common.rsjsonsarray
+msgctxt "de_common.rsjsonsarray"
+msgid "Array (%d elements)"
+msgstr ""
+
+#: de_common.rsjsonsempty
+msgctxt "de_common.rsjsonsempty"
+msgid "Empty document"
+msgstr ""
+
+#: de_common.rsjsonsnull
+msgctxt "de_common.rsjsonsnull"
+msgid "null"
+msgstr ""
+
+#: de_common.rsjsonsobject
+msgctxt "de_common.rsjsonsobject"
+msgid "Object (%d members)"
+msgstr ""
+
 #: de_common.rsviewdbconnector
 msgid "View DB Connector"
 msgstr ""

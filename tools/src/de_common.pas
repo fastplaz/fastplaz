@@ -45,6 +45,7 @@ const
   TAB_PREFIX = 'tbs_';
   TAB_EDITOR_INDEX = 1;
   TAB_QUERY_INDEX = 2;
+  TAB_GRID_INDEX = 4;
 
 
   SQL_SHOW_TABLES_MYSQL = 'show tables';
@@ -80,6 +81,12 @@ resourcestring
   rsConfirmation = 'Confirmation';
   rsAskCancelDangerOperation = 'I will cancel this danger operation (drop/delete)?';
   rsAskCancelOperation = 'I will cancel this operation (drop/delete)?';
+
+  // json tools
+  rsJsonSEmpty   = 'Empty document';
+  rsJsonSArray   = 'Array (%d elements)';
+  rsJsonSObject  = 'Object (%d members)';
+  rsJsonSNull    = 'null';
 
 type
   TOnSQLCallback = procedure(const AStatus: integer; const AMessage: string;

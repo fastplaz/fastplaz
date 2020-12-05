@@ -8,7 +8,8 @@ unit fastplaz_tools;
 interface
 
 uses
-  thread_custom, about_fastplaz, de_common, fastplaz_tools_register, 
+  thread_custom, about_fastplaz, db_controller, de_common, 
+  de_connection_editor, de_connector, de_dbbrowser, fastplaz_tools_register, 
   json_tools, menu_experts, model_lib, model_wzd, modsimple_lib, 
   modsimple_wzd, modsimplejson_lib, packageapp_lib, packageapp_wzd, 
   project_lib, project_wzd, projectapi_lib, projectapi_wzd, 

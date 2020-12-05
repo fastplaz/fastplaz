@@ -17,7 +17,7 @@ uses
   fpjson, Classes, SysUtils, Math, StrUtils, Graphics,
   // LCL
   LCLProc, LCLType, LclIntf, Clipbrd, Forms, Controls, StdCtrls, Dialogs, ComCtrls,
-  ActnList, XMLPropStorage, ExtCtrls, Buttons, Menus, SQLDB,
+  ActnList, XMLPropStorage, ExtCtrls, Buttons, Menus, IniPropStorage, SQLDB,
   // LazUtils
   LazUTF8Classes, LazFileUtils, LazFileCache, LazLoggerBase,
   // Codetools
@@ -49,6 +49,7 @@ type
     barBottom: TStatusBar;
     barHeader: TToolBar;
     DBImages: TImageList;
+    PropStorage: TIniPropStorage;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
@@ -123,12 +124,13 @@ type
     procedure OnSuccessProc(Sender: TObject);
     procedure disableControl;
     procedure enableControl;
+
+    procedure saveFormState;
+    procedure restoreFormState;
   public
     ConfigurationPath, ConfigurationFileName: string;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure UpdateView;
 
     procedure log(AMessage: string; ACategory: string = ''; UrgencyLevel: TMessageLineUrgency = mluNone);
     procedure BrowserOpen;
@@ -192,13 +194,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TIDEFDEWindow.UpdateView;
-begin
-  //BeginUpdate;
-
-  //EndUpdate;
-end;
-
 procedure TIDEFDEWindow.log(AMessage: string; ACategory: string;
   UrgencyLevel: TMessageLineUrgency);
 begin
@@ -247,6 +242,9 @@ begin
   ConfigurationFileName := ConfigurationPath + DirectorySeparator + FDE_CONFIG_FILE_NAME;
   if not DirectoryExistsUTF8(ConfigurationPath) then
     CreateDirUTF8(ConfigurationPath);
+
+  PropStorage.IniFileName := ConfigurationPath + DirectorySeparator + 'property';
+  restoreFormState;
 
   Config := TMyConfig.Create(Self);
   Config.Filename := ConfigurationFileName;
@@ -532,7 +530,7 @@ end;
 
 procedure TIDEFDEWindow.FormShow(Sender: TObject);
 begin
-  UpdateView;
+  restoreFormState;
 end;
 
 procedure TIDEFDEWindow.popupMenuMainPopup(Sender: TObject);
@@ -754,6 +752,25 @@ begin
   tvConnectionList.Cursor := crDefault;
 end;
 
+procedure TIDEFDEWindow.saveFormState;
+begin
+  PropStorage.WriteInteger('left', IDEFDEBrowserWindow.Left);
+  PropStorage.WriteInteger('top', IDEFDEBrowserWindow.Top);
+end;
+
+procedure TIDEFDEWindow.restoreFormState;
+var
+  i: integer;
+begin
+  exit;
+  i := PropStorage.ReadInteger('left',0);
+  if i > 0 then
+    Left := i;
+  i := PropStorage.ReadInteger('top',0);
+  if i > 0 then
+    Top := i;
+end;
+
 
 procedure TIDEFDEWindow.FormCreate(Sender: TObject);
 begin
@@ -762,12 +779,11 @@ end;
 
 procedure TIDEFDEWindow.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
-
+  saveFormState;
 end;
 
 procedure TIDEFDEWindow.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
-
 end;
 
 procedure TIDEFDEWindow.actConnectExecute(Sender: TObject);

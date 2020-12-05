@@ -11,13 +11,14 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, ExtCtrls,
   Buttons, DBGrids,
   // INTF
+  IDEExternToolIntf,
   {$ifndef FDE_DESKTOP}
-  PackageIntf, IDEWindowIntf, IDEExternToolIntf, LazIDEIntf,
+  PackageIntf, IDEWindowIntf, LazIDEIntf,
   {$endif}
   // Editor
   SynEdit, SynHighlighterSQL, SynCompletion, SynEditKeyCmds,
-  SynHighlighterMulti,
-  LCLProc, LCLType, DB, SQLDB, Grids, ActnList, StdCtrls, Menus, Types, SynEditTypes;
+  SynHighlighterMulti, Clipbrd, LCLProc, LCLType, DB, SQLDB, Grids, ActnList,
+  StdCtrls, Menus, IniPropStorage, Types, SynEditTypes;
 
 type
 
@@ -25,19 +26,23 @@ type
 
   TIDEFDEBrowserWindow = class(TForm)
     actExecQuery: TAction;
+    actFieldCopy: TAction;
     actOpenFile: TAction;
     ActionList: TActionList;
     barBottom: TStatusBar;
     DataSource: TDataSource;
     editor: TSynEdit;
     Grid: TDBGrid;
+    PropStorage: TIniPropStorage;
     lbLog: TListBox;
     lblStructureTableName: TLabel;
     Memo1: TMemo;
+    MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     Panel1: TPanel;
     pgMain: TPageControl;
     popupEditor: TPopupMenu;
+    popupGrid: TPopupMenu;
     Splitter1: TSplitter;
     StringGrid: TStringGrid;
     SynCompletion1: TSynCompletion;
@@ -52,6 +57,7 @@ type
     ToolButton2: TToolButton;
     btnFileName: TToolButton;
     procedure actExecQueryExecute(Sender: TObject);
+    procedure actFieldCopyExecute(Sender: TObject);
     procedure actOpenFileExecute(Sender: TObject);
     procedure btnFileNameClick(Sender: TObject);
     procedure editorKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
@@ -60,6 +66,8 @@ type
       Shift: TShiftState; X, Y: integer);
     procedure editorMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: integer);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
@@ -79,7 +87,6 @@ type
     pastSQL: string;
     procedure setupScheme(AControl: TSynEdit);
     procedure updateCursorPosition(AControl: TSynEdit; ACurrentPostX: integer);
-    procedure UpdateDBBrowser;
     procedure getTableStructure(ATableName: string);
 
     // Tab Control
@@ -90,6 +97,8 @@ type
     procedure onQueryCallback(const AStatus: integer; const AMessage: string;
       var AQuery: TSQLQuery);
 
+    procedure saveFormState;
+    procedure restoreFormState;
   public
     DatabaseType: string;
     procedure DisableControl;
@@ -130,6 +139,9 @@ procedure TIDEFDEBrowserWindow.FormCreate(Sender: TObject);
 begin
   if Name <> FDE_BROWSER_WINDOW_NAME then
     RaiseGDBException('');
+
+  // form state
+  PropStorage.IniFileName := GetUserDir + FDE_CONFIG_PATH + DirectorySeparator + 'property';
 
   //Caption := FDE_BROWSER_WINDOW_NAME;
   Caption := 'DB Browser';
@@ -228,6 +240,17 @@ begin
 
 end;
 
+procedure TIDEFDEBrowserWindow.actFieldCopyExecute(Sender: TObject);
+var
+  s: string;
+begin
+  if not (pgMain.ActivePage.Components[TAB_EDITOR_INDEX] is TSynEdit) then
+    Exit;
+
+  s := TDBGrid(pgMain.ActivePage.Components[TAB_GRID_INDEX]).SelectedField.AsString;
+  Clipboard.AsText := s;
+end;
+
 procedure TIDEFDEBrowserWindow.actOpenFileExecute(Sender: TObject);
 begin
   // get active editor
@@ -311,6 +334,11 @@ begin
           actExecQuery.Execute;
           Key := 0;
         end;
+        VK_A:
+        begin
+          TSynEdit(Sender).SelectAll;
+          Key := 0;
+        end;
       end;
 
     end;
@@ -369,6 +397,17 @@ begin
   updateCursorPosition(TSynEdit(Sender), TSynEdit(Sender).CaretX);
 end;
 
+procedure TIDEFDEBrowserWindow.FormClose(Sender: TObject;
+  var CloseAction: TCloseAction);
+begin
+end;
+
+procedure TIDEFDEBrowserWindow.FormCloseQuery(Sender: TObject;
+  var CanClose: boolean);
+begin
+  saveFormState;
+end;
+
 procedure TIDEFDEBrowserWindow.FormDestroy(Sender: TObject);
 begin
 
@@ -381,7 +420,7 @@ end;
 
 procedure TIDEFDEBrowserWindow.FormShow(Sender: TObject);
 begin
-  UpdateDBBrowser;
+  restoreFormState;
 end;
 
 procedure TIDEFDEBrowserWindow.GridDblClick(Sender: TObject);
@@ -557,10 +596,6 @@ begin
     AControl.CaretX := lineLength;
 end;
 
-procedure TIDEFDEBrowserWindow.UpdateDBBrowser;
-begin
-end;
-
 procedure TIDEFDEBrowserWindow.getTableStructure(ATableName: string);
 var
   i: integer;
@@ -687,6 +722,7 @@ begin
       DataSource := ds;
       AutoEdit := False;
       BorderStyle := bsNone;
+      PopupMenu := popupGrid;
       OnDblClick := @GridDblClick;
       OnDrawColumnCell := @GridDrawColumnCell;
       OnKeyDown := @GridKeyDown;
@@ -729,6 +765,25 @@ begin
     ShowMessage('Error: ' + AMessage);
   end;
 
+end;
+
+procedure TIDEFDEBrowserWindow.saveFormState;
+begin
+  PropStorage.WriteInteger('left', Left);
+  PropStorage.WriteInteger('top', Top);
+end;
+
+procedure TIDEFDEBrowserWindow.restoreFormState;
+var
+  i: integer;
+begin
+  exit;
+  i := PropStorage.ReadInteger('left',0);
+  if i > 0 then
+    Left := i;
+  i := PropStorage.ReadInteger('top',0);
+  if i > 0 then
+    Top := i;
 end;
 
 procedure TIDEFDEBrowserWindow.DisableControl;

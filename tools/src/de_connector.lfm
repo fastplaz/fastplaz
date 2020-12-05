@@ -1,7 +1,7 @@
 object IDEFDEWindow: TIDEFDEWindow
-  Left = 186
+  Left = 76
   Height = 356
-  Top = 86
+  Top = 95
   Width = 203
   Caption = '::IDEFDEWindow'
   ClientHeight = 356
@@ -653,7 +653,7 @@ object IDEFDEWindow: TIDEFDEWindow
   end
   object popupMenuMain: TPopupMenu
     OnPopup = popupMenuMainPopup
-    Left = 152
+    Left = 148
     Top = 212
     object MenuItem1: TMenuItem
       Action = actConnect
@@ -688,8 +688,8 @@ object IDEFDEWindow: TIDEFDEWindow
   end
   object ActionListMain: TActionList
     Images = DBImages
-    Left = 168
-    Top = 148
+    Left = 148
+    Top = 152
     object actConnect: TAction
       Category = 'Database'
       Caption = 'Connect'
@@ -748,7 +748,18 @@ object IDEFDEWindow: TIDEFDEWindow
   object SQLQuery1: TSQLQuery
     FieldDefs = <>
     Params = <>
-    Left = 88
-    Top = 284
+    Left = 52
+    Top = 280
+  end
+  object PropStorage: TIniPropStorage
+    StoredValues = <    
+      item
+        Name = 'left'
+        Value = '100'
+        KeyString = 'left'
+      end>
+    IniSection = 'FDEConnector'
+    Left = 148
+    Top = 280
   end
 end
