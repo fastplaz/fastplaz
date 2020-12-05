@@ -6,8 +6,10 @@ interface
 
 uses
   Controls, Dialogs,
-  LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf, IDEExternToolIntf,
-  Classes, SysUtils;
+  // INTF
+  LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf,
+  IDEExternToolIntf, SrcEditorIntf, LCLType,
+  Classes, SysUtils, UTF8Process, process;
 
 const
   FASTPLAZ_EXPERT_MAINMENU_NAME = 'mnu_FastPlazExpertMainMenu';
@@ -15,10 +17,12 @@ const
 
 var
   oMenuExpert: TIDEMenuSection = nil;
+  icRevealInFinder: TIDECommand;
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 procedure CreatePackage_Proc(ASender: TObject);
+procedure RevealInFinder_Proc(ASender: TObject);
 
 implementation
 
@@ -152,6 +156,47 @@ begin
   LazarusIDE.DoOpenProjectFile(projectFileName, [ofProjectLoading]);
 end;
 
+procedure RevealInFinder_Proc(ASender: TObject);
+var
+  pathName: string;
+  srcEdit: TSourceEditorInterface;
+  processUTF8: TProcessUTF8;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  if FileExists(srcEdit.FileName) then
+  begin
+    pathName := ExtractFilePath(srcEdit.FileName);
+    processUTF8 := TProcessUTF8.Create(nil);
+    try
+      {$ifdef WINDOWS}
+      processUTF8.CommandLine := 'explorer /e,"' + pathName + '"';
+      processUTF8.Parameters.Text := '/e,"' + pathName + '"';
+      {$endif}
+      {$ifdef DARWIN}
+      processUTF8.CommandLine := 'open "' + pathName + '"';
+      processUTF8.Parameters.Text := '"' + pathName + '"';
+      {$endif}
+      {$ifdef LINUX}
+      processUTF8.CommandLine := 'xdg-open "' + pathName + '"';
+      processUTF8.Parameters.Text := '"' + pathName + '"';
+      {$endif}
+      processUTF8.Options := [];
+      processUTF8.ShowWindow := swoShow;
+      processUTF8.Execute;
+    except
+      on E: Exception do
+      begin
+        ShowMessage(E.Message);
+      end;
+    end;
+    processUTF8.Free;
+  end;
+
+end;
+
 procedure CreateWebStructure_Proc(ASender: TObject);
 begin
   with TfWebStructure.Create(nil) do
@@ -200,8 +245,9 @@ end;
 
 
 procedure CreateIDEMenus;
-//var
-//  Key: TIDEShortCut;
+var
+  cat: TIDECommandCategory;
+  key: TIDEShortCut;
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
@@ -252,6 +298,18 @@ begin
     nil, '250', '250', '', '');
   IDEWindowCreators.Add(FDE_BROWSER_WINDOW_NAME, @CreateIDEBrowserWindow,
     nil, '250', '250', '', '');
+
+  // reveal in finder
+  key := IDEShortCut(VK_E,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
+  icRevealInFinder := RegisterIDECommand(cat, rsRevealInFinder,
+    rsRevealInFinder, key, nil, @RevealInFinder_Proc);
+
+  // add a menu item in the source editor
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
+    rsRevealInFinder, nil, nil, icRevealInFinder, 'reveal_in_finder');
+
+
 
 end;
 

@@ -88,6 +88,13 @@ resourcestring
   rsJsonSObject  = 'Object (%d members)';
   rsJsonSNull    = 'null';
 
+  // reveal in finder
+  {$ifdef windows}
+  rsRevealInFinder = 'Reveal in Explorer';
+  {$else}
+  rsRevealInFinder = 'Reveal in Finder';
+  {$endif}
+
 type
   TOnSQLCallback = procedure(const AStatus: integer; const AMessage: string;
     var AQuery: TSQLQuery) of object;
