@@ -158,9 +158,8 @@ end;
 
 procedure RevealInFinder_Proc(ASender: TObject);
 var
-  pathName: string;
+  s, pathName: string;
   srcEdit: TSourceEditorInterface;
-  processUTF8: TProcessUTF8;
 begin
   srcEdit := SourceEditorManagerIntf.ActiveEditor;
   if srcEdit = nil then
@@ -169,30 +168,22 @@ begin
   if FileExists(srcEdit.FileName) then
   begin
     pathName := ExtractFilePath(srcEdit.FileName);
-    processUTF8 := TProcessUTF8.Create(nil);
     try
       {$ifdef WINDOWS}
-      processUTF8.CommandLine := 'explorer /select,"' + srcEdit.FileName + '"';
-      processUTF8.Parameters.Text := '/select,"' + srcEdit.FileName + '"';
+      RunCommand('explorer',['/select,' + srcEdit.FileName], s);
       {$endif}
       {$ifdef DARWIN}
-      processUTF8.CommandLine := 'open -R "' + srcEdit.FileName + '"';
-      processUTF8.Parameters.Text := '-R "' + srcEdit.FileName + '"';
+      RunCommand('open',['-R', srcEdit.FileName], s);
       {$endif}
       {$ifdef LINUX}
-      processUTF8.CommandLine := 'xdg-open "' + pathName + '"';
-      processUTF8.Parameters.Text := '"' + pathName + '"';
+      RunCommand('xdg-open',[srcEdit.FileName], s);
       {$endif}
-      processUTF8.Options := [];
-      processUTF8.ShowWindow := swoShow;
-      processUTF8.Execute;
     except
       on E: Exception do
       begin
         ShowMessage(E.Message);
       end;
     end;
-    processUTF8.Free;
   end;
 
 end;
