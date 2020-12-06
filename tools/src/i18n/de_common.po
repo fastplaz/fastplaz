@@ -37,10 +37,6 @@ msgctxt "de_common.rsjsonsobject"
 msgid "Object (%d members)"
 msgstr ""
 
-#: de_common.rsrevealinfinder
-msgid "Reveal in Finder"
-msgstr ""
-
 #: de_common.rsviewdbconnector
 msgid "View DB Connector"
 msgstr ""

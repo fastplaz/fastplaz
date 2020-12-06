@@ -129,6 +129,8 @@ type
     procedure OnSuccessProc(Sender: TObject);
     procedure disableControl;
     procedure enableControl;
+    procedure disconnectDatabase(Sender: TObject);
+    procedure disconnectDatabaseCallbackProc(Sender: TObject);
 
     procedure saveFormState;
     procedure restoreFormState;
@@ -222,12 +224,13 @@ procedure TIDEFDEWindow.BrowserOpen;
 begin
   if Assigned(IDEFDEBrowserWindow) then
   begin
-    IDEFDEBrowserWindow.Enabled := True;
+    //
   end
   else
   begin
-    //IDEFDEBrowserWindow := TIDEFDEBrowserWindow.Create(nil);
+    IDEFDEBrowserWindow := TIDEFDEBrowserWindow.Create(nil);
   end;
+  IDEFDEBrowserWindow.Enabled := True;
 
   {$ifdef FDE_DESKTOP}
   DockMaster.ShowControl(FDE_BROWSER_WINDOW_NAME, True);
@@ -783,17 +786,32 @@ begin
   tvConnectionList.Cursor := crDefault;
 end;
 
+procedure TIDEFDEWindow.disconnectDatabase(Sender: TObject);
+begin
+  if not Assigned(DatabaseController) then
+    Exit;
+  if DatabaseController.SQLConnector.Connected then
+    DatabaseController.SQLConnector.Close(True);
+end;
+
+procedure TIDEFDEWindow.disconnectDatabaseCallbackProc(Sender: TObject);
+begin
+  enableControl;
+  Log('Database Disconnected', 'FDE', mluDebug);
+end;
+
 procedure TIDEFDEWindow.saveFormState;
 begin
+  Exit;
   PropStorage.WriteInteger('left', Parent.Left);
   PropStorage.WriteInteger('top', Parent.Top);
-  PropStorage.Save;
 end;
 
 procedure TIDEFDEWindow.restoreFormState;
 var
   i: integer;
 begin
+  Exit;
   i := PropStorage.ReadInteger('left', 0);
   if i > 0 then
     Left := i;
@@ -810,6 +828,7 @@ end;
 
 procedure TIDEFDEWindow.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
+  disconnectDatabase( nil);
   saveFormState;
 end;
 
@@ -848,12 +867,13 @@ begin
     Exit;
   if lastActiveNode <> nil then
     lastActiveNode.DeleteChildren;
-  if DatabaseController.Connected then
-    DatabaseController.Close(True);
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
     IDEFDEBrowserWindow.Disconnect;
+
+  disableControl;
+  Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
 end;
 
 procedure TIDEFDEWindow.actAddConnectionExecute(Sender: TObject);
@@ -1020,6 +1040,8 @@ end;
 
 procedure TIDEFDEWindow.actOnOffConnectionExecute(Sender: TObject);
 begin
+  if not Assigned(DatabaseController) then
+    Exit;
   if DatabaseController.Connected then
     actDisconnect.Execute;
 end;

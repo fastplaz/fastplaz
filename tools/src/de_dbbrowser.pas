@@ -51,7 +51,7 @@ type
     tabEditor: TTabSheet;
     tabContent: TTabSheet;
     tabStructure: TTabSheet;
-    TabSheet3: TTabSheet;
+    tbsLog: TTabSheet;
     barHeader: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -437,9 +437,9 @@ begin
         begin
           (Sender as TDBGrid).SelectedField.AsString := edt.Text;
         end;
-      finally
-        Free;
+      except
       end;
+      Free;
     end;
   end;
 end;
@@ -768,15 +768,16 @@ end;
 
 procedure TIDEFDEBrowserWindow.saveFormState;
 begin
+  Exit;
   PropStorage.WriteInteger('left', Parent.Left);
   PropStorage.WriteInteger('top', Parent.Top);
-  PropStorage.Save;
 end;
 
 procedure TIDEFDEBrowserWindow.restoreFormState;
 var
   i: integer;
 begin
+  Exit;
   i := PropStorage.ReadInteger('left',0);
   if i > 0 then
     Left := i;
@@ -787,12 +788,14 @@ end;
 
 procedure TIDEFDEBrowserWindow.DisableControl;
 begin
+  barHeader.Visible := False;
   barBottom.Panels[1].Text := 'Disconnected';
   Enabled := False;
 end;
 
 procedure TIDEFDEBrowserWindow.EnableControl;
 begin
+  barHeader.Visible := True;
   barBottom.Panels[1].Text := '';
   Enabled := True;
 end;
@@ -831,7 +834,7 @@ end;
 procedure TIDEFDEBrowserWindow.Disconnect;
 begin
   destroyAllTab;
-
+  pgMain.ActivePage := tbsLog;
 end;
 
 procedure TIDEFDEBrowserWindow.Log(AMessage: string; AGroup: string;

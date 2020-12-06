@@ -69,6 +69,12 @@ const
   REGEX_TELP = '\(([0-9]{2}|0{1}((x|[0-9]){2}[0-9]{2}))\)\s*[0-9]{3,4}[- ]*[0-9]{4}';
   REGEX_TELP2 = '^[01]?[- .]?\(?[2-9]\d{2}\)?[- .]?\d{3}[- .]?\d{4}$';
 
+  // reveal in finder
+  {$ifdef windows}
+  rsRevealInFinder = 'Reveal in Explorer';
+  {$else}
+  rsRevealInFinder = 'Reveal in Finder';
+  {$endif}
 
 
 resourcestring
@@ -87,13 +93,6 @@ resourcestring
   rsJsonSArray   = 'Array (%d elements)';
   rsJsonSObject  = 'Object (%d members)';
   rsJsonSNull    = 'null';
-
-  // reveal in finder
-  {$ifdef windows}
-  rsRevealInFinder = 'Reveal in Explorer';
-  {$else}
-  rsRevealInFinder = 'Reveal in Finder';
-  {$endif}
 
 type
   TOnSQLCallback = procedure(const AStatus: integer; const AMessage: string;

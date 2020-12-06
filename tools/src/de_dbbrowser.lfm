@@ -36,9 +36,9 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     Height = 266
     Top = 116
     Width = 666
-    ActivePage = tabEditor
+    ActivePage = tbsLog
     MultiLine = True
-    TabIndex = 0
+    TabIndex = 3
     TabOrder = 1
     TabPosition = tpBottom
     Options = [nboMultiLine]
@@ -630,7 +630,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         end
       end
     end
-    object TabSheet3: TTabSheet
+    object tbsLog: TTabSheet
       Caption = 'Log'
       ClientHeight = 244
       ClientWidth = 660
@@ -667,8 +667,6 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     ButtonWidth = 23
     Caption = 'barHeader'
     Flat = False
-    HotImages = IDEFDEWindow.DBImages
-    Images = IDEFDEWindow.DBImages
     ImagesWidth = 20
     List = True
     ShowCaptions = True
@@ -684,13 +682,13 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
     object ToolButton2: TToolButton
       Cursor = crHandPoint
-      Left = 100
+      Left = 78
       Top = 2
       Action = actOpenFile
       AutoSize = True
     end
     object btnFileName: TToolButton
-      Left = 196
+      Left = 152
       Top = 2
       AutoSize = True
       Caption = 'nama file ..dsf sdfsadf asdfasfdasdfs af'
@@ -734,7 +732,6 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     Top = 308
   end
   object ActionList: TActionList
-    Images = IDEFDEWindow.DBImages
     Left = 328
     Top = 308
     object actExecQuery: TAction
