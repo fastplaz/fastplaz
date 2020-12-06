@@ -10,7 +10,7 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
   KeyPreview = True
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
-  Position = poMainFormCenter
+  Position = poDesktopCenter
   LCLVersion = '2.0.10.0'
   object btnCancel: TButton
     Cursor = crHandPoint

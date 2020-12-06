@@ -39,12 +39,15 @@ implementation
 
 {$R *.lfm}
 
+uses de_common;
+
 { TfMemoEdit }
 
 procedure TfMemoEdit.FormCreate(Sender: TObject);
 begin
   edt.Align := alClient;
   edt.Font.Name := 'Courier New';
+  PropStorage.IniFileName := GetUserDir + FDE_CONFIG_PATH + DirectorySeparator + 'property';
 end;
 
 procedure TfMemoEdit.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -86,6 +89,7 @@ procedure TfMemoEdit.restoreFormState;
 var
   i: integer;
 begin
+  Exit;
   i := PropStorage.ReadInteger('left',0);
   if i <> 0 then
     Left := i;

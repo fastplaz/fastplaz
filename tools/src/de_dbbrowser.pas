@@ -437,9 +437,9 @@ begin
         begin
           (Sender as TDBGrid).SelectedField.AsString := edt.Text;
         end;
-      finally
-        Free;
+      except
       end;
+      Free;
     end;
   end;
 end;
@@ -768,15 +768,16 @@ end;
 
 procedure TIDEFDEBrowserWindow.saveFormState;
 begin
+  Exit;
   PropStorage.WriteInteger('left', Parent.Left);
   PropStorage.WriteInteger('top', Parent.Top);
-  PropStorage.Save;
 end;
 
 procedure TIDEFDEBrowserWindow.restoreFormState;
 var
   i: integer;
 begin
+  Exit;
   i := PropStorage.ReadInteger('left',0);
   if i > 0 then
     Left := i;
