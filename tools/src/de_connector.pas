@@ -796,6 +796,7 @@ end;
 
 procedure TIDEFDEWindow.disconnectDatabaseCallbackProc(Sender: TObject);
 begin
+  enableControl;
   Log('Database Disconnected', 'FDE', mluDebug);
 end;
 
@@ -871,6 +872,7 @@ begin
   if Assigned(IDEFDEBrowserWindow) then
     IDEFDEBrowserWindow.Disconnect;
 
+  disableControl;
   Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
 end;
 
