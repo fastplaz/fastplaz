@@ -1,0 +1,15 @@
+{"version":1,"strings":[
+{"hash":72510898,"name":"tidefdebrowserwindow.caption","sourcebytes":[58,58,32,68,66,32,66,114,111,119,115,101,114],"value":":: DB Browser"},
+{"hash":321780,"name":"tidefdebrowserwindow.tabeditor.caption","sourcebytes":[71,114,105,100],"value":"Grid"},
+{"hash":174435348,"name":"tidefdebrowserwindow.tabcontent.caption","sourcebytes":[67,111,110,116,101,110,116],"value":"Content"},
+{"hash":163243573,"name":"tidefdebrowserwindow.tabstructure.caption","sourcebytes":[83,116,114,117,99,116,117,114,101],"value":"Structure"},
+{"hash":182858096,"name":"tidefdebrowserwindow.lblstructuretablename.caption","sourcebytes":[83,116,114,117,99,116,117,114,101,58,32],"value":"Structure: "},
+{"hash":21335,"name":"tidefdebrowserwindow.tabsheet3.caption","sourcebytes":[76,111,103],"value":"Log"},
+{"hash":116068930,"name":"tidefdebrowserwindow.barheader.caption","sourcebytes":[98,97,114,72,101,97,100,101,114],"value":"barHeader"},
+{"hash":172474342,"name":"tidefdebrowserwindow.btnfilename.caption","sourcebytes":[110,97,109,97,32,102,105,108,101,32,46,46,100,115,102,32,115,100,102,115,97,100,102,32,97,115,100,102,97,115,102,100,97,115,100,102,115,32,97,102],"value":"nama file ..dsf sdfsadf asdfasfdasdfs af"},
+{"hash":89944617,"name":"tidefdebrowserwindow.actexecquery.caption","sourcebytes":[69,120,101,99,32,81,117,101,114,121],"value":"Exec Query"},
+{"hash":246956537,"name":"tidefdebrowserwindow.actexecquery.hint","sourcebytes":[69,120,101,99,32,115,101,108,101,99,116,101,100,32,113,117,101,114,121],"value":"Exec selected query"},
+{"hash":161788782,"name":"tidefdebrowserwindow.actopenfile.caption","sourcebytes":[79,112,101,110,32,102,105,108,101,32,46,46],"value":"Open file .."},
+{"hash":240265865,"name":"tidefdebrowserwindow.actfieldcopy.caption","sourcebytes":[97,99,116,70,105,101,108,100,67,111,112,121],"value":"actFieldCopy"},
+{"hash":304761,"name":"tidefdebrowserwindow.menuitem1.caption","sourcebytes":[67,111,112,121],"value":"Copy"}
+]}

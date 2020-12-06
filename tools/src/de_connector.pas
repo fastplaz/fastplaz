@@ -129,6 +129,8 @@ type
     procedure OnSuccessProc(Sender: TObject);
     procedure disableControl;
     procedure enableControl;
+    procedure disconnectDatabase(Sender: TObject);
+    procedure disconnectDatabaseCallbackProc(Sender: TObject);
 
     procedure saveFormState;
     procedure restoreFormState;
@@ -783,6 +785,19 @@ begin
   tvConnectionList.Cursor := crDefault;
 end;
 
+procedure TIDEFDEWindow.disconnectDatabase(Sender: TObject);
+begin
+  if not Assigned(DatabaseController) then
+    Exit;
+  if DatabaseController.SQLConnector.Connected then
+    DatabaseController.SQLConnector.Close(True);
+end;
+
+procedure TIDEFDEWindow.disconnectDatabaseCallbackProc(Sender: TObject);
+begin
+  Log('Database Disconnected', 'FDE', mluDebug);
+end;
+
 procedure TIDEFDEWindow.saveFormState;
 begin
   Exit;
@@ -849,8 +864,8 @@ begin
     Exit;
   if lastActiveNode <> nil then
     lastActiveNode.DeleteChildren;
-  if DatabaseController.Connected then
-    DatabaseController.Close(True);
+
+  Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
