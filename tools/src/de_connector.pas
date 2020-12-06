@@ -224,12 +224,13 @@ procedure TIDEFDEWindow.BrowserOpen;
 begin
   if Assigned(IDEFDEBrowserWindow) then
   begin
-    IDEFDEBrowserWindow.Enabled := True;
+    //
   end
   else
   begin
-    //IDEFDEBrowserWindow := TIDEFDEBrowserWindow.Create(nil);
+    IDEFDEBrowserWindow := TIDEFDEBrowserWindow.Create(nil);
   end;
+  IDEFDEBrowserWindow.Enabled := True;
 
   {$ifdef FDE_DESKTOP}
   DockMaster.ShowControl(FDE_BROWSER_WINDOW_NAME, True);
@@ -826,6 +827,7 @@ end;
 
 procedure TIDEFDEWindow.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
+  disconnectDatabase( nil);
   saveFormState;
 end;
 
@@ -865,11 +867,11 @@ begin
   if lastActiveNode <> nil then
     lastActiveNode.DeleteChildren;
 
-  Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
-
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
     IDEFDEBrowserWindow.Disconnect;
+
+  Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
 end;
 
 procedure TIDEFDEWindow.actAddConnectionExecute(Sender: TObject);

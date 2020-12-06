@@ -1,9 +1,10 @@
 {"version":1,"strings":[
-{"hash":67687479,"name":"tidefdewindow.caption","sourcebytes":[58,58,73,68,69,70,68,69,87,105,110,100,111,119],"value":"::IDEFDEWindow"},
+{"hash":235466279,"name":"tidefdewindow.caption","sourcebytes":[58,58,32,73,68,69,70,68,69,87,105,110,100,111,119],"value":":: IDEFDEWindow"},
 {"hash":12558,"name":"tidefdewindow.barbottom.simpletext","sourcebytes":[46,46,46],"value":"..."},
 {"hash":106991073,"name":"tidefdewindow.toolbar1.caption","sourcebytes":[84,111,111,108,66,97,114,49],"value":"ToolBar1"},
 {"hash":160486418,"name":"tidefdewindow.toolbutton2.caption","sourcebytes":[84,111,111,108,66,117,116,116,111,110,50],"value":"ToolButton2"},
 {"hash":160486421,"name":"tidefdewindow.toolbutton5.caption","sourcebytes":[84,111,111,108,66,117,116,116,111,110,53],"value":"ToolButton5"},
+{"hash":1738942,"name":"tidefdewindow.pnlloading.caption","sourcebytes":[76,111,97,100,105,110,103,32,46,46,46],"value":"Loading ..."},
 {"hash":174410724,"name":"tidefdewindow.actconnect.caption","sourcebytes":[67,111,110,110,101,99,116],"value":"Connect"},
 {"hash":174193460,"name":"tidefdewindow.actdisconnect.caption","sourcebytes":[68,105,115,99,111,110,110,101,99,116],"value":"Disconnect"},
 {"hash":249433630,"name":"tidefdewindow.actaddconnection.caption","sourcebytes":[65,100,100,32,67,111,110,110,101,99,116,105,111,110],"value":"Add Connection"},

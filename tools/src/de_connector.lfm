@@ -2,10 +2,10 @@ object IDEFDEWindow: TIDEFDEWindow
   Left = 213
   Height = 356
   Top = 379
-  Width = 203
+  Width = 238
   Caption = ':: IDEFDEWindow'
   ClientHeight = 356
-  ClientWidth = 203
+  ClientWidth = 238
   KeyPreview = True
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
@@ -21,7 +21,7 @@ object IDEFDEWindow: TIDEFDEWindow
     Left = 0
     Height = 26
     Top = 0
-    Width = 203
+    Width = 238
     AutoSize = True
     ButtonHeight = 46
     ButtonWidth = 23
@@ -32,7 +32,7 @@ object IDEFDEWindow: TIDEFDEWindow
     Left = 0
     Height = 286
     Top = 52
-    Width = 203
+    Width = 238
     Align = alClient
     DragMode = dmAutomatic
     Images = DBImages
@@ -50,7 +50,7 @@ object IDEFDEWindow: TIDEFDEWindow
     Left = 0
     Height = 18
     Top = 338
-    Width = 203
+    Width = 238
     Panels = <>
     SimpleText = '...'
   end
@@ -58,7 +58,7 @@ object IDEFDEWindow: TIDEFDEWindow
     Left = 0
     Height = 26
     Top = 26
-    Width = 203
+    Width = 238
     Caption = 'ToolBar1'
     Images = DBImages
     ParentShowHint = False
