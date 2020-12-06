@@ -167,7 +167,6 @@ begin
 
   if FileExists(srcEdit.FileName) then
   begin
-    pathName := ExtractFilePath(srcEdit.FileName);
     try
       {$ifdef WINDOWS}
       RunCommand('explorer',['/select,' + srcEdit.FileName], s);
@@ -176,7 +175,8 @@ begin
       RunCommand('open',['-R', srcEdit.FileName], s);
       {$endif}
       {$ifdef LINUX}
-      RunCommand('xdg-open',[srcEdit.FileName], s);
+      pathName := ExtractFilePath(srcEdit.FileName);
+      RunCommand('xdg-open',[pathName], s);
       {$endif}
     except
       on E: Exception do
