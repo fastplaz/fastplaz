@@ -961,7 +961,7 @@ begin
   fDatabaseConnectionEditor.edtPort.Text := getConfigValue(i, 'port');
   fDatabaseConnectionEditor.edtDatabaseName.Text := getConfigValue(i, 'database_name');
   fDatabaseConnectionEditor.edtTablePrefix.Text := getConfigValue(i, 'prefix');
-  //fDatabaseConnectionEditor.edtLibrary.Text := getConfigValue(i, 'library');
+  fDatabaseConnectionEditor.edtLibrary.Text := getConfigValue(i, 'library');
 
   if fDatabaseConnectionEditor.ShowModal = mrOk then
   begin
