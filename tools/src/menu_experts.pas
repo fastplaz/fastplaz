@@ -66,6 +66,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure JsonModuleGenerator_Proc(ASender: TObject);
@@ -96,6 +97,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure ModelGenerator_Proc(ASender: TObject);
@@ -120,6 +122,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure CreatePackage_Proc(ASender: TObject);
