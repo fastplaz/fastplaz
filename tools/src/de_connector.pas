@@ -7,7 +7,7 @@ interface
 {$include de.inc}
 
 uses
-  thread_custom,
+  thread_custom, http_lib,
   {$ifdef FDE_DESKTOP}
   // dock desktop
   AnchorDocking, AnchorDockStorage, AnchorDockOptionsDlg, AnchorDockPanel,
@@ -64,6 +64,7 @@ type
     popupMenuMain: TPopupMenu;
     SQLQuery1: TSQLQuery;
     SQLTransaction1: TSQLTransaction;
+    tmrVersionCheck: TTimer;
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
@@ -92,6 +93,7 @@ type
     procedure FormUnDock(Sender: TObject; Client: TControl;
       NewTarget: TWinControl; var Allow: Boolean);
     procedure popupMenuMainPopup(Sender: TObject);
+    procedure tmrVersionCheckTimer(Sender: TObject);
     procedure tvConnectionListClick(Sender: TObject);
     procedure tvConnectionListDblClick(Sender: TObject);
     procedure tvConnectionListDragDrop(Sender, Source: TObject; X, Y: integer);
@@ -134,6 +136,7 @@ type
 
     procedure saveFormState;
     procedure restoreFormState;
+    procedure versionCheck;
   public
     ConfigurationPath, ConfigurationFileName: string;
     constructor Create(AOwner: TComponent); override;
@@ -190,6 +193,7 @@ begin
   pnlLoading.Hide;
   pnlLoading.Left := (Width-pnlLoading.Width) div 2;
   actTest.Visible := False;
+  tmrVersionCheck.Enabled := True;
 end;
 
 destructor TIDEFDEWindow.Destroy;
@@ -210,7 +214,10 @@ begin
   {$ifdef FDE_DESKTOP}
   barBottom.SimpleText := ACategory + ': ' + AMessage;
   {$else}
-  IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' +
+  if ACategory.IsEmpty then
+    IDEMessagesWindow.AddCustomMessage(UrgencyLevel, AMessage, '', 0, 0, 'FastPlaz')
+  else
+    IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' +
     AMessage, '', 0, 0, 'FastPlaz');
   {$endif}
 
@@ -279,7 +286,7 @@ begin
   Config['cache/checkin'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
   Config.Flush;
 
-  log('Load configuration done.', 'FDE');
+  log('Load configuration done.', 'FDE', mluNote);
 end;
 
 procedure TIDEFDEWindow.PrepareConnection(AIndex: integer);
@@ -597,6 +604,13 @@ begin
 
 end;
 
+procedure TIDEFDEWindow.tmrVersionCheckTimer(Sender: TObject);
+begin
+  tmrVersionCheck.Enabled := False;
+  //log('version checking ...', 'FastPlaz', mluDebug);
+  versionCheck;
+end;
+
 procedure TIDEFDEWindow.tvConnectionListClick(Sender: TObject);
 begin
 
@@ -818,6 +832,43 @@ begin
   i := PropStorage.ReadInteger('top', 0);
   if i > 0 then
     Top := i;
+end;
+
+procedure TIDEFDEWindow.versionCheck;
+var
+  s, currentUpdateFile: string;
+  http: THTTPLib;
+  response: IHTTPResponse;
+  Pkg: TIDEPackage;
+  lst: TStringList;
+begin
+  try
+    http := THTTPLib.Create();
+    http.URL := LASTUPDATE_URL;
+    response := http.Get();
+    if response.ResultCode = 200 then
+    begin
+      Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
+      currentUpdateFile := Pkg.DirectoryExpanded + '..' + DirectorySeparator + LASTUPDATE_FILENAME;
+      if FileExistsUTF8(currentUpdateFile) then
+      begin
+        lst := TStringList.Create;
+        lst.LoadFromFile( currentUpdateFile);
+        if Trim(lst.Text) <> response.ResultText then
+        begin
+          log(RS_THERE_ARE_DEVELOPMENT_UPDATE + response.ResultText, 'FastPlaz', mluImportant);
+          //log('current: ' + Trim(lst.Text), 'Version', mluImportant);
+        end;
+        lst.Free;
+      end;
+    end;
+  except
+    on E: Exception do
+    begin
+      //
+    end;
+  end;
+  http.Free;
 end;
 
 

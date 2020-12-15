@@ -91,7 +91,8 @@ end;
 
 procedure log(const Msg: string; AFileName: string; ATheUrgency: TMessageLineUrgency);
 begin
-  IDEMessagesWindow.AddCustomMessage(ATheUrgency, Msg, AFileName, 0, 0, FastPlaz);
+  if IDEMessagesWindow <> nil then
+    IDEMessagesWindow.AddCustomMessage(ATheUrgency, Msg, AFileName, 0, 0, FastPlaz);
 end;
 
 procedure Register;
@@ -108,6 +109,7 @@ begin
   RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescModel.Create, FastPlaz);
   //RegisterProjectFileDescriptor(TWebStructure.Create, FastPlaz);
+
 end;
 
 

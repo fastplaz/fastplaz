@@ -53,3 +53,7 @@ msgstr ""
 msgid "Regex Tester"
 msgstr ""
 
+#: de_common.rs_there_are_development_update
+msgid "There are development update: "
+msgstr ""
+
