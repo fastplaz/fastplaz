@@ -76,12 +76,15 @@ const
   rsRevealInFinder = 'Reveal in Finder';
   {$endif}
 
+  LASTUPDATE_URL = 'https://raw.githubusercontent.com/fastplaz/fastplaz/development/LAST_UPDATED_DEVELOPMENT';
+  LASTUPDATE_FILENAME = 'LAST_UPDATED_DEVELOPMENT';
 
 resourcestring
   //rsDBConnector = 'DB Connector';
   RS_DATABASE_EXPLORER_MENU = 'Database Explorer';
   RS_JSON_TOOLS_MENU = 'JSON Validator && Formatter';
   RS_REGEX_TESTER_MENU = 'Regex Tester';
+  RS_THERE_ARE_DEVELOPMENT_UPDATE = 'There are development update: ';
   rsDBExplorer = 'DB Explorer';
   rsViewDBConnector = 'View DB Connector';
   rsConfirmation = 'Confirmation';

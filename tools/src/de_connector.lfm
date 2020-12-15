@@ -772,4 +772,11 @@ object IDEFDEWindow: TIDEFDEWindow
     Left = 148
     Top = 280
   end
+  object tmrVersionCheck: TTimer
+    Enabled = False
+    Interval = 5000
+    OnTimer = tmrVersionCheckTimer
+    Left = 52
+    Top = 156
+  end
 end
