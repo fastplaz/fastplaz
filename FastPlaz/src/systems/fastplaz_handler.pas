@@ -479,6 +479,8 @@ begin
       //SessionController.EndSession;
       //SessionController.StartSession;
     end;
+    if AppData.debug then
+      SessionController.Values[_SESSION_USER_AGENT] := Application.EnvironmentVariable['HTTP_USER_AGENT'];
   end;
   //-- session - end
 

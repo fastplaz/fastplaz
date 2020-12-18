@@ -1,5 +1,9 @@
 # Development Changes
 
+## 20201218.1424
+
+- Session with custom UniqueID 
+
 ## 20201206.0001
 
 - Reveal File in Explorer/Finder
