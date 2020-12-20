@@ -150,6 +150,7 @@ type
     procedure Push(ATo: string; AMessages: string; AISJSON: boolean = False);
     procedure Send(ATo: string; AMessages: string);
     procedure SendAudio(AUserID: string; AAudioURL: string);
+    procedure SendImage(AUserID: string; AImageURL: string);
     procedure SendSticker(ATo: string; APackageID: string; AStickerID: string);
     procedure SendLocation(AUserID: string; AName: string; AAddress: string;
       ALatitude: double; ALongitude: double);
@@ -585,6 +586,69 @@ begin
     end;
     Free;
 
+  end;
+
+  _jsonString.Free;
+end;
+
+procedure TLineIntegration.SendImage(AUserID: string; AImageURL: string);
+var
+  urlImage: string;
+  _jsonString: TStringList;
+begin
+  if not isCanSend then
+    Exit;
+  if (AUserID = '') or (AImageURL = '') then
+    Exit;
+
+  //try force https
+  AImageURL := StringReplace(AImageURL, 'http://', 'https://', [rfReplaceAll]);
+
+  _jsonString := TStringList.Create;
+  _jsonString.Text := '';
+  with THTTPLib.Create(_LINE_PUSH_URL) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      AddHeader('Authorization', 'Bearer ' + FToken);
+
+      urlImage := ReplaceAll(AImageURL, ['*', '$', '#', '>', '<', ''''], '');
+      urlImage := StringReplace(urlImage, '\n', '._', [rfReplaceAll]);
+      urlImage := StringReplace(urlImage, #10, '._', [rfReplaceAll]);
+
+      urlImage := StringToJSONString(Trim(urlImage), False);
+      if Length(urlImage) > 999 then
+      begin
+        urlImage := copy(urlImage, 0, 999);
+        urlImage := copy(urlImage, 0, RPos('_', urlImage) - 1);
+      end;
+      if FDebug then
+        LogUtil.Add( urlImage, 'LINE_IMAGE');
+
+      _jsonString.Add('{');
+      _jsonString.Add('"to":"' + AUserID + '",');
+      _jsonString.Add('"messages":[');
+      _jsonString.Add('{"type": "image", "originalContentUrl": "' +
+        urlImage + '", "previewImageUrl": "' + urlImage + '"}');
+      _jsonString.Add(']');
+      _jsonString.Add('}');
+
+      RequestBody := TStringStream.Create(_jsonString.Text);
+
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add( E.Message, 'LINE_IMAGE');
+      end;
+    end;
+    Free;
   end;
 
   _jsonString.Free;
