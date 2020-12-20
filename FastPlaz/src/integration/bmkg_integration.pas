@@ -52,8 +52,8 @@ type
 implementation
 
 const
-  _BMKG_DATA_URL = 'http://data.bmkg.go.id/data.txt';
-  _BMKG_INFOGEMPA_URL = 'http://data.bmkg.go.id/autogempa.xml';
+  _BMKG_DATA_URL = 'https://data.bmkg.go.id/data.txt';
+  _BMKG_INFOGEMPA_URL = 'https://data.bmkg.go.id/autogempa.xml';
 
 var
   Response: IHTTPResponse;

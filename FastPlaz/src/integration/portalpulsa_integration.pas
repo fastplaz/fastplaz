@@ -66,7 +66,7 @@ type
 implementation
 
 const
-  PORTALPULSA_API_URL = 'http://portalpulsa.com/api/connect/';
+  PORTALPULSA_API_URL = 'https://portalpulsa.com/api/connect/';
 
 var
   Response: IHTTPResponse;
