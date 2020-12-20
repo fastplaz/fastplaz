@@ -1,8 +1,4 @@
----
-id: common-function
-title: Common Function
-sidebar_label: Common Function
----
+# Function List
 
 _function_ and _procedure_ list in [FastPlaz](https://fastplaz.com).
 
