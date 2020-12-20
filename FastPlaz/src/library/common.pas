@@ -403,7 +403,7 @@ begin
 end;
 
 // [x] example
-//   TheDate := StringHumanToDate('17 agustus 15');
+//   TheDate := StringHumanToDate('17 agustus 1945');
 function StringHumanToDate(AStringHuman: string): TDateTime;
 var
   i: integer;
