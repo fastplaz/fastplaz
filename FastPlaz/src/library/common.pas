@@ -159,7 +159,7 @@ function EncodeQueryString(Data: array of string): string;
 function StripSlash(Const DataString: UnicodeString): UnicodeString;
 function StripHTML(AHTML: UnicodeString): UnicodeString;
 function StripTags(AHTML: UnicodeString): UnicodeString;
-function LoadCache( AName:String; AMod:String = 'general'): String;
+function LoadCache( AName:String; AMod:String = 'general'; ACacheTime: integer = 3600): String;
 function SaveCache( AName, AContent:String; AMod:String = 'general'): Boolean;
 
 // php like function
@@ -920,7 +920,7 @@ begin
   end;
 end;
 
-function LoadCache(AName: String; AMod: String): String;
+function LoadCache(AName: String; AMod: String; ACacheTime: integer): String;
 var
   i: Integer;
   lst: TStringList;
@@ -929,17 +929,16 @@ begin
   AName := AName.Replace('https://','');
   AName := AName.Replace('http://','');
   AName := SafeText( AName);
-  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.cache';
   if not FileExists( AName) then
     Exit;
-  i := HoursBetween(FileDateToDateTime(FileAge(AName)), now);
-  if i > 0 then
+  i := MinutesBetween(FileDateToDateTime(FileAge(AName)), now);
+  if i > ACacheTime then // in minutes
     Exit;
 
   lst := TStringList.Create;
   lst.LoadFromFile( AName);
   Result := lst.Text;
-
   lst.Free;
 end;
 
