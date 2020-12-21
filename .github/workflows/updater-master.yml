@@ -36,7 +36,7 @@ jobs:
       - name: Modify last update
         run: |
           d=`date '+%Y-%m-%dT%H:%M:%SZ'`
-          echo $d > LAST_UPDATED_DEVELOPMENT
+          echo $d > LAST_UPDATED
           
       - name: Commit files report
         run: |
