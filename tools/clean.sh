@@ -6,8 +6,8 @@ rm -rf *.ppu
 rm -rf *.o
 rm -rf *.compiled
 rm -rf lib/*
-rm -rf backup/
-rm -rf src/backup/
+rm -rf backup
+rm -rf src/backup
 rm -rf src/integration/lib
 
 find ./ -type f -name *.~ -delete
@@ -19,6 +19,7 @@ find ./ -type f -name *.bak -delete
 find ./ -type f -name *.ppu -delete
 find ./ -type f -name *.compiled -delete
 find ./ -type d -name backup -delete
+find . -type d -name "x86_64-darwin" -exec rm -rf "{}" \;
 
 rm -rf lib
 mkdir lib

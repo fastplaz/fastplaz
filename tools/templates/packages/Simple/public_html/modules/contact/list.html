@@ -1,0 +1,19 @@
+<link rel="stylesheet" href="[baseurl]modules/database/style/style.css">
+
+<section id="database" class="module">
+<div id="contact-container" class="container" class="module">
+	<div class="row"><div class="col-lg-12">
+        <table>
+            <thead>
+                <tr><th>&nbsp;</th><th>Name</th><th>Address</th><th></th></tr>
+            </thead>
+            <tbody>
+                [foreach from=$Contacts item=aItem type=table]
+                  [aItem.sex assignto=$JK]
+                  <tr><td>[$index].</td><td><a href="?id=[aItem.cid]">[aItem.first_name] [aItem.last_name]</a></td><td>[aItem.address]</td><td>[if $JK eq "0"]Laki[else]Perempuan[/if]</td></tr>
+                [/foreach from=$Contacts]
+            </tbody>
+        </table>
+	</div></div>
+
+</div>

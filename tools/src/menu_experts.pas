@@ -6,8 +6,10 @@ interface
 
 uses
   Controls, Dialogs,
-  LazIDEIntf, MenuIntf, IDECommands, ProjectIntf, IDEExternToolIntf,
-  Classes, SysUtils;
+  // INTF
+  LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf,
+  IDEExternToolIntf, SrcEditorIntf, LCLType,
+  Classes, SysUtils, UTF8Process, process;
 
 const
   FASTPLAZ_EXPERT_MAINMENU_NAME = 'mnu_FastPlazExpertMainMenu';
@@ -15,16 +17,21 @@ const
 
 var
   oMenuExpert: TIDEMenuSection = nil;
+  icRevealInFinder: TIDECommand;
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 procedure CreatePackage_Proc(ASender: TObject);
+procedure RevealInFinder_Proc(ASender: TObject);
 
 implementation
 
 uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd,
   modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd,
-  packageapp_wzd, packageapp_lib;
+  packageapp_wzd, packageapp_lib,
+  json_tools, regex_tester,
+  //Database Explorer
+  de_connector, de_dbbrowser, de_common;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
 begin
@@ -59,6 +66,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure JsonModuleGenerator_Proc(ASender: TObject);
@@ -89,6 +97,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure ModelGenerator_Proc(ASender: TObject);
@@ -113,6 +122,7 @@ begin
 
     Free;
   end;
+  bExpert := False;
 end;
 
 procedure CreatePackage_Proc(ASender: TObject);
@@ -149,6 +159,38 @@ begin
   LazarusIDE.DoOpenProjectFile(projectFileName, [ofProjectLoading]);
 end;
 
+procedure RevealInFinder_Proc(ASender: TObject);
+var
+  s, pathName: string;
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  if FileExists(srcEdit.FileName) then
+  begin
+    try
+      {$ifdef WINDOWS}
+      RunCommand('explorer',['/select,' + srcEdit.FileName], s);
+      {$endif}
+      {$ifdef DARWIN}
+      RunCommand('open',['-R', srcEdit.FileName], s);
+      {$endif}
+      {$ifdef LINUX}
+      pathName := ExtractFilePath(srcEdit.FileName);
+      RunCommand('xdg-open',[pathName], s);
+      {$endif}
+    except
+      on E: Exception do
+      begin
+        ShowMessage(E.Message);
+      end;
+    end;
+  end;
+
+end;
+
 procedure CreateWebStructure_Proc(ASender: TObject);
 begin
   with TfWebStructure.Create(nil) do
@@ -173,6 +215,20 @@ begin
   end;
 end;
 
+procedure JSONTools_Proc(ASender: TObject);
+begin
+  if not Assigned(fJSONTools) then
+    fJSONTools := TfJSONTools.Create(nil);
+  fJSONTools.Show;
+end;
+
+procedure RegexTester_Proc(ASender: TObject);
+begin
+  if not Assigned(fRegex) then
+    fRegex := TfRegex.Create(nil);
+  fRegex.Show;
+end;
+
 procedure About_Proc(ASender: TObject);
 begin
   if fAboutFastplaz = nil then
@@ -183,8 +239,9 @@ end;
 
 
 procedure CreateIDEMenus;
-//var
-//  Key: TIDEShortCut;
+var
+  cat: TIDECommandCategory;
+  key: TIDEShortCut;
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
@@ -211,9 +268,43 @@ begin
     'Create Web Directory Structure', nil, @CreateWebStructure_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
+
+  // Database Explorer, JSON Tools
+  CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_DatabaseExplorer',
+    RS_DATABASE_EXPLORER_MENU, nil, @ViewDBConnector, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_JSONTools',
+    RS_JSON_TOOLS_MENU, nil, @JSONTools_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_RegexTester',
+    RS_REGEX_TESTER_MENU, nil, @RegexTester_Proc, nil);
+
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
     nil, @About_Proc, nil, 'icon_information');
+
+  // add a menu item in the file menu
+  CreateIDEMenuSeparator(itmFileNew);
+  RegisterIDEMenuCommand(itmFileNew, 'mnu_FastPlaz_File_New',
+    'New Web Application Package ...', nil, @CreatePackage_Proc, nil);
+
+  // register FDE window
+  IDEWindowCreators.Add(FDE_WINDOW_NAME, @CreateIDEConnectorWindow,
+    nil, '250', '250', '', '');
+  IDEWindowCreators.Add(FDE_BROWSER_WINDOW_NAME, @CreateIDEBrowserWindow,
+    nil, '250', '250', '', '');
+
+  // reveal in finder
+  key := IDEShortCut(VK_E,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
+  icRevealInFinder := RegisterIDECommand(cat, rsRevealInFinder,
+    rsRevealInFinder, key, nil, @RevealInFinder_Proc);
+
+  // add a menu item in the source editor
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
+    rsRevealInFinder, nil, nil, icRevealInFinder, 'reveal_in_finder');
+
+
+
 end;
 
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);

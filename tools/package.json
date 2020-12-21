@@ -1,0 +1,22 @@
+{
+  "name": "fastplaz-updater",
+  "version": "1.0.0",
+  "description": "FastPlaz - Updater",
+  "main": "updater.js",
+  "scripts": {
+    "updater": "node ./updater.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fastplaz/fastplaz.git"
+  },
+  "author": "Luri Darmawan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fastplaz/fastplaz/issues"
+  },
+  "homepage": "https://fastplaz.com",
+  "dependencies": {
+  }
+}

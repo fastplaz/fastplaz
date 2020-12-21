@@ -1,0 +1,12 @@
+{"version":1,"strings":[
+{"hash":6274675,"name":"tfjsontools.caption","sourcebytes":[74,83,79,78,32,84,111,111,108,115],"value":"JSON Tools"},
+{"hash":106991073,"name":"tfjsontools.toolbar1.caption","sourcebytes":[84,111,111,108,66,97,114,49],"value":"ToolBar1"},
+{"hash":137342309,"name":"tfjsontools.btngo.caption","sourcebytes":[86,97,108,105,100,97,116,101],"value":"Validate"},
+{"hash":160486418,"name":"tfjsontools.toolbutton2.caption","sourcebytes":[84,111,111,108,66,117,116,116,111,110,50],"value":"ToolButton2"},
+{"hash":201628229,"name":"tfjsontools.btnopenfile.caption","sourcebytes":[79,112,101,110,32,70,105,108,101],"value":"Open File"},
+{"hash":160486421,"name":"tfjsontools.toolbutton5.caption","sourcebytes":[84,111,111,108,66,117,116,116,111,110,53],"value":"ToolButton5"},
+{"hash":187313426,"name":"tfjsontools.btnclear.caption","sourcebytes":[98,116,110,67,108,101,97,114],"value":"btnClear"},
+{"hash":12558,"name":"tfjsontools.barbottom.simpletext","sourcebytes":[46,46,46],"value":"..."},
+{"hash":22663,"name":"tfjsontools.tbsraw.caption","sourcebytes":[82,97,119],"value":"Raw"},
+{"hash":97561468,"name":"tfjsontools.tbsvisual.caption","sourcebytes":[86,105,115,117,97,108],"value":"Visual"}
+]}

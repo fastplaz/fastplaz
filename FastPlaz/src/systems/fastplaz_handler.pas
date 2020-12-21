@@ -9,7 +9,7 @@ uses
   {$IFDEF HEAPTRACE}
   heaptrc,
   {$ENDIF}
-  RegExpr,
+  regexpr_lib,
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
@@ -157,6 +157,7 @@ type
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
 
     property URI: string read GetURI;
+    property Environment[const KeyName: string]: string read GetEnvirontment;
     property Environtment[const KeyName: string]: string read GetEnvirontment;
     property Header[const KeyName: string]: string read GetHeader;
     property CustomHeader[const KeyName: string]: string read GetCustomHeader write SetCustomHeader;
@@ -478,6 +479,8 @@ begin
       //SessionController.EndSession;
       //SessionController.StartSession;
     end;
+    if AppData.debug then
+      SessionController.Values[_SESSION_USER_AGENT] := Application.EnvironmentVariable['HTTP_USER_AGENT'];
   end;
   //-- session - end
 
@@ -1281,7 +1284,7 @@ end;
 procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
   var ModuleClass: TCustomHTTPModuleClass);
 var
-  s, pathInfo: string;
+  s, pathInfo, groupName: string;
   i, j: integer;
   reg: TRegExpr;
   //m: TCustomHTTPModule;
@@ -1315,6 +1318,11 @@ begin
               ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
               if j = 3 then
                 ARequest.QueryFields.Values['act'] := reg.Match[j];
+            end;
+            for j := 1 to reg.GroupCount do
+            begin
+              groupName := reg.GroupName[j];
+              ARequest.QueryFields.Values[groupName] := reg.MatchFromName(groupName);
             end;
             Break;
           end;

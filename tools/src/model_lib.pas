@@ -36,16 +36,32 @@ type
   end;
 
 
+var
+  GenerateFromFDE: boolean = False;
+  CustomTableName: string = '';
+  ModelName, TableName: string;
+
 implementation
 
-uses fastplaz_tools_register, model_wzd;
+uses
+  fastplaz_tools_register,
+  {$ifndef FDESelfPackage}
+  {$endif}
+  model_wzd;
+
+const
+  CS_DEFAULT_FILENAME = 'default_model.pas';
+  CS_DEFAULT_SOURCENAME = 'modelname_model';
 
 { TFileDescModel }
 
 constructor TFileDescModel.Create;
 begin
   inherited Create;
-  //DefaultSourceName:= 'modelname_model';
+  Name := 'Model Generator';
+  DefaultFilename := CS_DEFAULT_FILENAME;
+  DefaultSourceName := CS_DEFAULT_SOURCENAME;
+
   DefaultFileExt := '.pas';
   VisibleInNewDialog := True;
   IsPascalUnit := True;
@@ -54,8 +70,8 @@ end;
 function TFileDescModel.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpjson, database_lib, string_helpers, dateutils,'
-    + #10'  datetime_helpers, array_helpers';
+  Result := Result + ', fpjson, database_lib, dateutils,'
+    + #10'  string_helpers, datetime_helpers, array_helpers';
 end;
 
 function TFileDescModel.GetLocalizedName: string;
@@ -110,14 +126,22 @@ begin
   str := TStringList.Create;
   with str do
   begin
-    Add('');
     Add('uses common;');
     Add('');
     Add('constructor ' + ModelName + '.Create(const DefaultTableName: string = '''');');
     Add('Begin');
-    Add('  inherited Create( DefaultTableName); // table name = ' +
-      LowerCase(TableName) + 's') ;
-    Add('  //inherited Create(''yourtablename''); // if use custom tablename');
+    if CustomTableName.IsEmpty then
+    begin
+      Add('  inherited Create( DefaultTableName); // table name = ' +
+        LowerCase(TableName) + 's') ;
+      Add('  //inherited Create(''yourtablename''); // if use custom tablename');
+    end
+    else
+    begin
+      Add('  //inherited Create( DefaultTableName); // table name = ' +
+        LowerCase(TableName) + 's') ;
+      Add('  inherited Create('''+LowerCase(CustomTableName)+'''); // if use custom tablename');
+    end;
     Add('End;');
     Add('');
   end;
@@ -134,36 +158,63 @@ end;
 
 function TFileDescModel.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
+var
+  LE: string;
 begin
-  if not bExpert then
-  begin;
-    ModelName := 'Sample';
-    with TfModelWizard.Create(nil) do
-    begin
-      if ShowModal = mrOk then
+  if not GenerateFromFDE then
+  begin
+    if (not bExpert) then
+    begin;
+      ModelName := 'Sample';
+      with TfModelWizard.Create(nil) do
       begin
-        if edt_ModelName.Text <> '' then
-          ModelName := edt_ModelName.Text;
+        if ShowModal = mrOk then
+        begin
+          if edt_ModelName.Text <> '' then
+            ModelName := edt_ModelName.Text;
+        end;
+        Free;
       end;
-      Free;
     end;
   end;
+  GenerateFromFDE := False;
+
   DefaultFilename := LowerCase(ModelName) + '_model.pas';
   DefaultFileExt := '.pas';
   DefaultSourceName := LowerCase(ModelName) + '_model';
 
   TableName := StringReplace(LowerCase(ModelName), ' ', '_', [rfReplaceAll]);
   ModelName := 'T' + StringReplace(UcWords(ModelName), ' ', '', [rfReplaceAll]) + 'Model';
-  Result := inherited CreateSource(LowerCase(ModelName) + '_model.pas',
-    SourceName, ModelName);
-  log('model "' + ModelName + '" created', DefaultFilename + DefaultFileExt);
+  Result := inherited CreateSource(DefaultFilename, DefaultSourceName, ModelName);
+
+  // Manual
+  {
+  LE := LineEnding;
+  Result := 'unit ' + DefaultSourceName + ';' + LE
+    + LE
+    + '{$mode objfpc}{$H+}' + LE
+    + LE
+    + 'interface' + LE
+    + LE
+    + 'uses' + LE
+    + '  ' + GetInterfaceUsesSection + ';' + LE
+    + LE
+    + GetInterfaceSource(DefaultFilename, DefaultSourceName, ModelName)
+    + 'implementation'
+    + LE
+    + GetImplementationSource(DefaultFilename, DefaultSourceName, ModelName)
+    + 'end.' + LE
+    + LE;
+  }
+
+  log('model "' + ModelName + '" created', DefaultFilename);
+  DefaultFilename := CS_DEFAULT_FILENAME;
+  DefaultSourceName := CS_DEFAULT_SOURCENAME;
 end;
 
 procedure TFileDescModel.UpdateDefaultPascalFileExtension(const DefPasExt: string);
 begin
   inherited UpdateDefaultPascalFileExtension(DefPasExt);
 end;
-
-
 
 end.

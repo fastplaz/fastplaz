@@ -9,7 +9,7 @@ uses
   //SynExportHTML,
   fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
-  RegExpr,
+  regexpr_lib,
   //netdb,
   resolve,
   zipper, strutils, dateutils, base64,
@@ -71,6 +71,7 @@ const
 
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
+  _ERR_DATABASE_NOT_INITIALIZED = 'The database connection has not been initialized.';
 
   _CACHE_PATH = 'ztemp' + DirectorySeparator + 'cache' + DirectorySeparator;
 
@@ -158,7 +159,7 @@ function EncodeQueryString(Data: array of string): string;
 function StripSlash(Const DataString: UnicodeString): UnicodeString;
 function StripHTML(AHTML: UnicodeString): UnicodeString;
 function StripTags(AHTML: UnicodeString): UnicodeString;
-function LoadCache( AName:String; AMod:String = 'general'): String;
+function LoadCache( AName:String; AMod:String = 'general'; ACacheTime: integer = 3600): String;
 function SaveCache( AName, AContent:String; AMod:String = 'general'): Boolean;
 
 // php like function
@@ -402,7 +403,7 @@ begin
 end;
 
 // [x] example
-//   TheDate := StringHumanToDate('17 agustus 15');
+//   TheDate := StringHumanToDate('17 agustus 1945');
 function StringHumanToDate(AStringHuman: string): TDateTime;
 var
   i: integer;
@@ -919,7 +920,7 @@ begin
   end;
 end;
 
-function LoadCache(AName: String; AMod: String): String;
+function LoadCache(AName: String; AMod: String; ACacheTime: integer): String;
 var
   i: Integer;
   lst: TStringList;
@@ -928,17 +929,16 @@ begin
   AName := AName.Replace('https://','');
   AName := AName.Replace('http://','');
   AName := SafeText( AName);
-  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.cache';
   if not FileExists( AName) then
     Exit;
-  i := HoursBetween(FileDateToDateTime(FileAge(AName)), now);
-  if i > 0 then
+  i := MinutesBetween(FileDateToDateTime(FileAge(AName)), now);
+  if i > ACacheTime then // in minutes
     Exit;
 
   lst := TStringList.Create;
   lst.LoadFromFile( AName);
   Result := lst.Text;
-
   lst.Free;
 end;
 

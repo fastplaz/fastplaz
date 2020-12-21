@@ -944,6 +944,11 @@ var
   _joinfield,
   _join : TStrings;
 begin
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
+  end;
+
   primaryKeyValue := '';
   Result := false;
   sWhere := '';
@@ -1129,6 +1134,11 @@ begin
     end;
   end;
 
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
+  end;
+
   sSQL := TStringList.Create;
   if Where <> '' then
   begin
@@ -1206,6 +1216,11 @@ begin
     begin
       DisplayError( format( _ERR_DATABASE_CANNOT_CONNECT, [ AppData.databaseWrite]));
     end;
+  end;
+
+  if not DB_Connector.Connected then begin
+    DisplayError(_ERR_DATABASE_NOT_INITIALIZED);
+    Exit;
   end;
 
   s := 'DELETE FROM ' + TableName + ' WHERE ';
@@ -1414,9 +1429,9 @@ finalization
   FreeAndNil( DB_Transaction);
   FreeAndNil( DB_LibLoader);
 
-  if not Assigned( DB_Connector_Write) then FreeAndNil( DB_Connector_Write);
-  if not Assigned( DB_Transaction_Write) then FreeAndNil( DB_Transaction_Write);
-  if not Assigned( DB_LibLoader_Write) then FreeAndNil( DB_LibLoader_Write);
+  if Assigned( DB_Connector_Write) then FreeAndNil( DB_Connector_Write);
+  if Assigned( DB_Transaction_Write) then FreeAndNil( DB_Transaction_Write);
+  if Assigned( DB_LibLoader_Write) then FreeAndNil( DB_LibLoader_Write);
 
 end.
 

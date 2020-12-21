@@ -1,0 +1,2 @@
+{-$DEFINE FDE_DOCK}
+

@@ -1,0 +1,23 @@
+<link rel="stylesheet" href="[baseurl]modules/database/style/style.css">
+
+<section id="database" class="module">
+<div id="contact-container" class="container" class="module">
+	<div class="row"><div class="col-lg-12">
+        <table>
+            <tbody>
+                [foreach from=$Contacts item=aItem type=table]
+                  [aItem.sex assignto=$JK]
+                  <tr><td>Nama</td><td>:</td><td>[aItem.first_name] [aItem.last_name]</td></tr>
+                  <tr><td>Alamat</td><td>:</td><td>[aItem.address]</td></tr>
+                  <tr><td>Jenis kelamin</td><td>:</td><td>[if $JK eq "0"]Laki[else]Perempuan[/if]</td></tr>
+                [/foreach from=$Contacts]
+            </tbody>
+        </table>
+    </div></div>
+    <br>
+    <a href="[baseurl]contact">
+    <button class="btn btn-primary" type="submit">Kembali</button>
+    </a>
+
+</div>
+</section>

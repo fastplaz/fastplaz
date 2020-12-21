@@ -17,6 +17,7 @@ const
   _SESSION_KEYSTART = 'start';         // Start time of session
   _SESSION_KEYLAST = 'last';          // Last seen time of session
   _SESSION_IPADDRESS = 'ipaddr';
+  _SESSION_USER_AGENT = 'useragent';
   _SESSION_FLASHMESSAGE = 'flash';
   _SESSION_TIMEOUT_DEFAULT = 3600;
   _SESSION_STORAGE_FILE = 1;
@@ -32,6 +33,7 @@ type
 
   TSessionController = class(TObject)
   private
+    FForceUniqueID: string;
     FIniFile: TMemInifile;
     FLastAccess: TDateTime;
     FSessionTimeout: integer;
@@ -41,7 +43,7 @@ type
     FSessionDir: string;
     FSessionVars: TStringList;
     FToken: string;
-    function GenerateSesionID: string;
+    function GenerateSessionID: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
     function GetInterval: double;
@@ -82,6 +84,7 @@ type
 
     property SessionPrefix: string read FSessionPrefix write FSessionPrefix;
     property SessionSuffix: string read FSessionSuffix write FSessionSuffix;
+    property ForceUniqueID: string read FForceUniqueID write FForceUniqueID;
 
     function StartSession: boolean;
     function RestartSession: boolean;
@@ -139,14 +142,14 @@ end;
 
 { TSessionController }
 
-function TSessionController.GenerateSesionID: string;
-var
-  remoteAddr: String;
+function TSessionController.GenerateSessionID: string;
 begin
-  //remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
-  //if remoteAddr.IsEmpty then
-  //  remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
-  remoteAddr := GetUserIpAddress;
+  if FForceUniqueID.IsEmpty then
+    Result := FCookieID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT']
+      + '-' + GetUserIpAddress
+  else
+    Result := FForceUniqueID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT']
+      + '-' + GetUserIpAddress;
   Result := MD5Print(MD5String(Result));
   if not FSessionPrefix.IsEmpty then
     Result := FSessionPrefix + '-' + Result;
@@ -408,11 +411,14 @@ begin
   lstr := Explode(FHttpCookie, ';');
   //FCookieID := lstr.Values['__cfduid']; // from CF
   FCookieID := lstr.Values['_'];
+  if FCookieID.IsEmpty then
+    FCookieID := RandomString(41);//curl
   FToken := lstr.Values['token'];
   FreeAndNil(lstr);
   FSessionPrefix := '';
   FSessionSuffix := '';
-  FSessionID := GenerateSesionID();
+  FForceUniqueID := '';
+  FSessionID := GenerateSessionID();
   FSessionDir := Application.EnvironmentVariable['TEMP'];
   FSessionExtension := '.ses';
   FSessionStarted := False;
@@ -435,7 +441,7 @@ begin
   Result := False;
   if FSessionStarted then
     Exit;
-  FSessionID := GenerateSesionID();
+  FSessionID := GenerateSessionID();
 
   if Storage = _SESSION_STORAGE_FILE then
     StartSessionWithFile;

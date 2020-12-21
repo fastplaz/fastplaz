@@ -12,7 +12,7 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel, StdCtrls, ComCtrls;
 
 const
-  css_CodeName = 'core';
+  css_CodeName = 'Hero';
 
 type
 
@@ -141,7 +141,7 @@ end;
 
 
 initialization
-	fAboutFastplaz := nil;
+  fAboutFastplaz := nil;
 
 
 

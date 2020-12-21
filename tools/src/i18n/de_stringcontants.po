@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: de_stringcontants.rsdbexplorer
+msgid "DB Explorer"
+msgstr ""
+
+#: de_stringcontants.rsviewdbconnector
+msgid "View DB Connector"
+msgstr ""
+

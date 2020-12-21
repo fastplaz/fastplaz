@@ -17,7 +17,7 @@ uses
   {$endif}
   fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
-  RegExpr, db, sqldb,
+  regexpr_lib, db, sqldb,
   common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
   Classes, SysUtils;
 
@@ -403,6 +403,14 @@ begin
     Result := f;
     Exit;
   except
+  end;
+
+  // get direct string value
+  if preg_match('(["''])(.*?)(["''])', varname) then
+  begin
+    tmpvalue := varname.Replace('"','').Replace('''','');
+    Result := tmpvalue;
+    Exit;
   end;
 
   // check from varstring first
@@ -1187,6 +1195,7 @@ begin
   i := 1;
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     ThemeUtil.Assign('foreach_index', i2s(i mod 2));
     if (i mod 2) = 1 then
       ThemeUtil.Assign('foreach_odd', 'odd')
@@ -1219,6 +1228,7 @@ end;
 function TThemeUtil.ForeachProcessor_Dataset(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
+  i: integer;
   html : string;
   templateEngine : TFPTemplate;
 begin
@@ -1228,8 +1238,10 @@ begin
   end;
 
   html := '';
+  i := 1;
   while not TDataSet( assignVarMap[KeyName]^).EOF do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
@@ -1246,6 +1258,7 @@ begin
     html := ConditionalIfProcessor( TagProcessor, html);
 
     TDataSet( assignVarMap[KeyName]^).Next;
+    i := i + 1;
   end;
   Result := html;
 end;
@@ -1267,6 +1280,7 @@ begin
   foreachJsonIndex := 0;
   for i := 0 to TJSONData( assignVarMap[KeyName]^).Count - 1 do
   begin
+    ThemeUtil.Assign('$index', i.ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
@@ -1414,6 +1428,8 @@ begin
   begin
     FTagAssign_Variable.Values[tagstring_custom.Values['assignto']]:='s|'
       + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    FAssignVarStringMap.Values[tagstring_custom.Values['assignto']]:=
+      TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
     Exit;
   end;
   if tagstring_custom.Values['addassignto'] <> '' then
@@ -2109,14 +2125,14 @@ begin
       html.Text := Content;
   end;
 
-  //-- proccess conditional if
-  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
-
   //-- proccess foreach
   if RenderType = rtSmarty then
   begin
     html.Text:= ForeachProcessor( TagProcessorAddress, html.Text);
   end;
+
+  //-- proccess conditional if
+  html.Text:= ConditionalIfProcessor( TagProcessorAddress, html.Text);
 
   templateEngine := TFPTemplate.Create;
   templateEngine.Template := html.Text;

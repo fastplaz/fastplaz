@@ -48,7 +48,7 @@ procedure TExampleController.Get;
 begin
   randomize();
 
-  ThemeUtil.Assign('$Title', 'basic example');
+  ThemeUtil.Assign('$Title', 'Basic Example');
   ThemeUtil.Assign('$variableName',
     'Dan ini adalah kontent yang dikirim melalui variable: $variableName.<br />Di dalam kode HTML cukup dituliskan [$variableName].');
   ThemeUtil.Assign('$currentDate', Now.IncMinute(RandomRange(-2000,2000)).AsString);

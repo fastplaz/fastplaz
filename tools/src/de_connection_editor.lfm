@@ -1,0 +1,227 @@
+object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
+  Left = 459
+  Height = 394
+  Top = 214
+  Width = 325
+  BorderStyle = bsToolWindow
+  Caption = 'Database Connection Editor'
+  ClientHeight = 394
+  ClientWidth = 325
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  Position = poDesktopCenter
+  LCLVersion = '2.0.10.0'
+  object btnCancel: TButton
+    Cursor = crHandPoint
+    Left = 216
+    Height = 25
+    Top = 340
+    Width = 75
+    Caption = 'Cancel'
+    ModalResult = 2
+    OnClick = btnCancelClick
+    TabOrder = 11
+  end
+  object btnOk: TButton
+    Cursor = crHandPoint
+    Left = 128
+    Height = 25
+    Top = 340
+    Width = 75
+    Caption = '&Ok'
+    OnClick = btnOkClick
+    TabOrder = 10
+  end
+  object edtName: TEdit
+    Left = 132
+    Height = 22
+    Top = 8
+    Width = 163
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 0
+    Text = '-name-'
+  end
+  object edtHostname: TEdit
+    Left = 132
+    Height = 22
+    Top = 64
+    Width = 163
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 2
+    Text = '-127.0.0.1-'
+  end
+  object edtUsername: TEdit
+    Left = 132
+    Height = 22
+    Top = 96
+    Width = 163
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 3
+    Text = '-root-'
+  end
+  object edtPassword: TEdit
+    Left = 132
+    Height = 22
+    Top = 122
+    Width = 163
+    EchoMode = emPassword
+    OnKeyPress = edtNameKeyPress
+    PasswordChar = '*'
+    TabOrder = 4
+    Text = '-root-'
+  end
+  object edtDatabaseName: TEdit
+    Left = 132
+    Height = 22
+    Top = 148
+    Width = 163
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 5
+    Text = '-databasename-'
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 16
+    Top = 12
+    Width = 116
+    Caption = 'Connection Name :'
+    ParentColor = False
+  end
+  object Label3: TLabel
+    Left = 8
+    Height = 16
+    Top = 68
+    Width = 85
+    Caption = 'Hostname/IP :'
+    ParentColor = False
+  end
+  object Label4: TLabel
+    Left = 8
+    Height = 16
+    Top = 100
+    Width = 69
+    Caption = 'Username :'
+    ParentColor = False
+  end
+  object Label5: TLabel
+    Left = 8
+    Height = 16
+    Top = 124
+    Width = 65
+    Caption = 'Password :'
+    ParentColor = False
+  end
+  object edtPort: TEdit
+    Left = 132
+    Height = 22
+    Top = 226
+    Width = 67
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 7
+  end
+  object Label6: TLabel
+    Left = 8
+    Height = 16
+    Top = 152
+    Width = 104
+    Caption = 'Database Name :'
+    ParentColor = False
+  end
+  object Label7: TLabel
+    Left = 8
+    Height = 16
+    Top = 228
+    Width = 33
+    Caption = 'Port :'
+    ParentColor = False
+  end
+  object tbl_Test: TButton
+    Cursor = crHandPoint
+    Left = 132
+    Height = 25
+    Top = 296
+    Width = 163
+    Caption = '&Test Connection'
+    Enabled = False
+    OnClick = tbl_TestClick
+    TabOrder = 9
+  end
+  object edtTablePrefix: TEdit
+    Left = 132
+    Height = 22
+    Top = 172
+    Width = 67
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 6
+  end
+  object Label8: TLabel
+    Left = 42
+    Height = 16
+    Top = 176
+    Width = 78
+    Caption = 'Table Prefix :'
+    ParentColor = False
+  end
+  object Label9: TLabel
+    Left = 135
+    Height = 16
+    Top = 200
+    Width = 172
+    Caption = 'Let Empty, to show all tables'
+    ParentColor = False
+  end
+  object lblDriver: TLabel
+    Left = 8
+    Height = 16
+    Top = 40
+    Width = 36
+    Caption = 'Driver'
+    ParentColor = False
+  end
+  object cbbDriver: TComboBox
+    Left = 132
+    Height = 20
+    Top = 36
+    Width = 163
+    DropDownCount = 13
+    ItemHeight = 19
+    Items.Strings = (
+      'Firebird'
+      'MySQL 4.0'
+      'MySQL 4.1'
+      'MySQL 5.0'
+      'MySQL 5.1'
+      'MySQL 5.5'
+      'MySQL 5.6'
+      'MySQL 5.7'
+      'ODBC'
+      'Oracle'
+      'PostgreSQL'
+      'SQLite3'
+    )
+    OnKeyPress = edtNameKeyPress
+    TabOrder = 1
+    Text = '-- select --'
+  end
+  object Label10: TLabel
+    Left = 8
+    Height = 16
+    Top = 258
+    Width = 46
+    Caption = 'Library '
+    ParentColor = False
+  end
+  object edtLibrary: TFileNameEdit
+    Left = 132
+    Height = 22
+    Top = 256
+    Width = 163
+    FilterIndex = 0
+    HideDirectories = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    TabOrder = 8
+  end
+end

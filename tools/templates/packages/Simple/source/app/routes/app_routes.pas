@@ -10,9 +10,10 @@ uses
 implementation
 
 uses info_controller, app_controller, example_controller,
-  database_controller;
+  database_controller, example_form_controller;
 
 initialization
+  Route[ '/example/form'] := TFormController;
   Route[ '/example'] := TExampleController;
   Route[ '/database'] := TDatabaseController;
   Route[ '/'] := TFastplazController; // Main Controller
