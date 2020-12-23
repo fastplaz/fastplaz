@@ -32,6 +32,7 @@ type
     function IsNotEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
     function IsExists( AString: string): boolean; overload; inline;
+    function isVowelExists: boolean; overload; inline;
     function IsJson: boolean; overload; inline;
     function IsNumeric: boolean; overload; inline;
     function IsEmail: boolean; overload; inline;
@@ -109,6 +110,11 @@ begin
     Exit;
   if Pos( AString, Self) > 0 then
     Result := True;
+end;
+
+function TStringSmartHelper.isVowelExists: boolean;
+begin
+  Result := common.isVowelExists(Self);
 end;
 
 function TStringSmartHelper.IsJson: boolean;
