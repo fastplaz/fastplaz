@@ -202,6 +202,9 @@ function isEmail(const s: string): boolean;
 function isDomain(const s: string): boolean;
 function GetHostNameIP( HostName: string): string;
 function GetUserIpAddress: string;
+function isVowel(c: char): boolean;
+function isConsonant(const c: char): boolean;
+function isVowelExists(AText: string): boolean;
 
 function Exec(const AExeName: string; const AParameter: array of string;
   var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
@@ -1752,6 +1755,33 @@ begin
   Result := _SERVER['HTTP_X_FORWARDED_FOR'];
   if not Result.IsEmpty then Exit;
   Result := _SERVER['REMOTE_ADDR'];
+end;
+
+function isVowel(c: char): boolean;
+begin
+  c := LowerCase(c);
+  case c of
+    'a', 'e', 'i', 'o', 'u': Result := True;
+    else Result := False;
+  end;
+end;
+
+function isConsonant(const c: char): boolean;
+begin
+  Result := not isVowel(c);
+end;
+
+function isVowelExists(AText: string): boolean;
+var
+  i: integer;
+  c: char;
+begin
+  Result := False;
+  for c in AText do
+  begin
+    if isVowel(c) then
+      Result := True;
+  end;
 end;
 
 // example:
