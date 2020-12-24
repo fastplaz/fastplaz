@@ -474,8 +474,9 @@ function TTelegramIntegration.getFullName: string;
 begin
   Result := '';
   try
-    Result := trim(jsonData.GetPath('message.from.first_name').AsString +
-      ' ' + jsonData.GetPath('message.from.last_name').AsString);
+    Result := jsonGetData(jsonData, 'message/from/first_name')
+      + ' ' + jsonGetData(jsonData, 'message/from/last_name');
+    Result := Result.Trim;
     if Result = '' then
       UserName;
   except
@@ -483,8 +484,9 @@ begin
   if IsCallbackQuery then
   begin
     try
-      Result := jsonData.GetPath('callback_query.from.first_name').AsString
-        + ' ' + jsonData.GetPath('callback_query.from.last_name').AsString;
+      Result := jsonGetData(jsonData, 'callback_query/from/first_name')
+        + ' ' + jsonGetData(jsonData, 'callback_query/from/last_name');
+      Result := Result.Trim;
     except
     end;
   end;
@@ -571,20 +573,16 @@ end;
 function TTelegramIntegration.getIsInvitation: boolean;
 begin
   Result := False;
-  try
-    FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
-    FInvitedFullName := FInvitedFullName + ' ' + jsonData.GetPath('message.new_chat_member.last_name').AsString;
-    FInvitedFullName := trim(FInvitedFullName);
-  except
-  end;
-  try
-    FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
-    FInvitedUserId := jsonData.GetPath('message.new_chat_member.id').AsString;
-    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
-  except
-  end;
+  FInvitedFullName := jsonGetData(jsonData, 'message/new_chat_member/first_name')
+    + ' ' + jsonGetData(jsonData, 'message/new_chat_member/last_name');
+  FInvitedFullName := FInvitedFullName.Trim;
 
-  if FInvitedUserName <> '' then
+  FInvitedUserId := jsonGetData(jsonData, 'message/new_chat_member/id');
+  FInvitedUserName := jsonGetData(jsonData, 'message/new_chat_member/username');
+  if FInvitedUserName.IsEmpty then
+    FInvitedUserName := '+' + jsonGetData(jsonData, 'message/new_chat_member/id');
+
+  if FInvitedUserId <> '' then
     Result := True;
 end;
 
