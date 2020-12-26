@@ -1280,7 +1280,7 @@ begin
   foreachJsonIndex := 0;
   for i := 0 to TJSONData( assignVarMap[KeyName]^).Count - 1 do
   begin
-    ThemeUtil.Assign('$index', i.ToString);
+    ThemeUtil.Assign('$index', (i+1).ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
