@@ -448,30 +448,28 @@ begin
   if string(Config.GetValue(_SYSTEM_SESSION_STORAGE, 'file')) = 'database' then
     AppData.SessionStorage := _SESSION_STORAGE_DATABASE;
   SessionController.Storage := AppData.SessionStorage;
+  SessionController.TimeOut :=
+    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
+  if SessionController.TimeOut = 0 then
+    SessionController.TimeOut := _SESSION_TIMEOUT_DEFAULT;
   // force session with cookie
-  if SessionController.CookieID.IsEmpty then
+  if SessionController.IsNewSession then
   begin
-    _ := Application.Request.CookieFields.Values['_'];
-    if _.IsEmpty then
-    begin
-      _ := RandomString(40, 'fastplaz');
-    end;
     with Application.Response.Cookies.Add do
     begin
-      Name := '_';
-      Value := _;
+      //CustomHeader['Set-Cookie'] := '_=....; path=/';
+      Name := _SESSION_COOKIE_KEY;
+      Value := SessionController.CookieID;
+      Path := '/';
       if not AppData.cookiePath.IsEmpty then
         Path := AppData.cookiePath;
-      Expires := dateutils.IncDay(Now,3);
+      //Expires := dateutils.IncMinute(Now, SessionController.TimeOut);
     end;
-    SessionController.SessionID := _;
   end;
   if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
   begin
     DataBaseInit;
   end;
-  SessionController.TimeOut :=
-    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
   if AppData.sessionAutoStart then
   begin
     if not SessionController.StartSession then
