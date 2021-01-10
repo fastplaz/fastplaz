@@ -5,7 +5,7 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles, fpjson,
+  fpcgi, md5, IniFiles, fpjson, DateUtils,
   Classes, SysUtils;
 
 const
@@ -27,7 +27,7 @@ const
   TDateTimeEpsilon = 2.2204460493e-16;
 
   _SESSION_SQL_UPDATE =
-    'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", now(), %d, %d, "%s");';
+    'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", UNIX_TIMESTAMP(now()), %d, %d, "%s");';
 
 type
 
@@ -531,13 +531,16 @@ begin
 end;
 
 function TSessionController.StartSessionWithDatabase: boolean;
+var
+  lastAccessAsInteger: integer;
 begin
   Result := False;
   SessionTable := TSessionModel.Create();
   if SessionTable.Find(FSessionID) then
   begin
     FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-    FLastAccess := SessionTable.Value[SESSION_FIELD_LASTUSED];
+    lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
+    FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
     UpdateDatabase;
   end
   else
@@ -547,7 +550,8 @@ begin
     if SessionTable.Find(FSessionID) then
     begin
       FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-      FLastAccess := SessionTable.Value[SESSION_FIELD_LASTUSED];
+      lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
+      FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
     end;
   end;
   FSessionStarted := True;
