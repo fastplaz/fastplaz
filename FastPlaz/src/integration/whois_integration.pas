@@ -174,7 +174,7 @@ begin
     Result := regex.Match[1];
     while regex.ExecNext do
     begin
-      Result := Result + ' ' + regex.Match[1];
+      Result := Result + '\n' + regex.Match[1];
     end;
   end;
   Result := Result.Replace('Name Server: ', '');
@@ -208,8 +208,6 @@ begin
 end;
 
 function TWhoisIntegration.getStatus: string;
-var
-  i: integer;
 begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_STATUS;
