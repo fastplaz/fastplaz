@@ -103,7 +103,7 @@ begin
 
   json := TJSONUtil.Create;
   json.LoadFromJsonString(Result, False);
-  Result := json['_text'];
+  Result := json['text'];
   if Result = 'null' then
     Result := '';
   json.Free;
