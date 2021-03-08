@@ -1484,6 +1484,7 @@ var
   json: TJSONUtil;
 begin
   Result := False;
+  FResultMessageID := '0';
   if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
     or (AData.Data.Count = 0) then
     Exit;
@@ -1508,7 +1509,13 @@ begin
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
+      begin
         Result := True;
+        json := TJSONUtil.Create;
+        json.LoadFromJsonString(FResultText, False);
+        FResultMessageID := json['result/message_id'];
+        json.Free;
+      end;
     except
     end;
     Free;
