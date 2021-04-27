@@ -1014,7 +1014,11 @@ begin
   Data.First;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
-    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    primaryKeyValue := '';
+    try
+      primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    except
+    end;
   end;
 end;
 

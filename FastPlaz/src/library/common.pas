@@ -1587,10 +1587,10 @@ begin
   Result := AContent;
 
   Result := preg_replace('\!\[(.+?)\]\((.+?)\)', '<img src="$2" />', Result, True); // Image
-  Result := preg_replace('\[([a-zA-Z0-9\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
+  Result := preg_replace('\[([a-zA-Z0-9\(\)\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
   Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebal Miring
   Result := preg_replace('\*\*(.*?)\*\*', '<b>$1</b> ', Result, True); // Miring
-  Result := preg_replace('\*(.+?)\*', '<i>$1</i> ', Result, True); // Tebal
+  Result := preg_replace('\*(.+?)\*', '<b>$1</b> ', Result, True); // Tebal
   //Result := preg_replace('_([^\*]*)_', '<i>$1</i> ', Result, True); // Miring
   //Result := preg_replace('_(.*?)_', '<i>$1</i> ', Result, True); // Miring
 
@@ -1607,7 +1607,7 @@ begin
 
   Result := preg_replace('---\n', '<hr>'#10, Result, True); // Line
 
-  Result := preg_replace('```(.+?)```', '<pre><code>$1</code></pre>', Result, True); // Simple Code
+  Result := preg_replace('```(.+?)```', '<pre>$1</pre>', Result, True); // Simple Code
   Result := preg_replace('`(.+?)`', '<span class="code-inline">$1</span>', Result, True); // Simple Code
 
   Result := preg_replace(#13#10, #10, Result, True);
