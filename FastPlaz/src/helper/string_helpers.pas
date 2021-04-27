@@ -27,6 +27,8 @@ type
     function UrlEncode: AnsiString; overload; inline;
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
+    function RemoveSlash: AnsiString; overload; inline;
+    function AddSlash: AnsiString; overload; inline;
     function Explode( ADelimiter:string = ','): TStrings; overload; inline;
     function IsEmpty: boolean; overload; inline;
     function IsNotEmpty: boolean; overload; inline;
@@ -81,6 +83,17 @@ end;
 function TStringSmartHelper.EscapeString: AnsiString;
 begin
   Result := mysql_real_escape_string(Self);
+end;
+
+function TStringSmartHelper.RemoveSlash: AnsiString;
+begin
+  Result := ExcludeTrailingBackslash(Self);
+end;
+
+function TStringSmartHelper.AddSlash: AnsiString;
+begin
+  Result := IncludeTrailingBackslash(Self);
+
 end;
 
 function TStringSmartHelper.Explode(ADelimiter: string): TStrings;
