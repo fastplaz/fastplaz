@@ -56,6 +56,8 @@ resourcestring
   HEAD = 'HEAD';
   OPTIONS = 'OPTIONS';
 
+const
+  REGEX_FORMDATA = 'Content-Disposition: form-data; name=\"(.*?)\"\r\nContent-Type: (.*?)\r\n\r\n(.*?)\r\n';
 
 type
 
@@ -1081,6 +1083,7 @@ end;
 
 function TPOST.GetValue(const Variable: string): string;
 var
+  i: integer;
   _l: TStringList;
   s, postType: string;
 begin
@@ -1106,13 +1109,33 @@ begin
   if Application.Request.ContentFields.IndexOfName(Variable) = -1 then
   begin
     Result := '';
-    Exit;
+    //Exit;
   end;
   try
     case postType of
       'multipart/form-data':
       begin
         s := Application.Request.ContentFields.Values[Variable];
+        if s.IsEmpty then
+        with TRegExpr.Create() do
+        begin
+          Expression := REGEX_FORMDATA;
+          if Exec(Application.Request.Content) then
+          begin
+            if Match[1] = Variable then
+            begin
+              Result := Match[3]; Free; Exit;
+            end;
+            while ExecNext() do
+            begin
+              if Match[1] = Variable then
+              begin
+                Result := Match[3]; Free; Exit;
+              end;
+            end;
+          end;
+          Free;
+        end;
       end;
       'application/x-www-form-urlencoded':
       begin
