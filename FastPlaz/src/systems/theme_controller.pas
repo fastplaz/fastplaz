@@ -1999,8 +1999,12 @@ begin
 
     if not FileExists(templateFilename) then
     begin
-      Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
-      Exit;
+      templateFilename := GetCurrentDir + LayoutTemplateFile;
+      if not FileExists(templateFilename) then
+      begin
+        Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
+        Exit;
+      end;
     end;
   end
   else

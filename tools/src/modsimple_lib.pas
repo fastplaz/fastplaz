@@ -323,6 +323,8 @@ begin
             Permalink := StringReplace(UcWords(edt_ModuleName.Text),
               ' ', '', [rfReplaceAll]);
           end;
+          ModulTypeName := StringReplace(ModulTypeName, '/', '', [rfReplaceAll]);
+          Permalink := StringReplace(Permalink, '/', '_', [rfReplaceAll]);
         end;
         Free;
       end;

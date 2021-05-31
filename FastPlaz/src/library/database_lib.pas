@@ -11,7 +11,7 @@ uses
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
-  sqlite3conn, pqconnection, IBConnection,
+  sqlite3conn, pqconnection, IBConnection, TypInfo,
   variants, Classes, SysUtils;
 
 type
@@ -540,7 +540,7 @@ function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray;
 var
   item : TJSONObject;
   item_array : TJSONArray;
-  field_name : string;
+  field_name, fieldType : string;
   i,j:integer;
 begin
   Result:=False;
@@ -553,6 +553,7 @@ begin
       for j:=0 to Data.FieldCount-1 do
       begin
         field_name:= Data.FieldDefs.Items[j].Name;
+        fieldType := GetEnumName(TypeInfo(TFieldType), Ord(Data.FieldDefs.Items[j].DataType));
         if NoFieldName then
         begin
           if Data.FieldDefs.Items[j].DataType = ftDateTime then
@@ -569,6 +570,22 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftInteger then
           begin
             item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftSmallint then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftLargeint then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftUnknown then
+          begin
+            try
+              item_array.add( Data.FieldByName(field_name).AsString);
+            except
+              item_array.add( '');
+            end;
           end
           else
             item_array.add( Data.FieldByName(field_name).AsString);
@@ -590,6 +607,22 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftInteger then
           begin
             item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftSmallint then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftLargeint then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftUnknown then
+          begin
+            try
+              item.Add(field_name, Data.FieldByName(field_name).AsString);
+            except
+              item.Add(field_name, '');
+            end;
           end
           else
             item.Add(field_name, Data.FieldByName(field_name).AsString);
