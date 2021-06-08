@@ -95,7 +95,7 @@ type
 
 function i2s(pI: integer): string;
 function s2i(s: string): integer;
-function f2s(n: extended): string;
+function f2s(n: extended; NumberOfDecimal: integer = 2): string;
 function s2f(s: string): extended;
 function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
@@ -233,13 +233,13 @@ begin
   end;
 end;
 
-function f2s(n: extended): string;
+function f2s(n: extended; NumberOfDecimal: integer): string;
 begin
   Result := '0';
   try
     //Result := FloatToStr(n);
     //Result := FloatToStrF(n, ffCurrency, 8, 2);
-    Result := Format('%.2f', [n]);
+    Result := Format('%.'+NumberOfDecimal.ToString+'f', [n]);
   except
   end;
 end;
@@ -754,10 +754,15 @@ procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer
   );
 var
   s: string;
+  j: TJSONObject;
 begin
   Application.Response.ContentType := 'application/json';
   Application.Response.Content := '';
-  s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
+  j := TJSONObject.Create;
+  j.Add('code', ACode);
+  j.Add('msg', AMessage);
+  s := j.AsJSON;
+  j.Free;
   if AForceCode = 0 then
     die(s, 200)
   else

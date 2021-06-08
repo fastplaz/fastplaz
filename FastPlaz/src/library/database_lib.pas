@@ -546,6 +546,7 @@ begin
   Result:=False;
   i:=1;
   try
+    Data.First;
     while not Data.EOF do
     begin
       item := TJSONObject.Create();

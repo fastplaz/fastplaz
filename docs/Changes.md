@@ -1,5 +1,14 @@
 # Development Changes
 
+## 20210608.1111
+
+- handler: float to string format
+- handler: whois handler for .id domain
+- handler: OutputJson with json utils
+- theme: foreach for json data
+- filter: unix2date with format
+- filter: number with format
+
 ## 20201218.1424
 
 - Session with custom UniqueID 

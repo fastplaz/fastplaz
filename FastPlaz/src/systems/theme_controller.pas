@@ -18,7 +18,7 @@ uses
   fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   regexpr_lib, db, sqldb,
-  common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
+  common, fastplaz_handler, database_lib, datetime_lib, modvar_util, json_lib,
   Classes, SysUtils;
 
 const
@@ -119,7 +119,7 @@ type
 
     function wpautop( Content:string; BR:boolean = true):string;
     function MultiFilter( AContent:string):string;
-    function FilterOutput( Content, Filter:string):string;
+    function FilterOutput( Content, Filter:string; ATagString: TStringList = nil):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
 
     function GetDebugBenchmark( const DebugType:string = ''):string;
@@ -574,9 +574,12 @@ begin
   Result := FRenderType;
 end;
 
-function TThemeUtil.FilterOutput(Content, Filter: string): string;
+function TThemeUtil.FilterOutput(Content, Filter: string;
+  ATagString: TStringList): string;
 var
   i: Integer;
+  s: string;
+  fs: TFormatSettings;
 begin
   Result := Content;
   if Filter = '' then
@@ -609,6 +612,32 @@ begin
         Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i));
       except
       end;
+    end;
+    'unix2date' :
+    begin
+      try
+        i := StrToInt(Content);
+        s := 'yyyy-mm-dd HH:nn:ss';
+        if ATagString <> nil then
+        begin
+          if ATagString.Values['dateformat'] <> '' then
+            s := ATagString.Values['dateformat'];
+          if ATagString.Values['format'] <> '' then
+            s := ATagString.Values['format'];
+        end;
+        Result := FormatDateTime(s, UnixToDateTime(i));
+      except
+      end;
+    end;
+    'number' :
+    begin
+      fs := DefaultFormatSettings;
+      fs.DecimalSeparator := ',';
+      fs.ThousandSeparator := '.';
+      s := '#,###.##';
+      if ATagString.Values['format'] <> '' then
+        s := ATagString.Values['format'];
+      Result := FormatFloat(s, s2f(Content), fs);
     end;
     'shorturl' :
     begin
@@ -1694,23 +1723,35 @@ begin
     if ThemeUtil.AssignVar[tagstring_custom[0]] <> Nil then
     begin
       try
-        if tagstring_custom.Values['dateformat'] <> '' then
+        if tagstring_custom.Values['type'] = 'json' then
         begin
-          if tagstring_custom.Values['dateformat'] = 'human' then
+          s := tagstring_custom.Values['index'].Replace('.','/');
+          ReplaceText := TJSONUtil(ThemeUtil.AssignVar[tagstring_custom[0]]^).Value[s];
+        end;
+        if tagstring_custom.Values['type'] = '' then
+        begin
+          if tagstring_custom.Values['dateformat'] <> '' then
           begin
-            ReplaceText := DateTimeHuman( TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+            if tagstring_custom.Values['dateformat'] = 'human' then
+            begin
+              ReplaceText := DateTimeHuman( TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+            end
+            else
+              ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
+                TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+              );
           end
           else
-            ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
-              TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-            );
-        end
-        else
-          ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
+            ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        end;
+
       except
-        ReplaceText :='[field not found]';
+        on E:Exception do
+        begin
+          ReplaceText :='[field not found]';
+        end;
       end;
-      ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
+      ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter'], tagstring_custom);
       FreeAndNil(tagstring_custom);
       Exit;
     end
