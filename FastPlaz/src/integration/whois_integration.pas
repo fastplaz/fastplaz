@@ -379,6 +379,11 @@ begin
   end;
   if sendQuery(DomainName) then
   begin
+    if FData.Text.Contains('DOMAIN NOT FOUND') then // domain .id
+    begin
+      Result := false;
+      Exit;
+    end;
     regex.Expression := _WHOIS_REGEX_NOTFOUND;
     if not regex.Exec(FData.Text) then
       Result := True;
