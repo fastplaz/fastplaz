@@ -257,7 +257,8 @@ begin
   s := '';
   Sep := Format('%.8x_multipart_boundary', [Random($ffffff)]);
   //HTTPClient.AddHeader('Content-Type','application/x-www-form-urlencoded');
-  HTTPClient.AddHeader('Content-Type', 'multipart/form-data; boundary=' + Sep);
+  //HTTPClient.AddHeader('Content-Type', 'multipart/form-data; boundary=' + Sep);
+  HTTPClient.AddHeader('Content-Type', 'multipart/form-data');
   if PostFormData.Count > 0 then
   begin
     for i := 1 to PostFormData.Count do

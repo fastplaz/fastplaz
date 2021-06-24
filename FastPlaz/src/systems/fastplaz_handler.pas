@@ -118,7 +118,7 @@ type
     function GetBaseURL: string;
     function GetCSRFFailedCount: integer;
     function GetCustomHeader(const KeyName: string): string;
-    function GetEnvirontment(const KeyName: string): string;
+    function GetEnvironment(const KeyName: string): string;
     function GetHeader(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
@@ -159,8 +159,7 @@ type
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
 
     property URI: string read GetURI;
-    property Environment[const KeyName: string]: string read GetEnvirontment;
-    property Environtment[const KeyName: string]: string read GetEnvirontment;
+    property Environment[const KeyName: string]: string read GetEnvironment;
     property Header[const KeyName: string]: string read GetHeader;
     property CustomHeader[const KeyName: string]: string read GetCustomHeader write SetCustomHeader;
 
@@ -723,7 +722,7 @@ begin
   Result := Response.GetCustomHeader( KeyName);
 end;
 
-function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
+function TMyCustomWebModule.GetEnvironment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
 end;

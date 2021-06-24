@@ -631,13 +631,18 @@ begin
     end;
     'number' :
     begin
-      fs := DefaultFormatSettings;
-      fs.DecimalSeparator := ',';
-      fs.ThousandSeparator := '.';
-      s := '#,###.##';
-      if ATagString.Values['format'] <> '' then
-        s := ATagString.Values['format'];
-      Result := FormatFloat(s, s2f(Content), fs);
+      if ((Content.IsEmpty) or (Content = '0')) then
+        Result := '0'
+      else
+      begin
+        fs := DefaultFormatSettings;
+        fs.DecimalSeparator := ',';
+        fs.ThousandSeparator := '.';
+        s := '#,###.##';
+        if ATagString.Values['format'] <> '' then
+          s := ATagString.Values['format'];
+        Result := FormatFloat(s, s2f(Content), fs);
+      end;
     end;
     'shorturl' :
     begin
