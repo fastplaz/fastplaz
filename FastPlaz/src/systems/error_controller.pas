@@ -58,8 +58,8 @@ begin
   end;
   if s <> '' then
   begin
-    if Environtment['HTTP_REFERER'] <> '' then
-      s := s + '<br>referer: ' + Environtment['HTTP_REFERER'];
+    if Environment['HTTP_REFERER'] <> '' then
+      s := s + '<br>referer: ' + Environment['HTTP_REFERER'];
     Result := '<hr>' +
       '<div class="bs-example-bg-classes"><p class="bg-danger text-danger">' +
       s + '</p></div>';
