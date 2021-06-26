@@ -47,8 +47,9 @@ type
     function Has( AText: string): boolean; overload; inline;
     function UcWords: AnsiString; overload; inline;
     function IsPregMatch( ARegex: string): boolean; overload; inline;
-    function Split( ADelimiter:string = ','): TStrings; overload; inline;
+    function Split( ADelimiter: string = ','): TStrings; overload; inline;
     function StrPos( AText: string): integer; overload; inline;
+    function Quoted( AQuote: char = ''''): string; overload; inline;
 
   end;
 
@@ -223,6 +224,11 @@ end;
 function TStringSmartHelper.StrPos(AText: string): integer;
 begin
   Result := Pos( AText, Self);
+end;
+
+function TStringSmartHelper.Quoted(AQuote: char): string;
+begin
+  result := AnsiQuotedStr(Self, AQuote);
 end;
 
 end.
