@@ -112,6 +112,7 @@ type
     FAdminListAsJson: TJSONData;
     FAdminListAsString: string;
     FCallbackData: TStrings;
+    FChatInfo,
     FCallbackInlineKeyboard: TJSONUtil;
     FCallbackInstance: string;
     FDebug: boolean;
@@ -223,6 +224,7 @@ type
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
     function GroupMemberCount(AGroupID: string): integer;
     function GroupAdminList(AGroupID: string; Formated: boolean = True): string;
+    function GetChatInfo(AChatId: string): string;
 
     function IsAdmin(AUserId: string = ''; Force: boolean = True): boolean;
     function IsAdminFromUsername(AUserName: string = ''; Force: boolean = True): boolean;
@@ -328,6 +330,7 @@ const
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
   TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
   TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
+  TELEGRAM_COMMAND_GETCHATINFO = 'getChat?chat_id=';
 
   TELEGRAM_COMMAND_KICKUSER = 'kickChatMember?chat_id=%s&user_id=%s&until_date=%d';
   TELEGRAM_COMMAND_RESTRICTUSER = 'restrictChatMember?chat_id=%s&user_id=%s&until_date=%d'
@@ -822,6 +825,8 @@ begin
     jsonData.Free;
   if Assigned(FAdminListAsJson) then
     FAdminListAsJson.Free;
+  if Assigned(FChatInfo) then
+    FChatInfo.Free;
 end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
@@ -1704,6 +1709,7 @@ var
   s, firstName, lastName, urlTarget: string;
 begin
   Result := '';
+  FResultCode := -1;
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
   with THTTPLib.Create(urlTarget) do
   begin
@@ -1757,6 +1763,36 @@ begin
 
   Result := Result.Trim;
   Result := copy(Result, 0, length(Result) - 1);
+end;
+
+function TTelegramIntegration.GetChatInfo(AChatId: string): string;
+var
+  urlTarget: string;
+begin
+  Result := '';
+  FResultCode := -1;
+  urlTarget := URL + TELEGRAM_COMMAND_GETCHATINFO + AChatId;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  if FResultCode <> 200 then
+    Exit;
+
+  FChatInfo := TJSONUtil.Create;
+  FChatInfo.LoadFromJsonString(FResultText);
+
+  Result := FResultText;
 end;
 
 function TTelegramIntegration.IsAdmin(AUserId: string; Force: boolean): boolean;
