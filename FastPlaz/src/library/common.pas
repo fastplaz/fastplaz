@@ -959,7 +959,7 @@ begin
   AName := AName.Replace('https://','');
   AName := AName.Replace('http://','');
   AName := SafeText( AName);
-  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.cache';
   lst := TStringList.Create;
   lst.Text := AContent;
   try
