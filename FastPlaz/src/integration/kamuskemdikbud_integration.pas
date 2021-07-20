@@ -87,8 +87,12 @@ begin
   if Response.ResultCode <> 200 then
     Exit;
   s := StringCut( '</h2>', '<hr />', Response.ResultText);
-  s := preg_replace('<span title="(.*)">(.*)<\/span>', '$1; ', s);
-  s := StripHTML( s);
+  //s := preg_replace('<span title="(.*)">(.*)<\/span>', '$1; ', s);
+  s := s.Replace('&#x21E2;', '⇢');
+  s := s.Replace('<p>', #10'<p>').Replace('<li>', #10'<li>');
+  s := preg_replace('(?:<style.+?>.+?<\/style>|<script.+?>.+?<\/script>|<(?:!|\/?[a-zA-Z]+).*?\/?>)', '', s);
+  s := preg_replace('\s\s+', ' ', s);
+  //s := StripHTML( s);
   s := Trim( s);
   s := ReplaceAll(s, ['   ', '  '], ' ', True);
   s := ReplaceAll(s, ['  '], ' ', True);
@@ -96,7 +100,7 @@ begin
   s := ReplaceAll(s, ['\n\n'], '\n', True);
   s := ReplaceAll(s, ['\n\n'], '\n', True);
   s := ReplaceAll(s, ['; '], ';\n', True);
-  return := return + '\n' + s;
+  return := '*' + Text + '*\n' + return + '\n' + s;
 
   if Pos( 'Entri tidak ditemukan', return) = 0 then
     Result := return;
