@@ -100,7 +100,7 @@ begin
   s := ReplaceAll(s, ['\n\n'], '\n', True);
   s := ReplaceAll(s, ['\n\n'], '\n', True);
   s := ReplaceAll(s, ['; '], ';\n', True);
-  return := return + '\n' + s;
+  return := '*' + Text + '*\n' + return + '\n' + s;
 
   if Pos( 'Entri tidak ditemukan', return) = 0 then
     Result := return;
