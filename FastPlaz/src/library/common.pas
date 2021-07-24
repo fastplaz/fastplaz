@@ -963,6 +963,8 @@ begin
   lst := TStringList.Create;
   lst.Text := AContent;
   try
+    if not DirectoryExists(_CACHE_PATH + AMod) then
+      CreateDir(_CACHE_PATH + AMod);
     lst.SaveToFile(AName);
     Result := True;
   except
