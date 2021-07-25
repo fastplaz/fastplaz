@@ -250,6 +250,7 @@ type
     property MessageID: string read getMessageID;
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
+    property ChatInfo: TJSONUtil read FChatInfo write FChatInfo;
     property UserID: string read getUserID;
     property LeftUserID: string read getLeftUserID;
     property UserName: string read getUserName;
