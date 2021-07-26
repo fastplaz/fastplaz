@@ -53,7 +53,7 @@ unit line_integration;
 interface
 
 uses
-  common, http_lib, logutil_lib,
+  common, http_lib, logutil_lib, json_lib,
   fpjson, strutils,
   {$if FPC_FULlVERSION >= 30200}
   opensslsockets,
@@ -120,6 +120,7 @@ type
     FResultCode: integer;
     FResultText: string;
     FToken: string;
+    FUserProfile: TJSONUtil;
     jsonData: TJSONData;
     function getGroupID: string;
     function getGroupName: string;
@@ -156,6 +157,7 @@ type
       ALatitude: double; ALongitude: double);
     function GetContent(AMessageID: string; ATargetFile: string): boolean;
     function GetContent(AMessageID: string): boolean;
+    function GetProfile(AUserId: string): boolean;
 
     function isCanSend: boolean;
     function isJoinToGroup: boolean;
@@ -177,6 +179,7 @@ type
     property LocationLongitude: double read FLocationLongitude;
     property LocationName: string read FLocationName;
     property PostbackData: TStrings read FPostbackData;
+    property UserProfile: TJSONUtil read FUserProfile;
   end;
 
 
@@ -186,6 +189,7 @@ const
   _LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
   _LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
   _LINE_GETCONTENT_URL = 'https://api.line.me/v2/bot/message/%s/content';
+  _LINE_GETPROFILE_URL = 'https://api.line.me/v2/bot/profile/%s';
   _LINE_PATH_TEMP_DEFAULT = 'ztemp/cache/';
 
 var
@@ -394,11 +398,13 @@ end;
 
 constructor TLineIntegration.Create;
 begin
+  FUserProfile := TJSONUtil.Create;
   FDebug := False;
 end;
 
 destructor TLineIntegration.Destroy;
 begin
+  FUserProfile.Free;
   if Assigned(FPostbackData) then
     FPostbackData.Free;
   if Assigned(jsonData) then
@@ -789,6 +795,40 @@ end;
 function TLineIntegration.GetContent(AMessageID: string): boolean;
 begin
   Result := GetContent(AMessageID, _LINE_PATH_TEMP_DEFAULT + trim(AMessageID) + '.msg');
+end;
+
+function TLineIntegration.GetProfile(AUserId: string): boolean;
+var
+  urlTarget: string;
+begin
+  Result := False;
+  if FToken.IsEmpty or AUserId.IsEmpty then Exit;
+
+  urlTarget := Format(_LINE_GETPROFILE_URL, [AUserId]);
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      ContentType := 'application/json';
+      AddHeader('Authorization', 'Bearer ' + FToken);
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      if FResultCode = 200 then
+      begin
+        FUserProfile.LoadFromJsonString(Response.ResultText, False);
+        Result := True;
+      end;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add('get profile: ' + E.Message, 'LINE');
+      end;
+    end;
+    Free;
+  end;
 end;
 
 function TLineIntegration.isCanSend: boolean;
