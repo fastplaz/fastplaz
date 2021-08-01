@@ -941,6 +941,8 @@ end;
 function TSimpleModel.AsJsonArray(NoFieldName: boolean): TJSONArray;
 begin
   Result := TJSONArray.Create;
+  FRecordCountFromArray := 0;
+  if not Data.Active then Exit;
   DataToJSON(Data, Result, NoFieldName);
   FRecordCountFromArray := Result.Count;
 end;

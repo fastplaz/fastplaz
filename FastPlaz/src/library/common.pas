@@ -1595,7 +1595,7 @@ begin
   Result := AContent;
 
   Result := preg_replace('\!\[(.+?)\]\((.+?)\)', '<img src="$2" />', Result, True); // Image
-  Result := preg_replace('\[([a-zA-Z0-9\(\)\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
+  Result := preg_replace('\[([a-zA-Z0-9_\@\(\)\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
   Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebal Miring
   Result := preg_replace('\*\*(.*?)\*\*', '<b>$1</b> ', Result, True); // Miring
   Result := preg_replace('\*(.+?)\*', '<b>$1</b> ', Result, True); // Tebal
