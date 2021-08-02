@@ -691,11 +691,10 @@ end;
 
 function TTelegramIntegration.getMessageID: string;
 begin
-  Result := '';
-  try
-    Result := jsonData.GetPath('message.message_id').AsString;
-  except
-  end;
+  Result := jsonGetData(jsonData, 'message.message_id');
+  if Result.IsEmpty then
+    Result := jsonGetData(jsonData, 'edited_message.message_id');
+
   if IsCallbackQuery then
   begin
     try
