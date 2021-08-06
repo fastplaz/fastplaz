@@ -182,7 +182,7 @@ type
     property isPatch: boolean read GetIsPatch;
     property isDelete: boolean read GetIsDelete;
     property isValidCSRF: boolean read GetIsValidCSRF;
-    property isAjax: boolean read GetIsAjax;
+    property isAjax: boolean read GetIsAjax; deprecated;
 
     property FlashMessages: string write SetFlashMessage;
     property CSRFFailedCount: integer read GetCSRFFailedCount;

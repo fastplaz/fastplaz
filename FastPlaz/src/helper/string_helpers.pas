@@ -33,6 +33,7 @@ type
     function IsEmpty: boolean; overload; inline;
     function IsNotEmpty: boolean; overload; inline;
     function IsEqualTo( AString: string): boolean; overload; inline;
+    function IsNotEqualTo( AString: string): boolean; overload; inline;
     function IsExists( AString: string): boolean; overload; inline;
     function isVowelExists: boolean; overload; inline;
     function IsJson: boolean; overload; inline;
@@ -115,6 +116,11 @@ end;
 function TStringSmartHelper.IsEqualTo(AString: string): boolean;
 begin
   Result := Self.Equals( AString);
+end;
+
+function TStringSmartHelper.IsNotEqualTo(AString: string): boolean;
+begin
+  Result := not Self.Equals( AString);
 end;
 
 function TStringSmartHelper.IsExists(AString: string): boolean;
