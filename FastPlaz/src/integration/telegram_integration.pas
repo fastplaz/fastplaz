@@ -494,6 +494,7 @@ begin
     except
     end;
   end;
+  Result := ReplaceAll(Result,['.','-','_',',','|','*'],'').Replace('  ',' ').Trim;
 end;
 
 function TTelegramIntegration.getGroupName: string;
