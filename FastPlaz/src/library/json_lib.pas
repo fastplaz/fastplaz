@@ -242,12 +242,20 @@ var
   ElName: UnicodeString;
 begin
   Result := '';
+  ElName := ReplaceAll(PathString,['/'],['.']);
+  {
   ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
   try
     El := FindElement(StripSlash(PathString), False, o, ElName);
   except
+  end;
+  }
+  try
+    El := FJsonObject.GetPath(ElName);
+  except
+    Exit;
   end;
   if not Assigned(El) then
     Exit;
