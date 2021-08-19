@@ -24,6 +24,7 @@ type
   TSimpleModel = class
   private
     FFieldPrefix: string;
+    FFieldQuote: string;
     FRecordCountFromArray: Integer;
     AMessage: string;
     FConnector : TSQLConnector;
@@ -72,6 +73,7 @@ type
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
     property FieldPrefix: string read FFieldPrefix write FFieldPrefix;
+    property FieldQuote: string read FFieldQuote write FFieldQuote;
     property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
@@ -847,6 +849,7 @@ begin
   FScriptLimit := '';
   FScriptOrderBy := '';
   FFieldPrefix := '';
+  FFieldQuote := '`';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   AMessage := '';
@@ -1185,7 +1188,7 @@ begin
     sSQL.Add( 'UPDATE ' + TableName + ' SET ');
     for i:=0 to FGenFields.Count-1 do
     begin
-      s := FGenFields[i]+'=:'+FGenFields[i];
+      s := FFieldQuote + FGenFields[i] + FFieldQuote +'=:'+FGenFields[i];
       if i <> FGenFields.Count-1 then s:= s + ',' ;
       sSQL.Add( s);
     end;
@@ -1203,6 +1206,12 @@ begin
   begin //-- new data
     sSQL.Add( 'INSERT INTO '+TableName+' (');
     s := Implode( FGenFields, ',');
+    s := '';
+    for i:= 0 to FGenFields.Count-1 do
+    begin
+      s := s + FFieldQuote + FGenFields[i] + FFieldQuote + ',';
+    end;
+    s := s.Substring(0, s.Length-1);
     sSQL.Add( s);
     sSQL.Add( ') VALUES (');
     s := Implode( FGenFields, ',', ':');
