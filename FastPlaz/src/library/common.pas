@@ -399,6 +399,7 @@ begin
   Result := StringReplace( Result, 'juta', '000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'm', '000000000', [rfReplaceAll]);
 end;
 
 function StringHumanToFloat(StrHuman: string): double;

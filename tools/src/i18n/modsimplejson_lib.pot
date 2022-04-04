@@ -1,0 +1,13 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: modsimplejson_lib.rs_mod_json_description
+msgctxt "modsimplejson_lib.rs_mod_json_description"
+msgid "Create API Controller (JSON)"
+msgstr ""
+
+#: modsimplejson_lib.rs_mod_json_name
+msgctxt "modsimplejson_lib.rs_mod_json_name"
+msgid "Create API Controller (JSON)"
+msgstr ""
+
