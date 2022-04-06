@@ -1,0 +1,13 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: modsimple_lib.rs_mod_default_description
+msgctxt "modsimple_lib.rs_mod_default_description"
+msgid "Create Simple Controller"
+msgstr ""
+
+#: modsimple_lib.rs_mod_default_name
+msgctxt "modsimple_lib.rs_mod_default_name"
+msgid "Create Simple Controller"
+msgstr ""
+

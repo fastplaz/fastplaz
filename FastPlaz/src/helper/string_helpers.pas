@@ -41,6 +41,7 @@ type
     function IsEmail: boolean; overload; inline;
     function IsURL: boolean; overload; inline;
     function IsDomain: boolean; overload; inline;
+    function isDate(ADelimiter: string = '/'): boolean; //DD/MM/YYYY
     function Encode64: AnsiString; overload; inline;
     function Decode64: AnsiString; overload; inline;
     function Cut( AStartText, AStopText: string):AnsiString; overload; inline;
@@ -64,7 +65,11 @@ begin
   tmpFormatSettings.DateSeparator := '-';
   tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd hh:nn:ss';
 
-  Result := StrToDateTime( Self, tmpFormatSettings);
+  try
+    Result := Now;
+    Result := StrToDateTime( Self, tmpFormatSettings);
+  except
+  end;
 end;
 
 function TStringSmartHelper.AsInteger: Integer;
@@ -173,6 +178,14 @@ begin
   if Self.IsEmpty then
     Exit;
   Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', Self);
+end;
+
+function TStringSmartHelper.isDate(ADelimiter: string): boolean;
+begin
+  if Self.IsEmpty then
+    Result := False
+  else
+    Result := execregexpr('^[0-9]{2}\'+ADelimiter+'[0-9]{2}\'+ADelimiter+'[0-9]{4}$', Self);
 end;
 
 function TStringSmartHelper.Encode64: AnsiString;

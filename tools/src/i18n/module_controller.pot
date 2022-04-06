@@ -1,0 +1,8 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: module_controller.__err_module_call_failed
+#, object-pascal-format
+msgid "Failed call module \"%s\": %s"
+msgstr ""
+
