@@ -1,1 +1,8 @@
-cd FastPlaz./clean.shcd ../tools/./clean.shcd ..
+#!/bin/bash
+cd FastPlaz
+./clean.sh
+
+cd ../tools/
+./clean.sh
+
+cd ..
