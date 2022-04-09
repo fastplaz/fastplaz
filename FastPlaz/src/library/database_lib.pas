@@ -50,7 +50,7 @@ type
     function GetTablePrefix: string;
     procedure setAliasName(AValue: string);
     procedure _queryPrepare;
-    function  _queryOpen:boolean;
+    function  _queryOpen(const AUniDirectional: boolean = false):boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
     procedure DoBeforeOpen(DataSet: TDataSet);
 
@@ -78,6 +78,7 @@ type
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
+    property RecordCountFromArray: Integer read FRecordCountFromArray;
     property EOF: boolean read GetEOF;
     property LastInsertID: LongInt read GetLastInsertID;
     property Message: string read AMessage;
@@ -86,8 +87,8 @@ type
     property SQL : TStringlist read getSQL;
     function Exec( ASQL:String): boolean;
 
-    function All:boolean;
-    function GetAll( Limit: Integer = 0; Offset: Integer = 0):boolean;
+    function All(const AUniDirectional: boolean = false):boolean;
+    function GetAll( Limit: Integer = 0; Offset: Integer = 0; const AUniDirectional: boolean = false):boolean;
     function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
     //function Get( where, order):boolean;
 
@@ -653,6 +654,7 @@ end;
 
 procedure TSimpleModel._queryPrepare;
 begin
+  FRecordCountFromArray := 0;
   FieldLists;
   if Data.Active then Data.Close;
 end;
@@ -707,14 +709,22 @@ begin
   end;
 end;
 
-function TSimpleModel._queryOpen: boolean;
+function TSimpleModel._queryOpen(const AUniDirectional: boolean): boolean;
 var
   s : string;
 begin
   Result := False;
+  FRecordCountFromArray := 0;
   try
     if Data.Active then Data.Close;
+    if not AUniDirectional then
+      Data.UniDirectional := AUniDirectional;
     Data.Open;
+    if not AUniDirectional then
+    begin
+      Last;
+      First;
+    end;
     if Data.RecordCount > 0 then
       Result := True;
   except
@@ -922,22 +932,23 @@ begin
   Result := QueryExec( ASQL);
 end;
 
-function TSimpleModel.All: boolean;
+function TSimpleModel.All(const AUniDirectional: boolean): boolean;
 begin
-  result := GetAll();
+  result := GetAll(0,0, AUniDirectional);
 end;
 
 {
 same with:
   Object.Find([]);
 }
-function TSimpleModel.GetAll(Limit: Integer; Offset: Integer): boolean;
+function TSimpleModel.GetAll(Limit: Integer; Offset: Integer;
+  const AUniDirectional: boolean): boolean;
 begin
   _queryPrepare;
   Data.SQL.Text := 'SELECT ' + FSelectField + ' FROM ' + FTableName;
   if Limit > 0 then
     Data.SQL.Add('LIMIT ' + i2s(Limit));
-  _queryOpen;
+  _queryOpen(AUniDirectional);
   Result := true;
 end;
 
