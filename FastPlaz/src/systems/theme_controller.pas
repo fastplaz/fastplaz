@@ -1965,7 +1965,8 @@ begin
     end;
   end;
 
-  if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
+  //if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
+  if Pos('['+tagname+' ', ReplaceText)>0 then
   begin
     if filter='defaultempty' then
       ReplaceText := '';
