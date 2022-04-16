@@ -94,7 +94,7 @@ type
 
     function Find( const KeyIndex:integer):boolean;
     function Find( const KeyIndex:String):boolean;
-    function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
+    function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''; const Offset: integer = 0):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
     procedure AddJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
@@ -986,7 +986,8 @@ begin
 end;
 
 function TSimpleModel.Find(const Where: array of string; const Order: string;
-  const Limit: integer; const CustomField: string): boolean;
+  const Limit: integer; const CustomField: string; const Offset: integer
+  ): boolean;
 var
   i,j : integer;
   _selectField, _joinSQL,
@@ -1056,6 +1057,8 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
+  if Offset > 0 then
+    Data.SQL.Add( 'OFFSET ' + Offset.ToString);
   if Data.Active then
     Data.Close;
   Data.UniDirectional:=False;

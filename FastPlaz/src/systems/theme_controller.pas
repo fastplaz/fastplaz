@@ -1838,6 +1838,9 @@ begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText :=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
+    'referer' : begin
+        ReplaceText := Application.Request.Referer;
+      end;
     'referrer' : begin
         ReplaceText := Application.Request.Referer;
       end;
@@ -1848,7 +1851,10 @@ begin
         ReplaceText := FormatDateTime('dd MMM YYYY HH:nn:ss', Now);
       end;
     'date' : begin
-      ReplaceText := FormatDateTime('dd MMM YYYY', Now);
+      if tagstring_custom.Values['format'] <> '' then
+        ReplaceText := FormatDateTime(tagstring_custom.Values['format'], Now)
+      else
+        ReplaceText := FormatDateTime('dd MMM YYYY', Now);
       end;
     'time' : begin
       ReplaceText := FormatDateTime('HH:nn:ss', Now);
