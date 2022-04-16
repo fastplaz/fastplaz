@@ -10,8 +10,10 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+      - name: work around permission issue
+        run: git config --global --add safe.directory /github/workspace
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
          persist-credentials: false
          fetch-depth: 0
@@ -46,7 +48,7 @@ jobs:
           git commit -m "[Github Actions]: Modify last update"
           
       - name: GitHub Push
-        uses: ad-m/github-push-action@v0.5.0
+        uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
