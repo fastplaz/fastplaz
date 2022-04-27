@@ -28,6 +28,9 @@ type
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
     function RemoveSlash: AnsiString; overload; inline;
+    function RemoveEmoji(const AReplaceWith: string = ''): string; overload; inline;
+    function RemoveUnicode(const AReplaceWith: string = ''): string; overload; inline;
+    function RemoveMarkDown(): string; overload; inline;
     function AddSlash: AnsiString; overload; inline;
     function Explode( ADelimiter:string = ','): TStrings; overload; inline;
     function IsEmpty: boolean; overload; inline;
@@ -97,10 +100,24 @@ begin
   Result := ExcludeTrailingBackslash(Self);
 end;
 
+function TStringSmartHelper.RemoveEmoji(const AReplaceWith: string): string;
+begin
+  Result := common.RemoveEmoji(Self, AReplaceWith);
+end;
+
+function TStringSmartHelper.RemoveUnicode(const AReplaceWith: string): string;
+begin
+  Result := common.RemoveUnicode(Self, AReplaceWith);
+end;
+
+function TStringSmartHelper.RemoveMarkDown: string;
+begin
+  Result := common.RemoveMarkDown(Self);
+end;
+
 function TStringSmartHelper.AddSlash: AnsiString;
 begin
   Result := IncludeTrailingBackslash(Self);
-
 end;
 
 function TStringSmartHelper.Explode(ADelimiter: string): TStrings;
