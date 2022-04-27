@@ -214,7 +214,7 @@ type
     property IsSuccessfull: boolean read getIsSuccessfull;
     property OnSyncStatus: TNotifyEvent read FOnSyncStatus write FOnSyncStatus;
     property RequestHeaders: string read GetRequestHeaders;
-    Property ConnectTimeout: Integer read getConnectTimeout write setConnectTimeout;
+    property ConnectTimeout: Integer read getConnectTimeout write setConnectTimeout;
   end;
 
 

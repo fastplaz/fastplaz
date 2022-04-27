@@ -113,6 +113,9 @@ function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
+function RemoveEmoji( const AText: string; const AReplaceWith: string = ''): string;
+function RemoveUnicode( const AText: string; AReplaceWith: string = ''): string;
+function RemoveMarkDown(AText: string): string;
 function UCStoString(AText: string; BIsPair: boolean = false): string;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
@@ -477,6 +480,52 @@ end;
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
   Result := StringsExists( ASubstring, AFullString);
+end;
+
+function RemoveEmoji(const AText: string; const AReplaceWith: string): string;
+begin
+  // Match Enclosed Alphanumeric Supplement
+  Result := preg_replace('[\x{1F100}-\x{1F1FF}]', AReplaceWith, AText);
+
+  // Match Miscellaneous Symbols and Pictographs
+  Result := preg_replace('[\x{1F300}-\x{1F5FF}]', AReplaceWith, Result);
+
+  // Match Emoticons
+  Result := preg_replace('[\x{1F600}-\x{1F64F}]', AReplaceWith, Result);
+
+  // Match Transport And Map Symbols
+  Result := preg_replace('[\x{1F680}-\x{1F6FF}]', AReplaceWith, Result);
+
+  // Match Supplemental Symbols and Pictographs
+  Result := preg_replace('[\x{1F900}-\x{1F9FF}]', AReplaceWith, Result);
+
+  // Match Miscellaneous Symbols
+  Result := preg_replace('[\x{2600}-\x{26FF}]', AReplaceWith, Result);
+
+  // Match Dingbats
+  Result := preg_replace('[\x{2700}-\x{27BF}]', AReplaceWith, Result);
+end;
+
+// ref:
+//  https://forums.asp.net/t/2104847.aspx?RegEx+to+remove+unicode+characters+
+//  s := 'huruf ada \u260e\ufe0f ini - NAAAH A. ABCDEF ص ب 16633 انرíاض 11934انسظæدíة';
+//  opsi lain:
+//    /[\x{1F600}-\x{1F64F}]+/u
+function RemoveUnicode(const AText: string; AReplaceWith: string): string;
+begin
+  //Result := preg_replace('[^\u0600-\u06FF]+', AReplaceWith, AText);
+  Result := preg_replace('[^\u0000-\u007F\u0600-\u06FF]+', AReplaceWith, AText);
+end;
+
+function RemoveMarkDown(AText: string): string;
+begin
+  Result := preg_replace('\*\*(.*?)\*\*', '*$1*', AText); // bold
+  //Result := preg_replace('\*(.*?)\*', '*$1*', Result); // bold
+  Result := preg_replace('_(.*?)_', '$1', Result); // italic
+  Result := preg_replace('\[(.*?)\]\((.*?)\)', '$1, $2', Result); // url
+  Result := preg_replace('tel:(.*?)', '$1', Result); // link tel:123456
+  Result := preg_replace('```(.*?)```', '\n$1\n', Result); // skrip
+  Result := Trim(Result);
 end;
 
 function UCStoString(AText: string; BIsPair: boolean): string;
