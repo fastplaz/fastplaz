@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <PathDelim Value="\"/>
     <Name Value="fastplaz_tools"/>
     <Type Value="RunAndDesignTime"/>
@@ -27,7 +27,7 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit https://www.fastplaz.com
 "/>
-    <Version Minor="12" Release="20" Build="3"/>
+    <Version Minor="13" Release="21" Build="8"/>
     <Files Count="28">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
@@ -143,6 +143,7 @@ for more information visit https://www.fastplaz.com
         <Type Value="LFM"/>
       </Item28>
     </Files>
+    <CompatibilityMode Value="True"/>
     <i18n>
       <EnableI18N Value="True"/>
       <OutDir Value="src\i18n"/>

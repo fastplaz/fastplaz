@@ -5,7 +5,10 @@ unit remotedataset_component;
 interface
 
 uses
-  Dialogs, cthreads, fpjson, fpjsondataset, jsonparser,
+  {$IFDEF UNIX}
+  cthreads
+  {$ENDIF}
+  Dialogs, fpjson, fpjsondataset, jsonparser,
   fphttpclient, http_lib, json_lib,
   Classes, SysUtils;
 

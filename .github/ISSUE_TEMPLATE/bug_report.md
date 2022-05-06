@@ -1,16 +1,14 @@
 ---
 name: Bug report
-about: Something's not working as expected.
-title: ''
+about: Create a report to help us improve
+title: New Bug
 labels: bug
 assignees: luridarmawan
 
 ---
 
-## Description
-
+**Describe the bug**
 A clear and concise description of what the bug is.
-<!-- Describe the issue that you're seeing. -->
 
 **To Reproduce**
 Steps to reproduce the behavior:
@@ -19,15 +17,16 @@ Steps to reproduce the behavior:
 3. Scroll down to '....'
 4. See error
 
-## Expected Behaviour
-
+**Expected behavior**
 A clear and concise description of what you expected to happen.
-<!-- What should've happened? -->
 
-## Screenshots
-
+**Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-## Additional Information
+**App information (please complete the following information):**
+ - Version [e.g. 6.0.1]
+ - OS: [e.g. macOS High Sierra 10.13.2]
+ - additional info which might be useful to reproduce the issue
 
-<!-- (Optional) Any additional info that you think might come in handy for debugging. -->
+**Additional context**
+Add any other context about the problem here.
