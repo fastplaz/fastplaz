@@ -57,7 +57,8 @@ begin
   end;
 
   fs := DefaultFormatSettings;
-  fs.ShortDateFormat := 'yyyy-MM-dd hh:nn';
+  fs.ShortDateFormat := 'yyyy/MM/dd hh:nn';
+  TheDate := TheDate.Replace('-','/');
   try
     dateTmp := StrToDateTime(TheDate, fs);
     Result := DateTimeHuman(dateTmp, MaxIntervalDate, FormatDate);
