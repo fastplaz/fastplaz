@@ -8,7 +8,7 @@ AddHandler cgi-script .pas
 AddHandler cgi-script .exe
 Options +ExecCGI
 
-DirectoryIndex fastplaz.bin
+DirectoryIndex fastplaz.bin  index.html
 ErrorDocument 500 '{"code": 500}'
 ErrorDocument 404 '{"code": 404}'
 Header set X-Frame-Options SAMEORIGIN
