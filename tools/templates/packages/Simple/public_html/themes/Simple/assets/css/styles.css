@@ -26,3 +26,7 @@ section.module {
   background-position: 50%;
   background-size: cover;
 }
+
+.italic {
+  font-style: italic;
+}
