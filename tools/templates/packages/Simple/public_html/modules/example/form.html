@@ -1,10 +1,12 @@
 <link rel="stylesheet" href="[baseurl]modules/example/styles/styles.css">
+<script src="[baseurl]modules/example/js/example-upload.js?_=[time]"></script>
 <section id="form-example" class="module">
   <div class="container">
     <div class="row">
       <div class="col-lg-6">
         [flashmessages]
-        <p>Halaman ini merupakan contoh pengelolaan formulir isian. Menggunakan metode <b>POST</b> biasa tanpa ajax dan tanpa validasi. Proteksi dilakukan dengan <b>CSRF</b> (<i>Cross-site Request Forgery</i>) <b>Token</b> sederhana.</p>
+        <h5>Form Reguler</h5>
+        <p>Bagian ini merupakan contoh pengelolaan formulir isian. Menggunakan metode <b>POST</b> biasa tanpa ajax dan tanpa validasi. Proteksi dilakukan dengan <b>CSRF</b> (<i>Cross-site Request Forgery</i>) <b>Token</b> sederhana.</p>
         <form method="POST" enctype="multipart/form-data">
           [csrf-token name="example"]
           <div class="form-group"><label>Nama</label><input id="fullName" name="fullName" class="form-control" type="text" placeholder="Isikan nama lengkap" value="" required></div>
@@ -15,25 +17,49 @@
           </div>
           <div class="form-group"><button class="btn btn-primary btn-block" type="submit">Send</button></div>
         </form>
-      </div>
-      <div class="col-lg-6">
-        
+
         [if $FileUpload neq ""]
         <span class="full-width upload-note">
           Dokumen yang terakhir diunggah:
         <br><a href="/uploads/[$FileUpload]" target=_blank>[$FileUpload]</a>
         </span>
         [/if]
+      </div>
+      <div class="col-lg-6">
         
+        <h5>Form dengan AJAX</h5>
+        <p>Bagian ini contoh dengan menggunakan Ajax.</p>
+        <form id="form-with-ajax" method="POST" enctype="multipart/form-data" action="[baseurl]example/form/ajax">
+          [csrf-token name="example"]
+          <div class="form-group"><label>Nama</label><input id="fullName" name="fullName" class="form-control" type="text" placeholder="Isikan nama lengkap" value="" required></div>
+          <div class="form-group"><label>Email</label><input id="email" name="email" class="form-control" type="email" placeholder="Alamat email anda" value="" required></div>
+          <div class="form-group"><label>Pesan Anda</label><textarea id="message" name="message" placeholder="Pesan-pesan yang akan Anda sampaikan" class="form-control" required></textarea></div>
+          <div class="form-group"><label>Dokumen &nbsp;</label><input type="file" name="fileupload" class="">
+            <span class="note">File yang diperbolehkan: .jpg, .jpeg, .png</span>
+          </div>
+          <div class="form-group"><button class="btn btn-primary btn-block" type="submit">Send</button></div>
+        </form>
+        <div id="upload-ajax-note" class="note "></div>
+        
+        
+      </div>      
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <div class="col">
         <hr />
         <p>File-file kode yang berkaitan dengan halaman ini adalah:</p>
 <code class="bash">controller: source/app/controllers/example_form_controller.pas
 template  : public_html/modules/example/form.html
 layout    : public_html/themes/[$theme]/templates/master.html
 </code>
-      </div>      
+
+      </div>
     </div>
   </div>
+
 
 
 </section>
