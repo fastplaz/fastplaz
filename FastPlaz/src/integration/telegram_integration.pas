@@ -120,6 +120,7 @@ type
     FImageID: string;
     FImagePath: string;
     FImageURL: string;
+    FInvitedBy: string;
     FInvitedFullName: string;
     FInvitedUserName: string;
     FInvitedUserId: string;
@@ -274,6 +275,7 @@ type
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
     property InvitedFullName: string read FInvitedFullName;
+    property InvitedBy: string read FInvitedBy;
 
     property LastUpdateID: integer read FLastUpdateID;
     property URL: string read FURL;
@@ -578,6 +580,7 @@ end;
 function TTelegramIntegration.getIsInvitation: boolean;
 begin
   Result := False;
+  FInvitedBy := '';
   FInvitedFullName := jsonGetData(jsonData, 'message/new_chat_member/first_name')
     + ' ' + jsonGetData(jsonData, 'message/new_chat_member/last_name');
   FInvitedFullName := FInvitedFullName.Trim;
@@ -586,6 +589,13 @@ begin
   FInvitedUserName := jsonGetData(jsonData, 'message/new_chat_member/username');
   if FInvitedUserName.IsEmpty then
     FInvitedUserName := '+' + jsonGetData(jsonData, 'message/new_chat_member/id');
+
+  try
+    FInvitedBy := jsonGetData(jsonData, 'message/from/id');
+    if (InvitedBy = FInvitedUserId) then
+      FInvitedBy := '';
+  except
+  end;
 
   if FInvitedUserId <> '' then
     Result := True;
