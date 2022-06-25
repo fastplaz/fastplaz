@@ -340,6 +340,7 @@ var
   AppData: TMainData;
   Config: TMyConfig;
   Sanitize: boolean;
+  XSSProof: boolean;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
   ModuleLoaded: TModuleLoaded;
@@ -1144,7 +1145,11 @@ begin
   except
   end;
   if Sanitize then
-    Result := _CleanVar(s)
+  begin
+    Result := _CleanVar(s);
+    if XSSProof then
+      Result := StripTags(Result).Trim;
+  end
   else
     Result := s
 end;
@@ -1168,7 +1173,11 @@ begin
     Exit;
   try
     if Sanitize then
-      Result := _CleanVar(Application.Request.QueryFields.Values[Name])
+    begin
+      Result := _CleanVar(Application.Request.QueryFields.Values[Name]);
+      if XSSProof then
+        Result := StripTags(Result).Trim;
+    end
     else
       Result := Application.Request.QueryFields.Values[Name];
   except
@@ -1504,6 +1513,7 @@ initialization
   AppData.isReady := False;
   StartTime := _GetTickCount;
   Sanitize := True;
+  XSSProof := False;
   //MemoryAllocated := GetHeapStatus.TotalAllocated;
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();
