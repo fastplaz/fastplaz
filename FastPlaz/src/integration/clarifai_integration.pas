@@ -69,7 +69,7 @@ type
 implementation
 
 const
-  _CLARIFAI_URL = 'https://api.clarifai.com/v1/';
+  _CLARIFAI_URL = 'https://api.clarifai.com/v2/';
 
 var
   Response: IHTTPResponse;

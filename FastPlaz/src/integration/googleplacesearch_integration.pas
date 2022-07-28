@@ -323,7 +323,7 @@ begin
     oItem.Add('lat', sLat);
     oItem.Add('lon', sLon);
 
-    Result.Add( oItem);;
+    Result.Add( oItem);
   end;
 
   jSearch.Free;
