@@ -113,7 +113,7 @@ begin
   Result := inherited GetInterfaceUsesSection;
   if not IsAPI then
     Result := Result + ', html_lib';
-  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers';
+  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, dateutils, string_helpers, datetime_helpers, array_helpers';
 end;
 
 function TFileDescDefaultModule.GetLocalizedName: string;

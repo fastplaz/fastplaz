@@ -22,8 +22,10 @@ type
 
   TJsonSmartHelper = class helper for TJSONData
   private
+    function GetAsJSONFormated: TJSONStringType;
     function getValue(const AKeyName: string): string;
   public
+    property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
     function IndexOfName(const AIndexName: string): Integer;
     function ValueOfName(const AIndexName: string): TJSONData;
     function ValueOfNameAsString(const AIndexName: string): string;
@@ -31,9 +33,31 @@ type
     property Value[const AKeyName: string]: string read getValue;
   end;
 
+  { TJSONObjectSmartHelper }
+
+  TJSONObjectSmartHelper = class helper for TJSONObject
+  private
+    function GetAsJSONFormated: TJSONStringType;
+  public
+    property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
+
+  end;
+
 implementation
 
+{ TJSONObjectSmartHelper }
+
+function TJSONObjectSmartHelper.GetAsJSONFormated: TJSONStringType;
+begin
+  Result := JsonFormatter(Self.AsJSON, False);
+end;
+
 { TJsonSmartHelper }
+
+function TJsonSmartHelper.GetAsJSONFormated: TJSONStringType;
+begin
+  Result := JsonFormatter(Self.AsJSON, False);
+end;
 
 function TJsonSmartHelper.getValue(const AKeyName: string): string;
 var
