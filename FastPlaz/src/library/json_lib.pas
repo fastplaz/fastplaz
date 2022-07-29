@@ -78,6 +78,8 @@ type
     property Value[PathString: UnicodeString]: variant read GetValue write SetValue; default;
     property ValueArray[PathString: UnicodeString]: TJSONArray
       read GetValueArray write SetValueArray;
+    property ArrayValue[PathString: UnicodeString]: TJSONArray
+      read GetValueArray write SetValueArray;
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
