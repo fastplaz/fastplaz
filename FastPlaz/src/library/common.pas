@@ -122,6 +122,7 @@ function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
 function isEmpty(AString: string): boolean;
+function isNotEmpty(AString: string): boolean;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
@@ -661,6 +662,11 @@ begin
   Result := False;
   if AString = '' then
     Result := True;
+end;
+
+function isNotEmpty(AString: string): boolean;
+begin
+  Result := not isEmpty(AString);
 end;
 
 // maybe is regex ?
