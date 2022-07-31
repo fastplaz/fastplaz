@@ -625,7 +625,7 @@ begin
           if ATagString.Values['format'] <> '' then
             s := ATagString.Values['format'];
         end;
-        Result := FormatDateTime(s, UnixToDateTime(i));
+        Result := FormatDateTime(s, UnixToDateTime(i, False));
       except
       end;
     end;
@@ -643,6 +643,21 @@ begin
           s := ATagString.Values['format'];
         Result := FormatFloat(s, s2f(Content), fs);
       end;
+    end;
+    'thousand' :
+    begin
+      if ((Content.IsEmpty) or (Content = '0')) then
+      begin
+        Result := '0';
+        Exit;
+      end;
+      fs := DefaultFormatSettings;
+      fs.DecimalSeparator := ',';
+      fs.ThousandSeparator := '.';
+      s := '#,###.##';
+      Result := trunc(s2f(Content)).ToString();
+      //Result := FormatFloat(s, s2f(Result), fs);
+      Result := Result + '<span class="thousand">.' +FormatFloat('00#', (s2f(Content)-trunc(s2f(Content)))*1000 , fs)+ '</span>';
     end;
     'shorturl' :
     begin
@@ -1519,7 +1534,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
   FreeAndNil( tagstring_custom);
 end;
@@ -1572,7 +1587,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
 
   FreeAndNil( tagstring_custom);
@@ -1647,7 +1662,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
 
   FreeAndNil( tagstring_custom);
@@ -1982,7 +1997,7 @@ begin
 
   if filter <> '' then
   begin
-    ReplaceText := FilterOutput( ReplaceText, filter);
+    ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end else begin
 
   end;
