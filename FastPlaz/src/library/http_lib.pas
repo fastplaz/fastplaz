@@ -372,7 +372,8 @@ begin
       begin
         if not Assigned( HTTPClient.RequestBody) then
            prepareRequestBody;
-        HTTPClient.Options(FURL, ResultStream);
+        //HTTPClient.Options(FURL, ResultStream);
+        HTTPClient.HTTPMethod('PATCH', FURL, ResultStream, []);
       end;
       'POST':
       begin
