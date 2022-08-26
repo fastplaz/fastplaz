@@ -29,7 +29,7 @@ const
   __FOREACH_START = '\[foreach([\.\$A-Za-z0-9=_ ]+)\]';
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
-  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "'']+)\]';
+  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "''<>]+)\]';
   //__CONDITIONAL_IF_VALUE = '([\.\$#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
   __CONDITIONAL_IF_END = '\[\/if\]';
 
@@ -142,6 +142,8 @@ type
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
     function conditionIsEqual( Value1, Value2: variant): boolean;
     function conditionIsNotEqual( Value1, Value2: variant): boolean;
+    function conditionIsLessThan( Value1, Value2: variant): boolean;
+    function conditionIsGreaterThan( Value1, Value2: variant): boolean;
 
 
     //-- foreach
@@ -1070,6 +1072,8 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
     end;
     condition := parameter[2];
     if condition = '=' then condition := 'eq';
+    if condition = '<' then condition := 'lt';
+    if condition = '>' then condition := 'gt';
     case condition of
       'eq':
         begin
@@ -1087,9 +1091,25 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
           else
             s := ARegex.Match[4];
           AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
 
-        end
-      // development: lt, gt
+      'lt':
+        begin
+          if conditionIsLessThan( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
+
+      'gt':
+        begin
+          if conditionIsGreaterThan( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
 
     end;
 
@@ -1145,6 +1165,20 @@ begin
     Result := True;
 end;
 
+function TThemeUtil.conditionIsLessThan(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 < Value2 then
+    Result := True;
+end;
+
+function TThemeUtil.conditionIsGreaterThan(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 > Value2 then
+    Result := True;
+end;
+
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
 
@@ -1168,6 +1202,9 @@ function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
       end;
       'dataset' : begin
         html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'json' : begin
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
       end;
       'jsondata' : begin
         html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
