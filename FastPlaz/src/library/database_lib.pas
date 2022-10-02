@@ -10,7 +10,7 @@ uses
   ghSQL, ghSQLdbLib,
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
-  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
+  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn, mysql80conn,
   sqlite3conn, pqconnection, IBConnection, TypInfo,
   variants, Classes, SysUtils;
 
