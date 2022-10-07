@@ -1499,6 +1499,11 @@ var
   dateAsLongInt: LongInt;
   i : integer;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
   tagstring_custom := ExplodeTags( TagString);
@@ -1584,6 +1589,11 @@ var
   fieldName, filter, s : string;
   i : integer;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
 
@@ -1639,6 +1649,11 @@ var
   i : integer;
   tmpFormatSettings: TFormatSettings;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
 
@@ -1750,7 +1765,11 @@ var
   tagstring_custom : TStringList;
   str, tag_with_filter : TStrings;
 begin
-  if trim( TagString) = '' then Exit;
+  if trim( TagString).IsEmpty then
+  begin
+    ReplaceText:= '[]';
+    Exit;
+  end;
   if Pos( '*', TagString) = 1 then
   begin
     ReplaceText := '<!--'+TagString+'-->';
