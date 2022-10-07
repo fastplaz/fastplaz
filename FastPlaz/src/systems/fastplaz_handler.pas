@@ -1136,6 +1136,19 @@ begin
           end;
           Free;
         end;
+        if StringsExists('\[\]', Variable) then
+        begin
+          Result := '';
+          for i:=0 to Application.Request.ContentFields.Count-1 do
+          begin
+            if Application.Request.ContentFields.Names[i] = Variable then
+            begin
+              Result += Application.Request.ContentFields.ValueFromIndex[i] + #13;
+            end;
+          end;
+          Result := Result.Trim;
+          Exit;
+        end;
       end;
       'application/x-www-form-urlencoded':
       begin
@@ -1151,7 +1164,7 @@ begin
       Result := StripTags(Result).Trim;
   end
   else
-    Result := s
+    Result := s;
 end;
 
 procedure TPOST.SetValue(const Variable: string; AValue: string);
