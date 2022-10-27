@@ -1915,6 +1915,9 @@ begin
     'referrer' : begin
         ReplaceText := Application.Request.Referer;
       end;
+    'ipaddress' : begin
+        ReplaceText := GetUserIpAddress;
+      end;
     'datetime' : begin
       if tagstring_custom.Values['format'] <> '' then
         ReplaceText := FormatDateTime(tagstring_custom.Values['format'], Now)
