@@ -187,9 +187,9 @@ type
 
     function GetMe: string;
     function SendMessage(const ChatID: string = '0'; const Text: string = '';
-      const ReplyToMessageID: string = ''): boolean;
+      const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
-      const ReplyToMessageID: integer = 0): boolean;
+      const ReplyToMessageID: integer = 0; const AThreadId: integer = 0): boolean;
     function SendMessageAsThread(const ChatID: string = '0'; const Text: string = '';
       const ReplyToMessageID: string = ''): boolean;
     procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
@@ -996,7 +996,8 @@ begin
 end;
 
 function TTelegramIntegration.SendMessage(const ChatID: string;
-  const Text: string; const ReplyToMessageID: string): boolean;
+  const Text: string; const ReplyToMessageID: string; const AThreadId: string
+  ): boolean;
 var
   s, urlTarget, payloadAsString: string;
   json: TJSONUtil;
@@ -1018,6 +1019,10 @@ begin
   json['reply_to_message_id'] := ReplyToMessageID;
   json['disable_web_page_preview'] := 'false';
   json['reply_markup/remove_keyboard'] := True;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   payloadAsString := json.AsJSON;
   json.Free;
 
@@ -1056,10 +1061,11 @@ begin
 end;
 
 function TTelegramIntegration.SendMessage(const ChatID: integer;
-  const Text: string; const ReplyToMessageID: integer): boolean;
+  const Text: string; const ReplyToMessageID: integer; const AThreadId: integer
+  ): boolean;
 begin
   try
-    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID));
+    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID), i2s(AThreadId));
   except
   end;
 end;
