@@ -199,17 +199,17 @@ type
       AText: string; AData: TJSONUtil): boolean;
     function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
-      const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
+      const ACaption: string = ''; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhotoFromURL(const ChatID: string; const AImageURL: string;
-      const Caption: string = ''; const ReplyToMessageID: string = ''): boolean;
+      const Caption: string = ''; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendVideo(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVenue(const ChatID: string; const AName: string;
-      const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''): boolean;
+      const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendContact(const ChatID: integer;
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
@@ -444,6 +444,13 @@ begin
   try
     Result := jsonData.GetPath('message.message_thread_id').AsInteger;
   except
+  end;
+  if Result = 0 then
+  begin
+    try
+      Result := jsonData.GetPath('callback_query.message.message_thread_id').AsInteger;
+    finally
+    end;
   end;
 end;
 
@@ -1214,7 +1221,7 @@ end;
 
 function TTelegramIntegration.SendAudio(const ChatID: string;
   const AAudioURL: string; const ACaption: string;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
   json: TJSONUtil;
@@ -1231,6 +1238,13 @@ begin
     [ChatID, ACaption, AAudioURL]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
 
   with THTTPLib.Create(urlTarget) do
   begin
@@ -1313,7 +1327,7 @@ end;
 
 function TTelegramIntegration.SendPhotoFromURL(const ChatID: string;
   const AImageURL: string; const Caption: string;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
 begin
@@ -1330,6 +1344,14 @@ begin
 
   urlTarget := urlTarget + '&chat_id=' + ChatID;
   urlTarget := urlTarget + '&photo=' + UrlEncode(AImageURL);
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
+
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -1393,7 +1415,7 @@ end;
 
 function TTelegramIntegration.SendVenue(const ChatID: string;
   const AName: string; const AAddress: string; ALatitude, ALongitude: double;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
 begin
@@ -1410,6 +1432,13 @@ begin
 
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
 
   with THTTPLib.Create(urlTarget) do
   begin
