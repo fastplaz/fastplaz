@@ -217,9 +217,9 @@ type
     function SendDocument(const ChatID: string; const AFile: string;
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendInlineKeyboard(const ChatId: string; const AText: string;
-      const AData: TJSONUtil): boolean;
+      const AData: TJSONUtil; const AThreadId: string = ''): boolean;
     function SendKeyboard(const ChatId: string; const AText: string;
-      const AData: TJSONUtil): boolean;
+      const AData: TJSONUtil; const AThreadId: string = ''): boolean;
     function RemoveKeyboard(const ChatId: string; const AText: string): boolean;
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
@@ -1511,7 +1511,8 @@ begin
 end;
 
 function TTelegramIntegration.SendInlineKeyboard(const ChatId: string;
-  const AText: string; const AData: TJSONUtil): boolean;
+  const AText: string; const AData: TJSONUtil; const AThreadId: string
+  ): boolean;
 var
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
@@ -1526,6 +1527,10 @@ begin
   json['chat_id'] := ChatId;
   json['text'] := AText;
   json['parse_mode'] := FParseMode;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
 
   payloadAsString := json.AsJSON;
@@ -1556,7 +1561,8 @@ begin
 end;
 
 function TTelegramIntegration.SendKeyboard(const ChatId: string;
-  const AText: string; const AData: TJSONUtil): boolean;
+  const AText: string; const AData: TJSONUtil; const AThreadId: string
+  ): boolean;
 var
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
@@ -1570,6 +1576,10 @@ begin
   json['chat_id'] := ChatId;
   json['text'] := AText;
   json['parse_mode'] := FParseMode;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   json.ValueArray['reply_markup/keyboard'] := TJSONArray(AData.Data);
 
   payloadAsString := json.AsJSON;
