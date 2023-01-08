@@ -1361,6 +1361,10 @@ begin
   begin
     Exit;
   end;
+  if not Assigned(TJSONData( assignVarMap[KeyName]^)) then
+  begin
+    Exit;
+  end;
 
   html := '';
   foreachJsonIndex := 0;

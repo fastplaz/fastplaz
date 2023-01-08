@@ -169,6 +169,7 @@ type
     function getReplyFromUserID: string;
     function getReplyFromUserName: string;
     function getText: string;
+    function getThreadID: integer;
     function getUpdateID: integer;
     function getUserID: string;
     function getUserName: string;
@@ -248,6 +249,7 @@ type
     property RequestContent: string read FRequestContent write setRequestContent;
     property Text: string read getText;
     property UpdateID: integer read getUpdateID;
+    property ThreadId: integer read getThreadID;
     property MessageID: string read getMessageID;
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
@@ -433,6 +435,15 @@ begin
       Result := jsonData.GetPath('callback_query.message.text').AsString;
     except
     end;
+  end;
+end;
+
+function TTelegramIntegration.getThreadID: integer;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath('message.message_thread_id').AsInteger;
+  except
   end;
 end;
 
