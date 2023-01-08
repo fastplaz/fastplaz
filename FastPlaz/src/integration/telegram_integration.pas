@@ -449,7 +449,7 @@ begin
   begin
     try
       Result := jsonData.GetPath('callback_query.message.message_thread_id').AsInteger;
-    finally
+    except
     end;
   end;
 end;
