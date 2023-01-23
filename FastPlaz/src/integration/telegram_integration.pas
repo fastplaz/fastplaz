@@ -439,6 +439,8 @@ begin
 end;
 
 function TTelegramIntegration.getThreadID: integer;
+var
+  s: string;
 begin
   Result := 0;
   try
@@ -448,7 +450,8 @@ begin
   if Result = 0 then
   begin
     try
-      Result := jsonData.GetPath('callback_query.message.message_thread_id').AsInteger;
+      s := jsonData.GetPath('callback_query.message.message_thread_id').AsString;
+      Result := s2i(s);
     except
     end;
   end;
