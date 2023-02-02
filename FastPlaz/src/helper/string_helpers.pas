@@ -13,7 +13,7 @@ unit string_helpers;
 interface
 
 uses
-  common, RegExpr,
+  common, RegExpr, DateUtils,
   Classes, SysUtils;
 
 type
@@ -199,10 +199,15 @@ end;
 
 function TStringSmartHelper.isDate(ADelimiter: string): boolean;
 begin
-  if Self.IsEmpty then
-    Result := False
-  else
-    Result := execregexpr('^[0-9]{2}\'+ADelimiter+'[0-9]{2}\'+ADelimiter+'[0-9]{4}$', Self);
+  Result := False;
+  if Self.IsEmpty then Exit;
+  Result := execregexpr('^[0-9]{2}\'+ADelimiter+'[0-9]{2}\'+ADelimiter+'[0-9]{4}$', Self);
+  if Result = False then Exit;
+
+  Result :=  IsValidDate(Self.Substring(6, 2).AsInteger,
+    Self.Substring(3, 2).AsInteger,
+    Self.Substring(0, 2).AsInteger
+  );
 end;
 
 function TStringSmartHelper.Encode64: AnsiString;
