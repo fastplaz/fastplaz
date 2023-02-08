@@ -51,6 +51,7 @@ type
     FModified: boolean;
     function GetAsJSON: TJSONStringType;
     function GetAsJSONFormated: TJSONStringType;
+    function getIsEmpty: boolean;
     function GetItem(PathString: UnicodeString): TJSONUtilItem;
     function GetValue(PathString: UnicodeString): variant;
     function GetValueArray(PathString: UnicodeString): TJSONArray;
@@ -82,6 +83,7 @@ type
       read GetValueArray write SetValueArray;
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
+    property IsEmpty: boolean read getIsEmpty;
 
     function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = False): boolean;
     function SaveToFile(AFileName: string): boolean;
@@ -304,6 +306,14 @@ end;
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
 begin
   Result := JsonFormatter(AsJSON, False);
+end;
+
+function TJSONUtil.getIsEmpty: boolean;
+begin
+  Result := True;
+  if not Assigned(FJsonObject) then Exit;
+  if FJsonObject.Count = 0 then Exit;
+  Result := False;
 end;
 
 function TJSONUtil.GetItem(PathString: UnicodeString): TJSONUtilItem;
