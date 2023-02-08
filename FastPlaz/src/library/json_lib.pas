@@ -83,7 +83,7 @@ type
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
 
-    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = True): boolean;
+    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = False): boolean;
     function SaveToFile(AFileName: string): boolean;
   end;
 
@@ -623,6 +623,7 @@ begin
     FJsonObject := TJSONObject(GetJSON(JsonString, UseUTF8));
     Result := true;
   except
+    FJsonObject := TJSONObject.Create;
     Result := false;
   end;
 end;
