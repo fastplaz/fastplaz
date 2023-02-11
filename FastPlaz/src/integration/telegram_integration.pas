@@ -164,8 +164,10 @@ type
     function getIsVoice: boolean;
     function getLeftUserID: string;
     function getMessageID: string;
+    function getReplyFromFullName: string;
     function getReplyFromID: string;
     function getReplyFromMessageID: string;
+    function getReplyFromText: string;
     function getReplyFromUserID: string;
     function getReplyFromUserName: string;
     function getText: string;
@@ -265,7 +267,9 @@ type
     property ReplyFromID: string read getReplyFromID;
     property ReplyFromUserID: string read getReplyFromUserID;
     property ReplyFromUserName: string read getReplyFromUserName;
+    property ReplyFromFullName: string read getReplyFromFullName;
     property ReplyFromMessageID: string read getReplyFromMessageID;
+    property ReplyFromText: string read getReplyFromText;
     property IsGroup: boolean read getIsGroup;
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
@@ -736,6 +740,18 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getReplyFromFullName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.first_name').AsString;
+    Result += ' ';
+    Result += jsonData.GetPath('message.reply_to_message.from.last_name').AsString;
+  except
+  end;
+  Result := Result.Trim;
+end;
+
 function TTelegramIntegration.getReplyFromID: string;
 begin
   Result := '';
@@ -750,6 +766,15 @@ begin
   Result := '';
   try
     Result := jsonData.GetPath('message.reply_to_message.message_id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getReplyFromText: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.text').AsString;
   except
   end;
 end;
