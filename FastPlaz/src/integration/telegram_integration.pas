@@ -1073,14 +1073,17 @@ begin
       RequestBody := nil;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      FIsSuccessfull := IsSuccessfull;
-      if FIsSuccessfull then
+      if IsSuccessfull then
       begin
         json := TJSONUtil.Create;
         json.LoadFromJsonString(FResultText, False);
         FResultMessageID := json['result/message_id'];
+        s := json['ok'];
+        if not s.ToLower.Equals('false') then
+        begin
+          FIsSuccessfull := True;
+        end;
         json.Free;
-        Result := True;
       end;
     except
       on E: Exception do
