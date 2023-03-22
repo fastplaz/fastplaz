@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <Name Value="fastplaz_integration"/>
     <Type Value="RunAndDesignTime"/>
     <Author Value="Luri Darmawan (luri@fastplaz.com)"/>
@@ -19,8 +19,8 @@
     </CompilerOptions>
     <Description Value="Integration Package for FastPlaz
 "/>
-    <Version Minor="12" Release="20" Build="3"/>
-    <Files Count="32">
+    <Version Minor="13" Release="1"/>
+    <Files Count="33">
       <Item1>
         <Filename Value="../FastPlaz/src/integration/alquranindonesia_integration.pas"/>
         <UnitName Value="alquranindonesia_integration"/>
@@ -149,7 +149,12 @@
         <Filename Value="../FastPlaz/src/integration/zomato_integration.pas"/>
         <UnitName Value="zomato_integration"/>
       </Item32>
+      <Item33>
+        <Filename Value="../FastPlaz/src/integration/openai_integration.pas"/>
+        <UnitName Value="openai_integration"/>
+      </Item33>
     </Files>
+    <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
       <Item1>
         <PackageName Value="fastplaz_runtime"/>
