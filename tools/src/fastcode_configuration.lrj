@@ -1,0 +1,10 @@
+{"version":1,"strings":[
+{"hash":38096542,"name":"tffastcodeconfiguration.caption","sourcebytes":[70,97,115,116,32,67,111,100,101,32,67,111,110,102,105,103,117,114,97,116,105,111,110],"value":"Fast Code Configuration"},
+{"hash":154135482,"name":"tffastcodeconfiguration.label1.caption","sourcebytes":[79,112,101,110,65,73,32,65,80,73,32,75,101,121,32,58],"value":"OpenAI API Key :"},
+{"hash":246611834,"name":"tffastcodeconfiguration.label2.caption","sourcebytes":[76,97,110,103,117,97,103,101,32,58],"value":"Language :"},
+{"hash":62297674,"name":"tffastcodeconfiguration.label3.caption","sourcebytes":[73,110,105,116,105,97,108,32,80,114,111,109,112,116,32,58],"value":"Initial Prompt :"},
+{"hash":2857157,"name":"tffastcodeconfiguration.btnsave.caption","sourcebytes":[38,83,97,118,101],"value":"&Save"},
+{"hash":177752476,"name":"tffastcodeconfiguration.btncancel.caption","sourcebytes":[38,67,97,110,99,101,108],"value":"&Cancel"},
+{"hash":5998026,"name":"tffastcodeconfiguration.label4.caption","sourcebytes":[79,112,101,110,105,110,103,32,99,104,97,114,32,58],"value":"Opening char :"},
+{"hash":99910666,"name":"tffastcodeconfiguration.label5.caption","sourcebytes":[67,108,111,115,105,110,103,32,99,104,97,114,32,58],"value":"Closing char :"}
+]}

@@ -14,7 +14,8 @@ uses
   modsimple_wzd, modsimplejson_lib, packageapp_lib, packageapp_wzd, 
   project_lib, project_wzd, projectapi_lib, projectapi_wzd, 
   projectgenerator_lib, regex_tester, themestructure_wzd, webstructure_lib, 
-  webstructure_wzd, LazarusPackageIntf;
+  webstructure_wzd, fastcode_configuration, openai_integration, 
+  LazarusPackageIntf;
 
 implementation
 
