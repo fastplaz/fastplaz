@@ -145,7 +145,7 @@ begin
     if HttpResult.ResultCode = 200 then
     begin
       try
-        Response := GetJSON(HttpResultAsText);
+        Response := GetJSON(HttpResultAsText, False);
         Result := True;
       except
       end;

@@ -43,6 +43,18 @@ msgstr ""
 msgid "Database Explorer"
 msgstr ""
 
+#: de_common.rs_fast_code
+msgid "Fast Code Suggestion"
+msgstr ""
+
+#: de_common.rs_fast_code_configuration
+msgid "Fast Code Configuration"
+msgstr ""
+
+#: de_common.rs_fast_code_mark
+msgid "//"
+msgstr ""
+
 #: de_common.rs_json_tools_menu
 msgid "JSON Validator && Formatter"
 msgstr ""

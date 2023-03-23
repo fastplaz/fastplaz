@@ -18,6 +18,7 @@ const
 var
   oMenuExpert: TIDEMenuSection = nil;
   icRevealInFinder: TIDECommand;
+  icFastCode: TIDECommand;
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
@@ -31,7 +32,7 @@ uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_w
   packageapp_wzd, packageapp_lib,
   json_tools, regex_tester,
   //Database Explorer
-  de_connector, de_dbbrowser, de_common;
+  de_connector, de_dbbrowser, de_common, fastcode_configuration;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
 begin
@@ -191,6 +192,34 @@ begin
 
 end;
 
+procedure FastCodeConfiguration_Proc(ASender: TObject);
+begin
+  if not Assigned(fFastCodeConfiguration) then
+    fFastCodeConfiguration := TfFastCodeConfiguration.Create(nil);
+  fFastCodeConfiguration.Prepare;
+  fFastCodeConfiguration.Show;
+end;
+
+procedure FastCode_Proc(ASender: TObject);
+var
+  currentLine, answer: string;
+begin
+  currentLine := GetCurrentLine().Trim;
+  if currentLine.IsEmpty then Exit;
+  if not currentLine.StartsWith(RS_FAST_CODE_MARK) then
+  begin
+    log('Line must started with // comment');
+    Exit
+  end;
+  currentLine:= currentLine.Replace(RS_FAST_CODE_MARK, '', [rfReplaceAll]).Trim;
+  if currentLine.IsEmpty then Exit;
+
+  log('Find something about "'+currentLine+'"');
+  if not Assigned(fFastCodeConfiguration) then
+    fFastCodeConfiguration := TfFastCodeConfiguration.Create(nil);
+  answer := GetFastCodeSuggestion(currentLine);
+end;
+
 procedure CreateWebStructure_Proc(ASender: TObject);
 begin
   with TfWebStructure.Create(nil) do
@@ -277,6 +306,9 @@ begin
     RS_JSON_TOOLS_MENU, nil, @JSONTools_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_RegexTester',
     RS_REGEX_TESTER_MENU, nil, @RegexTester_Proc, nil);
+  CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_FastCodeConfiguration',
+    RS_FAST_CODE_CONFIGURATION, nil, @FastCodeConfiguration_Proc, nil);
 
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
@@ -303,6 +335,15 @@ begin
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
     rsRevealInFinder, nil, nil, icRevealInFinder, 'reveal_in_finder');
 
+  // FAST CODE ---
+  key := IDEShortCut(VK_O,[ssCtrl, ssAlt],VK_UNKNOWN,[]);
+  cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
+  icFastCode := RegisterIDECommand(cat, RS_FAST_CODE,
+    RS_FAST_CODE, key, nil, @FastCode_Proc);
+
+  // add a fast code menu item in the source editor
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'FastCode',
+    RS_FAST_CODE, nil, nil, icFastCode, 'fast_code');
 
 
 end;
