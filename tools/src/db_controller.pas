@@ -9,7 +9,7 @@ uses
   de_common,
   // Database
   sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn,
-  mysql56conn, mysql57conn,
+  mysql56conn, mysql57conn, mysql80conn,
   sqlite3conn, pqconnection,
   LCLProc, Classes, SysUtils;
 
