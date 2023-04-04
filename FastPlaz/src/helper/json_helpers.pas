@@ -26,6 +26,7 @@ type
     function getValue(const AKeyName: string): string;
   public
     property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
+    function GetData(const APath: string): TJSONData;
     function IndexOfName(const AIndexName: string): Integer;
     function ValueOfName(const AIndexName: string): TJSONData;
     function ValueOfNameAsString(const AIndexName: string): string;
@@ -67,6 +68,18 @@ begin
   Result := '';
   try
     Result := jsonGetData(Self, s);
+  except
+  end;
+end;
+
+function TJsonSmartHelper.GetData(const APath: string): TJSONData;
+var
+  s: string;
+begin
+  s := StringReplace(APath, '/', '.', [rfReplaceAll]);
+  Result := Nil;
+  try
+    Result := Self.GetPath(s);
   except
   end;
 end;
