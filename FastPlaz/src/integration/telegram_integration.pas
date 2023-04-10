@@ -160,6 +160,7 @@ type
     function getIsReply: boolean;
     function getIsSticker: boolean;
     function getIsTextMentionExists: boolean;
+    function getIsTopic: boolean;
     function getIsUserLeft: boolean;
     function getIsVoice: boolean;
     function getLeftUserID: string;
@@ -171,7 +172,9 @@ type
     function getReplyFromUserID: string;
     function getReplyFromUserName: string;
     function getText: string;
-    function getThreadID: integer;
+    function getThreadID: integer; deprecated;
+    function getTopicId: integer;
+    function getTopicName: string;
     function getUpdateID: integer;
     function getUserID: string;
     function getUserName: string;
@@ -252,6 +255,9 @@ type
     property Text: string read getText;
     property UpdateID: integer read getUpdateID;
     property ThreadId: integer read getThreadID;
+    property IsTopic: boolean read getIsTopic;
+    property TopicId: integer read getTopicId;
+    property TopicName: string read getTopicName;
     property MessageID: string read getMessageID;
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
@@ -458,6 +464,34 @@ begin
       Result := s2i(s);
     except
     end;
+  end;
+end;
+
+function TTelegramIntegration.getTopicId: integer;
+var
+  s: string;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath('message.message_thread_id').AsInteger;
+  except
+  end;
+  if Result = 0 then
+  begin
+    try
+      s := jsonData.GetPath('callback_query.message.message_thread_id').AsString;
+      Result := s2i(s);
+    except
+    end;
+  end;
+end;
+
+function TTelegramIntegration.getTopicName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.forum_topic_created.name').AsString;
+  except
   end;
 end;
 
@@ -710,6 +744,15 @@ begin
       end;
     end;
   end;//IsCallbackQuery
+end;
+
+function TTelegramIntegration.getIsTopic: boolean;
+begin
+  Result := False;
+  try
+    Result := jsonData.GetPath('message.is_topic_message').AsBoolean;
+  except
+  end;
 end;
 
 function TTelegramIntegration.getIsVoice: boolean;
