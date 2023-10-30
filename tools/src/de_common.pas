@@ -78,6 +78,8 @@ const
   {$else}
   rsRevealInFinder = 'Reveal in Finder';
   {$endif}
+  rsCopyFilePath = 'Copy File Path';
+  rsCopyDirectoryPath = 'Copy Directory Path';
 
   FASTCODE_PROMPT = 'You are an expert Pascal programmer. Please answer with specific code. Start description with //. Dont use markdown, and a maximum length of 80 characters per line in description. Only give responses in the %language% language.';
   FASTCODE_OPENING_CHAR = '{';
