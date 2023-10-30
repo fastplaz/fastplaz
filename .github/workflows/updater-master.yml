@@ -25,7 +25,8 @@ jobs:
 
       - name: Get yarn cache
         id: yarn-cache
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+        #run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - name: Cache Node.js modules
         uses: actions/cache@v1
