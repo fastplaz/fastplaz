@@ -1,0 +1,22 @@
+{"version":1,"strings":[
+{"hash":16787474,"name":"tfdatabaseconnectioneditor.caption","sourcebytes":[68,97,116,97,98,97,115,101,32,67,111,110,110,101,99,116,105,111,110,32,69,100,105,116,111,114],"value":"Database Connection Editor"},
+{"hash":77089212,"name":"tfdatabaseconnectioneditor.btncancel.caption","sourcebytes":[67,97,110,99,101,108],"value":"Cancel"},
+{"hash":11099,"name":"tfdatabaseconnectioneditor.btnok.caption","sourcebytes":[38,79,107],"value":"&Ok"},
+{"hash":54821757,"name":"tfdatabaseconnectioneditor.edtname.text","sourcebytes":[45,110,97,109,101,45],"value":"-name-"},
+{"hash":18969757,"name":"tfdatabaseconnectioneditor.edthostname.text","sourcebytes":[45,49,50,55,46,48,46,48,46,49,45],"value":"-127.0.0.1-"},
+{"hash":55141997,"name":"tfdatabaseconnectioneditor.edtusername.text","sourcebytes":[45,114,111,111,116,45],"value":"-root-"},
+{"hash":55141997,"name":"tfdatabaseconnectioneditor.edtpassword.text","sourcebytes":[45,114,111,111,116,45],"value":"-root-"},
+{"hash":55449805,"name":"tfdatabaseconnectioneditor.edtdatabasename.text","sourcebytes":[45,100,97,116,97,98,97,115,101,110,97,109,101,45],"value":"-databasename-"},
+{"hash":11048554,"name":"tfdatabaseconnectioneditor.label1.caption","sourcebytes":[67,111,110,110,101,99,116,105,111,110,32,78,97,109,101,32,58],"value":"Connection Name :"},
+{"hash":204035706,"name":"tfdatabaseconnectioneditor.label3.caption","sourcebytes":[72,111,115,116,110,97,109,101,47,73,80,32,58],"value":"Hostname/IP :"},
+{"hash":155451130,"name":"tfdatabaseconnectioneditor.label4.caption","sourcebytes":[85,115,101,114,110,97,109,101,32,58],"value":"Username :"},
+{"hash":182709914,"name":"tfdatabaseconnectioneditor.label5.caption","sourcebytes":[80,97,115,115,119,111,114,100,32,58],"value":"Password :"},
+{"hash":255915210,"name":"tfdatabaseconnectioneditor.label6.caption","sourcebytes":[68,97,116,97,98,97,115,101,32,78,97,109,101,32,58],"value":"Database Name :"},
+{"hash":91657786,"name":"tfdatabaseconnectioneditor.label7.caption","sourcebytes":[80,111,114,116,32,58],"value":"Port :"},
+{"hash":249360590,"name":"tfdatabaseconnectioneditor.tbl_test.caption","sourcebytes":[38,84,101,115,116,32,67,111,110,110,101,99,116,105,111,110],"value":"&Test Connection"},
+{"hash":254769898,"name":"tfdatabaseconnectioneditor.label8.caption","sourcebytes":[84,97,98,108,101,32,80,114,101,102,105,120,32,58],"value":"Table Prefix :"},
+{"hash":183833715,"name":"tfdatabaseconnectioneditor.label9.caption","sourcebytes":[76,101,116,32,69,109,112,116,121,44,32,116,111,32,115,104,111,119,32,97,108,108,32,116,97,98,108,101,115],"value":"Let Empty, to show all tables"},
+{"hash":79236290,"name":"tfdatabaseconnectioneditor.lbldriver.caption","sourcebytes":[68,114,105,118,101,114],"value":"Driver"},
+{"hash":4528957,"name":"tfdatabaseconnectioneditor.cbbdriver.text","sourcebytes":[45,45,32,115,101,108,101,99,116,32,45,45],"value":"-- select --"},
+{"hash":261655696,"name":"tfdatabaseconnectioneditor.label10.caption","sourcebytes":[76,105,98,114,97,114,121,32],"value":"Library "}
+]}

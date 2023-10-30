@@ -5,7 +5,7 @@ unit menu_experts;
 interface
 
 uses
-  Controls, Dialogs,
+  Controls, Dialogs, Clipbrd,
   // INTF
   LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf,
   IDEExternToolIntf, SrcEditorIntf, LCLType,
@@ -18,12 +18,16 @@ const
 var
   oMenuExpert: TIDEMenuSection = nil;
   icRevealInFinder: TIDECommand;
+  icCopyFilePath: TIDECommand;
+  icCopyDirectoryPath: TIDECommand;
   icFastCode: TIDECommand;
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 procedure CreatePackage_Proc(ASender: TObject);
 procedure RevealInFinder_Proc(ASender: TObject);
+procedure CopyFilePath_Proc(ASender: TObject);
+procedure CopyDirectoryPath_Proc(ASender: TObject);
 
 implementation
 
@@ -192,6 +196,28 @@ begin
 
 end;
 
+procedure CopyFilePath_Proc(ASender: TObject);
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  Clipboard.AsText := srcEdit.FileName;
+end;
+
+procedure CopyDirectoryPath_Proc(ASender: TObject);
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  Clipboard.AsText := ExtractFileDir(srcEdit.FileName);
+end;
+
 procedure FastCodeConfiguration_Proc(ASender: TObject);
 begin
   if not Assigned(fFastCodeConfiguration) then
@@ -270,7 +296,7 @@ end;
 procedure CreateIDEMenus;
 var
   cat: TIDECommandCategory;
-  key: TIDEShortCut;
+  key, copyPathKey, copyDirectoryKey: TIDEShortCut;
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
@@ -331,9 +357,23 @@ begin
   icRevealInFinder := RegisterIDECommand(cat, rsRevealInFinder,
     rsRevealInFinder, key, nil, @RevealInFinder_Proc);
 
+  // copy file path
+  copyPathKey := IDEShortCut(VK_F,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  icCopyFilePath := RegisterIDECommand(cat, rsCopyFilePath,
+    rsCopyFilePath, copyPathKey, nil, @CopyFilePath_Proc);
+
+  // copy directory path
+  copyDirectoryKey := IDEShortCut(VK_D,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  icCopyDirectoryPath := RegisterIDECommand(cat, rsCopyDirectoryPath,
+    rsCopyDirectoryPath, copyDirectoryKey, nil, @CopyDirectoryPath_Proc);
+
   // add a menu item in the source editor
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
     rsRevealInFinder, nil, nil, icRevealInFinder, 'reveal_in_finder');
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'CopyFilePath',
+    rsCopyFilePath, nil, nil, icCopyFilePath, 'copy_file_path');
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'CopyDirectoryPath',
+    rsCopyDirectoryPath, nil, nil, icCopyDirectoryPath, 'copy_directory_path');
 
   // FAST CODE ---
   key := IDEShortCut(VK_O,[ssCtrl, ssAlt],VK_UNKNOWN,[]);
