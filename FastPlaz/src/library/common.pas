@@ -137,6 +137,7 @@ function ReplaceAll(const Subject: string; const OldPatterns: array of string;
 
 function StripNumber(const AString:string): string;
 function StripNonNumber(const AString:string): string;
+function FormatPhoneNumber(const APhone: string; ACountryCode: string = '62'): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
@@ -1065,6 +1066,13 @@ begin
   for i:=0 to length(AString) do
     if (AString[i] in CHARS) then
   Result := Result + AString[i];
+end;
+
+function FormatPhoneNumber(const APhone: string; ACountryCode: string): string;
+begin
+  Result := StripNonNumber(APhone);
+  if Pos('0', Result) = 1 then
+    Result := ACountryCode + Result.Substring(1);
 end;
 
 function AppendPathDelim(const Path: string): string;
