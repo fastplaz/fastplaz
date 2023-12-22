@@ -1,5 +1,22 @@
 # Development Changes
 
+## 20231222.1419
+
+
+New Feature/Library:
+- vocal/consonant determinator
+- integration: dotid whois support
+- helper: add and remove slash
+- helper: quoted string
+- theme: search include file from basepath
+
+Bug Fix:
+- session: change session lastused field to unixtime format
+- fix markup converter
+- parsing form data with regex
+- datatojson: smallint & largeint support and unknown field type
+- fix post header; fix wording function
+
 ## 20210608.1111
 
 - handler: float to string format
