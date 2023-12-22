@@ -1,0 +1,69 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: de_common.rsaskcanceldangeroperation
+msgid "I will cancel this danger operation (drop/delete)?"
+msgstr ""
+
+#: de_common.rsaskcanceloperation
+msgid "I will cancel this operation (drop/delete)?"
+msgstr ""
+
+#: de_common.rsconfirmation
+msgid "Confirmation"
+msgstr ""
+
+#: de_common.rsdbexplorer
+msgid "DB Explorer"
+msgstr ""
+
+#: de_common.rsjsonsarray
+#, object-pascal-format
+msgid "Array (%d elements)"
+msgstr ""
+
+#: de_common.rsjsonsempty
+msgid "Empty document"
+msgstr ""
+
+#: de_common.rsjsonsnull
+msgid "null"
+msgstr ""
+
+#: de_common.rsjsonsobject
+#, object-pascal-format
+msgid "Object (%d members)"
+msgstr ""
+
+#: de_common.rsviewdbconnector
+msgid "View DB Connector"
+msgstr ""
+
+#: de_common.rs_database_explorer_menu
+msgid "Database Explorer"
+msgstr ""
+
+#: de_common.rs_fast_code
+msgid "Fast Code Suggestion"
+msgstr ""
+
+#: de_common.rs_fast_code_configuration
+msgid "Fast Code Configuration"
+msgstr ""
+
+#: de_common.rs_fast_code_mark
+msgid "//"
+msgstr ""
+
+#: de_common.rs_json_tools_menu
+msgid "JSON Validator && Formatter"
+msgstr ""
+
+#: de_common.rs_regex_tester_menu
+msgid "Regex Tester"
+msgstr ""
+
+#: de_common.rs_there_are_development_update
+msgid "There are development update: "
+msgstr ""
+

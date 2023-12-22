@@ -51,6 +51,7 @@ type
     FModified: boolean;
     function GetAsJSON: TJSONStringType;
     function GetAsJSONFormated: TJSONStringType;
+    function getIsEmpty: boolean;
     function GetItem(PathString: UnicodeString): TJSONUtilItem;
     function GetValue(PathString: UnicodeString): variant;
     function GetValueArray(PathString: UnicodeString): TJSONArray;
@@ -78,10 +79,13 @@ type
     property Value[PathString: UnicodeString]: variant read GetValue write SetValue; default;
     property ValueArray[PathString: UnicodeString]: TJSONArray
       read GetValueArray write SetValueArray;
+    property ArrayValue[PathString: UnicodeString]: TJSONArray
+      read GetValueArray write SetValueArray;
 
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
+    property IsEmpty: boolean read getIsEmpty;
 
-    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = True): boolean;
+    function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = False): boolean;
     function SaveToFile(AFileName: string): boolean;
   end;
 
@@ -242,12 +246,20 @@ var
   ElName: UnicodeString;
 begin
   Result := '';
+  ElName := ReplaceAll(PathString,['/'],['.']);
+  {
   ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
   try
     El := FindElement(StripSlash(PathString), False, o, ElName);
   except
+  end;
+  }
+  try
+    El := FJsonObject.GetPath(ElName);
+  except
+    Exit;
   end;
   if not Assigned(El) then
     Exit;
@@ -294,6 +306,14 @@ end;
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
 begin
   Result := JsonFormatter(AsJSON, False);
+end;
+
+function TJSONUtil.getIsEmpty: boolean;
+begin
+  Result := True;
+  if not Assigned(FJsonObject) then Exit;
+  if FJsonObject.Count = 0 then Exit;
+  Result := False;
 end;
 
 function TJSONUtil.GetItem(PathString: UnicodeString): TJSONUtilItem;
@@ -613,6 +633,7 @@ begin
     FJsonObject := TJSONObject(GetJSON(JsonString, UseUTF8));
     Result := true;
   except
+    FJsonObject := TJSONObject.Create;
     Result := false;
   end;
 end;

@@ -83,7 +83,7 @@ end;
 constructor TOpenWeatherMapIntegration.Create;
 begin
   FLanguage := 'id';
-  FUnits := 'metrics';
+  FUnits := 'metric';
   FMode := 'json';
 end;
 

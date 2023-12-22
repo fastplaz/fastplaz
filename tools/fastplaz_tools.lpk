@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <PathDelim Value="\"/>
     <Name Value="fastplaz_tools"/>
     <Type Value="RunAndDesignTime"/>
@@ -9,7 +9,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\library"/>
+        <OtherUnitFiles Value="src;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Linking>
@@ -27,8 +27,8 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit https://www.fastplaz.com
 "/>
-    <Version Minor="12" Release="20" Build="3"/>
-    <Files Count="28">
+    <Version Minor="14" Release="1" Build="10"/>
+    <Files Count="30">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -142,7 +142,16 @@ for more information visit https://www.fastplaz.com
         <Filename Value="src\webstructure_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item28>
+      <Item29>
+        <Filename Value="src\fastcode_configuration.pas"/>
+        <UnitName Value="fastcode_configuration"/>
+      </Item29>
+      <Item30>
+        <Filename Value="..\FastPlaz\src\integration\openai_integration.pas"/>
+        <UnitName Value="openai_integration"/>
+      </Item30>
     </Files>
+    <CompatibilityMode Value="True"/>
     <i18n>
       <EnableI18N Value="True"/>
       <OutDir Value="src\i18n"/>

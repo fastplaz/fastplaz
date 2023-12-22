@@ -18,7 +18,7 @@ uses
   fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   regexpr_lib, db, sqldb,
-  common, fastplaz_handler, database_lib, datetime_lib, modvar_util,
+  common, fastplaz_handler, database_lib, datetime_lib, modvar_util, json_lib,
   Classes, SysUtils;
 
 const
@@ -29,7 +29,7 @@ const
   __FOREACH_START = '\[foreach([\.\$A-Za-z0-9=_ ]+)\]';
   __FOREACH_END = '\[/foreach[\.\$A-Za-z0-9=_ ]+\]';
 
-  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "'']+)\]';
+  __CONDITIONAL_IF_START = '\[if([\.\$A-Za-z_0-9=\ "''<>]+)\]';
   //__CONDITIONAL_IF_VALUE = '([\.\$#@&A-Za-z0-9!;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
   __CONDITIONAL_IF_END = '\[\/if\]';
 
@@ -119,7 +119,7 @@ type
 
     function wpautop( Content:string; BR:boolean = true):string;
     function MultiFilter( AContent:string):string;
-    function FilterOutput( Content, Filter:string):string;
+    function FilterOutput( Content, Filter:string; ATagString: TStringList = nil):string;
     function BlockController( const ModuleName:string; const FunctionName:string; Parameter:TStrings):string;
 
     function GetDebugBenchmark( const DebugType:string = ''):string;
@@ -142,6 +142,8 @@ type
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
     function conditionIsEqual( Value1, Value2: variant): boolean;
     function conditionIsNotEqual( Value1, Value2: variant): boolean;
+    function conditionIsLessThan( Value1, Value2: variant): boolean;
+    function conditionIsGreaterThan( Value1, Value2: variant): boolean;
 
 
     //-- foreach
@@ -574,9 +576,12 @@ begin
   Result := FRenderType;
 end;
 
-function TThemeUtil.FilterOutput(Content, Filter: string): string;
+function TThemeUtil.FilterOutput(Content, Filter: string;
+  ATagString: TStringList): string;
 var
   i: Integer;
+  s: string;
+  fs: TFormatSettings;
 begin
   Result := Content;
   if Filter = '' then
@@ -609,6 +614,52 @@ begin
         Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i));
       except
       end;
+    end;
+    'unix2date' :
+    begin
+      try
+        i := StrToInt(Content);
+        s := 'yyyy-mm-dd HH:nn:ss';
+        if ATagString <> nil then
+        begin
+          if ATagString.Values['dateformat'] <> '' then
+            s := ATagString.Values['dateformat'];
+          if ATagString.Values['format'] <> '' then
+            s := ATagString.Values['format'];
+        end;
+        Result := FormatDateTime(s, UnixToDateTime(i, False));
+      except
+      end;
+    end;
+    'number' :
+    begin
+      if ((Content.IsEmpty) or (Content = '0')) then
+        Result := '0'
+      else
+      begin
+        fs := DefaultFormatSettings;
+        fs.DecimalSeparator := ',';
+        fs.ThousandSeparator := '.';
+        s := '#,###.##';
+        if ATagString.Values['format'] <> '' then
+          s := ATagString.Values['format'];
+        Result := FormatFloat(s, s2f(Content), fs);
+      end;
+    end;
+    'thousand' :
+    begin
+      if ((Content.IsEmpty) or (Content = '0')) then
+      begin
+        Result := '0';
+        Exit;
+      end;
+      fs := DefaultFormatSettings;
+      fs.DecimalSeparator := ',';
+      fs.ThousandSeparator := '.';
+      s := '#,###.##';
+      Result := trunc(s2f(Content)).ToString();
+      //Result := FormatFloat(s, s2f(Result), fs);
+      Result := Result + '<span class="thousand">.' +FormatFloat('00#', (s2f(Content)-trunc(s2f(Content)))*1000 , fs)+ '</span>';
     end;
     'shorturl' :
     begin
@@ -1021,6 +1072,8 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
     end;
     condition := parameter[2];
     if condition = '=' then condition := 'eq';
+    if condition = '<' then condition := 'lt';
+    if condition = '>' then condition := 'gt';
     case condition of
       'eq':
         begin
@@ -1038,9 +1091,25 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
           else
             s := ARegex.Match[4];
           AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
 
-        end
-      // development: lt, gt
+      'lt':
+        begin
+          if conditionIsLessThan( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
+
+      'gt':
+        begin
+          if conditionIsGreaterThan( value1, value2) then
+            s := ARegex.Match[2]
+          else
+            s := ARegex.Match[4];
+          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+        end;
 
     end;
 
@@ -1096,6 +1165,20 @@ begin
     Result := True;
 end;
 
+function TThemeUtil.conditionIsLessThan(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 < Value2 then
+    Result := True;
+end;
+
+function TThemeUtil.conditionIsGreaterThan(Value1, Value2: variant): boolean;
+begin
+  Result := False;
+  if Value1 > Value2 then
+    Result := True;
+end;
+
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
 
@@ -1119,6 +1202,9 @@ function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
       end;
       'dataset' : begin
         html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+      end;
+      'json' : begin
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
       end;
       'jsondata' : begin
         html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
@@ -1275,12 +1361,16 @@ begin
   begin
     Exit;
   end;
+  if not Assigned(TJSONData( assignVarMap[KeyName]^)) then
+  begin
+    Exit;
+  end;
 
   html := '';
   foreachJsonIndex := 0;
   for i := 0 to TJSONData( assignVarMap[KeyName]^).Count - 1 do
   begin
-    ThemeUtil.Assign('$index', i.ToString);
+    ThemeUtil.Assign('$index', (i+1).ToString);
     templateEngine := TFPTemplate.Create;
     templateEngine.Template := Content; // tmp
     templateEngine.AllowTagParams := True;
@@ -1413,6 +1503,11 @@ var
   dateAsLongInt: LongInt;
   i : integer;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
   tagstring_custom := ExplodeTags( TagString);
@@ -1485,7 +1580,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
   FreeAndNil( tagstring_custom);
 end;
@@ -1498,6 +1593,11 @@ var
   fieldName, filter, s : string;
   i : integer;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
 
@@ -1538,7 +1638,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
 
   FreeAndNil( tagstring_custom);
@@ -1553,6 +1653,11 @@ var
   i : integer;
   tmpFormatSettings: TFormatSettings;
 begin
+  if TagString.IsEmpty then
+  begin
+    ReplaceText := '[]';
+    Exit;
+  end;
   if ForeachTable_Keyname = '' then
     Exit;
 
@@ -1613,7 +1718,7 @@ begin
       ReplaceText := MoreLess( ReplaceText, i);
     end
     else
-      ReplaceText := FilterOutput( ReplaceText, filter);
+      ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end;
 
   FreeAndNil( tagstring_custom);
@@ -1664,7 +1769,11 @@ var
   tagstring_custom : TStringList;
   str, tag_with_filter : TStrings;
 begin
-  if trim( TagString) = '' then Exit;
+  if trim( TagString).IsEmpty then
+  begin
+    ReplaceText:= '[]';
+    Exit;
+  end;
   if Pos( '*', TagString) = 1 then
   begin
     ReplaceText := '<!--'+TagString+'-->';
@@ -1694,23 +1803,35 @@ begin
     if ThemeUtil.AssignVar[tagstring_custom[0]] <> Nil then
     begin
       try
-        if tagstring_custom.Values['dateformat'] <> '' then
+        if tagstring_custom.Values['type'] = 'json' then
         begin
-          if tagstring_custom.Values['dateformat'] = 'human' then
+          s := tagstring_custom.Values['index'].Replace('.','/');
+          ReplaceText := TJSONUtil(ThemeUtil.AssignVar[tagstring_custom[0]]^).Value[s];
+        end;
+        if tagstring_custom.Values['type'] = '' then
+        begin
+          if tagstring_custom.Values['dateformat'] <> '' then
           begin
-            ReplaceText := DateTimeHuman( TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+            if tagstring_custom.Values['dateformat'] = 'human' then
+            begin
+              ReplaceText := DateTimeHuman( TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime);
+            end
+            else
+              ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
+                TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
+              );
           end
           else
-            ReplaceText := FormatDateTime( tagstring_custom.Values['dateformat'],
-              TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsDateTime
-            );
-        end
-        else
-          ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
+            ReplaceText := TSQLQuery(ThemeUtil.AssignVar[tagstring_custom[0]]^).FieldByName(tagstring_custom.Values['index']).AsString;
+        end;
+
       except
-        ReplaceText :='[field not found]';
+        on E:Exception do
+        begin
+          ReplaceText :='[field not found]';
+        end;
       end;
-      ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter']);
+      ReplaceText := FilterOutput( ReplaceText, tagstring_custom.Values['filter'], tagstring_custom);
       FreeAndNil(tagstring_custom);
       Exit;
     end
@@ -1792,8 +1913,14 @@ begin
       if tagstring_custom.Values['key'] <> '' then
         ReplaceText :=Application.EnvironmentVariable[tagstring_custom.Values['key']];
       end;
+    'referer' : begin
+        ReplaceText := Application.Request.Referer;
+      end;
     'referrer' : begin
         ReplaceText := Application.Request.Referer;
+      end;
+    'ipaddress' : begin
+        ReplaceText := GetUserIpAddress;
       end;
     'datetime' : begin
       if tagstring_custom.Values['format'] <> '' then
@@ -1802,7 +1929,10 @@ begin
         ReplaceText := FormatDateTime('dd MMM YYYY HH:nn:ss', Now);
       end;
     'date' : begin
-      ReplaceText := FormatDateTime('dd MMM YYYY', Now);
+      if tagstring_custom.Values['format'] <> '' then
+        ReplaceText := FormatDateTime(tagstring_custom.Values['format'], Now)
+      else
+        ReplaceText := FormatDateTime('dd MMM YYYY', Now);
       end;
     'time' : begin
       ReplaceText := FormatDateTime('HH:nn:ss', Now);
@@ -1919,7 +2049,8 @@ begin
     end;
   end;
 
-  if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
+  //if ReplaceText = '['+tagstring_custom.Text.Replace(#10,' ').Trim+']' then
+  if Pos('['+tagname+' ', ReplaceText)>0 then
   begin
     if filter='defaultempty' then
       ReplaceText := '';
@@ -1929,7 +2060,7 @@ begin
 
   if filter <> '' then
   begin
-    ReplaceText := FilterOutput( ReplaceText, filter);
+    ReplaceText := FilterOutput( ReplaceText, filter, tagstring_custom);
   end else begin
 
   end;
@@ -1999,8 +2130,12 @@ begin
 
     if not FileExists(templateFilename) then
     begin
-      Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
-      Exit;
+      templateFilename := GetCurrentDir + LayoutTemplateFile;
+      if not FileExists(templateFilename) then
+      begin
+        Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
+        Exit;
+      end;
     end;
   end
   else

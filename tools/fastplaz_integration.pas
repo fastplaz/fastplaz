@@ -21,7 +21,7 @@ uses
   openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
   telegram_integration, thesaurus_integration, whois_integration, 
   witai_integration, yandextranslate_integration, zomato_integration, 
-  LazarusPackageIntf;
+  openai_integration, LazarusPackageIntf;
 
 implementation
 

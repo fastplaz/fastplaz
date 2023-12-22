@@ -68,6 +68,7 @@ const
 
   OK = 'OK';
   FAILED = 'FAILED';
+  NONE = 'NONE';
 
   _ERR_DATABASE_LIBRARY_NOT_EXIST = 'Database Library "%s" not exist (%s).';
   _ERR_DATABASE_CANNOT_CONNECT = 'Cannot create database connection to "%s".';
@@ -95,7 +96,7 @@ type
 
 function i2s(pI: integer): string;
 function s2i(s: string): integer;
-function f2s(n: extended): string;
+function f2s(n: extended; NumberOfDecimal: integer = 2): string;
 function s2f(s: string): extended;
 function b2i(b: boolean): integer;
 function b2is(b: boolean): string;
@@ -112,12 +113,16 @@ function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
 function WordExists( ASubstring, AFullString:string):boolean;
+function RemoveEmoji( const AText: string; const AReplaceWith: string = ''): string;
+function RemoveUnicode( const AText: string; AReplaceWith: string = ''): string;
+function RemoveMarkDown(AText: string): string;
 function UCStoString(AText: string; BIsPair: boolean = false): string;
 function Implode(lst: TStringList; sep: string = ';'; prefix: string = '';
   suffix: string = ''): string;
 function Explode(Str, Delimiter: string): TStrings;
 function ExplodeTags(TagString: string): TStringList;
 function isEmpty(AString: string): boolean;
+function isNotEmpty(AString: string): boolean;
 function isRegex(s: string): boolean;
 function EchoError(const Fmt: string; const Args: array of const): string;
 function _GetTickCount: DWord;
@@ -132,6 +137,7 @@ function ReplaceAll(const Subject: string; const OldPatterns: array of string;
 
 function StripNumber(const AString:string): string;
 function StripNonNumber(const AString:string): string;
+function FormatPhoneNumber(const APhone: string; ACountryCode: string = '62'): string;
 
 function AppendPathDelim(const Path: string): string;
 function DirectoryIsWritable(const DirectoryName: string): boolean;
@@ -202,6 +208,9 @@ function isEmail(const s: string): boolean;
 function isDomain(const s: string): boolean;
 function GetHostNameIP( HostName: string): string;
 function GetUserIpAddress: string;
+function isVowel(c: char): boolean;
+function isConsonant(const c: char): boolean;
+function isVowelExists(AText: string): boolean;
 
 function Exec(const AExeName: string; const AParameter: array of string;
   var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
@@ -230,13 +239,13 @@ begin
   end;
 end;
 
-function f2s(n: extended): string;
+function f2s(n: extended; NumberOfDecimal: integer): string;
 begin
   Result := '0';
   try
     //Result := FloatToStr(n);
     //Result := FloatToStrF(n, ffCurrency, 8, 2);
-    Result := Format('%.2f', [n]);
+    Result := Format('%.'+NumberOfDecimal.ToString+'f', [n]);
   except
   end;
 end;
@@ -395,6 +404,7 @@ begin
   Result := StringReplace( Result, 'juta', '000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'm', '000000000', [rfReplaceAll]);
 end;
 
 function StringHumanToFloat(StrHuman: string): double;
@@ -472,6 +482,52 @@ end;
 function WordExists(ASubstring, AFullString: string): boolean;
 begin
   Result := StringsExists( ASubstring, AFullString);
+end;
+
+function RemoveEmoji(const AText: string; const AReplaceWith: string): string;
+begin
+  // Match Enclosed Alphanumeric Supplement
+  Result := preg_replace('[\x{1F100}-\x{1F1FF}]', AReplaceWith, AText);
+
+  // Match Miscellaneous Symbols and Pictographs
+  Result := preg_replace('[\x{1F300}-\x{1F5FF}]', AReplaceWith, Result);
+
+  // Match Emoticons
+  Result := preg_replace('[\x{1F600}-\x{1F64F}]', AReplaceWith, Result);
+
+  // Match Transport And Map Symbols
+  Result := preg_replace('[\x{1F680}-\x{1F6FF}]', AReplaceWith, Result);
+
+  // Match Supplemental Symbols and Pictographs
+  Result := preg_replace('[\x{1F900}-\x{1F9FF}]', AReplaceWith, Result);
+
+  // Match Miscellaneous Symbols
+  Result := preg_replace('[\x{2600}-\x{26FF}]', AReplaceWith, Result);
+
+  // Match Dingbats
+  Result := preg_replace('[\x{2700}-\x{27BF}]', AReplaceWith, Result);
+end;
+
+// ref:
+//  https://forums.asp.net/t/2104847.aspx?RegEx+to+remove+unicode+characters+
+//  s := 'huruf ada \u260e\ufe0f ini - NAAAH A. ABCDEF ص ب 16633 انرíاض 11934انسظæدíة';
+//  opsi lain:
+//    /[\x{1F600}-\x{1F64F}]+/u
+function RemoveUnicode(const AText: string; AReplaceWith: string): string;
+begin
+  //Result := preg_replace('[^\u0600-\u06FF]+', AReplaceWith, AText);
+  Result := preg_replace('[^\u0000-\u007F\u0600-\u06FF]+', AReplaceWith, AText);
+end;
+
+function RemoveMarkDown(AText: string): string;
+begin
+  Result := preg_replace('\*\*(.*?)\*\*', '*$1*', AText); // bold
+  //Result := preg_replace('\*(.*?)\*', '*$1*', Result); // bold
+  Result := preg_replace('_(.*?)_', '$1', Result); // italic
+  Result := preg_replace('\[(.*?)\]\((.*?)\)', '$1, $2', Result); // url
+  Result := preg_replace('tel:(.*?)', '$1', Result); // link tel:123456
+  Result := preg_replace('```(.*?)```', '\n$1\n', Result); // skrip
+  Result := Trim(Result);
 end;
 
 function UCStoString(AText: string; BIsPair: boolean): string;
@@ -607,6 +663,11 @@ begin
   Result := False;
   if AString = '' then
     Result := True;
+end;
+
+function isNotEmpty(AString: string): boolean;
+begin
+  Result := not isEmpty(AString);
 end;
 
 // maybe is regex ?
@@ -751,10 +812,15 @@ procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer
   );
 var
   s: string;
+  j: TJSONObject;
 begin
   Application.Response.ContentType := 'application/json';
   Application.Response.Content := '';
-  s:= '{"code":'+i2s(ACode)+',"msg":"'+AMessage+'"}';
+  j := TJSONObject.Create;
+  j.Add('code', ACode);
+  j.Add('msg', AMessage);
+  s := j.AsJSON;
+  j.Free;
   if AForceCode = 0 then
     die(s, 200)
   else
@@ -950,10 +1016,12 @@ begin
   AName := AName.Replace('https://','');
   AName := AName.Replace('http://','');
   AName := SafeText( AName);
-  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.txt';
+  AName := _CACHE_PATH + AMod + DirectorySeparator + AName + '.cache';
   lst := TStringList.Create;
   lst.Text := AContent;
   try
+    if not DirectoryExists(_CACHE_PATH + AMod) then
+      CreateDir(_CACHE_PATH + AMod);
     lst.SaveToFile(AName);
     Result := True;
   except
@@ -998,6 +1066,13 @@ begin
   for i:=0 to length(AString) do
     if (AString[i] in CHARS) then
   Result := Result + AString[i];
+end;
+
+function FormatPhoneNumber(const APhone: string; ACountryCode: string): string;
+begin
+  Result := StripNonNumber(APhone);
+  if Pos('0', Result) = 1 then
+    Result := ACountryCode + Result.Substring(1);
 end;
 
 function AppendPathDelim(const Path: string): string;
@@ -1584,10 +1659,10 @@ begin
   Result := AContent;
 
   Result := preg_replace('\!\[(.+?)\]\((.+?)\)', '<img src="$2" />', Result, True); // Image
-  Result := preg_replace('\[([a-zA-Z0-9\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
+  Result := preg_replace('\[([a-zA-Z0-9_\@\&\(\)\ \-\/.,:;#]+)?\]\((.+?)\)', '<a href="$2" target="_blank" >$1</a>', Result, True); // Link
   Result := preg_replace('\*\*\*(.*?)\s\*\*\*', '<b><i>$1</i></b> ', Result, True); // Tebal Miring
   Result := preg_replace('\*\*(.*?)\*\*', '<b>$1</b> ', Result, True); // Miring
-  Result := preg_replace('\*(.+?)\*', '<i>$1</i> ', Result, True); // Tebal
+  Result := preg_replace('\*(.+?)\*', '<b>$1</b> ', Result, True); // Tebal
   //Result := preg_replace('_([^\*]*)_', '<i>$1</i> ', Result, True); // Miring
   //Result := preg_replace('_(.*?)_', '<i>$1</i> ', Result, True); // Miring
 
@@ -1604,7 +1679,7 @@ begin
 
   Result := preg_replace('---\n', '<hr>'#10, Result, True); // Line
 
-  Result := preg_replace('```(.+?)```', '<pre><code>$1</code></pre>', Result, True); // Simple Code
+  Result := preg_replace('```(.+?)```', '<pre>$1</pre>', Result, True); // Simple Code
   Result := preg_replace('`(.+?)`', '<span class="code-inline">$1</span>', Result, True); // Simple Code
 
   Result := preg_replace(#13#10, #10, Result, True);
@@ -1752,6 +1827,33 @@ begin
   Result := _SERVER['HTTP_X_FORWARDED_FOR'];
   if not Result.IsEmpty then Exit;
   Result := _SERVER['REMOTE_ADDR'];
+end;
+
+function isVowel(c: char): boolean;
+begin
+  c := LowerCase(c);
+  case c of
+    'a', 'e', 'i', 'o', 'u': Result := True;
+    else Result := False;
+  end;
+end;
+
+function isConsonant(const c: char): boolean;
+begin
+  Result := not isVowel(c);
+end;
+
+function isVowelExists(AText: string): boolean;
+var
+  i: integer;
+  c: char;
+begin
+  Result := False;
+  for c in AText do
+  begin
+    if isVowel(c) then
+      Result := True;
+  end;
 end;
 
 // example:

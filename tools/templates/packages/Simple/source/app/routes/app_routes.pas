@@ -10,9 +10,12 @@ uses
 implementation
 
 uses info_controller, app_controller, example_controller,
-  database_controller, example_form_controller;
+  database_controller, example_form_controller, example_form_ajax_controller,
+  example_foreach_controller;
 
 initialization
+  Route[ '/example/foreach'] := TForeachController;
+  Route[ '/example/form/ajax'] := TFormAjaxController;
   Route[ '/example/form'] := TFormController;
   Route[ '/example'] := TExampleController;
   Route[ '/database'] := TDatabaseController;

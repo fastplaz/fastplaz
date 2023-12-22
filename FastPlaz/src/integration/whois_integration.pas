@@ -50,9 +50,13 @@ const
   _WHOIS_REGEX_REGISTRAR_ORGANISATION = 'Registrar Organization:([a-zA-Z0-9\ ,.\-]+)';
   _WHOIS_REGEX_NAMESERVER = 'Name Server:([a-zA-Z0-9.\ \-]+)';
   _WHOIS_REGEX_STATUS = 'Status: ([a-zA-Z0-9]+)';
-  _WHOIS_REGEX_UPDATEDDATE = 'Updated Date:([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_STATUS_DOTID = 'Status:([a-zA-Z0-9]+)';
+  _WHOIS_REGEX_UPDATEDDATE = 'Updated Date:([a-zA-Z0-9\ \-:,.]+)';
+  _WHOIS_REGEX_UPDATEDDATE_DOTID = 'Last Updated On:([a-zA-Z0-9\ \-:,.]+)';
   _WHOIS_REGEX_CREATEDDATE = 'Creation Date:([a-zA-Z0-9\ \-,.]+)';
-  _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date:([a-zA-Z0-9\ \-,.]+)';
+  _WHOIS_REGEX_CREATEDDATE_DOTID = 'Created On:([a-zA-Z0-9\ \-:,.]+)';
+  _WHOIS_REGEX_EXPIREDDATE = 'Expiration Date:([a-zA-Z0-9\ \-:,.]+)';
+  _WHOIS_REGEX_EXPIREDDATE2 = 'Expiry Date:([a-zA-Z0-9\ \-:,.]+)';
   _WHOIS_REGEX_NOTFOUND = 'No match for';
 
   _WHOIS_SERVER_LIST_FILENAME = 'files/whois-server-list.json';
@@ -138,7 +142,13 @@ begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_CREATEDDATE;
   if regex.Exec(FData.Text) then
-    Result := regex.Match[1];
+    Result := regex.Match[1]
+  else
+  begin
+    regex.Expression := _WHOIS_REGEX_CREATEDDATE_DOTID;
+    if regex.Exec(FData.Text) then
+      Result := regex.Match[1];
+  end;
 end;
 
 function TWhoisIntegration.getExpiredDate: string;
@@ -146,24 +156,28 @@ begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_EXPIREDDATE;
   if regex.Exec(FData.Text) then
-    Result := regex.Match[1];
+    Result := regex.Match[1]
+  else
+  begin
+    regex.Expression := _WHOIS_REGEX_EXPIREDDATE2;
+    if regex.Exec(FData.Text) then
+      Result := regex.Match[1];
+  end;
 end;
 
 function TWhoisIntegration.getNameServer: string;
-var
-  i: integer;
 begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_NAMESERVER;
   if regex.Exec(FData.Text) then
   begin
-    i := 1;
-    Result := '';
-    repeat
-      Result := regex.Match[i] + ' ';
-      Inc(i);
-    until regex.Match[i] = '';
+    Result := regex.Match[1];
+    while regex.ExecNext do
+    begin
+      Result := Result + '\n' + regex.Match[1];
+    end;
   end;
+  Result := Result.Replace('Name Server: ', '');
 end;
 
 function TWhoisIntegration.getRegistrant: string;
@@ -198,7 +212,17 @@ begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_STATUS;
   if regex.Exec(FData.Text) then
-    Result := regex.Match[1];
+    Result := regex.Match[1]
+  else
+  begin
+    regex.Expression := _WHOIS_REGEX_STATUS_DOTID;
+    if regex.Exec(FData.Text) then
+      Result := regex.Match[1];
+      while regex.ExecNext do
+      begin
+        Result := Result + ', ' + regex.Match[1];
+      end;
+  end;
 end;
 
 function TWhoisIntegration.getUpdatedDate: string;
@@ -206,7 +230,13 @@ begin
   Result := '-';
   regex.Expression := _WHOIS_REGEX_UPDATEDDATE;
   if regex.Exec(FData.Text) then
-    Result := regex.Match[1];
+    Result := regex.Match[1]
+  else
+  begin
+    regex.Expression := _WHOIS_REGEX_UPDATEDDATE_DOTID;
+    if regex.Exec(FData.Text) then
+      Result := regex.Match[1];
+  end;
 end;
 
 procedure TWhoisIntegration.setServerAddress(AValue: string);
@@ -349,6 +379,11 @@ begin
   end;
   if sendQuery(DomainName) then
   begin
+    if FData.Text.Contains('DOMAIN NOT FOUND') then // domain .id
+    begin
+      Result := false;
+      Exit;
+    end;
     regex.Expression := _WHOIS_REGEX_NOTFOUND;
     if not regex.Exec(FData.Text) then
       Result := True;

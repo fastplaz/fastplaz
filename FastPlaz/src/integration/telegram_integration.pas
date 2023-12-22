@@ -112,6 +112,7 @@ type
     FAdminListAsJson: TJSONData;
     FAdminListAsString: string;
     FCallbackData: TStrings;
+    FChatInfo,
     FCallbackInlineKeyboard: TJSONUtil;
     FCallbackInstance: string;
     FDebug: boolean;
@@ -119,6 +120,7 @@ type
     FImageID: string;
     FImagePath: string;
     FImageURL: string;
+    FInvitedBy: string;
     FInvitedFullName: string;
     FInvitedUserName: string;
     FInvitedUserId: string;
@@ -158,15 +160,21 @@ type
     function getIsReply: boolean;
     function getIsSticker: boolean;
     function getIsTextMentionExists: boolean;
+    function getIsTopic: boolean;
     function getIsUserLeft: boolean;
     function getIsVoice: boolean;
     function getLeftUserID: string;
     function getMessageID: string;
+    function getReplyFromFullName: string;
     function getReplyFromID: string;
     function getReplyFromMessageID: string;
+    function getReplyFromText: string;
     function getReplyFromUserID: string;
     function getReplyFromUserName: string;
     function getText: string;
+    function getThreadID: integer; deprecated;
+    function getTopicId: integer;
+    function getTopicName: string;
     function getUpdateID: integer;
     function getUserID: string;
     function getUserName: string;
@@ -184,9 +192,9 @@ type
 
     function GetMe: string;
     function SendMessage(const ChatID: string = '0'; const Text: string = '';
-      const ReplyToMessageID: string = ''): boolean;
+      const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendMessage(const ChatID: integer = 0; const Text: string = '';
-      const ReplyToMessageID: integer = 0): boolean;
+      const ReplyToMessageID: integer = 0; const AThreadId: integer = 0): boolean;
     function SendMessageAsThread(const ChatID: string = '0'; const Text: string = '';
       const ReplyToMessageID: string = ''): boolean;
     procedure SendMessageAsThreadExecute(const ChatID: string; const Text: string; const ReplyToMessageID: string);
@@ -196,17 +204,17 @@ type
       AText: string; AData: TJSONUtil): boolean;
     function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
     function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
-      const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
+      const ACaption: string = ''; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhoto(const ChatID: integer; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendPhotoFromURL(const ChatID: string; const AImageURL: string;
-      const Caption: string = ''; const ReplyToMessageID: string = ''): boolean;
+      const Caption: string = ''; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendVideo(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
     function SendVenue(const ChatID: string; const AName: string;
-      const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''): boolean;
+      const AAddress: string; ALatitude, ALongitude:double; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendContact(const ChatID: integer;
       FirstName, LastName, PhoneNumber: string): boolean;
     function SendContact(const ChatID: string;
@@ -214,15 +222,16 @@ type
     function SendDocument(const ChatID: string; const AFile: string;
       const ACaption: string = ''; const ReplyToMessageID: string = ''): boolean;
     function SendInlineKeyboard(const ChatId: string; const AText: string;
-      const AData: TJSONUtil): boolean;
+      const AData: TJSONUtil; const AThreadId: string = ''): boolean;
     function SendKeyboard(const ChatId: string; const AText: string;
-      const AData: TJSONUtil): boolean;
+      const AData: TJSONUtil; const AThreadId: string = ''): boolean;
     function RemoveKeyboard(const ChatId: string; const AText: string): boolean;
     function GetFilePath(FileID: string): string;
     function GetFullFileURL(FileID: string): string;
     function DownloadFile(FilePath: string; TargetFile: string): boolean;
     function GroupMemberCount(AGroupID: string): integer;
     function GroupAdminList(AGroupID: string; Formated: boolean = True): string;
+    function GetChatInfo(AChatId: string): string;
 
     function IsAdmin(AUserId: string = ''; Force: boolean = True): boolean;
     function IsAdminFromUsername(AUserName: string = ''; Force: boolean = True): boolean;
@@ -245,9 +254,14 @@ type
     property RequestContent: string read FRequestContent write setRequestContent;
     property Text: string read getText;
     property UpdateID: integer read getUpdateID;
+    property ThreadId: integer read getThreadID;
+    property IsTopic: boolean read getIsTopic;
+    property TopicId: integer read getTopicId;
+    property TopicName: string read getTopicName;
     property MessageID: string read getMessageID;
     property ChatID: string read getChatID;
     property ChatType: string read getChatType;
+    property ChatInfo: TJSONUtil read FChatInfo write FChatInfo;
     property UserID: string read getUserID;
     property LeftUserID: string read getLeftUserID;
     property UserName: string read getUserName;
@@ -259,7 +273,9 @@ type
     property ReplyFromID: string read getReplyFromID;
     property ReplyFromUserID: string read getReplyFromUserID;
     property ReplyFromUserName: string read getReplyFromUserName;
+    property ReplyFromFullName: string read getReplyFromFullName;
     property ReplyFromMessageID: string read getReplyFromMessageID;
+    property ReplyFromText: string read getReplyFromText;
     property IsGroup: boolean read getIsGroup;
     property IsBot: boolean read getIsBot;
     property IsInvitation: boolean read getIsInvitation;
@@ -271,6 +287,7 @@ type
     property InvitedUserId: string read FInvitedUserId;
     property InvitedUserName: string read FInvitedUserName;
     property InvitedFullName: string read FInvitedFullName;
+    property InvitedBy: string read FInvitedBy;
 
     property LastUpdateID: integer read FLastUpdateID;
     property URL: string read FURL;
@@ -328,6 +345,7 @@ const
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
   TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
   TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
+  TELEGRAM_COMMAND_GETCHATINFO = 'getChat?chat_id=';
 
   TELEGRAM_COMMAND_KICKUSER = 'kickChatMember?chat_id=%s&user_id=%s&until_date=%d';
   TELEGRAM_COMMAND_RESTRICTUSER = 'restrictChatMember?chat_id=%s&user_id=%s&until_date=%d'
@@ -430,6 +448,53 @@ begin
   end;
 end;
 
+function TTelegramIntegration.getThreadID: integer;
+var
+  s: string;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath('message.message_thread_id').AsInteger;
+  except
+  end;
+  if Result = 0 then
+  begin
+    try
+      s := jsonData.GetPath('callback_query.message.message_thread_id').AsString;
+      Result := s2i(s);
+    except
+    end;
+  end;
+end;
+
+function TTelegramIntegration.getTopicId: integer;
+var
+  s: string;
+begin
+  Result := 0;
+  try
+    Result := jsonData.GetPath('message.message_thread_id').AsInteger;
+  except
+  end;
+  if Result = 0 then
+  begin
+    try
+      s := jsonData.GetPath('callback_query.message.message_thread_id').AsString;
+      Result := s2i(s);
+    except
+    end;
+  end;
+end;
+
+function TTelegramIntegration.getTopicName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.forum_topic_created.name').AsString;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getChatID: string;
 begin
   Result := '';
@@ -474,8 +539,9 @@ function TTelegramIntegration.getFullName: string;
 begin
   Result := '';
   try
-    Result := trim(jsonData.GetPath('message.from.first_name').AsString +
-      ' ' + jsonData.GetPath('message.from.last_name').AsString);
+    Result := jsonGetData(jsonData, 'message/from/first_name')
+      + ' ' + jsonGetData(jsonData, 'message/from/last_name');
+    Result := Result.Trim;
     if Result = '' then
       UserName;
   except
@@ -483,11 +549,13 @@ begin
   if IsCallbackQuery then
   begin
     try
-      Result := jsonData.GetPath('callback_query.from.first_name').AsString
-        + ' ' + jsonData.GetPath('callback_query.from.last_name').AsString;
+      Result := jsonGetData(jsonData, 'callback_query/from/first_name')
+        + ' ' + jsonGetData(jsonData, 'callback_query/from/last_name');
+      Result := Result.Trim;
     except
     end;
   end;
+  Result := ReplaceAll(Result,['.','-','_',',','|','*'],'').Replace('  ',' ').Trim;
 end;
 
 function TTelegramIntegration.getGroupName: string;
@@ -571,20 +639,24 @@ end;
 function TTelegramIntegration.getIsInvitation: boolean;
 begin
   Result := False;
+  FInvitedBy := '';
+  FInvitedFullName := jsonGetData(jsonData, 'message/new_chat_member/first_name')
+    + ' ' + jsonGetData(jsonData, 'message/new_chat_member/last_name');
+  FInvitedFullName := FInvitedFullName.Trim;
+
+  FInvitedUserId := jsonGetData(jsonData, 'message/new_chat_member/id');
+  FInvitedUserName := jsonGetData(jsonData, 'message/new_chat_member/username');
+  if FInvitedUserName.IsEmpty then
+    FInvitedUserName := '+' + jsonGetData(jsonData, 'message/new_chat_member/id');
+
   try
-    FInvitedFullName := jsonData.GetPath('message.new_chat_member.first_name').AsString;
-    FInvitedFullName := FInvitedFullName + ' ' + jsonData.GetPath('message.new_chat_member.last_name').AsString;
-    FInvitedFullName := trim(FInvitedFullName);
-  except
-  end;
-  try
-    FInvitedUserName := '+' + jsonData.GetPath('message.new_chat_member.id').AsString;
-    FInvitedUserId := jsonData.GetPath('message.new_chat_member.id').AsString;
-    FInvitedUserName := jsonData.GetPath('message.new_chat_member.username').AsString;
+    FInvitedBy := jsonGetData(jsonData, 'message/from/id');
+    if (InvitedBy = FInvitedUserId) then
+      FInvitedBy := '';
   except
   end;
 
-  if FInvitedUserName <> '' then
+  if FInvitedUserId <> '' then
     Result := True;
 end;
 
@@ -674,6 +746,15 @@ begin
   end;//IsCallbackQuery
 end;
 
+function TTelegramIntegration.getIsTopic: boolean;
+begin
+  Result := False;
+  try
+    Result := jsonData.GetPath('message.is_topic_message').AsBoolean;
+  except
+  end;
+end;
+
 function TTelegramIntegration.getIsVoice: boolean;
 begin
   Result := False;
@@ -689,11 +770,10 @@ end;
 
 function TTelegramIntegration.getMessageID: string;
 begin
-  Result := '';
-  try
-    Result := jsonData.GetPath('message.message_id').AsString;
-  except
-  end;
+  Result := jsonGetData(jsonData, 'message.message_id');
+  if Result.IsEmpty then
+    Result := jsonGetData(jsonData, 'edited_message.message_id');
+
   if IsCallbackQuery then
   begin
     try
@@ -701,6 +781,18 @@ begin
     except
     end;
   end;
+end;
+
+function TTelegramIntegration.getReplyFromFullName: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.from.first_name').AsString;
+    Result += ' ';
+    Result += jsonData.GetPath('message.reply_to_message.from.last_name').AsString;
+  except
+  end;
+  Result := Result.Trim;
 end;
 
 function TTelegramIntegration.getReplyFromID: string;
@@ -717,6 +809,15 @@ begin
   Result := '';
   try
     Result := jsonData.GetPath('message.reply_to_message.message_id').AsString;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getReplyFromText: string;
+begin
+  Result := '';
+  try
+    Result := jsonData.GetPath('message.reply_to_message.text').AsString;
   except
   end;
 end;
@@ -824,6 +925,8 @@ begin
     jsonData.Free;
   if Assigned(FAdminListAsJson) then
     FAdminListAsJson.Free;
+  if Assigned(FChatInfo) then
+    FChatInfo.Free;
 end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
@@ -971,7 +1074,8 @@ begin
 end;
 
 function TTelegramIntegration.SendMessage(const ChatID: string;
-  const Text: string; const ReplyToMessageID: string): boolean;
+  const Text: string; const ReplyToMessageID: string; const AThreadId: string
+  ): boolean;
 var
   s, urlTarget, payloadAsString: string;
   json: TJSONUtil;
@@ -993,6 +1097,10 @@ begin
   json['reply_to_message_id'] := ReplyToMessageID;
   json['disable_web_page_preview'] := 'false';
   json['reply_markup/remove_keyboard'] := True;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   payloadAsString := json.AsJSON;
   json.Free;
 
@@ -1008,14 +1116,17 @@ begin
       RequestBody := nil;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      FIsSuccessfull := IsSuccessfull;
-      if FIsSuccessfull then
+      if IsSuccessfull then
       begin
         json := TJSONUtil.Create;
         json.LoadFromJsonString(FResultText, False);
         FResultMessageID := json['result/message_id'];
+        s := json['ok'];
+        if not s.ToLower.Equals('false') then
+        begin
+          FIsSuccessfull := True;
+        end;
         json.Free;
-        Result := True;
       end;
     except
       on E: Exception do
@@ -1031,10 +1142,11 @@ begin
 end;
 
 function TTelegramIntegration.SendMessage(const ChatID: integer;
-  const Text: string; const ReplyToMessageID: integer): boolean;
+  const Text: string; const ReplyToMessageID: integer; const AThreadId: integer
+  ): boolean;
 begin
   try
-    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID));
+    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID), i2s(AThreadId));
   except
   end;
 end;
@@ -1183,7 +1295,7 @@ end;
 
 function TTelegramIntegration.SendAudio(const ChatID: string;
   const AAudioURL: string; const ACaption: string;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
   json: TJSONUtil;
@@ -1200,6 +1312,13 @@ begin
     [ChatID, ACaption, AAudioURL]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
 
   with THTTPLib.Create(urlTarget) do
   begin
@@ -1282,7 +1401,7 @@ end;
 
 function TTelegramIntegration.SendPhotoFromURL(const ChatID: string;
   const AImageURL: string; const Caption: string;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
 begin
@@ -1299,6 +1418,14 @@ begin
 
   urlTarget := urlTarget + '&chat_id=' + ChatID;
   urlTarget := urlTarget + '&photo=' + UrlEncode(AImageURL);
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
+
   with THTTPLib.Create(urlTarget) do
   begin
     try
@@ -1362,7 +1489,7 @@ end;
 
 function TTelegramIntegration.SendVenue(const ChatID: string;
   const AName: string; const AAddress: string; ALatitude, ALongitude: double;
-  const ReplyToMessageID: string): boolean;
+  const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
   urlTarget: string;
 begin
@@ -1379,6 +1506,13 @@ begin
 
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
+
+  //TODO: change to post method and add
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    //json['message_thread_id'] := AThreadId;
+    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
+  end;
 
   with THTTPLib.Create(urlTarget) do
   begin
@@ -1480,12 +1614,14 @@ begin
 end;
 
 function TTelegramIntegration.SendInlineKeyboard(const ChatId: string;
-  const AText: string; const AData: TJSONUtil): boolean;
+  const AText: string; const AData: TJSONUtil; const AThreadId: string
+  ): boolean;
 var
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
 begin
   Result := False;
+  FResultMessageID := '0';
   if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
     or (AData.Data.Count = 0) then
     Exit;
@@ -1494,6 +1630,10 @@ begin
   json['chat_id'] := ChatId;
   json['text'] := AText;
   json['parse_mode'] := FParseMode;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
 
   payloadAsString := json.AsJSON;
@@ -1510,7 +1650,13 @@ begin
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
+      begin
         Result := True;
+        json := TJSONUtil.Create;
+        json.LoadFromJsonString(FResultText, False);
+        FResultMessageID := json['result/message_id'];
+        json.Free;
+      end;
     except
     end;
     Free;
@@ -1518,7 +1664,8 @@ begin
 end;
 
 function TTelegramIntegration.SendKeyboard(const ChatId: string;
-  const AText: string; const AData: TJSONUtil): boolean;
+  const AText: string; const AData: TJSONUtil; const AThreadId: string
+  ): boolean;
 var
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
@@ -1532,6 +1679,10 @@ begin
   json['chat_id'] := ChatId;
   json['text'] := AText;
   json['parse_mode'] := FParseMode;
+  if ((AThreadId <> '') AND (AThreadId <> '0')) then
+  begin
+    json['message_thread_id'] := AThreadId;
+  end;
   json.ValueArray['reply_markup/keyboard'] := TJSONArray(AData.Data);
 
   payloadAsString := json.AsJSON;
@@ -1699,6 +1850,7 @@ var
   s, firstName, lastName, urlTarget: string;
 begin
   Result := '';
+  FResultCode := -1;
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
   with THTTPLib.Create(urlTarget) do
   begin
@@ -1752,6 +1904,36 @@ begin
 
   Result := Result.Trim;
   Result := copy(Result, 0, length(Result) - 1);
+end;
+
+function TTelegramIntegration.GetChatInfo(AChatId: string): string;
+var
+  urlTarget: string;
+begin
+  Result := '';
+  FResultCode := -1;
+  urlTarget := URL + TELEGRAM_COMMAND_GETCHATINFO + AChatId;
+  with THTTPLib.Create(urlTarget) do
+  begin
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      //AddHeader('Accept', '*/*');
+      Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+    except
+    end;
+    Free;
+  end;
+
+  if FResultCode <> 200 then
+    Exit;
+
+  FChatInfo := TJSONUtil.Create;
+  FChatInfo.LoadFromJsonString(FResultText);
+
+  Result := FResultText;
 end;
 
 function TTelegramIntegration.IsAdmin(AUserId: string; Force: boolean): boolean;

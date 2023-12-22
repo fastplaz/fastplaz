@@ -58,6 +58,8 @@ procedure TfModuleSimpleWizard.edt_ModuleNameChange(Sender: TObject);
 begin
   edt_Permalink.Text := StringReplace(LowerCase(edt_ModuleName.Text),
     ' ', '_', [rfReplaceAll]);
+  edt_Permalink.Text := StringReplace(LowerCase(edt_Permalink.Text),
+    '/', '_', [rfReplaceAll]);
   edt_PermalinkChange( Sender);
 end;
 

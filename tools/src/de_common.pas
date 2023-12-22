@@ -5,16 +5,19 @@ unit de_common;
 interface
 
 uses
-  config_lib, regexpr_lib, SQLDB,
-  SynEdit, Classes, SysUtils,
+  config_lib, regexpr_lib, SQLDB, fpjson,
+  SynEdit, Classes, SysUtils, LazFileUtils,
   //INTF
   PackageIntf, IDEWindowIntf, SrcEditorIntf;
 
 const
+  FASTPLAZ_CONFIG_FILENAME = 'config.json';
   FDE_WINDOW_NAME = 'IDEFDEWindow';
   FDE_BROWSER_WINDOW_NAME = 'IDEFDEBrowserWindow';
   FDE_CONFIG_PATH = '.fastplaz';
   FDE_CONFIG_FILE_NAME = 'fastplaz_dbe.json';
+
+  FASTCODE_WINDOW_NAME = 'IDEFASTCODEWindow';
 
   FASTPLAZ_EXPERT_DBE_MAINMENU_NAME = 'mnu_FastPlazExpertMainMenu';
   FASTPLAZ_EXPERT_DBE_MAINMENU_CAPTION = 'FastPla&z';
@@ -75,12 +78,21 @@ const
   {$else}
   rsRevealInFinder = 'Reveal in Finder';
   {$endif}
+  rsCopyFilePath = 'Copy File Path';
+  rsCopyDirectoryPath = 'Copy Directory Path';
+
+  FASTCODE_PROMPT = 'You are an expert Pascal programmer. Please answer with specific code. Start description with //. Dont use markdown, and a maximum length of 80 characters per line in description. Only give responses in the %language% language.';
+  FASTCODE_OPENING_CHAR = '{';
+  FASTCODE_CLOSING_CHAR = '}';
 
   LASTUPDATE_URL = 'https://raw.githubusercontent.com/fastplaz/fastplaz/development/LAST_UPDATED_DEVELOPMENT';
   LASTUPDATE_FILENAME = 'LAST_UPDATED_DEVELOPMENT';
 
 resourcestring
   //rsDBConnector = 'DB Connector';
+  RS_FAST_CODE_CONFIGURATION = 'Fast Code Configuration';
+  RS_FAST_CODE = 'Fast Code Suggestion';
+  RS_FAST_CODE_MARK = '//';
   RS_DATABASE_EXPLORER_MENU = 'Database Explorer';
   RS_JSON_TOOLS_MENU = 'JSON Validator && Formatter';
   RS_REGEX_TESTER_MENU = 'Regex Tester';
@@ -102,11 +114,14 @@ type
     var AQuery: TSQLQuery) of object;
 
 var
+  GlobalConfig,
   Config: TMyConfig;
 
 function preg_match(const ARegexExpression: string; AText: string): boolean;
 procedure InserTextToEditor(const AText: string);
+function GetCurrentLine(): string;
 procedure ViewDBConnector(Sender: TObject);
+procedure LoadConfiguration;
 
 implementation
 
@@ -142,6 +157,26 @@ begin
   end;
 end;
 
+function GetCurrentLine: string;
+var
+  sourceEditor: TSourceEditorInterface;
+  ASynEdit: TSynEdit;
+begin
+  Result := '';
+  sourceEditor := SourceEditorManagerIntf.ActiveEditor;
+  if sourceEditor = nil then Exit;
+  if not (sourceEditor.EditorControl is TSynEdit) then Exit;
+
+  ASynEdit := TSynEdit(sourceEditor.EditorControl);
+  Result := ASynEdit.SelText;
+  if not Result.IsEmpty then
+  begin
+    Result := RS_FAST_CODE_MARK + Result;
+    Exit;
+  end;
+  Result := ASynEdit.LineText;
+end;
+
 procedure ViewDBConnector(Sender: TObject);
 var
   Pkg: TIDEPackage;
@@ -150,6 +185,43 @@ begin
   //if IDEFDEWindow <> nil then
   //begin
   //end;
+end;
+
+procedure LoadConfiguration;
+var
+  configurationPath, configurationFileName: string;
+  templateData: TJSONObject;
+begin
+  if GlobalConfig = nil then
+  begin
+    configurationPath := GetUserDir + FDE_CONFIG_PATH;
+    configurationFileName := configurationPath + DirectorySeparator + FASTPLAZ_CONFIG_FILENAME;
+    if not DirectoryExistsUTF8(ConfigurationPath) then
+      CreateDirUTF8(ConfigurationPath);
+
+    GlobalConfig := TMyConfig.Create(nil);
+    GlobalConfig.Filename := configurationFileName;
+    GlobalConfig.Formatted := True;
+
+    //initial config
+    if not FileExistsUTF8(ConfigurationFileName) then
+    begin
+      templateData := TJSONObject.Create;
+      templateData.Add('openai_api_key', '');
+      templateData.Add('openai_model', 'gpt-3.5-turbo');
+      templateData.Add('openai_temperature', 0);
+      templateData.Add('openai_maxtoken', 250);
+      templateData.Add('language', 'english');
+      templateData.Add('prompt', FASTCODE_PROMPT);
+      templateData.Add('opening_char', FASTCODE_OPENING_CHAR);
+      templateData.Add('closing_char', FASTCODE_CLOSING_CHAR);
+      GlobalConfig.SetDataValue('fastcode', templateData);
+      FreeAndNil(templateData);
+
+      GlobalConfig.Flush;
+    end;
+  end;
+  GlobalConfig.Reload;
 end;
 
 end.

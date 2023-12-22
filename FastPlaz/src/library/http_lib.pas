@@ -170,6 +170,7 @@ type
     FResponseTime: Dword;
     FStopProcessing: boolean;
     function GetAllowRedirect: boolean;
+    function getConnectTimeout: Integer;
     function GetCookies: TStrings;
     function GetPostFormData(variable: string): string;
     function getIsSuccessfull: boolean;
@@ -177,6 +178,7 @@ type
     function getStreamSize: int64;
     function getURL: string;
     procedure SetAllowRedirect(AValue: boolean);
+    procedure setConnectTimeout(AValue: Integer);
     procedure SetCookies(AValue: TStrings);
     procedure SetPostFormData(variable: string; AValue: string);
     procedure setURL(AValue: string);
@@ -212,6 +214,7 @@ type
     property IsSuccessfull: boolean read getIsSuccessfull;
     property OnSyncStatus: TNotifyEvent read FOnSyncStatus write FOnSyncStatus;
     property RequestHeaders: string read GetRequestHeaders;
+    property ConnectTimeout: Integer read getConnectTimeout write setConnectTimeout;
   end;
 
 
@@ -258,6 +261,7 @@ begin
   Sep := Format('%.8x_multipart_boundary', [Random($ffffff)]);
   //HTTPClient.AddHeader('Content-Type','application/x-www-form-urlencoded');
   HTTPClient.AddHeader('Content-Type', 'multipart/form-data; boundary=' + Sep);
+  //HTTPClient.AddHeader('Content-Type', 'multipart/form-data');
   if PostFormData.Count > 0 then
   begin
     for i := 1 to PostFormData.Count do
@@ -368,7 +372,8 @@ begin
       begin
         if not Assigned( HTTPClient.RequestBody) then
            prepareRequestBody;
-        HTTPClient.Options(FURL, ResultStream);
+        //HTTPClient.Options(FURL, ResultStream);
+        HTTPClient.HTTPMethod('PATCH', FURL, ResultStream, []);
       end;
       'POST':
       begin
@@ -459,6 +464,11 @@ begin
   FWorker.HTTPClient.AllowRedirect := AValue;
 end;
 
+procedure THTTPLib.setConnectTimeout(AValue: Integer);
+begin
+  FWorker.HTTPClient.ConnectTimeout := AValue;
+end;
+
 procedure THTTPLib.SetCookies(AValue: TStrings);
 begin
   if getCookies = AValue then
@@ -488,6 +498,11 @@ end;
 function THTTPLib.GetAllowRedirect: boolean;
 begin
   Result := FWorker.HTTPClient.AllowRedirect;
+end;
+
+function THTTPLib.getConnectTimeout: Integer;
+begin
+  Result := FWorker.HTTPClient.ConnectTimeout;
 end;
 
 function THTTPLib.GetPostFormData(variable: string): string;

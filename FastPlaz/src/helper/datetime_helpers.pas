@@ -100,9 +100,13 @@ function TDateTimeSmartHelper.FromString(ADateTimeString: String;
 var
   FS: TFormatSettings;
 begin
-  FS := DefaultFormatSettings;
-  FS.ShortDateFormat := AFormat;
-  Self := StrToDateTime( ADateTimeString, FS);
+  Self := Now;
+  try
+    FS := DefaultFormatSettings;
+    FS.ShortDateFormat := AFormat;
+    Self := StrToDateTime( ADateTimeString, FS);
+  except
+  end;
   Result := Self;
 end;
 
@@ -278,6 +282,4 @@ begin
 end;
 
 end.
-
-
 

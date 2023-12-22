@@ -56,6 +56,8 @@ resourcestring
   HEAD = 'HEAD';
   OPTIONS = 'OPTIONS';
 
+const
+  REGEX_FORMDATA = 'Content-Disposition: form-data; name=\"(.*?)\"\r\nContent-Type: (.*?)\r\n\r\n(.*?)\r\n';
 
 type
 
@@ -116,7 +118,7 @@ type
     function GetBaseURL: string;
     function GetCSRFFailedCount: integer;
     function GetCustomHeader(const KeyName: string): string;
-    function GetEnvirontment(const KeyName: string): string;
+    function GetEnvironment(const KeyName: string): string;
     function GetHeader(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
@@ -157,8 +159,7 @@ type
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
 
     property URI: string read GetURI;
-    property Environment[const KeyName: string]: string read GetEnvirontment;
-    property Environtment[const KeyName: string]: string read GetEnvirontment;
+    property Environment[const KeyName: string]: string read GetEnvironment;
     property Header[const KeyName: string]: string read GetHeader;
     property CustomHeader[const KeyName: string]: string read GetCustomHeader write SetCustomHeader;
 
@@ -181,7 +182,7 @@ type
     property isPatch: boolean read GetIsPatch;
     property isDelete: boolean read GetIsDelete;
     property isValidCSRF: boolean read GetIsValidCSRF;
-    property isAjax: boolean read GetIsAjax;
+    property isAjax: boolean read GetIsAjax; deprecated;
 
     property FlashMessages: string write SetFlashMessage;
     property CSRFFailedCount: integer read GetCSRFFailedCount;
@@ -339,6 +340,7 @@ var
   AppData: TMainData;
   Config: TMyConfig;
   Sanitize: boolean;
+  XSSProof: boolean;
   SessionController: TSessionController;
   FastPlasAppandler: TFastPlasAppandler;
   ModuleLoaded: TModuleLoaded;
@@ -448,30 +450,28 @@ begin
   if string(Config.GetValue(_SYSTEM_SESSION_STORAGE, 'file')) = 'database' then
     AppData.SessionStorage := _SESSION_STORAGE_DATABASE;
   SessionController.Storage := AppData.SessionStorage;
+  SessionController.TimeOut :=
+    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
+  if SessionController.TimeOut = 0 then
+    SessionController.TimeOut := _SESSION_TIMEOUT_DEFAULT;
   // force session with cookie
-  if SessionController.CookieID.IsEmpty then
+  if SessionController.IsNewSession then
   begin
-    _ := Application.Request.CookieFields.Values['_'];
-    if _.IsEmpty then
-    begin
-      _ := RandomString(40, 'fastplaz');
-    end;
     with Application.Response.Cookies.Add do
     begin
-      Name := '_';
-      Value := _;
+      //CustomHeader['Set-Cookie'] := '_=....; path=/';
+      Name := _SESSION_COOKIE_KEY;
+      Value := SessionController.CookieID;
+      Path := '/';
       if not AppData.cookiePath.IsEmpty then
         Path := AppData.cookiePath;
-      Expires := dateutils.IncDay(Now,3);
+      //Expires := dateutils.IncMinute(Now, SessionController.TimeOut);
     end;
-    SessionController.SessionID := _;
   end;
   if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
   begin
     DataBaseInit;
   end;
-  SessionController.TimeOut :=
-    Config.GetValue(_SYSTEM_SESSION_TIMEOUT, _SESSION_TIMEOUT_DEFAULT);
   if AppData.sessionAutoStart then
   begin
     if not SessionController.StartSession then
@@ -723,7 +723,7 @@ begin
   Result := Response.GetCustomHeader( KeyName);
 end;
 
-function TMyCustomWebModule.GetEnvirontment(const KeyName: string): string;
+function TMyCustomWebModule.GetEnvironment(const KeyName: string): string;
 begin
   Result := Application.EnvironmentVariable[KeyName];
 end;
@@ -1083,6 +1083,7 @@ end;
 
 function TPOST.GetValue(const Variable: string): string;
 var
+  i: integer;
   _l: TStringList;
   s, postType: string;
 begin
@@ -1108,13 +1109,46 @@ begin
   if Application.Request.ContentFields.IndexOfName(Variable) = -1 then
   begin
     Result := '';
-    Exit;
+    //Exit;
   end;
   try
     case postType of
       'multipart/form-data':
       begin
         s := Application.Request.ContentFields.Values[Variable];
+        if s.IsEmpty then
+        with TRegExpr.Create() do
+        begin
+          Expression := REGEX_FORMDATA;
+          if Exec(Application.Request.Content) then
+          begin
+            if Match[1] = Variable then
+            begin
+              Result := Match[3]; Free; Exit;
+            end;
+            while ExecNext() do
+            begin
+              if Match[1] = Variable then
+              begin
+                Result := Match[3]; Free; Exit;
+              end;
+            end;
+          end;
+          Free;
+        end;
+        if StringsExists('\[\]', Variable) then
+        begin
+          Result := '';
+          for i:=0 to Application.Request.ContentFields.Count-1 do
+          begin
+            if Application.Request.ContentFields.Names[i] = Variable then
+            begin
+              Result += Application.Request.ContentFields.ValueFromIndex[i] + #13;
+            end;
+          end;
+          Result := Result.Trim;
+          Exit;
+        end;
       end;
       'application/x-www-form-urlencoded':
       begin
@@ -1124,9 +1158,13 @@ begin
   except
   end;
   if Sanitize then
-    Result := _CleanVar(s)
+  begin
+    Result := _CleanVar(s);
+    if XSSProof then
+      Result := StripTags(Result).Trim;
+  end
   else
-    Result := s
+    Result := s;
 end;
 
 procedure TPOST.SetValue(const Variable: string; AValue: string);
@@ -1148,7 +1186,11 @@ begin
     Exit;
   try
     if Sanitize then
-      Result := _CleanVar(Application.Request.QueryFields.Values[Name])
+    begin
+      Result := _CleanVar(Application.Request.QueryFields.Values[Name]);
+      if XSSProof then
+        Result := StripTags(Result).Trim;
+    end
     else
       Result := Application.Request.QueryFields.Values[Name];
   except
@@ -1484,6 +1526,7 @@ initialization
   AppData.isReady := False;
   StartTime := _GetTickCount;
   Sanitize := True;
+  XSSProof := False;
   //MemoryAllocated := GetHeapStatus.TotalAllocated;
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
   SessionController := TSessionController.Create();

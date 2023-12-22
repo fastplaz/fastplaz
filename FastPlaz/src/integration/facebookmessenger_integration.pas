@@ -222,11 +222,12 @@ type
 implementation
 
 const
+  _GRAPH_VERSION = 'v17.0';
   _FACEBOOK_MSG_MAXLENGTH = 635;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
-  _FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v2.6/';
+  _FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/'+_GRAPH_VERSION+'/';
   _FACEBOOK_MESSENGER_SEND_URL =
-    'https://graph.facebook.com/v2.6/me/messages?access_token=';
+    'https://graph.facebook.com/'+_GRAPH_VERSION+'/me/messages?access_token=';
   _FACEBOOK_MESSENGER_SEND_JSON =
     '{ "recipient":{"id":"%s" }, "message":{ "text":"%s" }}';
   _FACEBOOK_MESSENGER_SEND_AUDIO_JSON =
@@ -872,6 +873,8 @@ begin
         FFirtName := json['first_name'];
         FLastName := json['last_name'];
         FProfilePicture := json['profile_pic'];
+        if FFirtName.IsEmpty then
+          FFirtName := json['name'];
         json.Free;
         Result := True;
       end;

@@ -1,0 +1,65 @@
+<link rel="stylesheet" href="[baseurl]modules/example/styles/styles.css">
+<section id="direct" class="module">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <p>Halaman ini merupakan contoh menampilkan data larik (array) dalam bentuk json. Lokasi file dicantumkan pada keterangan di bawah.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" class="module">
+    <div class="row"><div class="col-lg-12">
+      <b>Warehouse (JSON Data)</b>
+      <table>
+          <thead>
+              <tr><th>&nbsp;</th><th>Code</th><th>Name</th><th>Country</th></tr>
+          </thead>
+          <tbody>
+              [foreach from=$Warehouses item=aItem type=jsondata]
+              <tr><td>[$index].</td><td>[aItem.code]</td><td>[aItem.name]</td><td>[aItem.country]</td></tr>
+              [/foreach from=$Warehouses]
+          </tbody>
+      </table>
+    </div></div>  
+  </div>
+  
+  <div class="container">
+    <hr />
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <p>File-file kode yang berkaitan dengan halaman ini adalah:</p>
+<code class="bash">json data      : public_html/files/data-warehouse.json
+controller file: source/app/controllers/example_foreach_controller.pas
+html template  : public_html/modules/example/foreach.html
+layout theme   : public_html/themes/[$theme]/templates/master.html
+</code>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <hr />
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-12 col-md-4 ">
+        <img class="border rounded-top" src="[baseurl]modules/example/images/foreach-pascal.png" width="100%">
+        <span class="note italic pb-1">Pascal Source</span>
+      </div>
+      <div class="col-12 col-md-4 ">
+        <img class="border rounded-top" src="[baseurl]modules/example/images/foreach-html.png" width="100%">
+        <span class="note italic pb-1">HTML Source</span>
+      </div>
+      <div class="col-12 col-md-4 ">
+        <img class="border rounded-top" src="[baseurl]modules/example/images/foreach-result.png" width="100%">
+        <span class="note italic pb-1">Result</span>
+      </div>
+    </div>
+  </div>
+
+</section>

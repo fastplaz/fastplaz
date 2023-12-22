@@ -10,8 +10,8 @@ uses
   ghSQL, ghSQLdbLib,
   {$endif}
   fpcgi, fphttp, db, fpjson, jsonparser, fgl,
-  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn,
-  sqlite3conn, pqconnection, IBConnection,
+  sqldb, sqldblib, mysql50conn, mysql51conn, mysql55conn, mysql56conn, mysql57conn, mysql80conn,
+  sqlite3conn, pqconnection, IBConnection, TypInfo,
   variants, Classes, SysUtils;
 
 type
@@ -24,6 +24,7 @@ type
   TSimpleModel = class
   private
     FFieldPrefix: string;
+    FFieldQuote: string;
     FRecordCountFromArray: Integer;
     AMessage: string;
     FConnector : TSQLConnector;
@@ -49,7 +50,7 @@ type
     function GetTablePrefix: string;
     procedure setAliasName(AValue: string);
     procedure _queryPrepare;
-    function  _queryOpen:boolean;
+    function  _queryOpen(const AUniDirectional: boolean = false):boolean;
     procedure DoAfterOpen(DataSet: TDataSet);
     procedure DoBeforeOpen(DataSet: TDataSet);
 
@@ -72,10 +73,12 @@ type
     property TableName : string Read FTableName write FTableName;
     property TablePrefix : string read GetTablePrefix;
     property FieldPrefix: string read FFieldPrefix write FFieldPrefix;
+    property FieldQuote: string read FFieldQuote write FFieldQuote;
     property AliasName : string read getAliasName write setAliasName;
     Property Value[ FieldName: String] : Variant Read GetFieldValue Write SetFieldValue; default;
     Property FieldLists: TStrings Read GetFieldList;
     property RecordCount: Longint read GetRecordCount;
+    property RecordCountFromArray: Integer read FRecordCountFromArray;
     property EOF: boolean read GetEOF;
     property LastInsertID: LongInt read GetLastInsertID;
     property Message: string read AMessage;
@@ -84,14 +87,14 @@ type
     property SQL : TStringlist read getSQL;
     function Exec( ASQL:String): boolean;
 
-    function All:boolean;
-    function GetAll( Limit: Integer = 0; Offset: Integer = 0):boolean;
+    function All(const AUniDirectional: boolean = false):boolean;
+    function GetAll( Limit: Integer = 0; Offset: Integer = 0; const AUniDirectional: boolean = false):boolean;
     function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
     function Find( const KeyIndex:String):boolean;
-    function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''):boolean;
+    function Find( const Where:array of string; const Order:string = ''; const Limit:integer = 0; const CustomField:string=''; const Offset: integer = 0):boolean;
     function FindFirst( const Where:array of string; const Order:string = ''; const CustomField:string=''):boolean;
 
     procedure AddJoin( const JoinTable:string; const JoinField:string; const RefField: string; const FieldNameList:array of string; const AJoinWhere: string = '');
@@ -540,12 +543,13 @@ function DataToJSON(Data: TSQLQuery; var ResultJSON: TJSONArray;
 var
   item : TJSONObject;
   item_array : TJSONArray;
-  field_name : string;
+  field_name, fieldType : string;
   i,j:integer;
 begin
   Result:=False;
   i:=1;
   try
+    Data.First;
     while not Data.EOF do
     begin
       item := TJSONObject.Create();
@@ -553,6 +557,7 @@ begin
       for j:=0 to Data.FieldCount-1 do
       begin
         field_name:= Data.FieldDefs.Items[j].Name;
+        fieldType := GetEnumName(TypeInfo(TFieldType), Ord(Data.FieldDefs.Items[j].DataType));
         if NoFieldName then
         begin
           if Data.FieldDefs.Items[j].DataType = ftDateTime then
@@ -569,6 +574,22 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftInteger then
           begin
             item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftSmallint then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftLargeint then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftUnknown then
+          begin
+            try
+              item_array.add( Data.FieldByName(field_name).AsString);
+            except
+              item_array.add( '');
+            end;
           end
           else
             item_array.add( Data.FieldByName(field_name).AsString);
@@ -590,6 +611,22 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftInteger then
           begin
             item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftSmallint then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsInteger);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftLargeint then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftUnknown then
+          begin
+            try
+              item.Add(field_name, Data.FieldByName(field_name).AsString);
+            except
+              item.Add(field_name, '');
+            end;
           end
           else
             item.Add(field_name, Data.FieldByName(field_name).AsString);
@@ -617,6 +654,7 @@ end;
 
 procedure TSimpleModel._queryPrepare;
 begin
+  FRecordCountFromArray := 0;
   FieldLists;
   if Data.Active then Data.Close;
 end;
@@ -671,14 +709,22 @@ begin
   end;
 end;
 
-function TSimpleModel._queryOpen: boolean;
+function TSimpleModel._queryOpen(const AUniDirectional: boolean): boolean;
 var
   s : string;
 begin
   Result := False;
+  FRecordCountFromArray := 0;
   try
     if Data.Active then Data.Close;
+    if not AUniDirectional then
+      Data.UniDirectional := AUniDirectional;
     Data.Open;
+    if not AUniDirectional then
+    begin
+      Last;
+      First;
+    end;
     if Data.RecordCount > 0 then
       Result := True;
   except
@@ -813,6 +859,7 @@ begin
   FScriptLimit := '';
   FScriptOrderBy := '';
   FFieldPrefix := '';
+  FFieldQuote := '`';
   primaryKey := pPrimaryKey;
   primaryKeyValue := '';
   AMessage := '';
@@ -885,28 +932,31 @@ begin
   Result := QueryExec( ASQL);
 end;
 
-function TSimpleModel.All: boolean;
+function TSimpleModel.All(const AUniDirectional: boolean): boolean;
 begin
-  result := GetAll();
+  result := GetAll(0,0, AUniDirectional);
 end;
 
 {
 same with:
   Object.Find([]);
 }
-function TSimpleModel.GetAll(Limit: Integer; Offset: Integer): boolean;
+function TSimpleModel.GetAll(Limit: Integer; Offset: Integer;
+  const AUniDirectional: boolean): boolean;
 begin
   _queryPrepare;
   Data.SQL.Text := 'SELECT ' + FSelectField + ' FROM ' + FTableName;
   if Limit > 0 then
     Data.SQL.Add('LIMIT ' + i2s(Limit));
-  _queryOpen;
+  _queryOpen(AUniDirectional);
   Result := true;
 end;
 
 function TSimpleModel.AsJsonArray(NoFieldName: boolean): TJSONArray;
 begin
   Result := TJSONArray.Create;
+  FRecordCountFromArray := 0;
+  if not Data.Active then Exit;
   DataToJSON(Data, Result, NoFieldName);
   FRecordCountFromArray := Result.Count;
 end;
@@ -936,7 +986,8 @@ begin
 end;
 
 function TSimpleModel.Find(const Where: array of string; const Order: string;
-  const Limit: integer; const CustomField: string): boolean;
+  const Limit: integer; const CustomField: string; const Offset: integer
+  ): boolean;
 var
   i,j : integer;
   _selectField, _joinSQL,
@@ -1006,6 +1057,8 @@ begin
   if Limit > 0 then begin
     Data.SQL.Add( 'LIMIT ' + IntToStr( Limit));
   end;
+  if Offset > 0 then
+    Data.SQL.Add( 'OFFSET ' + Offset.ToString);
   if Data.Active then
     Data.Close;
   Data.UniDirectional:=False;
@@ -1014,7 +1067,11 @@ begin
   Data.First;
   if (Data.RecordCount = 1) and (primaryKey <> '') then
   begin
-    primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    primaryKeyValue := '';
+    try
+      primaryKeyValue := Data.FieldByName( primaryKey).AsString;
+    except
+    end;
   end;
 end;
 
@@ -1145,7 +1202,7 @@ begin
     sSQL.Add( 'UPDATE ' + TableName + ' SET ');
     for i:=0 to FGenFields.Count-1 do
     begin
-      s := FGenFields[i]+'=:'+FGenFields[i];
+      s := FFieldQuote + FGenFields[i] + FFieldQuote +'=:'+FGenFields[i];
       if i <> FGenFields.Count-1 then s:= s + ',' ;
       sSQL.Add( s);
     end;
@@ -1163,6 +1220,12 @@ begin
   begin //-- new data
     sSQL.Add( 'INSERT INTO '+TableName+' (');
     s := Implode( FGenFields, ',');
+    s := '';
+    for i:= 0 to FGenFields.Count-1 do
+    begin
+      s := s + FFieldQuote + FGenFields[i] + FFieldQuote + ',';
+    end;
+    s := s.Substring(0, s.Length-1);
     sSQL.Add( s);
     sSQL.Add( ') VALUES (');
     s := Implode( FGenFields, ',', ':');

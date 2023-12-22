@@ -1,0 +1,50 @@
+[
+    {
+      "id": 1,
+      "code": "IDW01",
+      "name": "Raw Material ID",
+      "location_id": 1,
+      "code_1": "ID",
+      "country": "Indonesia"
+    },
+    {
+      "id": 2,
+      "code": "IDW02",
+      "name": "Finished Goods ID",
+      "location_id": 1,
+      "code_1": "ID",
+      "country": "Indonesia"
+    },
+    {
+      "id": 3,
+      "code": "MYW01",
+      "name": "Raw Material MY",
+      "location_id": 2,
+      "code_1": "MY",
+      "country": "Malaysia"
+    },
+    {
+      "id": 4,
+      "code": "MYW02",
+      "name": "Finished Goods MY",
+      "location_id": 2,
+      "code_1": "MY",
+      "country": "Malaysia"
+    },
+    {
+      "id": 5,
+      "code": "SAW01",
+      "name": "Raw Material SA",
+      "location_id": 3,
+      "code_1": "SA",
+      "country": "Saudi Arabia"
+    },
+    {
+      "id": 6,
+      "code": "SAW02",
+      "name": "Finished Goods SA",
+      "location_id": 3,
+      "code_1": "SA",
+      "country": "Saudi Arabia"
+    }
+  ]

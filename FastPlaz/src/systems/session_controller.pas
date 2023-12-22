@@ -5,13 +5,15 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles, fpjson,
+  fpcgi, md5, IniFiles, fpjson, DateUtils,
   Classes, SysUtils;
 
 const
   MaxIniCreate = 5;
   _SESSION_SESSION = 'session';
   _SESSION_DATA = 'data';
+  _SESSION_COOKIE_KEY = '_';
+  _SESSION_COOKIE_ACTIVE_DAY = 3;
 
   _SESSION_ACTIVE = 'active';         // Start time of session
   _SESSION_KEYSTART = 'start';         // Start time of session
@@ -19,13 +21,13 @@ const
   _SESSION_IPADDRESS = 'ipaddr';
   _SESSION_USER_AGENT = 'useragent';
   _SESSION_FLASHMESSAGE = 'flash';
-  _SESSION_TIMEOUT_DEFAULT = 3600;
+  _SESSION_TIMEOUT_DEFAULT = 3 * 1440; // in minutes (default: 3 days)
   _SESSION_STORAGE_FILE = 1;
   _SESSION_STORAGE_DATABASE = 2;
   TDateTimeEpsilon = 2.2204460493e-16;
 
   _SESSION_SQL_UPDATE =
-    'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", now(), %d, %d, "%s");';
+    'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", UNIX_TIMESTAMP(now()), %d, %d, "%s");';
 
 type
 
@@ -35,6 +37,7 @@ type
   private
     FForceUniqueID: string;
     FIniFile: TMemInifile;
+    FIsNewSession: boolean;
     FLastAccess: TDateTime;
     FSessionTimeout: integer;
     FSessionStarted, FSessionTerminated, FCached: boolean;
@@ -81,6 +84,7 @@ type
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
+    property IsNewSession: boolean read FIsNewSession;
 
     property SessionPrefix: string read FSessionPrefix write FSessionPrefix;
     property SessionSuffix: string read FSessionSuffix write FSessionSuffix;
@@ -405,14 +409,18 @@ begin
   inherited Create();
   FSessionVars := TStringList.Create;
   FLastAccess := 0;
+  FIsNewSession := False;
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
   //FHttpCookie := GetEnvironmentVariable( 'Cookie');
   FHttpCookie := FHttpCookie.Replace(' ', '');
   lstr := Explode(FHttpCookie, ';');
   //FCookieID := lstr.Values['__cfduid']; // from CF
-  FCookieID := lstr.Values['_'];
+  FCookieID := lstr.Values[_SESSION_COOKIE_KEY];
   if FCookieID.IsEmpty then
-    FCookieID := RandomString(41);//curl
+  begin
+    FCookieID := RandomString(41, 'fastplaz');//curl
+    FIsNewSession := True;
+  end;
   FToken := lstr.Values['token'];
   FreeAndNil(lstr);
   FSessionPrefix := '';
@@ -523,13 +531,16 @@ begin
 end;
 
 function TSessionController.StartSessionWithDatabase: boolean;
+var
+  lastAccessAsInteger: integer;
 begin
   Result := False;
   SessionTable := TSessionModel.Create();
   if SessionTable.Find(FSessionID) then
   begin
     FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-    FLastAccess := SessionTable.Value[SESSION_FIELD_LASTUSED];
+    lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
+    FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
     UpdateDatabase;
   end
   else
@@ -539,7 +550,8 @@ begin
     if SessionTable.Find(FSessionID) then
     begin
       FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-      FLastAccess := SessionTable.Value[SESSION_FIELD_LASTUSED];
+      lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
+      FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
     end;
   end;
   FSessionStarted := True;

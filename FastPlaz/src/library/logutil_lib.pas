@@ -15,8 +15,10 @@ type
 
   TLogUtil = class
   private
+    FPrefix: string;
     log_file: TextFile;
     procedure SaveStringToPath(theString, filePath: string);
+    procedure setPrefix(AValue: string);
   public
     Dir, FileName, FullName: UnicodeString;
     constructor Create;
@@ -25,6 +27,8 @@ type
       URL: string = '');
     procedure Add(const message: string; const ModName: string = '';
       const Skip: boolean = False);
+  published
+    property Prefix: string read FPrefix write setPrefix;
   end;
 
 var
@@ -57,6 +61,14 @@ begin
   end;
 end;
 
+procedure TLogUtil.setPrefix(AValue: string);
+begin
+  if FPrefix=AValue then Exit;
+  FPrefix:=AValue;
+  FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
+  FullName := dir + '/' + FPrefix + FileName;
+end;
+
 constructor TLogUtil.Create;
 begin
   try
@@ -65,6 +77,7 @@ begin
       ForceDirectories(Dir);
   except
   end;
+  FPrefix := '';
   FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
   FullName := dir + '/' + FileName;
 end;
@@ -77,7 +90,7 @@ end;
 procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer;
   URL: string);
 begin
-  AssignFile(log_file, fullname);
+  AssignFile(log_file, FullName);
   { $I+}
   try
     //Rewrite(log_file);
@@ -101,10 +114,10 @@ begin
     if ModName <> '' then
       s := ModName + ': ';
     s := s + message;
-    AssignFile(log_file, fullname);
+    AssignFile(log_file, FullName);
     { $I+}
     try
-      if not FileExists(fullname) then
+      if not FileExists(FullName) then
         Rewrite(log_file)
       else
         Append(log_file);

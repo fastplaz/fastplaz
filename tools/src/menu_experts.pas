@@ -5,7 +5,7 @@ unit menu_experts;
 interface
 
 uses
-  Controls, Dialogs,
+  Controls, Dialogs, Clipbrd,
   // INTF
   LazIDEIntf, MenuIntf, IDEWindowIntf, IDECommands, ProjectIntf,
   IDEExternToolIntf, SrcEditorIntf, LCLType,
@@ -18,11 +18,16 @@ const
 var
   oMenuExpert: TIDEMenuSection = nil;
   icRevealInFinder: TIDECommand;
+  icCopyFilePath: TIDECommand;
+  icCopyDirectoryPath: TIDECommand;
+  icFastCode: TIDECommand;
 
 procedure CreateIDEMenus;
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);
 procedure CreatePackage_Proc(ASender: TObject);
 procedure RevealInFinder_Proc(ASender: TObject);
+procedure CopyFilePath_Proc(ASender: TObject);
+procedure CopyDirectoryPath_Proc(ASender: TObject);
 
 implementation
 
@@ -31,7 +36,7 @@ uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_w
   packageapp_wzd, packageapp_lib,
   json_tools, regex_tester,
   //Database Explorer
-  de_connector, de_dbbrowser, de_common;
+  de_connector, de_dbbrowser, de_common, fastcode_configuration;
 
 procedure NewAppGenerator_Proc(ASender: TObject);
 begin
@@ -191,6 +196,56 @@ begin
 
 end;
 
+procedure CopyFilePath_Proc(ASender: TObject);
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  Clipboard.AsText := srcEdit.FileName;
+end;
+
+procedure CopyDirectoryPath_Proc(ASender: TObject);
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if srcEdit = nil then
+    Exit;
+
+  Clipboard.AsText := ExtractFileDir(srcEdit.FileName);
+end;
+
+procedure FastCodeConfiguration_Proc(ASender: TObject);
+begin
+  if not Assigned(fFastCodeConfiguration) then
+    fFastCodeConfiguration := TfFastCodeConfiguration.Create(nil);
+  fFastCodeConfiguration.Prepare;
+  fFastCodeConfiguration.Show;
+end;
+
+procedure FastCode_Proc(ASender: TObject);
+var
+  currentLine, answer: string;
+begin
+  currentLine := GetCurrentLine().Trim;
+  if currentLine.IsEmpty then Exit;
+  if not currentLine.StartsWith(RS_FAST_CODE_MARK) then
+  begin
+    log('Line must started with // comment');
+    Exit
+  end;
+  currentLine:= currentLine.Replace(RS_FAST_CODE_MARK, '', [rfReplaceAll]).Trim;
+  if currentLine.IsEmpty then Exit;
+
+  log('Find something about "'+currentLine+'"');
+  if not Assigned(fFastCodeConfiguration) then
+    fFastCodeConfiguration := TfFastCodeConfiguration.Create(nil);
+  answer := GetFastCodeSuggestion(currentLine);
+end;
+
 procedure CreateWebStructure_Proc(ASender: TObject);
 begin
   with TfWebStructure.Create(nil) do
@@ -241,7 +296,7 @@ end;
 procedure CreateIDEMenus;
 var
   cat: TIDECommandCategory;
-  key: TIDEShortCut;
+  key, copyPathKey, copyDirectoryKey: TIDEShortCut;
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
@@ -277,6 +332,9 @@ begin
     RS_JSON_TOOLS_MENU, nil, @JSONTools_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_RegexTester',
     RS_REGEX_TESTER_MENU, nil, @RegexTester_Proc, nil);
+  CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_FastCodeConfiguration',
+    RS_FAST_CODE_CONFIGURATION, nil, @FastCodeConfiguration_Proc, nil);
 
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_About', 'About',
@@ -299,10 +357,33 @@ begin
   icRevealInFinder := RegisterIDECommand(cat, rsRevealInFinder,
     rsRevealInFinder, key, nil, @RevealInFinder_Proc);
 
+  // copy file path
+  copyPathKey := IDEShortCut(VK_F,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  icCopyFilePath := RegisterIDECommand(cat, rsCopyFilePath,
+    rsCopyFilePath, copyPathKey, nil, @CopyFilePath_Proc);
+
+  // copy directory path
+  copyDirectoryKey := IDEShortCut(VK_D,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  icCopyDirectoryPath := RegisterIDECommand(cat, rsCopyDirectoryPath,
+    rsCopyDirectoryPath, copyDirectoryKey, nil, @CopyDirectoryPath_Proc);
+
   // add a menu item in the source editor
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
     rsRevealInFinder, nil, nil, icRevealInFinder, 'reveal_in_finder');
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'CopyFilePath',
+    rsCopyFilePath, nil, nil, icCopyFilePath, 'copy_file_path');
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'CopyDirectoryPath',
+    rsCopyDirectoryPath, nil, nil, icCopyDirectoryPath, 'copy_directory_path');
 
+  // FAST CODE ---
+  key := IDEShortCut(VK_O,[ssCtrl, ssAlt],VK_UNKNOWN,[]);
+  cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
+  icFastCode := RegisterIDECommand(cat, RS_FAST_CODE,
+    RS_FAST_CODE, key, nil, @FastCode_Proc);
+
+  // add a fast code menu item in the source editor
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'FastCode',
+    RS_FAST_CODE, nil, nil, icFastCode, 'fast_code');
 
 
 end;

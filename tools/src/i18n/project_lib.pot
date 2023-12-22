@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: project_lib.rs_project_description
+msgid "create web application based on FastPlaz"
+msgstr ""
+
+#: project_lib.rs_project_name
+msgid "Simple Application"
+msgstr ""
+
