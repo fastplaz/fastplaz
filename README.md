@@ -12,7 +12,7 @@ Tutorial lengkap tentang [FastPlaz](https://www.fastplaz.com) bisa dipelajari me
 
 ## Prerequisite
 
-* FPC / Free Pascal Compiler, version 3.2.0
+* FPC / Free Pascal Compiler, version 3.2.2
 * Lazarus (optional)
 
 

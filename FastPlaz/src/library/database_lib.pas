@@ -39,6 +39,7 @@ type
     FScriptWhere,
     FScriptLimit,
     FScriptOrderBy : string;
+    FUseSoftDelete: boolean;
 
     primaryKeyValue : string;
     FGenFields : TStringList;
@@ -82,6 +83,7 @@ type
     property EOF: boolean read GetEOF;
     property LastInsertID: LongInt read GetLastInsertID;
     property Message: string read AMessage;
+    property UseSoftDelete: boolean read FUseSoftDelete write FUseSoftDelete;
 
     function ParamByName(Const AParamName : String) : TParam;
     property SQL : TStringlist read getSQL;
@@ -112,6 +114,8 @@ type
     function  Save( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( Where:string='';AutoCommit:boolean=True):boolean;
     function  Delete( ID: LongInt): boolean;
+    function  SoftDelete( Where:string='';AutoCommit:boolean=True):boolean;
+    function  SoftDelete( ID: LongInt): boolean;
     function  Update( AutoCommit:boolean=True):boolean;
 
     procedure First;
@@ -904,6 +908,7 @@ begin
   {$else}
   FGenFields := nil;
   FieldValueMap := nil;
+  FUseSoftDelete := False;
   Data := TSQLQuery.Create(nil);
   Data.UniDirectional:=True;
   Data.DataBase := DB_Connector;
@@ -1261,6 +1266,11 @@ function TSimpleModel.Delete(Where: string; AutoCommit: boolean): boolean;
 var
   s : string;
 begin
+  if FUseSoftDelete then
+  begin
+    Result := SoftDelete(Where, AutoCommit);
+    Exit;
+  end;
   Result := false;
   if ((Where='') and (Data.Active)) then
   begin
@@ -1315,10 +1325,28 @@ end;
 
 function TSimpleModel.Delete(ID: LongInt): boolean;
 begin
+  if FUseSoftDelete then
+  begin
+    Result := SoftDelete(ID);
+    Exit;
+  end;
   Result := False;
   if primaryKey = '' then
     Exit;
   Result := Delete( primaryKey+'='+i2s(ID));
+end;
+
+function TSimpleModel.SoftDelete(Where: string; AutoCommit: boolean): boolean;
+begin
+  Result := False;
+end;
+
+function TSimpleModel.SoftDelete(ID: LongInt): boolean;
+begin
+  Result := False;
+  if primaryKey = '' then
+    Exit;
+  Result := SoftDelete( primaryKey+'='+i2s(ID));
 end;
 
 function TSimpleModel.Update(AutoCommit: boolean): boolean;
