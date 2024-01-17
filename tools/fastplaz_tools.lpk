@@ -9,6 +9,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
+        <IncludeFiles Value="$(Lazarusdir)\components\lazutils"/>
         <OtherUnitFiles Value="src;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
