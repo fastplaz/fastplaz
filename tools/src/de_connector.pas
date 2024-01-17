@@ -19,7 +19,7 @@ uses
   LCLProc, LCLType, LclIntf, Clipbrd, Forms, Controls, StdCtrls, Dialogs, ComCtrls,
   ActnList, XMLPropStorage, ExtCtrls, Buttons, Menus, IniPropStorage, SQLDB,
   // LazUtils
-  LazUTF8Classes, LazFileUtils, LazFileCache, LazLoggerBase,
+  //LazUTF8Classes, LazFileUtils, LazFileCache, LazLoggerBase,
   // Codetools
   //CodeCache, CodeToolManager, BasicCodeTools, FileProcs,
   // IDEIntf
@@ -259,8 +259,8 @@ var
 begin
   ConfigurationPath := GetUserDir + FDE_CONFIG_PATH;
   ConfigurationFileName := ConfigurationPath + DirectorySeparator + FDE_CONFIG_FILE_NAME;
-  if not DirectoryExistsUTF8(ConfigurationPath) then
-    CreateDirUTF8(ConfigurationPath);
+  if not DirectoryExists(ConfigurationPath) then
+    CreateDir(ConfigurationPath);
 
   PropStorage.IniFileName := ConfigurationPath + DirectorySeparator + 'property';
   restoreFormState;
@@ -270,7 +270,7 @@ begin
   Config.Formatted := True;
 
   // initial config
-  if not FileExistsUTF8(ConfigurationFileName) then
+  if not FileExists(ConfigurationFileName) then
   begin
     databaseAsData := GetJSON('[]');
     TJSONArray(databaseAsData).Add(
@@ -850,7 +850,7 @@ begin
     begin
       Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
       currentUpdateFile := Pkg.DirectoryExpanded + '..' + DirectorySeparator + LASTUPDATE_FILENAME;
-      if FileExistsUTF8(currentUpdateFile) then
+      if FileExists(currentUpdateFile) then
       begin
         lst := TStringList.Create;
         lst.LoadFromFile( currentUpdateFile);

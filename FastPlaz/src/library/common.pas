@@ -193,7 +193,13 @@ function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
 function MarkdownToHTML(const AContent: String): String;
 
-function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true): string;
+var
+  _fgcContent: RawByteString;
+  _fgcURL: String;
+  _fgcTimeout: integer;
+
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true; ATimeout: integer = 3000): string;
+function file_get_contents_and_wait(TargetURL: string; ATimeout: integer = 3000): string;
 function FileCopy(ASource, ATarget: string): boolean;
 procedure HttpClientGetSocketHandler(Sender: TObject;
   const UseSSL: Boolean; out AHandler: TSocketHandler);
@@ -1025,6 +1031,10 @@ begin
     lst.SaveToFile(AName);
     Result := True;
   except
+    on E: Exception do
+    begin
+      LogUtil.Add( E.Message + ': ' + AName, 'cache');
+    end;
   end;
   lst.Free;
 end;
@@ -1686,18 +1696,21 @@ begin
   Result := preg_replace(#10#10, #10, Result, True);
 end;
 
-function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean
-  ): string;
+function file_get_contents(TargetURL: string;
+  AShowErrorMessageAsResult: boolean; ATimeout: integer): string;
 var
   s: string;
 begin
   Result := '';
   with TFPHTTPClient.Create(nil) do
   begin
+    ConnectTimeout := ATimeout;
+    IOTimeout := ATimeout;
     try
       AddHeader('User-Agent','Mozilla/5.0 (compatible; fastplaz)');
       AllowRedirect := True;
       s := Get(TargetURL);
+      _fgcContent := s;
       Result := s;
     except
       on e: Exception do
@@ -1709,6 +1722,25 @@ begin
 
     Free;
   end;
+end;
+
+procedure _fgc();
+begin
+  _fgcContent:= file_get_contents(_fgcURL, true, _fgcTimeout);
+end;
+
+
+function file_get_contents_and_wait(TargetURL: string; ATimeout: integer
+  ): string;
+var
+  threadNumber: integer;
+begin
+  _fgcContent :='~~~';
+  _fgcURL := TargetURL;
+  _fgcTimeout := ATimeout;
+  threadNumber:= BeginThread(TThreadFunc(@_fgc));
+  WaitForThreadTerminate(threadNumber,ATimeout);
+  Result := _fgcContent;
 end;
 
 function FileCopy(ASource, ATarget: string): boolean;
