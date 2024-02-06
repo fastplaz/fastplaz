@@ -415,7 +415,9 @@ begin
 
   if AppData.baseUrl = '' then
   begin
-    AppData.baseUrl := 'http://' + GetEnvironmentVariable('SERVER_NAME') +
+    _ := GetEnvironmentVariable('HTTPS');
+    if _ = 'on' then _ := 'https://' else _ := 'http://';
+    AppData.baseUrl := _ + GetEnvironmentVariable('SERVER_NAME') +
       ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
   end;
 
