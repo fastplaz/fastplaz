@@ -587,6 +587,10 @@ begin
           begin
             item_array.add( Data.FieldByName(field_name).AsLargeInt);
           end
+          else if Data.FieldDefs.Items[j].DataType = ftFloat then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsFloat);
+          end
           else if Data.FieldDefs.Items[j].DataType = ftUnknown then
           begin
             try
@@ -623,6 +627,10 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftLargeint then
           begin
             item.Add(field_name, Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftFloat then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsFloat);
           end
           else if Data.FieldDefs.Items[j].DataType = ftUnknown then
           begin
