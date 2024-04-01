@@ -193,6 +193,12 @@ function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
 function MarkdownToHTML(const AContent: String): String;
 
+// base64 tools
+function StreamToBase64(AInputStream: TStream): string;
+function Base64ToStream(const ABase64:string; AOutStream: TStream; const AStrict: Boolean=false):Boolean;
+function Base64ToFile(const Base64, AFile: String): boolean;
+function FileToBase64(const AFile: String): string;
+
 var
   _fgcContent: RawByteString;
   _fgcURL: String;
@@ -411,6 +417,8 @@ begin
   Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'm', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'trilyun', '000000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 't', '000000000000', [rfReplaceAll]);
 end;
 
 function StringHumanToFloat(StrHuman: string): double;
@@ -1694,6 +1702,80 @@ begin
 
   Result := preg_replace(#13#10, #10, Result, True);
   Result := preg_replace(#10#10, #10, Result, True);
+end;
+
+function StreamToBase64(AInputStream: TStream): string;
+var
+  OutputStream: TStringStream;
+  Encoder: TBase64EncodingStream;
+begin
+  Result := '';
+
+  OutputStream := TStringStream.Create('');
+  Encoder := TBase64EncodingStream.Create(OutputStream);
+
+  try
+    Encoder.CopyFrom(AInputStream, AInputStream.Size);
+    Encoder.Flush;
+
+    Result := OutputStream.DataString;
+  finally
+    Encoder.Free;
+    OutputStream.Free;
+  end;
+end;
+
+function Base64ToStream(const ABase64: string; AOutStream: TStream;
+  const AStrict: Boolean): Boolean;
+var
+  InStream: TStringStream;
+  Decoder: TBase64DecodingStream;
+begin
+  Result := False;
+  InStream := TStringStream.Create(ABase64);
+  try
+    if AStrict then
+      Decoder := TBase64DecodingStream.Create(InStream, bdmStrict)
+    else
+      Decoder := TBase64DecodingStream.Create(InStream, bdmMIME);
+    try
+       AOutStream.CopyFrom(Decoder, Decoder.Size);
+       Result := True;
+    finally
+      Decoder.Free;
+    end;
+  finally
+    InStream.Free;
+  end;
+end;
+
+function Base64ToFile(const Base64, AFile: String): boolean;
+var
+  OutStream: TFileStream;
+begin
+  Result := False;
+  OutStream := TFileStream.Create(AFile, fmCreate or fmShareExclusive);
+  try
+     Base64ToStream(Base64, OutStream);
+     Result := True;
+  finally
+    Outstream.Free;
+  end;
+end;
+
+function FileToBase64(const AFile: String): string;
+var
+  InputStream: TFileStream;
+begin
+  if not FileExists(AFile) then
+    Exit('');
+
+  InputStream := TFileStream.Create(AFile, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := StreamToBase64(InputStream);
+  finally
+    InputStream.Free;
+  end;
 end;
 
 function file_get_contents(TargetURL: string;

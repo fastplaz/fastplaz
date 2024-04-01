@@ -23,6 +23,7 @@ type
 
   TSimpleModel = class
   private
+    FDebug: boolean;
     FFieldPrefix: string;
     FFieldQuote: string;
     FRecordCountFromArray: Integer;
@@ -138,6 +139,8 @@ type
     function OrderBy( FieldNames:string): TSimpleModel;
     function Limit( LimitNumber:integer; Offset:integer=0): TSimpleModel;
     function Open( AUniDirectional:Boolean = False): Boolean;
+  published
+    property Debug: boolean read FDebug write FDebug;
   end;
 
 function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
@@ -866,6 +869,7 @@ var
   i : integer;
   s : string;
 begin
+  FDebug := False;
   FScriptFieldNames := '';
   FScriptWhere := '';
   FScriptLimit := '';
@@ -1075,6 +1079,7 @@ begin
   if Data.Active then
     Data.Close;
   Data.UniDirectional:=False;
+  if Debug then LogUtil.Add(Data.SQL.Text, 'DB-' + FTableName);
   Result := _queryOpen;
   Data.Last;
   Data.First;
