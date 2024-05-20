@@ -222,7 +222,7 @@ type
 implementation
 
 const
-  _GRAPH_VERSION = 'v17.0';
+  _GRAPH_VERSION = 'v19.0';
   _FACEBOOK_MSG_MAXLENGTH = 635;
   _FACEBOOK_MSG_SHARE_LOCATION = 'Share lokasi Anda:';
   _FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/'+_GRAPH_VERSION+'/';
