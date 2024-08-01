@@ -112,6 +112,7 @@ function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
+function RemoveCharactersBefore(AText, AChar: string): string;
 function WordExists( ASubstring, AFullString:string):boolean;
 function RemoveEmoji( const AText: string; const AReplaceWith: string = ''): string;
 function RemoveUnicode( const AText: string; AReplaceWith: string = ''): string;
@@ -491,6 +492,17 @@ function StringsExists(ASubstring, AFullString: string): boolean;
 begin
   ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
   Result := preg_match( '('+ASubstring+')', AFullString);
+end;
+
+function RemoveCharactersBefore(AText, AChar: string): string;
+var
+  commaPos: integer;
+  s, newText: string;
+begin
+  Result := AText;
+  commaPos := Pos(AChar, AText);
+  if commaPos > 0 then
+    Result := Copy(AText, commaPos + 1, Length(AText) - commaPos);
 end;
 
 function WordExists(ASubstring, AFullString: string): boolean;
