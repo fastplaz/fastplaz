@@ -27,6 +27,7 @@ type
     function UrlEncode: AnsiString; overload; inline;
     function UrlDecode: AnsiString; overload; inline;
     function EscapeString: AnsiString; overload; inline;
+    function SafeText: AnsiString; overload; inline;
     function RemoveSlash: AnsiString; overload; inline;
     function RemoveEmoji(const AReplaceWith: string = ''): string; overload; inline;
     function RemoveUnicode(const AReplaceWith: string = ''): string; overload; inline;
@@ -93,6 +94,11 @@ end;
 function TStringSmartHelper.EscapeString: AnsiString;
 begin
   Result := mysql_real_escape_string(Self);
+end;
+
+function TStringSmartHelper.SafeText: AnsiString;
+begin
+  Self := common.SafeText(Self);
 end;
 
 function TStringSmartHelper.RemoveSlash: AnsiString;
