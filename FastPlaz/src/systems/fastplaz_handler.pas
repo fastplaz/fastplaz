@@ -84,6 +84,7 @@ type
     hitStorage: string;
     databaseRead,
     databaseWrite: string;
+    databaseVersionCheck,
     databaseActive,
     useDatabase,
     initialized,

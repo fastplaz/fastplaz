@@ -56,7 +56,6 @@ type
     function Split( ADelimiter: string = ','): TStrings; overload; inline;
     function StrPos( AText: string): integer; overload; inline;
     function Quoted( AQuote: char = ''''): string; overload; inline;
-
   end;
 
 implementation

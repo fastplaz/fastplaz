@@ -19,6 +19,11 @@ type
   generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
   TFieldValueMap = specialize TStringHashMap<variant>;
 
+  TFPSQLConnector = class(TSQLConnector)
+  public
+    property Proxy;
+  end;
+
   { TSimpleModel }
 
   TSimpleModel = class
@@ -185,6 +190,7 @@ begin
   AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
   AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
   AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
+  AppData.databaseVersionCheck := Config.GetValue( UnicodeString( format( _DATABASE_VERSION_CHECK, [AppData.databaseRead])), True);
 
   if not DBConfigName.IsEmpty then
   begin
@@ -243,6 +249,18 @@ begin
     s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [AppData.databaseRead])), ''));
     if s <> '' then
       DB_Connector.CharSet := s;
+
+    // Skip Library Version Check from MySQL
+    if not AppData.databaseVersionCheck then
+    begin
+      if TFPSQLConnector(DB_Connector).Proxy is TConnectionName then
+      begin
+        if DB_Connector.ConnectorType.ToLower.StartsWith('mysql') then
+        begin
+          TConnectionName(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
+        end;
+      end;
+    end;
 
     try
       DB_Connector.Open;
