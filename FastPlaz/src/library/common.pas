@@ -56,6 +56,7 @@ const
   _DATABASE_DATABASENAME = 'database/%s/database_name';
   _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
   _DATABASE_LIBRARY = 'database/%s/library';
+  _DATABASE_VERSION_CHECK = 'database/%s/version_check';
 
   _MAIL_MAILSERVER = 'mailer/%s/hostname';
   _MAIL_USERNAME = 'mailer/%s/username';

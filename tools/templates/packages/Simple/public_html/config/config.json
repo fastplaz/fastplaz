@@ -18,7 +18,7 @@
   },
   "database" : {
     "default" : {
-      "driver" : "MySQL 5.7",
+      "driver" : "MySQL 8.0",
       "hostname" : "localhost",
       "port" : "",
       "username" : "your_username",
@@ -26,6 +26,7 @@
       "database_name" : "the_database_name",
       "charset" : "",
       "prefix" : "",
+      "version_check": false,
       "library" : ""
     }
   },
