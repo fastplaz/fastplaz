@@ -253,11 +253,20 @@ begin
     // Skip Library Version Check from MySQL
     if not AppData.databaseVersionCheck then
     begin
-      if TFPSQLConnector(DB_Connector).Proxy is TConnectionName then
+      if DB_Connector.ConnectorType.ToLower.StartsWith('mysql') then
       begin
-        if DB_Connector.ConnectorType.ToLower.StartsWith('mysql') then
+        if TFPSQLConnector(DB_Connector).Proxy is TConnectionName then
         begin
           TConnectionName(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
+        end
+        else
+        begin
+          // specific by mysql version
+          if TFPSQLConnector(DB_Connector).Proxy is TMySQL57Connection then
+            TMySQL57Connection(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
+
+          // prepare for another mysql version
+
         end;
       end;
     end;
