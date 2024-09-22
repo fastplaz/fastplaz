@@ -1874,7 +1874,7 @@ begin
       begin
         ReplaceText := BaseURL + ReplaceText;
         ReplaceText := StringReplace( ReplaceText, '//', '/', [rfReplaceAll]);
-        ReplaceText := StringReplace( ReplaceText, 'http:/', 'http://', [rfReplaceAll]);
+        ReplaceText := StringReplace( ReplaceText, 'https:/', 'https://', [rfReplaceAll]);
       end;
     end;
     '$theme'  : begin
