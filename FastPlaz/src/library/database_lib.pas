@@ -874,7 +874,7 @@ begin
       Result := Data.FieldByName( FFieldPrefix + FieldName).AsVariant;
   except
     on E: Exception do begin
-      die( 'getFieldValue: ' + e.Message);
+      die( 'getFieldValue ['+FieldName+']: ' + e.Message);
     end;
   end;
 end;
