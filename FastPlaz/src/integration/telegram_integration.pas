@@ -153,6 +153,8 @@ type
     function getIsBot: boolean;
     function getIsCallbackQuery: boolean;
     function getIsDocument: boolean;
+    function getIsForward: boolean;
+    function getIsForwardFromDeletedAccount: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -307,6 +309,8 @@ type
     property IsSticker: boolean read getIsSticker;
     property IsPicture: boolean read getIsPicture;
     property IsDocument: boolean read getIsDocument;
+    property IsForward: boolean read getIsForward;
+    property IsForwardFromDeletedAccount: boolean read getIsForwardFromDeletedAccount;
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -622,6 +626,29 @@ begin
     FFileName := jsonData.GetPath('message.document.file_name').AsString;
     //mime_type
     Result := True;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getIsForward: boolean;
+begin
+  Result := False;
+  try
+    jsonData.GetPath('message.forward_origin').AsJSON;
+    Result := True;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getIsForwardFromDeletedAccount: boolean;
+var
+  originSenderName: string;
+begin
+  Result := False;
+  try
+    originSenderName := jsonData.GetPath('message.forward_origin.sender_user_name').AsString;
+    if originSenderName = 'Deleted Account' then
+      Result := True;
   except
   end;
 end;
