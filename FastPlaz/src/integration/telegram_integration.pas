@@ -1845,6 +1845,7 @@ end;
 function TTelegramIntegration.GroupMemberCount(AGroupID: string): integer;
 var
   s, urlTarget: string;
+  jsonMember: TJSONData;
 begin
   Result := 0;
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT + AGroupID;
@@ -1865,8 +1866,9 @@ begin
   if FResultCode <> 200 then
     Exit;
 
-  jsonData := GetJSON(FResultText, False);
-  s := jsonGetData(jsonData, 'result');
+  jsonMember := GetJSON(FResultText, False);
+  s := jsonGetData(jsonMember, 'result');
+  jsonMember.Free;
   Result := s2i(s);
 end;
 
