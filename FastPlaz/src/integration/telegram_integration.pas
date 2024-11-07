@@ -117,6 +117,9 @@ type
     FCallbackInstance: string;
     FDebug: boolean;
     FFileName: string;
+    FForwardStoryFirstName:string;
+    FForwardStoryID:string;
+    FForwardStoryUserName:string;
     FImageID: string;
     FImagePath: string;
     FImageURL: string;
@@ -155,6 +158,7 @@ type
     function getIsDocument: boolean;
     function getIsForward: boolean;
     function getIsForwardFromDeletedAccount: boolean;
+    function getIsForwardFromStory: boolean;
     function getIsGroup: boolean;
     function getIsInvitation: boolean;
     function getIsLocation: boolean;
@@ -311,6 +315,12 @@ type
     property IsDocument: boolean read getIsDocument;
     property IsForward: boolean read getIsForward;
     property IsForwardFromDeletedAccount: boolean read getIsForwardFromDeletedAccount;
+    property IsForwardFromStory: boolean read getIsForwardFromStory;
+
+    property ForwardStoryID: string read FForwardStoryID;
+    property ForwardStoryFirstName: string read FForwardStoryFirstName;
+    property ForwardStoryUsername: string read FForwardStoryUserName;
+
     property VoiceDuration: integer read FVoiceDuration;
     property VoiceType: string read FVoiceType;
     property VoiceID: string read FVoiceID;
@@ -649,6 +659,18 @@ begin
     originSenderName := jsonData.GetPath('message.forward_origin.sender_user_name').AsString;
     if originSenderName = 'Deleted Account' then
       Result := True;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getIsForwardFromStory:boolean;
+begin
+  Result := false;
+  try
+    FForwardStoryID := jsonData.GetPath('message.story.chat.id').AsString;
+    FForwardStoryFirstName := jsonData.GetPath('message.story.chat.first_name').AsString;
+    FForwardStoryUserName := jsonData.GetPath('message.story.chat.username').AsString;
+    Result := True;
   except
   end;
 end;
