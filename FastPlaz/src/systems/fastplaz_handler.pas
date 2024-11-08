@@ -71,6 +71,7 @@ type
     admin_email,
     language,
     tempDir: string;
+    logDir: string;
     themeEnable: boolean;
     theme: string;
     cacheType: string;
@@ -412,6 +413,7 @@ begin
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.logDir := AppData.tempDir + DirectorySeparator + 'logs' + DirectorySeparator;
   AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
 
   if AppData.baseUrl = '' then
