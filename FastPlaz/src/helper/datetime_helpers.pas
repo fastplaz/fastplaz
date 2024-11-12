@@ -34,6 +34,7 @@ type
     function Format( AFormat: String = 'yyyy-mm-dd HH:nn:ss'): String; overload; inline;
     function HumanReadable: String; overload; inline;
     function FromString( ADateTimeString: String; AFormat: String = 'yyyy-mm-dd HH:nn:ss'): TDateTime; overload; inline;
+    function FromUnixTime( AUnixTime: Int64): TDateTime; overload; inline;
 
     function DayOfWeek: Word; overload; inline;
     function YearOf: Word; overload; inline;
@@ -107,6 +108,12 @@ begin
     Self := StrToDateTime( ADateTimeString, FS);
   except
   end;
+  Result := Self;
+end;
+
+function TDateTimeSmartHelper.FromUnixTime(AUnixTime:Int64):TDateTime;
+begin
+  Self := UnixToDateTime(AUnixTime);
   Result := Self;
 end;
 
