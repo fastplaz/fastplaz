@@ -209,7 +209,7 @@ type
     function EditMessage(const AChatID: string; AMessageID: string;
       AText: string; AData: TJSONUtil): boolean;
     function DeleteMessage(const AChatID: string; AMessageID: string): boolean;
-    function SendAudio(const ChatID: string = '0'; const AAudioURL: string = '';
+    function SendAudio(const ChatID: string = '0'; const AAudioPath: string = '';
       const ACaption: string = ''; const ReplyToMessageID: string = ''; const AThreadId: string = ''): boolean;
     function SendPhoto(const ChatID: string; const FileName: string;
       const Caption: string = ''; const ReplyToMessageID: integer = 0): boolean;
@@ -350,7 +350,8 @@ const
   TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%s&caption=%s&parse_mode=%s';
-  TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
+  //TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
+  TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio';
   TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
   //https://api.telegram.org/bot307478661:AAF9DGtgoASYsVF6KwHm7qhimXq8cHGIxTk/sendVenue?chat_id=2222647&latitude=-6.228018&longitude=106.82453&title=suatu%20tempat&address=alamatnya
   TELEGRAM_COMMAND_SENDVENUE = 'sendVenue?chat_id=%s&title=%s&address=%s&latitude=%f&longitude=%f&parse_mode=%s';
@@ -1342,9 +1343,9 @@ begin
   Result := FIsSuccessfull;
 end;
 
-function TTelegramIntegration.SendAudio(const ChatID: string;
-  const AAudioURL: string; const ACaption: string;
-  const ReplyToMessageID: string; const AThreadId: string): boolean;
+function TTelegramIntegration.SendAudio(const ChatID:string;const AAudioPath:
+  string;const ACaption:string;const ReplyToMessageID:string;const AThreadId:
+  string):boolean;
 var
   urlTarget: string;
   json: TJSONUtil;
@@ -1354,11 +1355,13 @@ begin
   FResultCode := 0;
   FResultText := '';
   FIsSuccessfull := False;
-  if (ChatID = '') or (AAudioURL = '') then
+  if (ChatID = '') or (AAudioPath = '') then
     Exit;
 
+  if not FileExists(AAudioPath) then Exit;
+
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDAUDIO,
-    [ChatID, ACaption, AAudioURL]);
+    [ChatID, ACaption, AAudioPath]);
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
 
@@ -1375,16 +1378,19 @@ begin
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
-      Response := Get;
+      FormData[ 'chat_id'] := ChatID;
+      FormData[ 'caption'] := ACaption;
+      AddFile( AAudioPath, 'audio');
+      Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
 
       json := TJSONUtil.Create;
       json.LoadFromJsonString(FResultText, False);
-      errorCode := json['error_code'];
+      errorCode := s2i(json['error_code']);
       json.Free;
 
-      if errorCode <> 200 then
+      if errorCode <> 0 then
       begin
         LogUtil.Add(urlTarget, 'TAUDIO');
       end;
