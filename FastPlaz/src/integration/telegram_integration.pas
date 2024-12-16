@@ -151,6 +151,8 @@ type
     function getChatID: string;
     function getChatType: string;
     function getFullName: string;
+    function getStoryChatId:string;
+    function getStoryChatUsername:string;
     function getGroupName: string;
     function getImageCaption: string;
     function getIsBot: boolean;
@@ -274,6 +276,8 @@ type
     property LeftUserID: string read getLeftUserID;
     property UserName: string read getUserName;
     property FullName: string read getFullName;
+    property StoryChatId: string read getStoryChatId;
+    property StoryChatUsername: string read getStoryChatUsername;
     property GroupName: string read getGroupName;
     property AdminListAsJson: TJSONData read FAdminListAsJson;
     property AdminListAsString: string read FAdminListAsString;
@@ -574,6 +578,25 @@ begin
     end;
   end;
   Result := ReplaceAll(Result,['.','-','_',',','|','*'],'').Replace('  ',' ').Trim;
+end;
+
+function TTelegramIntegration.getStoryChatId:string;
+begin
+  Result := '';
+  try
+    Result := jsonGetData(jsonData, 'message/story/chat/id');
+    Result := Result.Trim;
+  except
+  end;
+end;
+
+function TTelegramIntegration.getStoryChatUsername:string;
+begin
+  Result := '';
+  try
+    Result := jsonGetData(jsonData, 'message/story/chat/username');
+  except
+  end;
 end;
 
 function TTelegramIntegration.getGroupName: string;
