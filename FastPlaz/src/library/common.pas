@@ -1828,7 +1828,7 @@ end;
 function file_get_contents_and_wait(TargetURL: string; ATimeout: integer
   ): string;
 var
-  threadNumber: integer;
+  threadNumber: TThreadID;
 begin
   _fgcContent :='~~~';
   _fgcURL := TargetURL;
