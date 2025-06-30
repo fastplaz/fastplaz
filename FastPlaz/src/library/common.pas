@@ -231,8 +231,11 @@ function isVowelExists(AText: string): boolean;
 function Exec(const AExeName: string; const AParameter: array of string;
   var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
 function FastInfo(): string;
-procedure SetEnv(const Key, Value: string);
 procedure LoadDotEnv;
+procedure _SetEnv(const Key, Value: string);
+{$IFDEF UNIX}{$IF NOT DECLARED(setenv)}
+function setenv(const name, value: PChar; overwrite: cint): cint; cdecl; external 'c' name 'setenv';
+{$ENDIF}{$ENDIF}
 
 implementation
 
@@ -2078,16 +2081,14 @@ begin
   lst.Free;
 end;
 
-procedure SetEnv(const Key, Value: string);
+procedure _SetEnv(const Key, Value: string);
 begin
   {$IFDEF UNIX}
-    // Linux/macOS menggunakan fungsi POSIX
-    FpSetEnv(PChar(Key + '=' + Value));
+  setenv(PChar(Key), PChar(Value), 1);
   {$ENDIF}
 
   {$IFDEF MSWINDOWS}
-    // Windows menggunakan WinAPI
-    SetEnvironmentVariable(PChar(Key), PChar(Value));
+  SetEnvironmentVariable(PChar(Key), PChar(Value));
   {$ENDIF}
 end;
 
@@ -2113,7 +2114,7 @@ begin
       begin
         Key := Trim(Copy(Line, 1, EqualPos - 1));
         Value := Trim(Copy(Line, EqualPos + 1, Length(Line)));
-        SetEnv(Key, Value);
+        _SetEnv(Key, Value);
       end;
     end;
   finally
