@@ -98,6 +98,7 @@ type
     function All(const AUniDirectional: boolean = false):boolean;
     function GetAll( Limit: Integer = 0; Offset: Integer = 0; const AUniDirectional: boolean = false):boolean;
     function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
+    procedure FieldToJSON(const A: TJSONArray; const FieldName: string; const DefaultJSON: string = '{}');
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
@@ -1003,6 +1004,49 @@ begin
   if not Data.Active then Exit;
   DataToJSON(Data, Result, NoFieldName);
   FRecordCountFromArray := Result.Count;
+end;
+
+// USAGE:
+//   FieldToJSON(toolsAsArray, 'parameters', '{}'); // atau '[]' jika kamu mau default array
+procedure TSimpleModel.FieldToJSON(const A: TJSONArray;
+  const FieldName: string; const DefaultJSON: string);
+var
+  i: Integer;
+  Obj: TJSONObject;
+  _Data: TJSONData;
+  AsStr: String;
+  Parsed: TJSONData;
+begin
+  if (A = nil) or (FieldName = '') then Exit;
+
+  for i := 0 to A.Count - 1 do
+  begin
+    if not (A.Items[i] is TJSONObject) then
+      Continue;
+
+    Obj := TJSONObject(A.Items[i]);
+
+    // cari field; kalau tidak ada, tambahkan default
+    _Data := Obj.Find(FieldName);
+    if _Data = nil then
+    begin
+      Parsed := GetJSON(DefaultJSON, False);
+      Obj.Add(FieldName, Parsed);
+      Continue;
+    end;
+
+    // kalau data sudah berupa JSON object/array/primitive non-string,
+    // biarkan saja (hindari double-parse). Umumnya dari DB masih string.
+    if _Data.JSONType <> jtString then
+      Continue;
+
+    // ambil string lalu hapus field lama, ganti dengan hasil parse
+    AsStr := _Data.AsString;
+    Obj.Delete(FieldName); // Delete juga akan membebaskan Data lama
+
+    Parsed := ParseJSONOrDefault(AsStr, DefaultJSON);
+    Obj.Add(FieldName, Parsed);
+  end;
 end;
 
 function TSimpleModel.Find(const KeyIndex: integer): boolean;
