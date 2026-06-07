@@ -263,7 +263,9 @@ begin
         else
         begin
           // specific by mysql version
-          if TFPSQLConnector(DB_Connector).Proxy is TMySQL57Connection then
+          if TFPSQLConnector(DB_Connector).Proxy is TMySQL80Connection then
+            TMySQL80Connection(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True
+          else if TFPSQLConnector(DB_Connector).Proxy is TMySQL57Connection then
             TMySQL57Connection(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
 
           // prepare for another mysql version
