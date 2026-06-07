@@ -151,11 +151,13 @@ function DownloadFile(const AURL: String;  const AFilePath: String; AUserAgent: 
 function LoadFromFile(const AFileName: string): string;
 function SaveToFile(const AFileName: string; const AContent: string): boolean;
 
+function IsNullish(const S: string): Boolean;
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
 function jsonGetString(J: TJsonData; index: string): string;
 function JsonFormatter(JsonString: string; Const UseUTF8 : Boolean = True): string;
 function IsJsonValid(JsonString: string): boolean;
+function ParseJSONOrDefault(const Raw, DefaultJSON: string): TJSONData;
 function HexToInt(HexStr: string): int64;
 
 function WordNumber( s:string): integer;
@@ -1288,6 +1290,17 @@ begin
   Result := True;
 end;
 
+function IsNullish(const S: string): Boolean;
+begin
+  // menangani variasi nilai "kosong" dari DB: null, (null), undefined, '', spasi, dll
+  Result :=
+    (Trim(S) = '') or
+    SameText(Trim(S), 'null') or
+    SameText(Trim(S), '(null)') or
+    SameText(Trim(S), 'undefined') or
+    SameText(Trim(S), 'nil');
+end;
+
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
 var
   I: integer;
@@ -1398,6 +1411,26 @@ begin
     Result := False
   else
     Result := True;
+end;
+
+function ParseJSONOrDefault(const Raw, DefaultJSON: string): TJSONData;
+var
+  Source: string;
+begin
+  Source := Raw;
+  if IsNullish(Source) then
+    Source := DefaultJSON;
+  // kalau string kosong, tetap fallback ke default
+  if Trim(Source) = '' then
+    Source := DefaultJSON;
+
+  try
+    // GetJSON akan mengembalikan TJSONData (object/array/primitive)
+    Result := GetJSON(Source, False);
+  except
+    // jika JSON invalid, jatuhkan ke default
+    Result := GetJSON(DefaultJSON, False);
+  end;
 end;
 
 function HexToInt(HexStr: string): int64;

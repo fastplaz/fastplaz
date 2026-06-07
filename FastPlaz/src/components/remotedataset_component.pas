@@ -6,7 +6,7 @@ interface
 
 uses
   {$IFDEF UNIX}
-  cthreads
+  cthreads,
   {$ENDIF}
   Dialogs, fpjson, fpjsondataset, jsonparser,
   fphttpclient, http_lib, json_lib,
