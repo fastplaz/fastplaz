@@ -705,7 +705,10 @@ begin
   Result := 0;
   try
     if Data.Active then Data.Close;
-    Data.SQL.Text := 'SELECT LAST_INSERT_ID() as lastid FROM ' + TableName;
+    if (SameText(Config['database/default/driver'], 'postgresql')) then
+      Data.SQL.Text := 'SELECT lastval() AS lastid'
+    else
+      Data.SQL.Text := 'SELECT LAST_INSERT_ID() as lastid FROM ' + TableName;
     Data.Open;
     if Data.RecordCount > 0 then
       Result := Data.FieldValues['lastid'];
