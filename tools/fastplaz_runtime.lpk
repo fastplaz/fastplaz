@@ -210,7 +210,7 @@
         <Filename Value="src/fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
-      </Item45>
+      </Item46>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>
