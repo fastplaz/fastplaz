@@ -29,6 +29,19 @@ const
   _SESSION_SQL_UPDATE =
     'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", UNIX_TIMESTAMP(now()), %d, %d, "%s");';
 
+  _SESSION_SQL_UPDATE_PG =
+    'INSERT INTO session_info '+
+    '(sessid, ipaddr, lastused, uid, remember, vars) '+
+    'VALUES ('+
+    ' ''%s'', ''%s'', CAST(EXTRACT(EPOCH FROM now()) AS BIGINT), %d, %d, ''%s'' '+
+    ') '+
+    'ON CONFLICT (sessid) DO UPDATE SET '+
+    ' ipaddr = EXCLUDED.ipaddr,'+
+    ' lastused = EXCLUDED.lastused,'+
+    ' uid = EXCLUDED.uid,'+
+    ' remember = EXCLUDED.remember,'+
+    ' vars = EXCLUDED.vars;';
+
 type
 
   { TSessionController }
@@ -107,7 +120,7 @@ type
 
 implementation
 
-uses logutil_lib, common, session_model;
+uses logutil_lib, common, session_model, fastplaz_handler;
 
 //uses common; --- failed jk memasukkan common ke unit ini
 
@@ -330,8 +343,15 @@ begin
   if remoteAddr.IsEmpty then
     remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
   uid := s2i(FSessionVars.Values[SESSION_FIELD_UID]);
-  sql := Format(_SESSION_SQL_UPDATE, [FSessionID, remoteAddr,
+  if (SameText(Config['database/default/driver'], 'postgresql')) then
+  begin
+    sql := Format(_SESSION_SQL_UPDATE_PG, [FSessionID, remoteAddr,
     uid, 0, c(FSessionVars.Text)]);
+  end else
+  begin
+    sql := Format(_SESSION_SQL_UPDATE, [FSessionID, remoteAddr,
+    uid, 0, c(FSessionVars.Text)]);
+  end;
   Result := SessionTable.Exec(sql);
 end;
 
