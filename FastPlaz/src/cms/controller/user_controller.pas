@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util, user_model,
+  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, appstate_util, html_lib, user_util, user_model,
   database_lib, security_util, language_lib, mailer_lib;
 
 const

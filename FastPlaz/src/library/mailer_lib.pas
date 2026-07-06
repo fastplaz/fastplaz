@@ -71,7 +71,7 @@ type
 
 implementation
 
-uses fastplaz_handler, common, config_lib;
+uses appstate_util, common, config_lib;
 
 { TMailer }
 

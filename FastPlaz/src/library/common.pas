@@ -15,7 +15,7 @@ uses
   zipper, strutils, dateutils, base64,
   {$IFDEF UNIX}BaseUnix,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  Classes, SysUtils, fastplaz_handler, config_lib, array_helpers;
+  Classes, SysUtils, fastplaz_handler, appstate_util, config_lib, array_helpers;
 
 const
   _APP = 'FastPlaz';

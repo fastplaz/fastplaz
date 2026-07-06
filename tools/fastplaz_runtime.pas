@@ -8,7 +8,7 @@ unit fastplaz_runtime;
 interface
 
 uses
-  about_controller, array_helpers, datetime_helpers, integer_helpers, 
+  about_controller, appstate_util, array_helpers, datetime_helpers, integer_helpers,
   json_helpers, string_helpers, common, config_lib, database_lib, 
   datetime_lib, html_lib, http_lib, image_lib, json_lib, language_lib, 
   logutil_lib, mailer_lib, math_lib, nlp_lib, recaptcha_lib, regexpr_lib, 
