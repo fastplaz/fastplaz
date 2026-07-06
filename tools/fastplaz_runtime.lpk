@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Minor="24" Release="11" Build="14"/>
-    <Files Count="46">
+    <Files Count="45">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -203,14 +203,10 @@
         <UnitName Value="modvar_util"/>
       </Item44>
       <Item45>
-        <Filename Value="../FastPlaz/src/util/appstate_util.pas"/>
-        <UnitName Value="appstate_util"/>
-      </Item45>
-      <Item46>
         <Filename Value="src/fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
-      </Item46>
+      </Item45>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

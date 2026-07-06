@@ -15,7 +15,7 @@ uses
   zipper, strutils, dateutils, base64,
   {$IFDEF UNIX}BaseUnix,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  Classes, SysUtils, fastplaz_handler, appstate_util, config_lib, array_helpers;
+  Classes, SysUtils, fastplaz_handler, config_lib, array_helpers;
 
 const
   _APP = 'FastPlaz';
@@ -94,6 +94,40 @@ type
     FScanner: TJSONScanner;
   public
     property Scanner: TJSONScanner read FScanner;
+  end;
+
+  { TMainData }
+
+  TMainData = record
+    module, modtype, func: string;
+    sitename,
+    slogan,
+    baseUrl,
+    admin_email,
+    language,
+    tempDir: string;
+    logDir: string;
+    themeEnable: boolean;
+    theme: string;
+    cacheType: string;
+    cacheWrite: boolean;
+    cacheTime: integer;
+    tablePrefix: string;
+    sessionAutoStart: boolean;
+    SessionID: string;
+    SessionDir: string;
+    SessionStorage: integer;
+    hitStorage: string;
+    databaseRead,
+    databaseWrite: string;
+    databaseVersionCheck,
+    databaseActive,
+    useDatabase,
+    initialized,
+    debug: boolean;
+    debugLevel: integer;
+    isReady: boolean;
+    cookiePath: string;
   end;
 
 
@@ -185,6 +219,10 @@ procedure Die(const Number: integer; ACode: integer = 200); overload;
 procedure Die(const Message: TStringList; ACode: integer = 200); overload;
 procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer = 0);
 
+procedure DisplayError(const Message: string; const Layout: string = 'error');
+procedure Redirect(const URL: string; const FlashMessage: string = '';
+  AStatusCode: Integer = 302);
+
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function isURL( const AURL: string): boolean;
@@ -206,6 +244,14 @@ function Base64ToFile(const Base64, AFile: String): boolean;
 function FileToBase64(const AFile: String): string;
 
 var
+  AppData: TMainData;
+  Config: TMyConfig;
+  _DebugInfo: TStringList;
+
+  DisplayErrorHandler: procedure(const Message: string; const Layout: string);
+  RedirectHandler: procedure(const URL: string; const FlashMessage: string;
+    AStatusCode: Integer);
+
   _fgcContent: RawByteString;
   _fgcURL: String;
   _fgcTimeout: integer;
@@ -861,6 +907,19 @@ begin
     die(s, 200)
   else
     die(s, AForceCode);
+end;
+
+procedure DisplayError(const Message: string; const Layout: string);
+begin
+  if Assigned(DisplayErrorHandler) then
+    DisplayErrorHandler(Message, Layout);
+end;
+
+procedure Redirect(const URL: string; const FlashMessage: string;
+  AStatusCode: Integer);
+begin
+  if Assigned(RedirectHandler) then
+    RedirectHandler(URL, FlashMessage, AStatusCode);
 end;
 
 function WordNumber(s: string): integer;
@@ -2159,12 +2218,15 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
+  AppData.isReady := False;
   AppData.debug := True;
+  _DebugInfo := TStringList.Create;
   Config := TMyConfig.Create(nil);
   Config.ValidateFile('config/config.json');
 
 
 finalization
+  FreeAndNil(_DebugInfo);
   FreeAndNil(Config);
 
 end.

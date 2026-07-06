@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   regexpr_lib,
   sqldb, gettext, session_controller, module_controller,
-  config_lib, appstate_util,
+  config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   fpcgi, httpdefs, fpHTTP, fpWeb,
   //webutil,

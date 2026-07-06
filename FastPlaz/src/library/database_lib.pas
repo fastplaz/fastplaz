@@ -164,7 +164,7 @@ var
 
 implementation
 
-uses common, config_lib, appstate_util, logutil_lib;
+uses common, config_lib, logutil_lib;
 
 var
   DB_Connector : TSQLConnector;

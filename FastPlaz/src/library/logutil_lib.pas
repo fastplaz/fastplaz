@@ -36,7 +36,7 @@ var
 
 implementation
 
-uses config_lib, appstate_util;
+uses config_lib;
 
 
 { TLogUtil }

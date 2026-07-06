@@ -18,7 +18,7 @@ uses
   fpWeb,
   fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   regexpr_lib, db, sqldb,
-  common, fastplaz_handler, appstate_util, database_lib, datetime_lib, modvar_util, json_lib,
+  common, fastplaz_handler, database_lib, datetime_lib, modvar_util, json_lib,
   Classes, SysUtils;
 
 const

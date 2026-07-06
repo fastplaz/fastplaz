@@ -31,7 +31,7 @@ uses
   {$IFNDEF Windows}
   cthreads,
   {$ENDIF}
-  fpcgi, redis_lib, fastplaz_handler, appstate_util, common, Classes, SysUtils;
+  fpcgi, redis_lib, fastplaz_handler, common, Classes, SysUtils;
 
 const
   _REDIS_CONFIG_SERVERADDRESS = 'redis/%s/server';

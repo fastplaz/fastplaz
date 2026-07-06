@@ -41,7 +41,7 @@ type
 
 implementation
 
-uses theme_controller, common, config_lib, appstate_util;
+uses theme_controller, common, config_lib;
 
 function JsonBeautifier(const str: string): string;
 var

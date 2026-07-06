@@ -71,7 +71,7 @@ type
 
 implementation
 
-uses appstate_util, common, config_lib;
+uses common, config_lib;
 
 { TMailer }
 
