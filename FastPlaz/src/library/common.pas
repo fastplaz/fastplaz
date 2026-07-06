@@ -13,6 +13,8 @@ uses
   //netdb,
   resolve,
   zipper, strutils, dateutils, base64,
+  {$IFDEF UNIX}BaseUnix,{$ENDIF}
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
   Classes, SysUtils, fastplaz_handler, config_lib, array_helpers;
 
 const
@@ -56,6 +58,7 @@ const
   _DATABASE_DATABASENAME = 'database/%s/database_name';
   _DATABASE_TABLE_PREFIX = 'database/%s/prefix';
   _DATABASE_LIBRARY = 'database/%s/library';
+  _DATABASE_VERSION_CHECK = 'database/%s/version_check';
 
   _MAIL_MAILSERVER = 'mailer/%s/hostname';
   _MAIL_USERNAME = 'mailer/%s/username';
@@ -112,6 +115,7 @@ function StringHumanToNominal( StrHuman: string):string;
 function StringHumanToFloat( StrHuman: string):double;
 function StringHumanToDate( AStringHuman: string):TDateTime;
 function StringsExists( ASubstring, AFullString:string):boolean;
+function RemoveCharactersBefore(AText, AChar: string): string;
 function WordExists( ASubstring, AFullString:string):boolean;
 function RemoveEmoji( const AText: string; const AReplaceWith: string = ''): string;
 function RemoveUnicode( const AText: string; AReplaceWith: string = ''): string;
@@ -147,11 +151,13 @@ function DownloadFile(const AURL: String;  const AFilePath: String; AUserAgent: 
 function LoadFromFile(const AFileName: string): string;
 function SaveToFile(const AFileName: string; const AContent: string): boolean;
 
+function IsNullish(const S: string): Boolean;
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean = False);
 function jsonGetData(AJsonData: TJsonData; APath: string): string;
 function jsonGetString(J: TJsonData; index: string): string;
 function JsonFormatter(JsonString: string; Const UseUTF8 : Boolean = True): string;
 function IsJsonValid(JsonString: string): boolean;
+function ParseJSONOrDefault(const Raw, DefaultJSON: string): TJSONData;
 function HexToInt(HexStr: string): int64;
 
 function WordNumber( s:string): integer;
@@ -193,7 +199,19 @@ function HTMLDecode(const AStr: String): String;
 function FormatTextLikeForum(const AContent: String):String;
 function MarkdownToHTML(const AContent: String): String;
 
-function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true): string;
+// base64 tools
+function StreamToBase64(AInputStream: TStream): string;
+function Base64ToStream(const ABase64:string; AOutStream: TStream; const AStrict: Boolean=false):Boolean;
+function Base64ToFile(const Base64, AFile: String): boolean;
+function FileToBase64(const AFile: String): string;
+
+var
+  _fgcContent: RawByteString;
+  _fgcURL: String;
+  _fgcTimeout: integer;
+
+function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true; ATimeout: integer = 3000): string;
+function file_get_contents_and_wait(TargetURL: string; ATimeout: integer = 3000): string;
 function FileCopy(ASource, ATarget: string): boolean;
 procedure HttpClientGetSocketHandler(Sender: TObject;
   const UseSSL: Boolean; out AHandler: TSocketHandler);
@@ -215,6 +233,11 @@ function isVowelExists(AText: string): boolean;
 function Exec(const AExeName: string; const AParameter: array of string;
   var AOutput: string; AShowOptons: TShowWindowOptions): boolean;
 function FastInfo(): string;
+procedure LoadDotEnv;
+procedure _SetEnv(const Key, Value: string);
+{$IFDEF UNIX}{$IF NOT DECLARED(setenv)}
+function setenv(const name, value: PChar; overwrite: cint): cint; cdecl; external 'c' name 'setenv';
+{$ENDIF}{$ENDIF}
 
 implementation
 
@@ -405,6 +428,8 @@ begin
   Result := StringReplace( Result, 'milyar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'miliar', '000000000', [rfReplaceAll]);
   Result := StringReplace( Result, 'm', '000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 'trilyun', '000000000000', [rfReplaceAll]);
+  Result := StringReplace( Result, 't', '000000000000', [rfReplaceAll]);
 end;
 
 function StringHumanToFloat(StrHuman: string): double;
@@ -477,6 +502,17 @@ function StringsExists(ASubstring, AFullString: string): boolean;
 begin
   ASubstring := StringReplace( ASubstring, ',', '|', [rfReplaceAll]);
   Result := preg_match( '('+ASubstring+')', AFullString);
+end;
+
+function RemoveCharactersBefore(AText, AChar: string): string;
+var
+  commaPos: integer;
+  s, newText: string;
+begin
+  Result := AText;
+  commaPos := Pos(AChar, AText);
+  if commaPos > 0 then
+    Result := Copy(AText, commaPos + 1, Length(AText) - commaPos);
 end;
 
 function WordExists(ASubstring, AFullString: string): boolean;
@@ -1025,6 +1061,10 @@ begin
     lst.SaveToFile(AName);
     Result := True;
   except
+    on E: Exception do
+    begin
+      LogUtil.Add( E.Message + ': ' + AName, 'cache');
+    end;
   end;
   lst.Free;
 end;
@@ -1250,6 +1290,17 @@ begin
   Result := True;
 end;
 
+function IsNullish(const S: string): Boolean;
+begin
+  // menangani variasi nilai "kosong" dari DB: null, (null), undefined, '', spasi, dll
+  Result :=
+    (Trim(S) = '') or
+    SameText(Trim(S), 'null') or
+    SameText(Trim(S), '(null)') or
+    SameText(Trim(S), 'undefined') or
+    SameText(Trim(S), 'nil');
+end;
+
 procedure DumpJSON(J: TJSonData; DOEOLN: boolean);
 var
   I: integer;
@@ -1360,6 +1411,26 @@ begin
     Result := False
   else
     Result := True;
+end;
+
+function ParseJSONOrDefault(const Raw, DefaultJSON: string): TJSONData;
+var
+  Source: string;
+begin
+  Source := Raw;
+  if IsNullish(Source) then
+    Source := DefaultJSON;
+  // kalau string kosong, tetap fallback ke default
+  if Trim(Source) = '' then
+    Source := DefaultJSON;
+
+  try
+    // GetJSON akan mengembalikan TJSONData (object/array/primitive)
+    Result := GetJSON(Source, False);
+  except
+    // jika JSON invalid, jatuhkan ke default
+    Result := GetJSON(DefaultJSON, False);
+  end;
 end;
 
 function HexToInt(HexStr: string): int64;
@@ -1686,18 +1757,95 @@ begin
   Result := preg_replace(#10#10, #10, Result, True);
 end;
 
-function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean
-  ): string;
+function StreamToBase64(AInputStream: TStream): string;
+var
+  OutputStream: TStringStream;
+  Encoder: TBase64EncodingStream;
+begin
+  Result := '';
+
+  OutputStream := TStringStream.Create('');
+  Encoder := TBase64EncodingStream.Create(OutputStream);
+
+  try
+    Encoder.CopyFrom(AInputStream, AInputStream.Size);
+    Encoder.Flush;
+
+    Result := OutputStream.DataString;
+  finally
+    Encoder.Free;
+    OutputStream.Free;
+  end;
+end;
+
+function Base64ToStream(const ABase64: string; AOutStream: TStream;
+  const AStrict: Boolean): Boolean;
+var
+  InStream: TStringStream;
+  Decoder: TBase64DecodingStream;
+begin
+  Result := False;
+  InStream := TStringStream.Create(ABase64);
+  try
+    if AStrict then
+      Decoder := TBase64DecodingStream.Create(InStream, bdmStrict)
+    else
+      Decoder := TBase64DecodingStream.Create(InStream, bdmMIME);
+    try
+       AOutStream.CopyFrom(Decoder, Decoder.Size);
+       Result := True;
+    finally
+      Decoder.Free;
+    end;
+  finally
+    InStream.Free;
+  end;
+end;
+
+function Base64ToFile(const Base64, AFile: String): boolean;
+var
+  OutStream: TFileStream;
+begin
+  Result := False;
+  OutStream := TFileStream.Create(AFile, fmCreate or fmShareExclusive);
+  try
+     Base64ToStream(Base64, OutStream);
+     Result := True;
+  finally
+    Outstream.Free;
+  end;
+end;
+
+function FileToBase64(const AFile: String): string;
+var
+  InputStream: TFileStream;
+begin
+  if not FileExists(AFile) then
+    Exit('');
+
+  InputStream := TFileStream.Create(AFile, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := StreamToBase64(InputStream);
+  finally
+    InputStream.Free;
+  end;
+end;
+
+function file_get_contents(TargetURL: string;
+  AShowErrorMessageAsResult: boolean; ATimeout: integer): string;
 var
   s: string;
 begin
   Result := '';
   with TFPHTTPClient.Create(nil) do
   begin
+    ConnectTimeout := ATimeout;
+    IOTimeout := ATimeout;
     try
       AddHeader('User-Agent','Mozilla/5.0 (compatible; fastplaz)');
       AllowRedirect := True;
       s := Get(TargetURL);
+      _fgcContent := s;
       Result := s;
     except
       on e: Exception do
@@ -1709,6 +1857,25 @@ begin
 
     Free;
   end;
+end;
+
+procedure _fgc();
+begin
+  _fgcContent:= file_get_contents(_fgcURL, true, _fgcTimeout);
+end;
+
+
+function file_get_contents_and_wait(TargetURL: string; ATimeout: integer
+  ): string;
+var
+  threadNumber: TThreadID;
+begin
+  _fgcContent :='~~~';
+  _fgcURL := TargetURL;
+  _fgcTimeout := ATimeout;
+  threadNumber:= BeginThread(TThreadFunc(@_fgc));
+  WaitForThreadTerminate(threadNumber,ATimeout);
+  Result := _fgcContent;
 end;
 
 function FileCopy(ASource, ATarget: string): boolean;
@@ -1945,6 +2112,47 @@ begin
   lst.Text := s + lst.Text;
   Result := lst.Text;
   lst.Free;
+end;
+
+procedure _SetEnv(const Key, Value: string);
+begin
+  {$IFDEF UNIX}
+  setenv(PChar(Key), PChar(Value), 1);
+  {$ENDIF}
+
+  {$IFDEF MSWINDOWS}
+  SetEnvironmentVariable(PChar(Key), PChar(Value));
+  {$ENDIF}
+end;
+
+procedure LoadDotEnv;
+var
+  Lines: TStringList;
+  Line, Key, Value: string;
+  EqualPos, I: Integer;
+begin
+  if not FileExists('.env') then Exit;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile('.env');
+    for I := 0 to Lines.Count - 1 do
+    begin
+      Line := Trim(Lines[I]);
+      // Lewati baris kosong atau komentar
+      if (Line = '') or (Line[1] = '#') then
+        Continue;
+
+      EqualPos := Pos('=', Line);
+      if EqualPos > 0 then
+      begin
+        Key := Trim(Copy(Line, 1, EqualPos - 1));
+        Value := Trim(Copy(Line, EqualPos + 1, Length(Line)));
+        _SetEnv(Key, Value);
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
 end;
 
 

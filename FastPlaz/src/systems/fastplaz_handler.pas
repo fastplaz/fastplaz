@@ -71,6 +71,7 @@ type
     admin_email,
     language,
     tempDir: string;
+    logDir: string;
     themeEnable: boolean;
     theme: string;
     cacheType: string;
@@ -84,6 +85,7 @@ type
     hitStorage: string;
     databaseRead,
     databaseWrite: string;
+    databaseVersionCheck,
     databaseActive,
     useDatabase,
     initialized,
@@ -157,6 +159,7 @@ type
 
     procedure LanguageInit;
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
+    procedure EnableCors;
 
     property URI: string read GetURI;
     property Environment[const KeyName: string]: string read GetEnvironment;
@@ -410,11 +413,14 @@ begin
 
   AppData.cacheTime := Config.GetValue(_SYSTEM_CACHE_TIME, 3);
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
+  AppData.logDir := AppData.tempDir + DirectorySeparator + 'logs' + DirectorySeparator;
   AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
 
   if AppData.baseUrl = '' then
   begin
-    AppData.baseUrl := 'http://' + GetEnvironmentVariable('SERVER_NAME') +
+    _ := GetEnvironmentVariable('HTTPS');
+    if _ = 'on' then _ := 'https://' else _ := 'http://';
+    AppData.baseUrl := _ + GetEnvironmentVariable('SERVER_NAME') +
       ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
   end;
 
@@ -1050,6 +1056,14 @@ begin
   Response.Content := AResponseContent;
   CustomHeader['Connection'] := 'close';
   Response.SendContent;
+end;
+
+procedure TMyCustomWebModule.EnableCors;
+begin
+  CustomHeader['Access-Control-Allow-Origin'] := '*';
+  CustomHeader['Access-Control-Allow-Credentials'] := 'true';
+  CustomHeader['Access-Control-Allow-Methods'] := 'OPTIONS, GET, POST';
+  CustomHeader['Access-Control-Allow-Headers'] := 'Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, If-Modified-Since, X-File-Name, Cache-Control';
 end;
 
 procedure TMyCustomWebModule.TagController(Sender: TObject;

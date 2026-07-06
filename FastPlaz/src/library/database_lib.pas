@@ -19,10 +19,16 @@ type
   generic TStringHashMap<T> = class(specialize TFPGMap<String,T>) end;
   TFieldValueMap = specialize TStringHashMap<variant>;
 
+  TFPSQLConnector = class(TSQLConnector)
+  public
+    property Proxy;
+  end;
+
   { TSimpleModel }
 
   TSimpleModel = class
   private
+    FDebug: boolean;
     FFieldPrefix: string;
     FFieldQuote: string;
     FRecordCountFromArray: Integer;
@@ -92,6 +98,7 @@ type
     function All(const AUniDirectional: boolean = false):boolean;
     function GetAll( Limit: Integer = 0; Offset: Integer = 0; const AUniDirectional: boolean = false):boolean;
     function AsJsonArray(NoFieldName: boolean = False): TJSONArray;
+    procedure FieldToJSON(const A: TJSONArray; const FieldName: string; const DefaultJSON: string = '{}');
     //function Get( where, order):boolean;
 
     function Find( const KeyIndex:integer):boolean;
@@ -138,6 +145,8 @@ type
     function OrderBy( FieldNames:string): TSimpleModel;
     function Limit( LimitNumber:integer; Offset:integer=0): TSimpleModel;
     function Open( AUniDirectional:Boolean = False): Boolean;
+  published
+    property Debug: boolean read FDebug write FDebug;
   end;
 
 function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
@@ -182,6 +191,7 @@ begin
   AppData.databaseRead := string( Config.GetValue( _DATABASE_OPTIONS_READ, 'default'));
   AppData.databaseWrite := string( Config.GetValue( _DATABASE_OPTIONS_WRITE, UnicodeString( AppData.databaseRead)));
   AppData.tablePrefix := string( Config.GetValue( UnicodeString( format( _DATABASE_TABLE_PREFIX, [AppData.databaseRead])), ''));
+  AppData.databaseVersionCheck := Config.GetValue( UnicodeString( format( _DATABASE_VERSION_CHECK, [AppData.databaseRead])), True);
 
   if not DBConfigName.IsEmpty then
   begin
@@ -240,6 +250,29 @@ begin
     s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [AppData.databaseRead])), ''));
     if s <> '' then
       DB_Connector.CharSet := s;
+
+    // Skip Library Version Check from MySQL
+    if not AppData.databaseVersionCheck then
+    begin
+      if DB_Connector.ConnectorType.ToLower.StartsWith('mysql') then
+      begin
+        if TFPSQLConnector(DB_Connector).Proxy is TConnectionName then
+        begin
+          TConnectionName(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
+        end
+        else
+        begin
+          // specific by mysql version
+          if TFPSQLConnector(DB_Connector).Proxy is TMySQL80Connection then
+            TMySQL80Connection(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True
+          else if TFPSQLConnector(DB_Connector).Proxy is TMySQL57Connection then
+            TMySQL57Connection(TFPSQLConnector(DB_Connector).Proxy).SkipLibraryVersionCheck:= True;
+
+          // prepare for another mysql version
+
+        end;
+      end;
+    end;
 
     try
       DB_Connector.Open;
@@ -587,6 +620,10 @@ begin
           begin
             item_array.add( Data.FieldByName(field_name).AsLargeInt);
           end
+          else if Data.FieldDefs.Items[j].DataType = ftFloat then
+          begin
+            item_array.add( Data.FieldByName(field_name).AsFloat);
+          end
           else if Data.FieldDefs.Items[j].DataType = ftUnknown then
           begin
             try
@@ -623,6 +660,10 @@ begin
           else if Data.FieldDefs.Items[j].DataType = ftLargeint then
           begin
             item.Add(field_name, Data.FieldByName(field_name).AsLargeInt);
+          end
+          else if Data.FieldDefs.Items[j].DataType = ftFloat then
+          begin
+            item.Add(field_name, Data.FieldByName(field_name).AsFloat);
           end
           else if Data.FieldDefs.Items[j].DataType = ftUnknown then
           begin
@@ -836,7 +877,7 @@ begin
       Result := Data.FieldByName( FFieldPrefix + FieldName).AsVariant;
   except
     on E: Exception do begin
-      die( 'getFieldValue: ' + e.Message);
+      die( 'getFieldValue ['+FieldName+']: ' + e.Message);
     end;
   end;
 end;
@@ -858,6 +899,7 @@ var
   i : integer;
   s : string;
 begin
+  FDebug := False;
   FScriptFieldNames := '';
   FScriptWhere := '';
   FScriptLimit := '';
@@ -966,6 +1008,49 @@ begin
   FRecordCountFromArray := Result.Count;
 end;
 
+// USAGE:
+//   FieldToJSON(toolsAsArray, 'parameters', '{}'); // atau '[]' jika kamu mau default array
+procedure TSimpleModel.FieldToJSON(const A: TJSONArray;
+  const FieldName: string; const DefaultJSON: string);
+var
+  i: Integer;
+  Obj: TJSONObject;
+  _Data: TJSONData;
+  AsStr: String;
+  Parsed: TJSONData;
+begin
+  if (A = nil) or (FieldName = '') then Exit;
+
+  for i := 0 to A.Count - 1 do
+  begin
+    if not (A.Items[i] is TJSONObject) then
+      Continue;
+
+    Obj := TJSONObject(A.Items[i]);
+
+    // cari field; kalau tidak ada, tambahkan default
+    _Data := Obj.Find(FieldName);
+    if _Data = nil then
+    begin
+      Parsed := GetJSON(DefaultJSON, False);
+      Obj.Add(FieldName, Parsed);
+      Continue;
+    end;
+
+    // kalau data sudah berupa JSON object/array/primitive non-string,
+    // biarkan saja (hindari double-parse). Umumnya dari DB masih string.
+    if _Data.JSONType <> jtString then
+      Continue;
+
+    // ambil string lalu hapus field lama, ganti dengan hasil parse
+    AsStr := _Data.AsString;
+    Obj.Delete(FieldName); // Delete juga akan membebaskan Data lama
+
+    Parsed := ParseJSONOrDefault(AsStr, DefaultJSON);
+    Obj.Add(FieldName, Parsed);
+  end;
+end;
+
 function TSimpleModel.Find(const KeyIndex: integer): boolean;
 var
   s : string;
@@ -1067,6 +1152,7 @@ begin
   if Data.Active then
     Data.Close;
   Data.UniDirectional:=False;
+  if Debug then LogUtil.Add(Data.SQL.Text, 'DB-' + FTableName);
   Result := _queryOpen;
   Data.Last;
   Data.First;

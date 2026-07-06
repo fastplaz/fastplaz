@@ -1,12 +1,12 @@
 object IDEFDEWindow: TIDEFDEWindow
   Left = 213
-  Height = 445
+  Height = 623
   Top = 379
-  Width = 298
+  Width = 417
   Caption = ':: IDEFDEWindow'
-  ClientHeight = 445
-  ClientWidth = 298
-  DesignTimePPI = 120
+  ClientHeight = 623
+  ClientWidth = 417
+  DesignTimePPI = 168
   KeyPreview = True
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
@@ -24,8 +24,8 @@ object IDEFDEWindow: TIDEFDEWindow
     Top = 0
     Width = 298
     AutoSize = True
-    ButtonHeight = 58
-    ButtonWidth = 29
+    ButtonHeight = 81
+    ButtonWidth = 41
     ShowCaptions = True
     TabOrder = 0
   end
@@ -57,6 +57,7 @@ object IDEFDEWindow: TIDEFDEWindow
   end
   object ToolBar1: TToolBar
     Left = 0
+    Height = 45
     Top = 26
     Width = 298
     Caption = 'ToolBar1'
@@ -67,57 +68,58 @@ object IDEFDEWindow: TIDEFDEWindow
     object ToolButton1: TToolButton
       Cursor = crHandPoint
       Left = 1
-      Top = 2
+      Top = 3
       Action = actOnOffConnection
     end
     object ToolButton2: TToolButton
-      Left = 30
-      Height = 28
-      Top = 2
+      Left = 42
+      Height = 8
+      Top = 3
       Caption = 'ToolButton2'
       Style = tbsSeparator
     end
     object ToolButton3: TToolButton
       Cursor = crHandPoint
-      Left = 40
-      Top = 2
+      Left = 56
+      Top = 3
       Action = actAddConnection
     end
     object ToolButton4: TToolButton
       Cursor = crHandPoint
-      Left = 69
-      Top = 2
+      Left = 97
+      Top = 3
       Action = actDeleteConnection
     end
     object ToolButton5: TToolButton
-      Left = 98
-      Height = 28
-      Top = 2
+      Left = 137
+      Height = 8
+      Top = 3
       Caption = 'ToolButton5'
       Style = tbsSeparator
     end
     object ToolButton6: TToolButton
       Cursor = crHandPoint
-      Left = 108
-      Top = 2
+      Left = 151
+      Top = 3
       Action = actTest
     end
   end
   object pnlLoading: TPanel
-    Left = 70
-    Height = 25
-    Top = 115
-    Width = 115
+    Left = 98
+    Height = 35
+    Top = 161
+    Width = 161
     Caption = 'Loading ...'
     Color = 1310684
     Font.Color = 16724740
+    ParentBackground = False
     ParentColor = False
     ParentFont = False
     TabOrder = 4
   end
   object DBImages: TImageList
-    Left = 66
-    Top = 265
+    Left = 92
+    Top = 371
     Bitmap = {
       4C7A1100000010000000100000009A1900000000000078DAED99075894C7D6C7
       07F2A9896926C696E80D6AEC2888A8604C4253A362456C20A01415088288220A
@@ -329,8 +331,8 @@ object IDEFDEWindow: TIDEFDEWindow
   end
   object popupMenuMain: TPopupMenu
     OnPopup = popupMenuMainPopup
-    Left = 185
-    Top = 265
+    Left = 259
+    Top = 371
     object MenuItem1: TMenuItem
       Action = actConnect
     end
@@ -364,8 +366,8 @@ object IDEFDEWindow: TIDEFDEWindow
   end
   object ActionListMain: TActionList
     Images = DBImages
-    Left = 185
-    Top = 190
+    Left = 259
+    Top = 266
     object actConnect: TAction
       Category = 'Database'
       Caption = 'Connect'
@@ -425,20 +427,20 @@ object IDEFDEWindow: TIDEFDEWindow
     FieldDefs = <>
     Params = <>
     Macros = <>
-    Left = 65
-    Top = 350
+    Left = 91
+    Top = 490
   end
   object PropStorage: TIniPropStorage
     StoredValues = <>
     IniSection = 'FDEConnector'
-    Left = 185
-    Top = 350
+    Left = 259
+    Top = 490
   end
   object tmrVersionCheck: TTimer
     Enabled = False
     Interval = 5000
     OnTimer = tmrVersionCheckTimer
-    Left = 65
-    Top = 195
+    Left = 91
+    Top = 273
   end
 end

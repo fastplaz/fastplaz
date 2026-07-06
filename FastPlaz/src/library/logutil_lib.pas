@@ -26,7 +26,7 @@ type
     procedure RegisterError(MessageString: string; psHttpCode: integer = 0;
       URL: string = '');
     procedure Add(const message: string; const ModName: string = '';
-      const Skip: boolean = False);
+      const Skip: boolean = False; CustomLogFile: string = '');
   published
     property Prefix: string read FPrefix write setPrefix;
   end;
@@ -103,21 +103,23 @@ begin
   end;
 end;
 
-procedure TLogUtil.Add(const message: string; const ModName: string;
-  const Skip: boolean);
+procedure TLogUtil.Add(const message:string;const ModName:string;const Skip:
+  boolean;CustomLogFile:string);
 var
   s: string;
 begin
   if Skip then
     Exit;
+  if CustomLogFile.IsEmpty then
+    CustomLogFile := FullName;
   try
     if ModName <> '' then
       s := ModName + ': ';
     s := s + message;
-    AssignFile(log_file, FullName);
+    AssignFile(log_file, CustomLogFile);
     { $I+}
     try
-      if not FileExists(FullName) then
+      if not FileExists(CustomLogFile) then
         Rewrite(log_file)
       else
         Append(log_file);

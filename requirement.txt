@@ -1,0 +1,6 @@
+
+[x] Requirement:
+- LazUtils Package, "/components/lazutils/"
+
+add path:
+  $(Lazarusdir)\components\lazutils
