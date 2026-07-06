@@ -147,6 +147,7 @@ type
     function Open( AUniDirectional:Boolean = False): Boolean;
   published
     property Debug: boolean read FDebug write FDebug;
+    property Connector: TSQLConnector read FConnector;
   end;
 
 function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
@@ -746,7 +747,7 @@ begin
   Result := 0;
   try
     if Data.Active then Data.Close;
-    if (SameText(Config['database/default/driver'], 'postgresql')) then
+    if DB_Connector.ConnectorType.ToLower.StartsWith('postgre') then
       Data.SQL.Text := 'SELECT lastval() AS lastid'
     else
       Data.SQL.Text := 'SELECT LAST_INSERT_ID() as lastid FROM ' + TableName;
