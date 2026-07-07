@@ -28,8 +28,8 @@
     <Description Value="Tools Generator for FastPlaz
 for more information visit https://www.fastplaz.com
 "/>
-    <Version Minor="23" Release="12" Build="10"/>
-    <Files Count="30">
+    <Version Minor="24" Build="145"/>
+    <Files Count="45">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -151,6 +151,66 @@ for more information visit https://www.fastplaz.com
         <Filename Value="..\FastPlaz\src\integration\openai_integration.pas"/>
         <UnitName Value="openai_integration"/>
       </Item30>
+      <Item31>
+        <Filename Value="src\de_dbmemoedit.pas"/>
+        <UnitName Value="de_dbmemoedit"/>
+      </Item31>
+      <Item32>
+        <Filename Value="src\de_dbmemoedit.lfm"/>
+        <Type Value="LFM"/>
+      </Item32>
+      <Item33>
+        <Filename Value="src\swagger_lib.pas"/>
+        <UnitName Value="swagger_lib"/>
+      </Item33>
+      <Item34>
+        <Filename Value="src\de_connection_editor.lfm"/>
+        <Type Value="LFM"/>
+      </Item34>
+      <Item35>
+        <Filename Value="src\de_connector.lfm"/>
+        <Type Value="LFM"/>
+      </Item35>
+      <Item36>
+        <Filename Value="src\de_dbbrowser.lfm"/>
+        <Type Value="LFM"/>
+      </Item36>
+      <Item37>
+        <Filename Value="src\fastcode_configuration.lfm"/>
+        <Type Value="LFM"/>
+      </Item37>
+      <Item38>
+        <Filename Value="src\json_tools.lfm"/>
+        <Type Value="LFM"/>
+      </Item38>
+      <Item39>
+        <Filename Value="src\model_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item39>
+      <Item40>
+        <Filename Value="src\modsimple_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item40>
+      <Item41>
+        <Filename Value="src\packageapp_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item41>
+      <Item42>
+        <Filename Value="src\project_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item42>
+      <Item43>
+        <Filename Value="src\projectapi_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item43>
+      <Item44>
+        <Filename Value="src\regex_tester.lfm"/>
+        <Type Value="LFM"/>
+      </Item44>
+      <Item45>
+        <Filename Value="src\themestructure_wzd.lfm"/>
+        <Type Value="LFM"/>
+      </Item45>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

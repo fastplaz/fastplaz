@@ -36,7 +36,7 @@ var
 
 implementation
 
-uses config_lib, fastplaz_handler;
+uses config_lib;
 
 
 { TLogUtil }
