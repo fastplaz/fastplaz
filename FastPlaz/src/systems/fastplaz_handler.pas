@@ -61,40 +61,6 @@ const
 
 type
 
-  { TMainData }
-
-  TMainData = record
-    module, modtype, func: string;
-    sitename,
-    slogan,
-    baseUrl,
-    admin_email,
-    language,
-    tempDir: string;
-    logDir: string;
-    themeEnable: boolean;
-    theme: string;
-    cacheType: string;
-    cacheWrite: boolean;
-    cacheTime: integer;
-    tablePrefix: string;
-    sessionAutoStart: boolean;
-    SessionID: string;
-    SessionDir: string;
-    SessionStorage: integer; // 1: file; 2 database
-    hitStorage: string;
-    databaseRead,
-    databaseWrite: string;
-    databaseVersionCheck,
-    databaseActive,
-    useDatabase,
-    initialized,
-    debug: boolean;
-    debugLevel: integer;
-    isReady: boolean;
-    cookiePath: string;
-  end;
-
   TOnBlockController = procedure(Sender: TObject; FunctionName: string;
     Parameter: TStrings; var ResponseString: string) of object;
   TTagCallback = function(const ATagName: string;
@@ -332,16 +298,12 @@ type
   end;
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
-procedure Redirect(const URL: string; const FlashMessage: string = ''; AStatusCode: Integer = 302);
 
-procedure DisplayError(const Message: string; const Layout: string = 'error');
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
 
 var
-  AppData: TMainData;
-  Config: TMyConfig;
   Sanitize: boolean;
   XSSProof: boolean;
   SessionController: TSessionController;
@@ -354,7 +316,6 @@ var
   _SESSION: TSESSION;
   _REQUEST: TREQUESTVAR;
   _SERVER: TSERVER;
-  _DebugInfo: TStringList;
   StartTime, StopTime, ElapsedTime: cardinal;
   MemoryAllocated: integer;
 
@@ -502,7 +463,7 @@ begin
   {$endif}
 end;
 
-procedure Redirect(const URL: string; const FlashMessage: string;
+procedure DoRedirect(const URL: string; const FlashMessage: string;
   AStatusCode: Integer);
 begin
   if FlashMessage <> '' then
@@ -517,7 +478,7 @@ begin
 end;
 
 
-procedure DisplayError(const Message: string; const Layout: string);
+procedure DoDisplayError(const Message: string; const Layout: string);
 begin
   FastPlasAppandler.isDisplayError := True;
   if not AppData.themeEnable then
@@ -1537,7 +1498,6 @@ begin
 end;
 
 initialization
-  AppData.isReady := False;
   StartTime := _GetTickCount;
   Sanitize := True;
   XSSProof := False;
@@ -1548,7 +1508,8 @@ initialization
   ModuleLoaded := TModuleLoaded.Create(TModuleLoadedItem);
   Route := TRoute.Create;
   ModUtil := TModUtil.Create;
-  _DebugInfo := TStringList.Create;
+  DisplayErrorHandler := @DoDisplayError;
+  RedirectHandler := @DoRedirect;
   _REQUEST := TREQUESTVAR.Create;
   _POST := TPOST.Create;
   _GET := TGET.Create;
@@ -1564,7 +1525,6 @@ finalization
   FreeAndNil(_POST);
   FreeAndNil(_REQUEST);
   FreeAndNil(_SERVER);
-  FreeAndNil(_DebugInfo);
   FreeAndNil(ModUtil);
   FreeAndNil(Route);
   FreeAndNil(ModuleLoaded);
