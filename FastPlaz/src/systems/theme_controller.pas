@@ -868,7 +868,7 @@ begin
   html := html + '<legend>Header Data</legend>';
   html  := html + '<table>';
   html := html + '<tr><td>REDIRECT_STATUS</td><td>:</td><td>' + Application.EnvironmentVariable['REDIRECT_STATUS'] + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.HTTPAccept + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.Accept + '</td></tr>';
   html := html + '<tr><td>HTTP_USER_AGENT</td><td>:</td><td>' + Application.Request.UserAgent + '</td></tr>';
   html := html + '<tr><td>HTTP_CONNECTION</td><td>:</td><td>' + Application.Request. Connection + '</td></tr>';
   html := html + '<tr><td>HTTP_REFERER</td><td>:</td><td>' + Application.Request.Referer + '</td></tr>';
@@ -886,7 +886,7 @@ begin
   html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + Application.Request.ContentType + '</td></tr>';
   html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + Application.Request.ServerProtocol + '</td></tr>';
   html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + Application.Request.QueryString + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.HTTPAcceptEncoding + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.AcceptEncoding + '</td></tr>';
   html := html + '<tr><td>HTTP_ACCEPT_LANGUAGE</td><td>:</td><td>' + Application.Request.AcceptLanguage + '</td></tr>';
   html := html + '<tr><td>HTTP_COOKIE</td><td>:</td><td>' + Application.EnvironmentVariable['HTTP_COOKIE'] + '</td></tr>';
   html := html + '<tr><td>Last Modified</td><td>:</td><td>' + Application.Request.LastModified + '</td></tr>';
