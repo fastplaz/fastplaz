@@ -627,26 +627,26 @@ begin
   SetLength(vUCS4Str, 2);
 
   re := TRegExpr.Create;
-  re.Expression := pattern;
-  if re.Exec(AText) then
+  re.Expression := RegExprString(pattern);
+  if re.Exec(RegExprString(AText)) then
   begin
-    itemString := re.Match[0];
-    lst := Explode(re.Match[0], '\u');
+    itemString := string(re.Match[0]);
+    lst := Explode(string(re.Match[0]), '\u');
     vUCS4Str[0] := Hex2Dec(lst[1]);
     if BIsPair then
       vUCS4Str[1] := Hex2Dec(lst[2]);
-    s := UCS4StringToWideString(vUCS4Str);
+    s := string(UCS4StringToWideString(vUCS4Str));
     lst.Free;
     Result := Result.Replace(itemString, s, [rfReplaceAll]);
 
     while re.ExecNext do
     begin
-      itemString := re.Match[0];
-      lst := Explode(re.Match[0], '\u');
+      itemString := string(re.Match[0]);
+      lst := Explode(string(re.Match[0]), '\u');
       vUCS4Str[0] := Hex2Dec(lst[1]);
       if BIsPair then
         vUCS4Str[1] := Hex2Dec(lst[2]);
-      s := UCS4StringToWideString(vUCS4Str);
+      s := string(UCS4StringToWideString(vUCS4Str));
       lst.Free;
       Result := Result.Replace(itemString, s, [rfReplaceAll]);
     end;
@@ -1970,8 +1970,8 @@ begin
   try
     with TRegExpr.Create do
     begin
-      Expression := RegexExpression;
-      Result := Exec(SourceString);
+      Expression := RegExprString(RegexExpression);
+      Result := Exec(RegExprString(SourceString));
       Free;
     end;
   except
@@ -1984,8 +1984,8 @@ begin
   try
     with TRegExpr.Create do
     begin
-      Expression := RegexExpression;
-      Result := Replace(SourceString, ReplaceString, UseSubstitution);
+      Expression := RegExprString(RegexExpression);
+      Result := string(Replace(RegExprString(SourceString), RegExprString(ReplaceString), UseSubstitution));
       Free;
     end;
   except
@@ -1995,18 +1995,18 @@ end;
 
 function isIPAddress(const IPAddress: string): boolean;
 begin
-  Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+  Result := execregexpr(RegExprString('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'), RegExprString(IPAddress));
 end;
 
 function isEmail(const s: string): boolean;
 begin
-  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
+  Result := execregexpr(RegExprString('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'), RegExprString(s));
 end;
 
 function isDomain(const s: string): boolean;
 begin
   //Result := execregexpr('(^(?!\-)(?:[a-zA-Z\d\-]{0,62}[a-zA-Z\d]\.){1,126}(?!\d+)[a-zA-Z\d]{1,63}$)', s);
-  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', s);
+  Result := execregexpr(RegExprString('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$'), RegExprString(s));
 end;
 
 function GetHostNameIP(HostName: string): string;
