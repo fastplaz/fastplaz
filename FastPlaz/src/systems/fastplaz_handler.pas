@@ -363,7 +363,7 @@ begin
   AppData.slogan := string(Config.GetValue(_SYSTEM_SLOGAN, _APP));
   AppData.baseUrl := string(Config.GetValue(_SYSTEM_BASEURL, ''));
   AppData.admin_email := string(
-    Config.GetValue(_SYSTEM_WEBMASTER_EMAIL, UnicodeString( Application.Email)));
+    Config.GetValue(UnicodeString(_SYSTEM_WEBMASTER_EMAIL), UnicodeString( Application.Email)));
   AppData.language := string(Config.GetValue(_SYSTEM_LANGUAGE_DEFAULT, 'en'));
   AppData.themeEnable := Config.GetValue(_SYSTEM_THEME_ENABLE, True);
   AppData.theme := string(Config.GetValue(_SYSTEM_THEME, 'default'));
@@ -1095,17 +1095,17 @@ begin
         with TRegExpr.Create() do
         begin
           Expression := REGEX_FORMDATA;
-          if Exec(Application.Request.Content) then
+          if Exec(RegExprString(Application.Request.Content)) then
           begin
-            if Match[1] = Variable then
+            if string(Match[1]) = Variable then
             begin
-              Result := Match[3]; Free; Exit;
+              Result := string(Match[3]); Free; Exit;
             end;
             while ExecNext() do
             begin
-              if Match[1] = Variable then
+              if string(Match[1]) = Variable then
               begin
-                Result := Match[3]; Free; Exit;
+                Result := string(Match[3]); Free; Exit;
               end;
             end;
           end;
@@ -1323,8 +1323,8 @@ begin
       reg := TRegExpr.Create;
       for i := 0 to RouteRegexMap.Count - 1 do
       begin
-        reg.Expression := RouteRegexMap.ValueFromIndex[i];
-        if reg.Exec(pathInfo) then
+        reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
+        if reg.Exec(RegExprString(pathInfo)) then
         begin
           s := RouteRegexMap.Names[i];
           if ModuleFactory.FindModule(S) <> nil then
@@ -1332,14 +1332,14 @@ begin
             ARequest.QueryFields.Values[Application.ModuleVariable] := s;
             for j := 1 to reg.SubExprMatchCount do
             begin
-              ARequest.QueryFields.Values['$' + i2s(j)] := reg.Match[j];
+              ARequest.QueryFields.Values['$' + i2s(j)] := string(reg.Match[j]);
               if j = 3 then
-                ARequest.QueryFields.Values['act'] := reg.Match[j];
+                ARequest.QueryFields.Values['act'] := string(reg.Match[j]);
             end;
             for j := 1 to reg.GroupCount do
             begin
-              groupName := reg.GroupName[j];
-              ARequest.QueryFields.Values[groupName] := reg.MatchFromName(groupName);
+              groupName := string(reg.GroupName[j]);
+              ARequest.QueryFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
             end;
             Break;
           end;
