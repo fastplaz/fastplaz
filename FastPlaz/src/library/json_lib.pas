@@ -1,13 +1,24 @@
 unit json_lib;
 
 {$mode objfpc}{$H+}
-{$include ../../define_fastplaz.inc}
+{-- $include ../../define_fastplaz.inc}
+(*
+  USAGE
+    json := TJSONUtil.Create;
 
-{
+    // load from string
+    json.LoadFromJsonString('{}');
 
-  inspiration from jsonConfig
+    // get value from json
+    message := json['response/message'];
 
-}
+    // write to json
+    json['code'] := Int16(404);
+    json['response/count'] = jArray.Count;
+    json['response/message'] = 'success';
+
+
+*)
 
 interface
 
@@ -25,7 +36,9 @@ type
     function GetAsString: TJSONStringType;
     function GetIsObject: boolean;
     function GetItem(PathString: UnicodeString): TJSONUtilItem;
+    {$PUSH}{$HINTS OFF}
     procedure SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
+    {$POP}
 
     function FindObject(const PathString: UnicodeString; AllowCreate: boolean;
       var ElementName: UnicodeString): TJSONObject;
@@ -55,7 +68,9 @@ type
     function GetItem(PathString: UnicodeString): TJSONUtilItem;
     function GetValue(PathString: UnicodeString): variant;
     function GetValueArray(PathString: UnicodeString): TJSONArray;
+    {$PUSH}{$HINTS OFF}
     procedure SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
+    {$POP}
     procedure SetValue(PathString: UnicodeString; AValue: variant);
     procedure SetValueArray(PathString: UnicodeString; AValue: TJSONArray);
 
@@ -105,6 +120,7 @@ var
   i: integer;
 begin
   ElName := '';
+  o := nil;
   El := FindElement(StripSlash('/' + PathString), False, o, ElName);
   if not Assigned(El) then
   begin
@@ -138,10 +154,11 @@ begin
   Result := FJSONData.AsJSON;
 end;
 
+{$PUSH}{$HINTS OFF}
 procedure TJSONUtilItem.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
 begin
-
 end;
+{$POP}
 
 function TJSONUtilItem.FindObject(const PathString: UnicodeString;
   AllowCreate: boolean; var ElementName: UnicodeString): TJSONObject;
@@ -241,12 +258,12 @@ end;
 
 function TJSONUtil.GetValue(PathString: UnicodeString): variant;
 var
-  o: TJSONObject;
   El: TJSONData;
   ElName: UnicodeString;
 begin
+  {$PUSH}{$NOTES OFF}
   Result := '';
-  ElName := ReplaceAll(PathString,['/'],['.']);
+  ElName := UnicodeString(ReplaceAll(string(PathString), ['/'], ['.']));
   {
   ElName := '';
   if Pos('/', PathString) <> 1 then
@@ -257,7 +274,7 @@ begin
   end;
   }
   try
-    El := FJsonObject.GetPath(ElName);
+    El := FJsonObject.GetPath(UTF8String(ElName));
   except
     Exit;
   end;
@@ -274,6 +291,7 @@ begin
       Result := El.AsFloat;
   except
   end;
+  {$POP}
 end;
 
 function TJSONUtil.GetValueArray(PathString: UnicodeString): TJSONArray;
@@ -283,6 +301,7 @@ var
   ElName: UnicodeString;
 begin
   ElName := '';
+  o := nil;
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), False, o, ElName);
@@ -293,10 +312,11 @@ begin
     Result := (El as TJSONArray);
 end;
 
+{$PUSH}{$HINTS OFF}
 procedure TJSONUtil.SetItem(PathString: UnicodeString; AValue: TJSONUtilItem);
 begin
-
 end;
+{$POP}
 
 function TJSONUtil.GetAsJSON: TJSONStringType;
 begin
@@ -325,6 +345,7 @@ var
 begin
   Result := nil;
   ElName := '';
+  o := nil;
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
   begin
@@ -343,6 +364,8 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
+  o := nil;
+  ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), True, o, ElName);
@@ -364,6 +387,8 @@ var
   valueAsString, ElName: UnicodeString;
   i: integer;
 begin
+  {$PUSH}{$NOTES OFF}
+  o := nil;
   ElName := '';
 {
   // SIMPLE WAY
@@ -412,7 +437,7 @@ begin
       begin
         valueAsString := AValue;
         El := TJSONString.Create(valueAsString);
-        El.AsString := valueAsString;
+        El.AsString := UTF8String(valueAsString);
         o.Add(string(ElName), El);
       end
       else
@@ -477,6 +502,7 @@ begin
 
 
   FModified := True;
+  {$POP}
 end;
 
 function TJSONUtil.FindObject(const PathString: UnicodeString;
@@ -560,6 +586,7 @@ var
   elementName: UnicodeString;
 begin
   elementName := '';
+  o := nil;
   Result := FindElement(PathString, CreateParent, o, elementName);
 end;
 
