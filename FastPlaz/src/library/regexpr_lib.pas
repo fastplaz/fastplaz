@@ -5874,10 +5874,10 @@ begin
   PrevPos := 1;
   if Exec(AInputStr) then
     repeat
-      APieces.Add(System.Copy(AInputStr, PrevPos, MatchPos[0] - PrevPos));
+      APieces.Add(string(System.Copy(AInputStr, PrevPos, MatchPos[0] - PrevPos)));
       PrevPos := MatchPos[0] + MatchLen[0];
     until not ExecNext;
-  APieces.Add(System.Copy(AInputStr, PrevPos, MaxInt)); // Tail
+  APieces.Add(string(System.Copy(AInputStr, PrevPos, MaxInt))); // Tail
 end; { of procedure TRegExpr.Split
   -------------------------------------------------------------- }
 
@@ -6413,9 +6413,9 @@ begin
     OP_BSUBEXPCI:
       Result := 'BSUBEXP/CI';
     OP_OPEN_FIRST .. OP_OPEN_LAST:
-      Result := Format('OPEN[%d]', [Ord(op) - Ord(OP_OPEN)]);
+      Result := RegExprString(Format('OPEN[%d]', [Ord(op) - Ord(OP_OPEN)]));
     OP_CLOSE_FIRST .. OP_CLOSE_LAST:
-      Result := Format('CLOSE[%d]', [Ord(op) - Ord(OP_CLOSE)]);
+      Result := RegExprString(Format('CLOSE[%d]', [Ord(op) - Ord(OP_CLOSE)]));
     OP_STAR:
       Result := 'STAR';
     OP_PLUS:
@@ -6449,7 +6449,7 @@ begin
     OP_RECUR:
       Result := 'RECURSION';
     OP_SUBCALL_FIRST .. OP_SUBCALL_LAST:
-      Result := Format('SUBCALL[%d]', [Ord(op) - Ord(OP_SUBCALL)]);
+      Result := RegExprString(Format('SUBCALL[%d]', [Ord(op) - Ord(OP_SUBCALL)]));
   else
     Error(reeDumpCorruptedOpcode);
   end;
@@ -6464,7 +6464,7 @@ end;
 function PrintableChar(AChar: REChar): RegExprString; {$IFDEF InlineFuncs}inline;{$ENDIF}
 begin
   if AChar < ' ' then
-    Result := '#' + IntToStr(Ord(AChar))
+    Result := '#' + RegExprString(IntToStr(Ord(AChar)))
   else
     Result := AChar;
 end;
@@ -6516,7 +6516,7 @@ begin
   while op <> OP_EEND do
   begin // While that wasn't END last time...
     op := s^;
-    Result := Result + Format('%2d: %s', [s - programm, DumpOp(s^)]);
+    Result := Result + RegExprString(Format('%2d: %s', [s - programm, DumpOp(s^)]));
     // Where, what.
     next := regNext(s);
     if next = nil // Next ptr.
@@ -6530,7 +6530,7 @@ begin
         Diff := next - s
       else
         Diff := -(s - next);
-      Result := Result + Format(' (%d) ', [(s - programm) + Diff]);
+      Result := Result + RegExprString(Format(' (%d) ', [(s - programm) + Diff]));
     end;
     Inc(s, REOpSz + RENextOffSz);
     if (op = OP_ANYOF) or (op = OP_ANYOFCI) or (op = OP_ANYBUT) or (op = OP_ANYBUTCI) then
@@ -6607,24 +6607,24 @@ begin
     end;
     if (op = OP_BSUBEXP) or (op = OP_BSUBEXPCI) then
     begin
-      Result := Result + ' \' + IntToStr(Ord(s^));
+      Result := Result + ' \' + RegExprString(IntToStr(Ord(s^)));
       Inc(s);
     end;
     if (op = OP_BRACES) or (op = OP_BRACESNG) or (op = OP_BRACES_POSS) then
     begin // ###0.941
       // show min/max argument of braces operator
-      Result := Result + Format('{%d,%d}', [PREBracesArg(AlignToInt(s))^,
-        PREBracesArg(AlignToInt(s + REBracesArgSz))^]);
+      Result := Result + RegExprString(Format('{%d,%d}', [PREBracesArg(AlignToInt(s))^,
+        PREBracesArg(AlignToInt(s + REBracesArgSz))^]));
       Inc(s, REBracesArgSz * 2);
     end;
     {$IFDEF ComplexBraces}
     if (op = OP_LOOP) or (op = OP_LOOPNG) then
     begin // ###0.940
-      Result := Result + Format(' -> (%d) {%d,%d}',
+      Result := Result + RegExprString(Format(' -> (%d) {%d,%d}',
         [(s - programm - (REOpSz + RENextOffSz)) +
         PRENextOff(AlignToPtr(s + 2 * REBracesArgSz))^,
         PREBracesArg(AlignToInt(s))^,
-        PREBracesArg(AlignToInt(s + REBracesArgSz))^]);
+        PREBracesArg(AlignToInt(s + REBracesArgSz))^]));
       Inc(s, 2 * REBracesArgSz + RENextOffSz);
     end;
     {$ENDIF}
@@ -6811,7 +6811,7 @@ var
   Msg: string;
 begin
   fLastError := AErrorID; // dummy stub - useless because will raise exception
-  Msg := ErrorMsg(AErrorID);
+  Msg := string(ErrorMsg(AErrorID));
   // compilation error ?
   if AErrorID < reeFirstRuntimeCode then
     Msg := Msg + ' (pos ' + IntToStr(CompilerErrorPos) + ')';
