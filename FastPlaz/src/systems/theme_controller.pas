@@ -868,7 +868,7 @@ begin
   html := html + '<legend>Header Data</legend>';
   html  := html + '<table>';
   html := html + '<tr><td>REDIRECT_STATUS</td><td>:</td><td>' + Application.EnvironmentVariable['REDIRECT_STATUS'] + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.HTTPAccept + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.Accept + '</td></tr>';
   html := html + '<tr><td>HTTP_USER_AGENT</td><td>:</td><td>' + Application.Request.UserAgent + '</td></tr>';
   html := html + '<tr><td>HTTP_CONNECTION</td><td>:</td><td>' + Application.Request. Connection + '</td></tr>';
   html := html + '<tr><td>HTTP_REFERER</td><td>:</td><td>' + Application.Request.Referer + '</td></tr>';
@@ -886,7 +886,7 @@ begin
   html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + Application.Request.ContentType + '</td></tr>';
   html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + Application.Request.ServerProtocol + '</td></tr>';
   html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + Application.Request.QueryString + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.HTTPAcceptEncoding + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.AcceptEncoding + '</td></tr>';
   html := html + '<tr><td>HTTP_ACCEPT_LANGUAGE</td><td>:</td><td>' + Application.Request.AcceptLanguage + '</td></tr>';
   html := html + '<tr><td>HTTP_COOKIE</td><td>:</td><td>' + Application.EnvironmentVariable['HTTP_COOKIE'] + '</td></tr>';
   html := html + '<tr><td>Last Modified</td><td>:</td><td>' + Application.Request.LastModified + '</td></tr>';
@@ -1051,7 +1051,7 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
     value1, value2: variant;
   begin
     Result := False;
-    parameter := Explode(ARegex.Match[1], ' ');
+    parameter := Explode(string(ARegex.Match[1]), ' ');
     if (parameter.Count < 4) then
     begin
       Exit;
@@ -1059,7 +1059,7 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
 
     if FAssignVarStringMap.IndexOfName( parameter[1]) = -1 then
     begin
-      AContent := StringReplace( AContent, ARegex.Match[0], '', [rfReplaceAll]);
+      AContent := StringReplace( AContent, string(ARegex.Match[0]), '', [rfReplaceAll]);
       Result := True;
       Exit;
     end;
@@ -1078,37 +1078,37 @@ function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Conte
       'eq':
         begin
           if conditionIsEqual( value1, value2) then
-            s := ARegex.Match[2]
+            s := string(ARegex.Match[2])
           else
-            s := ARegex.Match[4];
-          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+            s := string(ARegex.Match[4]);
+          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
         end;
 
       'neq':
         begin
           if conditionIsNotEqual( value1, value2) then
-            s := ARegex.Match[2]
+            s := string(ARegex.Match[2])
           else
-            s := ARegex.Match[4];
-          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+            s := string(ARegex.Match[4]);
+          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
         end;
 
       'lt':
         begin
           if conditionIsLessThan( value1, value2) then
-            s := ARegex.Match[2]
+            s := string(ARegex.Match[2])
           else
-            s := ARegex.Match[4];
-          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+            s := string(ARegex.Match[4]);
+          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
         end;
 
       'gt':
         begin
           if conditionIsGreaterThan( value1, value2) then
-            s := ARegex.Match[2]
+            s := string(ARegex.Match[2])
           else
-            s := ARegex.Match[4];
-          AContent := StringReplace( AContent, ARegex.Match[0], s, [rfReplaceAll]);
+            s := string(ARegex.Match[4]);
+          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
         end;
 
     end;
@@ -1133,8 +1133,8 @@ begin
   begin
     //Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
     // \[if([\.\$A-Za-z_0-9=\ ]+)\]([a-z]+)(\[else\])?([a-z]+)\[/if\]
-    Expression := Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
-    if Exec( Content) then
+    Expression := RegExprString(Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]));
+    if Exec( RegExprString(Content)) then
     begin
       if not DoConditioning(regex, Result) then
       begin
@@ -1188,26 +1188,26 @@ function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
     html : string;
   begin
     Result := False;
-    parameter := Explode(ARegex.Match[1], ' ');
+    parameter := Explode(string(ARegex.Match[1]), ' ');
     ForeachTable_Keyname  := parameter.Values['from'];
     ForeachTable_Itemname := parameter.Values['item'];
 
     case parameter.Values['type'] of
       '' : begin
-        DisplayError( 'field "type" is not define in "foreach ' + ARegex.Match[1] + '"');
+        DisplayError( 'field "type" is not define in "foreach ' + string(ARegex.Match[1]) + '"');
         //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
       end;
       'table' : begin
-        html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+        html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
       end;
       'dataset' : begin
-        html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+        html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
       end;
       'json' : begin
-        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
       end;
       'jsondata' : begin
-        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ARegex.Match[2]);
+        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
       end;
       {$ifdef GREYHOUND}
       'ghtable' : begin
@@ -1226,7 +1226,7 @@ function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
     ForeachTable_Keyname := '';
     ForeachTable_Itemname := '';
 
-    html := StringReplace( AContent, ARegex.Match[0], html, [rfReplaceAll]);
+    html := StringReplace( AContent, string(ARegex.Match[0]), html, [rfReplaceAll]);
 
     //** call parent tag-controller
 
@@ -1247,8 +1247,8 @@ begin
   regex := TRegExpr.Create;
   with regex do
   begin
-    Expression := Format('%s(.*?)%s', [ __FOREACH_START, __FOREACH_END]);
-    if Exec( Result) then
+    Expression := RegExprString(Format('%s(.*?)%s', [ __FOREACH_START, __FOREACH_END]));
+    if Exec( RegExprString(Result)) then
     begin
       if not DoForeach(regex, Result) then
       begin
@@ -1806,7 +1806,7 @@ begin
         if tagstring_custom.Values['type'] = 'json' then
         begin
           s := tagstring_custom.Values['index'].Replace('.','/');
-          ReplaceText := TJSONUtil(ThemeUtil.AssignVar[tagstring_custom[0]]^).Value[s];
+          ReplaceText := TJSONUtil(ThemeUtil.AssignVar[tagstring_custom[0]]^).Value[UnicodeString(s)];
         end;
         if tagstring_custom.Values['type'] = '' then
         begin
