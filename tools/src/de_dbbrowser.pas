@@ -410,6 +410,10 @@ end;
 
 procedure TIDEFDEBrowserWindow.FormDestroy(Sender: TObject);
 begin
+  // the IDE may destroy this window first (owned by LazarusIDE.OwningComponent),
+  // do not leave a dangling global reference
+  if IDEFDEBrowserWindow = Self then
+    IDEFDEBrowserWindow := nil;
 end;
 
 procedure TIDEFDEBrowserWindow.FormKeyDown(Sender: TObject; var Key: word;

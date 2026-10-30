@@ -198,13 +198,18 @@ end;
 
 destructor TIDEFDEWindow.Destroy;
 begin
-  Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
-  Config.Flush;
+  if Assigned(Config) then
+  begin
+    Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+    Config.Flush;
+  end;
 
   tableList.Free;
   if Assigned(IDEFDEBrowserWindow) then
-    IDEFDEBrowserWindow.Free;
-  Config.Free;
+    FreeAndNil(IDEFDEBrowserWindow);
+  FreeAndNil(Config);
+  if IDEFDEWindow = Self then
+    IDEFDEWindow := nil;
   inherited Destroy;
 end;
 
