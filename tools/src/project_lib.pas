@@ -134,7 +134,6 @@ begin
 
   // package
   AProject.AddPackageDependency('fastplaz_runtime');
-  AProject.AddPackageDependency('LCL');
 
   // compiler options
   AProject.Title := projectTitle;
