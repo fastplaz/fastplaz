@@ -5,8 +5,8 @@ unit regex_tester;
 interface
 
 uses
-  regexpr_lib,
-  Interfaces, Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
+  LCLType,
+  Classes, SysUtils, Forms, Controls, Graphics,
   Dialogs, ExtCtrls, StdCtrls, Buttons;
 
 type
@@ -18,9 +18,9 @@ type
     btnCheck: TBitBtn;
     edtResult: TEdit;
     lbResult: TListBox;
-    cbbGroup: TListBox;
-    LSLabel1: TLabel;
-    LSLabel2: TLabel;
+    lbGroup: TListBox;
+    lblExpression: TLabel;
+    lblResult: TLabel;
     mem: TMemo;
     Panel1: TPanel;
     Panel2: TPanel;
@@ -36,7 +36,6 @@ type
     procedure cbbExpressionChange(Sender: TObject);
     procedure cbbExpressionKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
   private
     { private declarations }
@@ -50,7 +49,7 @@ var
 implementation
 
 uses
-  de_common;
+  regex_tester_lib;
 
 {$R *.lfm}
 
@@ -62,98 +61,74 @@ begin
   cbbExpression.Items.Add(REGEX_EMAIL);
   cbbExpression.Items.Add(REGEX_URL);
   cbbExpression.Items.Add(REGEX_IP);
-  //mem.Font.Size:=+1;
 end;
 
 procedure TfRegex.btnCheckClick(Sender: TObject);
 var
-  i: integer;
-  s: string;
-  re: TRegExpr;
+  matchCount: integer;
 begin
   edtResult.Text := '';
   lbResult.Clear;
-  cbbGroup.Clear;
+  lbGroup.Clear;
   cbbExpression.SetFocus;
   if cbbExpression.Text = '' then
     Exit;
   if mem.Lines.Text = '' then
     Exit;
 
-  re := TRegExpr.Create;
+  lbResult.Items.BeginUpdate;
+  lbGroup.Items.BeginUpdate;
   try
-    re.Expression := cbbExpression.Text;
-    if re.Exec(mem.Text) then
-    begin
-      s := re.Match[0];
-      lbResult.Items.Add(s);
-      while re.ExecNext() do
-      begin
-        lbResult.Items.Add(re.Match[0]);
-      end;
-      for i := 1 to re.GroupCount - 1 do
-      begin
-        s := re.GroupName[i];
-        if s.IsEmpty then
-          s := '[noname]';
-        cbbGroup.Items.Add(s);
-      end;
+    try
+      matchCount := RegexExecute(cbbExpression.Text, mem.Text,
+        lbResult.Items, lbGroup.Items);
+      if matchCount > 0 then
+        edtResult.Text := Format('%d match(es)', [matchCount])
+      else
+        edtResult.Text := 'No match';
+    except
+      on E: Exception do
+        edtResult.Text := E.Message;
     end;
-    //edtResult.Text := 'OK';
-  except
-    on E: Exception do
-    begin
-      edtResult.Text := e.Message;
-    end;
+  finally
+    lbGroup.Items.EndUpdate;
+    lbResult.Items.EndUpdate;
   end;
-  re.Free;
-  //edtResult.SetFocus;
 end;
 
 procedure TfRegex.cbbExpressionChange(Sender: TObject);
 begin
+  case cbbExpression.ItemIndex of
+    0: cbbExpression.Hint := 'Email Regex Tester';
+    1: cbbExpression.Hint := 'URL Regex Tester';
+    2: cbbExpression.Hint := 'IP Test';
+    else
+      cbbExpression.Hint := '';
+  end;
   if mem.Lines.Text <> '' then
     Exit;
-  cbbExpression.Hint := '';
   case cbbExpression.ItemIndex of
-    0:
-    begin
-      mem.Lines.Text := mem_email.Text;
-      cbbExpression.Hint := 'Email Regex Tester';
-    end;
-    1:
-    begin
-      mem.Lines.Text := mem_url.Text;
-      cbbExpression.Hint := 'URL Regex Tester';
-    end;
-    2:
-    begin
-      mem.Lines.Text := '127.0.0.1';
-      cbbExpression.Hint := 'IP Test';
-    end;
+    0: mem.Lines.Text := mem_email.Text;
+    1: mem.Lines.Text := mem_url.Text;
+    2: mem.Lines.Text := '127.0.0.1';
   end;
 end;
 
 procedure TfRegex.cbbExpressionKeyDown(Sender: TObject; var Key: word;
   Shift: TShiftState);
 begin
-  if key = 13 then
+  if Key = VK_RETURN then
   begin
-    key := 0;
+    Key := 0;
     btnCheck.Click;
   end;
 end;
 
-procedure TfRegex.FormDestroy(Sender: TObject);
-begin
-
-end;
-
 procedure TfRegex.FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
 begin
-  if key = 27 then
+  if Key = VK_ESCAPE then
   begin
-    key := 0;
+    Key := 0;
     Close;
   end;
 end;
