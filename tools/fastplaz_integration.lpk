@@ -2,13 +2,13 @@
 <CONFIG>
   <Package Version="5">
     <Name Value="fastplaz_integration"/>
-    <Type Value="RunAndDesignTime"/>
+    <Type Value="RunTimeOnly"/>
     <Author Value="Luri Darmawan (luri@fastplaz.com)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
         <OtherUnitFiles Value="../FastPlaz/src/integration"/>
-        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+        <UnitOutputDirectory Value="lib/integration/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <Verbosity>

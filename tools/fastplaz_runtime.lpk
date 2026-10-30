@@ -8,7 +8,7 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../FastPlaz"/>
-        <OtherUnitFiles Value="src;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/integration;../FastPlaz/src/helper"/>
+        <OtherUnitFiles Value="src;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper"/>
         <UnitOutputDirectory Value="lib/runtime/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
