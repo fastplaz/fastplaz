@@ -15,7 +15,8 @@ uses
   project_lib, project_wzd, projectapi_lib, projectapi_wzd, 
   projectgenerator_lib, regex_tester, themestructure_wzd, webstructure_lib, 
   webstructure_wzd, fastcode_configuration, openai_integration, de_dbmemoedit,
-  swagger_lib, LazarusPackageIntf;
+  swagger_lib, config_lib, http_lib, regexpr_lib, regexpr_unicodedata_lib,
+  regex_tester_lib, LazarusPackageIntf;
 
 implementation
 

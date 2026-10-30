@@ -288,7 +288,7 @@ function setenv(const name, value: PChar; overwrite: cint): cint; cdecl; externa
 implementation
 
 uses
-  logutil_lib, language_lib;
+  logutil_lib, language_lib, commonbase_lib;
 
 function i2s(pI: integer): string;
 begin
@@ -810,39 +810,14 @@ end;
 
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
-var
-  ReplaceFlags: TReplaceFlags;
-  NewPattern: string;
-  I: integer;
 begin
-  ReplaceFlags := [rfReplaceAll];
-  if IgnoreCase then
-    Include(ReplaceFlags, rfIgnoreCase);
-  Result := Subject;
-  for I := Low(OldPatterns) to High(OldPatterns) do
-  begin
-    if I <= High(NewPatterns) then
-      NewPattern := NewPatterns[I]
-    else
-      NewPattern := '';
-    Result := StringReplace(Result, OldPatterns[I], NewPattern, ReplaceFlags);
-  end;
+  Result := commonbase_lib.ReplaceAll(Subject, OldPatterns, NewPatterns, IgnoreCase);
 end;
 
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
   NewPatterns: string; IgnoreCase: boolean): string;
-var
-  ReplaceFlags: TReplaceFlags;
-  I: integer;
 begin
-  ReplaceFlags := [rfReplaceAll];
-  if IgnoreCase then
-    Include(ReplaceFlags, rfIgnoreCase);
-  Result := Subject;
-  for I := Low(OldPatterns) to High(OldPatterns) do
-  begin
-    Result := StringReplace(Result, OldPatterns[I], NewPatterns, ReplaceFlags);
-  end;
+  Result := commonbase_lib.ReplaceAll(Subject, OldPatterns, NewPatterns, IgnoreCase);
 end;
 
 procedure echo(const Message: string);
@@ -1021,14 +996,8 @@ begin
 end;
 
 function StripSlash(const DataString: UnicodeString): UnicodeString;
-var
-  L : Integer;
 begin
-  L:=Length(DataString);
-  If (L>0) and (DataString[l]='/') then
-    Result:=Copy(DataString,1,L-1)
-  else
-    Result:=DataString;
+  Result := commonbase_lib.StripSlash(DataString);
 end;
 
 // http://www.festra.com/eng/snip12.htm
@@ -1430,37 +1399,8 @@ begin
 end;
 
 function JsonFormatter(JsonString: string; const UseUTF8: Boolean): string;
-  // error line : VJSONParser.Scanner.CurRow;
-var
-  VJSONData : TJSONData = nil;
-  VJSONParser : TLocalJSONParser;
-  setOptions : TJSONOptions;
 begin
-  Result := '';
-  JsonString := trim(JsonString);
-  if JsonString = '' then
-    Exit;
-
-  if UseUTF8 then
-    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8])
-  else
-    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict]);
-  try
-    try
-      setOptions := VJSONParser.Options;
-      Include(setOptions, joStrict);
-
-      VJSONData := VJSONParser.Parse;
-      Result := VJSONData.FormatJSON([], 2);
-      VJSONData.Free;
-    except
-      on E: Exception do
-      begin
-      end;
-    end;
-  finally
-    VJSONParser.Free;
-  end;
+  Result := commonbase_lib.JsonFormatter(JsonString, UseUTF8);
 
 end;
 

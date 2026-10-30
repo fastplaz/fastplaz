@@ -9,7 +9,6 @@ object fRegex: TfRegex
   ClientWidth = 737
   KeyPreview = True
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   Position = poScreenCenter
   LCLVersion = '2.0.10.0'
@@ -35,7 +34,7 @@ object fRegex: TfRegex
       ShowHint = True
       TabOrder = 0
     end
-    object LSLabel1: TLabel
+    object lblExpression: TLabel
       Left = 8
       Height = 16
       Top = 9
@@ -100,7 +99,7 @@ object fRegex: TfRegex
     ClientHeight = 34
     ClientWidth = 737
     TabOrder = 1
-    object LSLabel2: TLabel
+    object lblResult: TLabel
       Left = 8
       Height = 16
       Top = 9
@@ -222,12 +221,12 @@ object fRegex: TfRegex
         Top = 1
         Width = 195
         Align = alTop
-        Caption = 'Group Name'
+        Caption = 'Groups'
         Font.Height = -12
         ParentFont = False
         TabOrder = 0
       end
-      object cbbGroup: TListBox
+      object lbGroup: TListBox
         Left = 1
         Height = 125
         Top = 18

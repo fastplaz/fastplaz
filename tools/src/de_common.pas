@@ -61,16 +61,7 @@ const
     'SELECT column_name "Field", data_type "Type", is_nullable "Null", '''' "Key" , column_default "Default", udt_name "Extras" '
     + ' FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name =''%s'';';
 
-  REGEX_EMAIL = '([\w\d\-\.]+@[\w\d\-]+(\.[\w\d\-]+)+)';
-  REGEX_EMAIL2 = '[^\w\d\-\.]([\w\d\-\.]+@[\w\d\-]+(\.[\w\d\-]+)+)[^\w\d\-\.]';
-  REGEX_URL = '((http)|(https)|(ftp)):\/\/([\- \w]+\.)+\w{2,3}(\/ [%\-\w]+(\.\w{2,})?)*';
-  REGEX_IP =
-    '^(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]' +
-    '|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4]' +
-    '[0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[' +
-    '0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])$';
-  REGEX_TELP = '\(([0-9]{2}|0{1}((x|[0-9]){2}[0-9]{2}))\)\s*[0-9]{3,4}[- ]*[0-9]{4}';
-  REGEX_TELP2 = '^[01]?[- .]?\(?[2-9]\d{2}\)?[- .]?\d{3}[- .]?\d{4}$';
+  // REGEX_* constants are in regex_tester_lib
 
   // reveal in finder
   {$ifdef windows}

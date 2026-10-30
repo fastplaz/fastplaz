@@ -9,6 +9,9 @@ uses
   cthreads,
   {$ENDIF}
   Dialogs, fpjson, fpjsondataset, jsonparser,
+  {$if FPC_FULlVERSION >= 30200}
+  extjsdataset,
+  {$endif}
   fphttpclient, http_lib, json_lib,
   Classes, SysUtils;
 

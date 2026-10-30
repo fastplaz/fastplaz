@@ -144,7 +144,6 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
     Top = 370
     Width = 204
     Caption = '&Test Connection'
-    Enabled = False
     OnClick = tbl_TestClick
     TabOrder = 9
   end
@@ -204,7 +203,7 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
     )
     OnKeyPress = edtNameKeyPress
     TabOrder = 1
-    Text = '-- select --'
+    Text = 'MySQL 8.0'
   end
   object Label10: TLabel
     Left = 10
