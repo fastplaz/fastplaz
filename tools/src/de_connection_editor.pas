@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Buttons,
-  StdCtrls, EditBtn;
+  StdCtrls, EditBtn, SQLDB, SQLDBLib;
 
 type
 
@@ -51,6 +51,9 @@ var
   fDatabaseConnectionEditor: TfDatabaseConnectionEditor;
 
 implementation
+
+uses
+  db_controller;
 
 {$R *.lfm}
 
@@ -102,28 +105,81 @@ begin
 end;
 
 procedure TfDatabaseConnectionEditor.tbl_TestClick(Sender: TObject);
+var
+  connector: TSQLConnector;
+  transaction: TSQLTransaction;
+  libraryLoader: TSQLDBLibraryLoader;
+  libraryLoaded: boolean;
 begin
-  {
-  if cbbServerType.ItemIndex = 0 then begin
-    alert( 'Select Server Type first');
-  Exit;
-  end;
-  if (edtHostname.Text = '') or (edtDatabaseName.Text = '') then begin
-    alert( 'Field is not complete', mtWarning);
-    if edtHostname.Text = '' then edtHostname.SetFocus;
-    if edtDatabaseName.Text = '' then edtDatabaseName.SetFocus;
+  if cbbDriver.ItemIndex < 0 then
+  begin
+    MessageDlg('Select driver first', mtWarning, [mbOK], 0);
+    cbbDriver.SetFocus;
     Exit;
   end;
-  if dDatabase.TestConnection(
-    cbbServerType.ItemIndex,
-    edtHostname.Text,
-    edtUsername.Text, edtPassword.Text, edtDatabaseName.Text,
-    edtPort.Text
-  ) then
-    alert( 'Conection Success ....')
-  else
-    alert( 'Conection Failed ....');
-  }
+  if (edtHostname.Text = '') or (edtDatabaseName.Text = '') then
+  begin
+    MessageDlg('Hostname and database name are required', mtWarning, [mbOK], 0);
+    if edtDatabaseName.Text = '' then
+      edtDatabaseName.SetFocus;
+    if edtHostname.Text = '' then
+      edtHostname.SetFocus;
+    Exit;
+  end;
+
+  // separate connection, does not touch the active DB Explorer connection
+  libraryLoader := nil;
+  libraryLoaded := False;
+  connector := TSQLConnector.Create(nil);
+  transaction := TSQLTransaction.Create(nil);
+  Screen.Cursor := crHourGlass;
+  try
+    try
+      connector.ConnectorType := cbbDriver.Text;
+      connector.Transaction := transaction;
+      connector.HostName := edtHostname.Text;
+      connector.UserName := edtUsername.Text;
+      connector.Password := edtPassword.Text;
+      connector.DatabaseName := edtDatabaseName.Text;
+      if edtPort.Text <> '' then
+        connector.Params.Values['Port'] := edtPort.Text;
+
+      if edtLibrary.FileName <> '' then
+      begin
+        libraryLoader := TSQLDBLibraryLoader.Create(nil);
+        libraryLoader.ConnectionType := connector.ConnectorType;
+        libraryLoader.LibraryName := edtLibrary.FileName;
+        libraryLoader.LoadLibrary;
+        libraryLoaded := True;
+      end;
+
+      OpenConnection(connector);
+      connector.Close(True);
+      Screen.Cursor := crDefault;
+      MessageDlg('Connection success', mtInformation, [mbOK], 0);
+    except
+      on E: Exception do
+      begin
+        Screen.Cursor := crDefault;
+        MessageDlg('Connection failed' + LineEnding + LineEnding + E.Message,
+          mtError, [mbOK], 0);
+      end;
+    end;
+  finally
+    Screen.Cursor := crDefault;
+    transaction.Free;
+    connector.Free;
+    if Assigned(libraryLoader) then
+    begin
+      // only unload what this test loaded, keep the active connection library
+      if libraryLoaded then
+      try
+        libraryLoader.UnloadLibrary;
+      except
+      end;
+      libraryLoader.Free;
+    end;
+  end;
 end;
 
 

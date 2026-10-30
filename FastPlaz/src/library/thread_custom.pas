@@ -78,8 +78,14 @@ end;
 procedure TCustomThread.Execute;
 begin
   fsStatusText := 'start';
-  if FOnExecute <> nil then
-    FOnExecute(Self);
+  try
+    if FOnExecute <> nil then
+      FOnExecute(Self);
+  except
+    // make sure the callback is always called
+    on E: Exception do
+      fsStatusText := E.Message;
+  end;
 
   Synchronize(@synchronizeStatus);
 end;

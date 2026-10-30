@@ -68,6 +68,7 @@ type
     procedure Close(ForceClose: boolean = False);
 
     function LoadLibrary(ALibraryFileName: string): boolean;
+    procedure UnloadLibrary;
   published
     property Connected: boolean read getConnected;
     property SQL: TStringList read getSQL write setSQL;
@@ -87,7 +88,93 @@ var
 
 function PrepareDatabaseController: boolean;
 
+// FPC sqldb: TMySQLxxConnection.DoInternalConnect initialises the client
+// library but does not release it when connecting fails afterwards
+// (version mismatch, wrong password, ...). The library stays loaded and
+// loading another library fails with "MySQL interface already initialized".
+function MySQLLibraryRefCount(const AConnectorType: string): integer;
+procedure MySQLLibraryRelease(const AConnectorType: string; ACount: integer);
+// Open connection, release the leaked library reference if it fails
+procedure OpenConnection(AConnector: TSQLConnector);
+
 implementation
+
+uses
+  mysql50dyn, mysql51dyn, mysql55dyn, mysql56dyn, mysql57dyn, mysql80dyn;
+
+function MySQLLibraryRefCount(const AConnectorType: string): integer;
+begin
+  // InitialiseMysql without library name only increases the reference count
+  // when the library is already loaded, DoReleaseMysql returns the count
+  Result := 0;
+  case AConnectorType of
+    'MySQL 5.0':
+      if mysql50dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql50dyn.InitialiseMysql;
+        Result := mysql50dyn.DoReleaseMysql;
+      end;
+    'MySQL 5.1':
+      if mysql51dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql51dyn.InitialiseMysql;
+        Result := mysql51dyn.DoReleaseMysql;
+      end;
+    'MySQL 5.5':
+      if mysql55dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql55dyn.InitialiseMysql;
+        Result := mysql55dyn.DoReleaseMysql;
+      end;
+    'MySQL 5.6':
+      if mysql56dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql56dyn.InitialiseMysql;
+        Result := mysql56dyn.DoReleaseMysql;
+      end;
+    'MySQL 5.7':
+      if mysql57dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql57dyn.InitialiseMysql;
+        Result := mysql57dyn.DoReleaseMysql;
+      end;
+    'MySQL 8.0':
+      if mysql80dyn.MysqlLibraryHandle <> NilHandle then
+      begin
+        mysql80dyn.InitialiseMysql;
+        Result := mysql80dyn.DoReleaseMysql;
+      end;
+  end;
+end;
+
+procedure MySQLLibraryRelease(const AConnectorType: string; ACount: integer);
+var
+  i: integer;
+begin
+  for i := 1 to ACount do
+    case AConnectorType of
+      'MySQL 5.0': mysql50dyn.ReleaseMySQL;
+      'MySQL 5.1': mysql51dyn.ReleaseMySQL;
+      'MySQL 5.5': mysql55dyn.ReleaseMySQL;
+      'MySQL 5.6': mysql56dyn.ReleaseMySQL;
+      'MySQL 5.7': mysql57dyn.ReleaseMySQL;
+      'MySQL 8.0': mysql80dyn.ReleaseMySQL;
+    end;
+end;
+
+procedure OpenConnection(AConnector: TSQLConnector);
+var
+  refCount: integer;
+begin
+  refCount := MySQLLibraryRefCount(AConnector.ConnectorType);
+  try
+    AConnector.Open;
+  except
+    MySQLLibraryRelease(AConnector.ConnectorType,
+      MySQLLibraryRefCount(AConnector.ConnectorType) - refCount);
+    raise;
+  end;
+end;
 
 function PrepareDatabaseController: boolean;
 begin
@@ -291,9 +378,11 @@ begin
     LibraryLoader := TSQLDBLibraryLoader.Create(nil);
 
   try
+    // release previous library first, so another library can be loaded
+    UnloadLibrary;
     LibraryLoader.ConnectionType := SQLConnector.ConnectorType;
     LibraryLoader.LibraryName := ALibraryFileName;
-    LibraryLoader.Enabled := True;
+    // LoadLibrary only once, setting Enabled := True also loads the library
     LibraryLoader.LoadLibrary;
     Result := True;
   except
@@ -302,6 +391,12 @@ begin
       FMessage := E.Message;
     end;
   end;
+end;
+
+procedure TDatabaseController.UnloadLibrary;
+begin
+  if Assigned(LibraryLoader) and LibraryLoader.Enabled then
+    LibraryLoader.UnloadLibrary;
 end;
 
 finalization

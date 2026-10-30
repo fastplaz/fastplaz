@@ -144,7 +144,6 @@ object fDatabaseConnectionEditor: TfDatabaseConnectionEditor
     Top = 370
     Width = 204
     Caption = '&Test Connection'
-    Enabled = False
     OnClick = tbl_TestClick
     TabOrder = 9
   end
