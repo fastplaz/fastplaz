@@ -64,7 +64,9 @@ type
     fEndOfLine: boolean;
     iLastPosX, iLastPosY: integer;
     jsonData: TJSONData;
+    fSelectedBackground, fSelectedForeground: TColor;
     procedure setupScheme;
+    procedure resetSelectedColor;
     procedure updateCursorPosition(AControl: TSynEdit; ACurrentPostX: integer);
     procedure showVisualTreeView();
     procedure showJSONData(AParent: TTreeNode; AData: TJSONData);
@@ -101,12 +103,19 @@ begin
   edt.Align := alClient;
   edt.Clear;
   setupScheme();
+  fSelectedBackground := edt.SelectedColor.Background;
+  fSelectedForeground := edt.SelectedColor.Foreground;
 end;
 
 procedure TfJSONTools.FormDestroy(Sender: TObject);
 begin
-  if Assigned(jsonData) then
-    jsonData.Free;
+  FreeAndNil(jsonData);
+end;
+
+procedure TfJSONTools.resetSelectedColor;
+begin
+  edt.SelectedColor.Background := fSelectedBackground;
+  edt.SelectedColor.Foreground := fSelectedForeground;
 end;
 
 procedure TfJSONTools.setupScheme;
@@ -142,15 +151,9 @@ end;
 
 procedure TfJSONTools.showVisualTreeView();
 begin
-  try
-    tvJson.Items.Clear;
-    if Assigned(jsonData) then
-      jsonData.Free;
-    jsonData := GetJSON(edt.Text);
-    showJSONData(nil, jsonData);
-    tvJson.FullExpand;
-  except
-  end;
+  tvJson.Items.Clear;
+  showJSONData(nil, jsonData);
+  tvJson.FullExpand;
 end;
 
 procedure TfJSONTools.showJSONData(AParent: TTreeNode; AData: TJSONData);
@@ -224,6 +227,8 @@ var
   posX, posY: integer;
 begin
   tvJson.Items.Clear;
+  FreeAndNil(jsonData);
+  resetSelectedColor;
   barBottom.Panels[0].Text := '';
   barBottom.Panels[2].Text := '';
   edt.Text := edt.Text.Trim;
@@ -236,6 +241,8 @@ begin
       VJSONData := VJSONParser.Parse;
       edt.Text := VJSONData.FormatJSON([], 2);
       //edt.Color := $00C2EFE7;
+      jsonData := VJSONData;
+      VJSONData := nil;
       showVisualTreeView;
       barBottom.Panels[0].Text := 'OK';
     except
@@ -243,7 +250,7 @@ begin
       begin
         barBottom.Panels[0].Text := 'ERR';
         barBottom.Panels[2].Text := E.Message;
-        posX := VJSONParser.Scanner.CurColumn;
+        posX := VJSONParser.Scanner.CurColumn + 1; // CurColumn is 0-based
         posY := VJSONParser.Scanner.CurRow;
         edt.CaretX := posX;
         edt.CaretY := posY;
@@ -270,17 +277,27 @@ procedure TfJSONTools.btnOpenFileClick(Sender: TObject);
 begin
   barBottom.Panels[0].Text := '';
   barBottom.Panels[2].Text := '';
-  with TOpenDialog.Create(Application) do
-  begin
+  with TOpenDialog.Create(nil) do
+  try
     Title := 'Open JSON file';
     Filter := 'JSON files (*.json)|*.json';
     //InitialDir := '';
     Options := [ofReadOnly, ofEnableSizing];
     if Execute then
     begin
-      edt.Lines.LoadFromFile(FileName);
+      try
+        edt.Lines.LoadFromFile(FileName);
+        barBottom.Panels[2].Text := FileName;
+      except
+        on E: Exception do
+        begin
+          barBottom.Panels[0].Text := 'ERR';
+          barBottom.Panels[2].Text := E.Message;
+        end;
+      end;
     end;
-    barBottom.Panels[2].Text := FileName;
+  finally
+    Free;
   end;
 end;
 
@@ -387,6 +404,7 @@ end;
 procedure TfJSONTools.edtMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: integer);
 begin
+  resetSelectedColor;
 end;
 
 procedure TfJSONTools.edtMouseUp(Sender: TObject; Button: TMouseButton;
