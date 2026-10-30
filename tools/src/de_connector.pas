@@ -292,7 +292,7 @@ begin
     databaseAsData := GetJSON('[]');
     TJSONArray(databaseAsData).Add(
       TJSONObject.Create(['name', 'Test (localhost)', 'type', 'mysql',
-      'driver', 'MySQL 5.7', 'hostname', 'localhost', 'port', '',
+      'driver', 'MySQL 8.0', 'hostname', 'localhost', 'port', '',
       'username', 'root', 'password', '', 'database_name', 'test',
       'charset', '', 'prefix', '', 'library', ''])
       );
@@ -970,7 +970,11 @@ begin
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
+  begin
     IDEFDEBrowserWindow.Disconnect;
+    // browser is useless without connection, close (hide) it as well
+    IDEFDEBrowserWindow.Close;
+  end;
 
   disableControl;
   Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
@@ -986,17 +990,7 @@ begin
     s := Config['databases'];
     databaseAsData := GetJSON(s);
 
-    dataType := 'firebird';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex < 8 then
-      dataType := 'mysql';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 8 then
-      dataType := 'odbc';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 9 then
-      dataType := 'oracle';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 10 then
-      dataType := 'postgres';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 11 then
-      dataType := 'sqlite';
+    dataType := fDatabaseConnectionEditor.DatabaseType;
 
     TJSONArray(databaseAsData).Add(
       TJSONObject.Create(['name', fDatabaseConnectionEditor.edtName.Text,
@@ -1085,17 +1079,7 @@ begin
 
   if fDatabaseConnectionEditor.ShowModal = mrOk then
   begin
-    dbType := 'firebird';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex < 8 then
-      dbType := 'mysql';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 8 then
-      dbType := 'odbc';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 9 then
-      dbType := 'oracle';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 10 then
-      dbType := 'postgres';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 11 then
-      dbType := 'sqlite';
+    dbType := fDatabaseConnectionEditor.DatabaseType;
 
     with fDatabaseConnectionEditor do
     begin

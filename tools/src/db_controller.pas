@@ -96,11 +96,42 @@ function MySQLLibraryRefCount(const AConnectorType: string): integer;
 procedure MySQLLibraryRelease(const AConnectorType: string; ACount: integer);
 // Open connection, release the leaked library reference if it fails
 procedure OpenConnection(AConnector: TSQLConnector);
+// Windows does not search the library folder for its dependencies
+// (libmysql.dll needs libssl/libcrypto from mysql\bin), add the library
+// folder and its sibling "bin" folder to the PATH of this process
+procedure AddLibrarySearchPath(const ALibraryFileName: string);
 
 implementation
 
 uses
+  {$ifdef windows}Windows,{$endif}
   mysql50dyn, mysql51dyn, mysql55dyn, mysql56dyn, mysql57dyn, mysql80dyn;
+
+procedure AddLibrarySearchPath(const ALibraryFileName: string);
+{$ifdef windows}
+var
+  i: integer;
+  path, dir: string;
+  dirs: array[0..1] of string;
+begin
+  dir := ExtractFileDir(ExpandFileName(ALibraryFileName));
+  dirs[0] := ExpandFileName(dir + '\..\bin');
+  dirs[1] := dir;
+  path := SysUtils.GetEnvironmentVariable('PATH');
+  for i := Low(dirs) to High(dirs) do
+  begin
+    if not DirectoryExists(dirs[i]) then
+      Continue;
+    if Pos(';' + LowerCase(dirs[i]) + ';', ';' + LowerCase(path) + ';') > 0 then
+      Continue;
+    path := dirs[i] + ';' + path;
+  end;
+  SetEnvironmentVariable('PATH', PChar(path));
+end;
+{$else}
+begin
+end;
+{$endif}
 
 function MySQLLibraryRefCount(const AConnectorType: string): integer;
 begin
@@ -382,6 +413,7 @@ begin
     UnloadLibrary;
     LibraryLoader.ConnectionType := SQLConnector.ConnectorType;
     LibraryLoader.LibraryName := ALibraryFileName;
+    AddLibrarySearchPath(ALibraryFileName);
     // LoadLibrary only once, setting Enabled := True also loads the library
     LibraryLoader.LoadLibrary;
     Result := True;

@@ -45,6 +45,7 @@ type
     { private declarations }
   public
     { public declarations }
+    function DatabaseType: string;
   end;
 
 var
@@ -76,7 +77,7 @@ begin
   edtPort.Clear;
   edtLibrary.Clear;
   cbbDriver.Style:= csDropDownList;
-  cbbDriver.ItemIndex := 7;
+  cbbDriver.ItemIndex := cbbDriver.Items.IndexOf('MySQL 8.0');
 end;
 
 procedure TfDatabaseConnectionEditor.edtNameKeyPress(Sender: TObject; var Key: char);
@@ -97,6 +98,19 @@ begin
   //if edtUsername.Text = '' then Exit;
   if edtDatabaseName.Text = '' then Exit;
   ModalResult := mrOK;
+end;
+
+function TfDatabaseConnectionEditor.DatabaseType: string;
+begin
+  // based on driver name, not on the item position in the list
+  Result := 'mysql';
+  case cbbDriver.Text of
+    'Firebird': Result := 'firebird';
+    'ODBC': Result := 'odbc';
+    'Oracle': Result := 'oracle';
+    'PostgreSQL': Result := 'postgres';
+    'SQLite3': Result := 'sqlite';
+  end;
 end;
 
 procedure TfDatabaseConnectionEditor.btnCancelClick(Sender: TObject);
@@ -149,6 +163,7 @@ begin
         libraryLoader := TSQLDBLibraryLoader.Create(nil);
         libraryLoader.ConnectionType := connector.ConnectorType;
         libraryLoader.LibraryName := edtLibrary.FileName;
+        AddLibrarySearchPath(edtLibrary.FileName);
         libraryLoader.LoadLibrary;
         libraryLoaded := True;
       end;
