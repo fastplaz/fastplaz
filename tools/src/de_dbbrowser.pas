@@ -13,12 +13,12 @@ uses
   // INTF
   IDEExternToolIntf,
   {$ifndef FDE_DESKTOP}
-  PackageIntf, IDEWindowIntf, LazIDEIntf,
+  PackageIntf, IDEWindowIntf, LazIDEIntf, IDEImagesIntf,
   {$endif}
   // Editor
   SynEdit, SynHighlighterSQL, SynCompletion, SynEditKeyCmds,
   SynHighlighterMulti, Clipbrd, LCLProc, LCLType, DB, SQLDB, Grids, ActnList,
-  StdCtrls, Menus, IniPropStorage, Types, SynEditTypes;
+  StdCtrls, Menus, IniPropStorage, Types, SynEditTypes, Math;
 
 type
 
@@ -55,6 +55,8 @@ type
     barHeader: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
+    ToolButton3: TToolButton;
+    ToolButton4: TToolButton;
     btnFileName: TToolButton;
     procedure actExecQueryExecute(Sender: TObject);
     procedure actFieldCopyExecute(Sender: TObject);
@@ -88,6 +90,7 @@ type
     procedure setupScheme(AControl: TSynEdit);
     procedure updateCursorPosition(AControl: TSynEdit; ACurrentPostX: integer);
     procedure getTableStructure(ATableName: string);
+    procedure autoSizeColumns(AGrid: TDBGrid);
 
     // Tab Control
     function getTabControl(ATableName: string): TTabSheet;
@@ -166,6 +169,13 @@ begin
   lbLog.Font.Name := 'Courier New';
   color := $3A4546;
   barHeader.Font.Color := $f0f0f0;
+  {$ifndef FDE_DESKTOP}
+  // icon only buttons, use the IDE icons
+  barHeader.Images := IDEImages.Images_16;
+  ActionList.Images := IDEImages.Images_16;
+  actExecQuery.ImageIndex := IDEImages.LoadImage('menu_run');
+  actOpenFile.ImageIndex := IDEImages.LoadImage('laz_open');
+  {$endif}
   setupScheme(editor);
 
   Enabled := True;
@@ -225,7 +235,10 @@ begin
   dq.SQL.Text := sql;
   try
     if preg_match(QUERY_SELECT_REGEX, sql.Trim) then
-      dq.Open
+    begin
+      dq.Open;
+      autoSizeColumns(TDBGrid(pgMain.ActivePage.Components[TAB_GRID_INDEX]));
+    end
     else
       dq.ExecSQL;
   except
@@ -645,6 +658,73 @@ begin
 
 end;
 
+procedure TIDEFDEBrowserWindow.autoSizeColumns(AGrid: TDBGrid);
+const
+  MAX_ROWS = 100;
+  MAX_COLUMN_WIDTH = 400;
+  MAX_TEXT_LENGTH = 100;
+  CELL_PADDING = 16;
+var
+  i, n: integer;
+  s: string;
+  widths: array of integer;
+  dataSet: TDataSet;
+  bookmark: TBookmark;
+  field: TField;
+begin
+  if (AGrid = nil) or (AGrid.DataSource = nil) then
+    Exit;
+  dataSet := AGrid.DataSource.DataSet;
+  if (dataSet = nil) or (not dataSet.Active) or (AGrid.Columns.Count = 0) then
+    Exit;
+  AGrid.HandleNeeded;
+
+  // column title
+  SetLength(widths, AGrid.Columns.Count);
+  AGrid.Canvas.Font.Assign(AGrid.TitleFont);
+  for i := 0 to AGrid.Columns.Count - 1 do
+    widths[i] := AGrid.Canvas.TextWidth(AGrid.Columns[i].Title.Caption);
+
+  // content, measure the loaded rows only
+  AGrid.Canvas.Font.Assign(AGrid.Font);
+  dataSet.DisableControls;
+  bookmark := dataSet.GetBookmark;
+  try
+    dataSet.First;
+    n := 0;
+    while (not dataSet.EOF) and (n < MAX_ROWS) do
+    begin
+      for i := 0 to AGrid.Columns.Count - 1 do
+      begin
+        field := AGrid.Columns[i].Field;
+        if field = nil then
+          Continue;
+        // memo is drawn as text, see GridDrawColumnCell
+        if field.DataType = ftMemo then
+          s := field.AsString
+        else
+          s := field.DisplayText;
+        s := Copy(s, 1, MAX_TEXT_LENGTH);
+        widths[i] := Max(widths[i], AGrid.Canvas.TextWidth(s));
+      end;
+      Inc(n);
+      dataSet.Next;
+    end;
+    dataSet.GotoBookmark(bookmark);
+  finally
+    dataSet.FreeBookmark(bookmark);
+    dataSet.EnableControls;
+  end;
+
+  AGrid.BeginUpdate;
+  try
+    for i := 0 to AGrid.Columns.Count - 1 do
+      AGrid.Columns[i].Width := Min(widths[i] + CELL_PADDING, MAX_COLUMN_WIDTH);
+  finally
+    AGrid.EndUpdate;
+  end;
+end;
+
 function TIDEFDEBrowserWindow.getTabControl(ATableName: string): TTabSheet;
 var
   i: integer;
@@ -729,8 +809,9 @@ begin
       OnDblClick := @GridDblClick;
       OnDrawColumnCell := @GridDrawColumnCell;
       OnKeyDown := @GridKeyDown;
-      Options := Options + [dgAutoSizeColumns, dgDblClickAutoSize, dgRowSelect] -
-        [dgEditing];
+      // column width is set by autoSizeColumns after the query is opened
+      Options := Options + [dgDblClickAutoSize, dgRowSelect] -
+        [dgEditing, dgAutoSizeColumns];
     end;
 
   end;

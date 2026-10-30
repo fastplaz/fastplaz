@@ -1,59 +1,60 @@
 object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
   Left = 261
-  Height = 405
+  Height = 506
   Top = 160
-  Width = 786
+  Width = 982
   Caption = ':: DB Browser'
-  ClientHeight = 405
-  ClientWidth = 786
+  ClientHeight = 506
+  ClientWidth = 982
+  DesignTimePPI = 120
   Enabled = False
   KeyPreview = True
+  Position = poDesktopCenter
+  SessionProperties = 'Left;Top'
+  LCLVersion = '4.8.0.0'
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnShow = FormShow
-  Position = poDesktopCenter
-  SessionProperties = 'Left;Top'
-  LCLVersion = '2.0.10.0'
   object barBottom: TStatusBar
     Left = 0
-    Height = 18
-    Top = 387
-    Width = 786
+    Height = 29
+    Top = 477
+    Width = 982
     Panels = <    
       item
-        Width = 50
+        Width = 62
       end    
       item
-        Width = 50
+        Width = 62
       end>
     SimplePanel = False
   end
   object pgMain: TPageControl
-    Left = 44
-    Height = 266
-    Top = 116
-    Width = 666
-    ActivePage = tbsLog
+    Left = 55
+    Height = 332
+    Top = 145
+    Width = 832
+    ActivePage = tabEditor
     MultiLine = True
-    TabIndex = 3
+    Options = [nboMultiLine]
+    TabIndex = 0
     TabOrder = 1
     TabPosition = tpBottom
-    Options = [nboMultiLine]
     object tabEditor: TTabSheet
       Caption = 'Grid'
-      ClientHeight = 244
-      ClientWidth = 660
+      ClientHeight = 299
+      ClientWidth = 824
       inline editor: TSynEdit
         Left = 0
-        Height = 108
+        Height = 135
         Top = 0
-        Width = 660
+        Width = 824
         Align = alTop
         Enabled = False
-        Font.Height = -13
+        Font.Height = -16
         Font.Name = 'Courier New'
         Font.Pitch = fpFixed
         Font.Quality = fqNonAntialiased
@@ -66,7 +67,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         OnMouseDown = editorMouseDown
         OnMouseUp = editorMouseUp
         BorderStyle = bsNone
-        Gutter.Width = 57
+        Gutter.Width = 72
         Gutter.MouseActions = <>
         RightGutter.Width = 0
         RightGutter.MouseActions = <>
@@ -523,11 +524,15 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         TabWidth = 4
         inline SynLeftGutterPartList1: TSynGutterPartList
           object SynGutterMarks1: TSynGutterMarks
-            Width = 24
+            Width = 30
             MouseActions = <>
+            MaxExtraMarksColums = 0
+            Options = [sgmoDeDuplicateMarksOnOverflow]
+            MarkupInfo.Background = clBtnFace
+            MarkupInfo.Foreground = clNone
           end
           object SynGutterLineNumber1: TSynGutterLineNumber
-            Width = 17
+            Width = 21
             MouseActions = <>
             MarkupInfo.Background = clBtnFace
             MarkupInfo.Foreground = clNone
@@ -537,18 +542,22 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
             LeadingZeros = False
           end
           object SynGutterChanges1: TSynGutterChanges
-            Width = 4
+            Width = 5
             MouseActions = <>
             ModifiedColor = 59900
             SavedColor = clGreen
+            MarkupInfo.Background = clNone
+            MarkupInfo.Foreground = clGreen
+            MarkupInfo.FrameColor = 59900
           end
           object SynGutterSeparator1: TSynGutterSeparator
-            Width = 2
+            Width = 3
             MouseActions = <>
             MarkupInfo.Background = clWhite
             MarkupInfo.Foreground = clGray
           end
           object SynGutterCodeFolding1: TSynGutterCodeFolding
+            Width = 13
             MouseActions = <>
             MarkupInfo.Background = clNone
             MarkupInfo.Foreground = clGray
@@ -558,10 +567,10 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         end
       end
       object Grid: TDBGrid
-        Left = 36
-        Height = 165
-        Top = 141
-        Width = 628
+        Left = 45
+        Height = 206
+        Top = 176
+        Width = 785
         AutoEdit = False
         BorderStyle = bsNone
         Color = clWindow
@@ -577,9 +586,9 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
       object Splitter1: TSplitter
         Cursor = crVSplit
         Left = 0
-        Height = 5
-        Top = 108
-        Width = 660
+        Height = 6
+        Top = 135
+        Width = 824
         Align = alTop
         ResizeAnchor = akTop
       end
@@ -591,38 +600,38 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
     object tabStructure: TTabSheet
       Caption = 'Structure'
-      ClientHeight = 244
-      ClientWidth = 660
+      ClientHeight = 299
+      ClientWidth = 824
       object StringGrid: TStringGrid
         Left = 0
-        Height = 100
-        Top = 50
-        Width = 660
+        Height = 125
+        Top = 62
+        Width = 825
         AutoEdit = False
         AutoFillColumns = True
         TabOrder = 0
         ColWidths = (
-          64
-          148
-          148
-          148
-          150
+          80
+          180
+          180
+          180
+          180
         )
       end
       object Panel1: TPanel
         Left = 0
-        Height = 25
+        Height = 31
         Top = 0
-        Width = 660
+        Width = 824
         Align = alTop
-        ClientHeight = 25
-        ClientWidth = 660
+        ClientHeight = 31
+        ClientWidth = 824
         TabOrder = 1
         object lblStructureTableName: TLabel
-          Left = 10
-          Height = 16
-          Top = 4
-          Width = 64
+          Left = 12
+          Height = 20
+          Top = 5
+          Width = 66
           Caption = 'Structure: '
           Font.Color = clWhite
           ParentColor = False
@@ -632,25 +641,25 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
     object tbsLog: TTabSheet
       Caption = 'Log'
-      ClientHeight = 244
-      ClientWidth = 660
+      ClientHeight = 299
+      ClientWidth = 824
       object Memo1: TMemo
-        Left = 421
-        Height = 90
-        Top = 274
-        Width = 150
+        Left = 526
+        Height = 112
+        Top = 342
+        Width = 188
         Lines.Strings = (
           'Memo1'
         )
         TabOrder = 0
       end
       object lbLog: TListBox
-        Left = 272
-        Height = 117
-        Top = 28
-        Width = 292
+        Left = 340
+        Height = 146
+        Top = 35
+        Width = 365
         Font.CharSet = ANSI_CHARSET
-        Font.Height = -13
+        Font.Height = -16
         Font.Name = 'Courier New'
         ItemHeight = 0
         ParentFont = False
@@ -660,35 +669,47 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
   end
   object barHeader: TToolBar
     Left = 0
-    Height = 42
+    Height = 32
     Top = 0
-    Width = 786
-    ButtonHeight = 42
-    ButtonWidth = 23
+    Width = 982
+    ButtonHeight = 28
+    ButtonWidth = 29
     Caption = 'barHeader'
-    Flat = False
-    ImagesWidth = 20
     List = True
+    ParentShowHint = False
     ShowCaptions = True
+    ShowHint = True
     TabOrder = 2
     object ToolButton1: TToolButton
       Cursor = crHandPoint
       Left = 1
       Top = 2
       Action = actExecQuery
-      AutoSize = True
-      ParentShowHint = False
-      ShowHint = True
+      ShowCaption = False
+    end
+    object ToolButton3: TToolButton
+      Left = 30
+      Height = 28
+      Top = 2
+      Caption = 'ToolButton3'
+      Style = tbsSeparator
     end
     object ToolButton2: TToolButton
       Cursor = crHandPoint
-      Left = 78
+      Left = 40
       Top = 2
       Action = actOpenFile
-      AutoSize = True
+      ShowCaption = False
+    end
+    object ToolButton4: TToolButton
+      Left = 69
+      Height = 28
+      Top = 2
+      Caption = 'ToolButton4'
+      Style = tbsSeparator
     end
     object btnFileName: TToolButton
-      Left = 152
+      Left = 79
       Top = 2
       AutoSize = True
       Caption = 'nama file ..dsf sdfsadf asdfasfdasdfs af'
@@ -697,18 +718,18 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
   end
   object DataSource: TDataSource
-    Left = 560
-    Top = 308
+    Left = 700
+    Top = 385
   end
   object SynSQL: TSynSQLSyn
     DefaultFilter = 'SQL Files (*.sql)|*.sql'
     Enabled = False
     SQLDialect = sqlSybase
-    Left = 176
-    Top = 308
+    Left = 220
+    Top = 385
   end
   object SynCompletion1: TSynCompletion
-    Position = 0
+    Position = -1
     LinesInWindow = 6
     SelectedColor = clHighlight
     CaseSensitive = False
@@ -718,8 +739,8 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     EndOfTokenChr = '()[].'
     ExecCommandID = ecSynCompletionExecute
     ToggleReplaceWhole = False
-    Left = 92
-    Top = 308
+    Left = 115
+    Top = 385
   end
   object MultiSyn: TSynMultiSyn
     Enabled = False
@@ -728,12 +749,12 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
         Highlighter = SynSQL
       end>
     DefaultHighlighter = SynSQL
-    Left = 244
-    Top = 308
+    Left = 305
+    Top = 385
   end
   object ActionList: TActionList
-    Left = 328
-    Top = 308
+    Left = 410
+    Top = 385
     object actExecQuery: TAction
       Caption = 'Exec Query'
       Hint = 'Exec selected query'
@@ -742,6 +763,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
     object actOpenFile: TAction
       Caption = 'Open file ..'
+      Hint = 'Open SQL file'
       ImageIndex = 15
       OnExecute = actOpenFileExecute
     end
@@ -752,15 +774,15 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
     end
   end
   object popupEditor: TPopupMenu
-    Left = 412
-    Top = 308
+    Left = 515
+    Top = 385
     object MenuItem2: TMenuItem
       Action = actExecQuery
     end
   end
   object popupGrid: TPopupMenu
-    Left = 474
-    Top = 308
+    Left = 593
+    Top = 385
     object MenuItem1: TMenuItem
       Action = actFieldCopy
       Caption = 'Copy'
@@ -769,7 +791,7 @@ object IDEFDEBrowserWindow: TIDEFDEBrowserWindow
   object PropStorage: TIniPropStorage
     StoredValues = <>
     IniSection = 'FDEBrowser'
-    Left = 632
-    Top = 308
+    Left = 790
+    Top = 385
   end
 end
