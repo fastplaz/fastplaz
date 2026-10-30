@@ -21,14 +21,8 @@ uses
   openweathermap_integration, portalpulsa_integration, rajaongkir_integration, 
   telegram_integration, thesaurus_integration, whois_integration, 
   witai_integration, yandextranslate_integration, zomato_integration, 
-  openai_integration, LazarusPackageIntf;
+  openai_integration;
 
 implementation
 
-procedure Register;
-begin
-end;
-
-initialization
-  RegisterPackage('fastplaz_integration', @Register);
 end.

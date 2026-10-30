@@ -8,8 +8,8 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../FastPlaz"/>
-        <OtherUnitFiles Value="src;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/integration;../FastPlaz/src/helper"/>
-        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+        <OtherUnitFiles Value="src;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper"/>
+        <UnitOutputDirectory Value="lib/runtime/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <Verbosity>
@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Minor="24" Release="11" Build="14"/>
-    <Files Count="45">
+    <Files Count="48">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -207,6 +207,18 @@
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item45>
+      <Item46>
+        <Filename Value="../FastPlaz/src/library/redis_lib.pas"/>
+        <UnitName Value="redis_lib"/>
+      </Item46>
+      <Item47>
+        <Filename Value="../FastPlaz/src/systems/redis_controller.pas"/>
+        <UnitName Value="redis_controller"/>
+      </Item47>
+      <Item48>
+        <Filename Value="../FastPlaz/src/library/commonbase_lib.pas"/>
+        <UnitName Value="commonbase_lib"/>
+      </Item48>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>
@@ -214,13 +226,10 @@
       <OutDir Value="src/i18n"/>
       <EnableI18NForLFM Value="True"/>
     </i18n>
-    <RequiredPkgs Count="2">
+    <RequiredPkgs Count="1">
       <Item1>
         <PackageName Value="FCL"/>
       </Item1>
-      <Item2>
-        <PackageName Value="LCL"/>
-      </Item2>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>

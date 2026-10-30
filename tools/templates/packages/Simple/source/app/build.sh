@@ -16,9 +16,8 @@ if [ ! -f $PROJECTFILE ]; then
     exit 1
 fi
 
-if [ ! -d lib ]; then
-    mkdir lib
-fi
+# unit output dir, must match -FUlib/$FPCTARGET/ in extra.cfg
+mkdir -p lib/$(fpc -iTP)-$(fpc -iTO)
 
 fpc $PROJECTFILE -o../../public_html/$PROJECTBASE.bin @extra.cfg
 

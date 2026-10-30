@@ -108,7 +108,7 @@ type
 implementation
 
 uses
-  common;
+  commonbase_lib;
 
 { TJSONUtilItem }
 
