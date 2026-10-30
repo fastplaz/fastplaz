@@ -115,6 +115,10 @@ type
     databaseType: string;
     lastActiveNode: TTreeNode;
     databaseAsData: TJSONData;
+    // filled by worker thread, read by callback in main thread
+    FConnectError: string;
+    FViewDatabaseName: string;
+    function isMainThread: boolean;
     procedure ShowTables;
     procedure ShowViews(ADatabaseName: string);
 
@@ -198,19 +202,32 @@ end;
 
 destructor TIDEFDEWindow.Destroy;
 begin
-  Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
-  Config.Flush;
+  if Assigned(Config) then
+  begin
+    Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+    Config.Flush;
+  end;
 
   tableList.Free;
   if Assigned(IDEFDEBrowserWindow) then
-    IDEFDEBrowserWindow.Free;
-  Config.Free;
+    FreeAndNil(IDEFDEBrowserWindow);
+  FreeAndNil(Config);
+  if IDEFDEWindow = Self then
+    IDEFDEWindow := nil;
   inherited Destroy;
+end;
+
+function TIDEFDEWindow.isMainThread: boolean;
+begin
+  Result := GetCurrentThreadId = MainThreadID;
 end;
 
 procedure TIDEFDEWindow.log(AMessage: string; ACategory: string;
   UrgencyLevel: TMessageLineUrgency);
 begin
+  // IDE messages window and LCL controls are not thread safe
+  if not isMainThread then
+    Exit;
   {$ifdef FDE_DESKTOP}
   barBottom.SimpleText := ACategory + ': ' + AMessage;
   {$else}
@@ -275,7 +292,7 @@ begin
     databaseAsData := GetJSON('[]');
     TJSONArray(databaseAsData).Add(
       TJSONObject.Create(['name', 'Test (localhost)', 'type', 'mysql',
-      'driver', 'MySQL 5.7', 'hostname', 'localhost', 'port', '',
+      'driver', 'MySQL 8.0', 'hostname', 'localhost', 'port', '',
       'username', 'root', 'password', '', 'database_name', 'test',
       'charset', '', 'prefix', '', 'library', ''])
       );
@@ -305,8 +322,11 @@ begin
 
     //Custom Library
     libraryFileName := getConfigValue(AIndex, 'library');
-    if not libraryFileName.IsEmpty then
-      DatabaseController.LoadLibrary(libraryFileName);
+    if libraryFileName.IsEmpty then
+      DatabaseController.UnloadLibrary
+    else
+    if not DatabaseController.LoadLibrary(libraryFileName) then
+      log(DatabaseController.Message, 'FDE', mluError);
 
     AfterConnect := @onConnectorAfterConnect;
     AfterDisconnect := @onConnectorAfterDisconnect;
@@ -366,7 +386,7 @@ var
   tableNode, itemNode: TTreeNode;
 begin
   try
-    DatabaseController.SQLConnector.Open;
+    OpenConnection(DatabaseController.SQLConnector);
   except
     on E: Exception do
     begin
@@ -400,7 +420,7 @@ var
   tableNode, itemNode: TTreeNode;
 begin
   try
-    DatabaseController.SQLConnector.Open;
+    OpenConnection(DatabaseController.SQLConnector);
   except
     on E: Exception do
     begin
@@ -449,18 +469,21 @@ begin
   enableControl;
 end;
 
+// running in worker thread: no log, no LCL access
 procedure TIDEFDEWindow.showTableProc(Sender: TObject);
 begin
+  FConnectError := '';
   try
-    DatabaseController.SQLConnector.Open;
+    OpenConnection(DatabaseController.SQLConnector);
     if not DatabaseController.SQLConnector.Connected then
+    begin
+      FConnectError := 'Connection failed';
       Exit;
+    end;
     DatabaseController.SQLConnector.GetTableNames(tableList, False);
   except
     on E: Exception do
-    begin
-      log(E.Message, 'FDE', mluError);
-    end;
+      FConnectError := E.Message;
   end;
 end;
 
@@ -470,8 +493,17 @@ var
   tableNode, itemNode: TTreeNode;
 begin
   enableControl;
+  if not FConnectError.IsEmpty then
+  begin
+    log(FConnectError, 'FDE', mluError);
+    Exit;
+  end;
   if not DatabaseController.Connected then
     Exit;
+
+  // AfterConnect is skipped while connecting from worker thread
+  onConnectorAfterConnect(nil);
+
   tableNode := tvConnectionList.Items.AddChild(tvConnectionList.Selected, 'Tables');
   tableNode.ImageIndex := ICO_TABLE;
   tableNode.SelectedIndex := ICO_TABLE;
@@ -482,27 +514,32 @@ begin
   end;
   tvConnectionList.Selected.Expand(True);
 
+  FViewDatabaseName := getConfigValue(tvConnectionList.Selected.Index, 'database_name');
   disableControl;
   Call(@showViewProc, @showViewCallbackProc);
 end;
 
+// running in worker thread: no log, no LCL access
 procedure TIDEFDEWindow.showViewProc(Sender: TObject);
 var
-  s, databaseName, fieldName: string;
-  tableNode, itemNode: TTreeNode;
+  s: string;
 begin
-  databaseName := getConfigValue(tvConnectionList.Selected.Index, 'database_name');
-
-  s := Format(SQL_SHOW_VIEWS_MYSQL, [databaseName]);
+  FConnectError := '';
+  s := Format(SQL_SHOW_VIEWS_MYSQL, [FViewDatabaseName]);
   if databaseType = 'postgres' then
     s := SQL_SHOW_VIEWS_POSTGRES;
 
   if not DatabaseController.Connected then
     Exit;
 
-  DatabaseController.SQL.Text := s;
-  DatabaseController.Query.Prepare;
-  DatabaseController.Query.Open;
+  try
+    DatabaseController.SQL.Text := s;
+    DatabaseController.Query.Prepare;
+    DatabaseController.Query.Open;
+  except
+    on E: Exception do
+      FConnectError := E.Message;
+  end;
 end;
 
 procedure TIDEFDEWindow.showViewCallbackProc(Sender: TObject);
@@ -518,7 +555,13 @@ begin
   viewNode.SelectedIndex := ICO_VIEW;
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_ON;
-  if DatabaseController.Query.RecordCount = 0 then
+  if not FConnectError.IsEmpty then
+  begin
+    log(FConnectError, 'FDE', mluError);
+    Exit;
+  end;
+  if (not DatabaseController.Query.Active) or
+    (DatabaseController.Query.RecordCount = 0) then
     Exit;
 
   fieldName := DatabaseController.Query.Fields[0].FieldName;
@@ -695,6 +738,8 @@ end;
 
 procedure TIDEFDEWindow.onConnectorAfterConnect(Sender: TObject);
 begin
+  if not isMainThread then
+    Exit;
   log('Database connected', 'FDE');
   if Assigned(IDEFDEBrowserWindow) then
   begin
@@ -707,6 +752,8 @@ end;
 
 procedure TIDEFDEWindow.onConnectorAfterDisconnect(Sender: TObject);
 begin
+  if not isMainThread then
+    Exit;
   log('Database disconnected', 'FDE');
   if Assigned(IDEFDEBrowserWindow) then
   begin
@@ -729,6 +776,8 @@ procedure TIDEFDEWindow.onQueryAfterOpen(DataSet: TDataSet);
 var
   s: string;
 begin
+  if not isMainThread then
+    Exit;
   if Assigned(IDEFDEBrowserWindow) then
   begin
     s := IntToStr(DatabaseController.Query.RecordCount);
@@ -921,7 +970,11 @@ begin
 
   actOnOffConnection.ImageIndex := ICO_CONNECTION_OFF;
   if Assigned(IDEFDEBrowserWindow) then
+  begin
     IDEFDEBrowserWindow.Disconnect;
+    // browser is useless without connection, close (hide) it as well
+    IDEFDEBrowserWindow.Close;
+  end;
 
   disableControl;
   Call( @disconnectDatabase, @disconnectDatabaseCallbackProc);
@@ -937,17 +990,7 @@ begin
     s := Config['databases'];
     databaseAsData := GetJSON(s);
 
-    dataType := 'firebird';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex < 8 then
-      dataType := 'mysql';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 8 then
-      dataType := 'odbc';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 9 then
-      dataType := 'oracle';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 10 then
-      dataType := 'postgres';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 11 then
-      dataType := 'sqlite';
+    dataType := fDatabaseConnectionEditor.DatabaseType;
 
     TJSONArray(databaseAsData).Add(
       TJSONObject.Create(['name', fDatabaseConnectionEditor.edtName.Text,
@@ -1036,17 +1079,7 @@ begin
 
   if fDatabaseConnectionEditor.ShowModal = mrOk then
   begin
-    dbType := 'firebird';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex < 8 then
-      dbType := 'mysql';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 8 then
-      dbType := 'odbc';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 9 then
-      dbType := 'oracle';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 10 then
-      dbType := 'postgres';
-    if fDatabaseConnectionEditor.cbbDriver.ItemIndex = 11 then
-      dbType := 'sqlite';
+    dbType := fDatabaseConnectionEditor.DatabaseType;
 
     with fDatabaseConnectionEditor do
     begin

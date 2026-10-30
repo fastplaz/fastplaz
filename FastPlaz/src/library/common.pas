@@ -96,6 +96,40 @@ type
     property Scanner: TJSONScanner read FScanner;
   end;
 
+  { TMainData }
+
+  TMainData = record
+    module, modtype, func: string;
+    sitename,
+    slogan,
+    baseUrl,
+    admin_email,
+    language,
+    tempDir: string;
+    logDir: string;
+    themeEnable: boolean;
+    theme: string;
+    cacheType: string;
+    cacheWrite: boolean;
+    cacheTime: integer;
+    tablePrefix: string;
+    sessionAutoStart: boolean;
+    SessionID: string;
+    SessionDir: string;
+    SessionStorage: integer;
+    hitStorage: string;
+    databaseRead,
+    databaseWrite: string;
+    databaseVersionCheck,
+    databaseActive,
+    useDatabase,
+    initialized,
+    debug: boolean;
+    debugLevel: integer;
+    isReady: boolean;
+    cookiePath: string;
+  end;
+
 
 function i2s(pI: integer): string;
 function s2i(s: string): integer;
@@ -185,6 +219,10 @@ procedure Die(const Number: integer; ACode: integer = 200); overload;
 procedure Die(const Message: TStringList; ACode: integer = 200); overload;
 procedure OutputJson(const ACode: integer; AMessage: string; AForceCode: Integer = 0);
 
+procedure DisplayError(const Message: string; const Layout: string = 'error');
+procedure Redirect(const URL: string; const FlashMessage: string = '';
+  AStatusCode: Integer = 302);
+
 function mysql_real_escape_string(const unescaped_string: string): string;
 function mysql_real_escape_string(const unescaped_strings: TStringList): string;
 function isURL( const AURL: string): boolean;
@@ -206,6 +244,14 @@ function Base64ToFile(const Base64, AFile: String): boolean;
 function FileToBase64(const AFile: String): string;
 
 var
+  AppData: TMainData;
+  Config: TMyConfig;
+  _DebugInfo: TStringList;
+
+  DisplayErrorHandler: procedure(const Message: string; const Layout: string);
+  RedirectHandler: procedure(const URL: string; const FlashMessage: string;
+    AStatusCode: Integer);
+
   _fgcContent: RawByteString;
   _fgcURL: String;
   _fgcTimeout: integer;
@@ -242,7 +288,7 @@ function setenv(const name, value: PChar; overwrite: cint): cint; cdecl; externa
 implementation
 
 uses
-  logutil_lib, language_lib;
+  logutil_lib, language_lib, commonbase_lib;
 
 function i2s(pI: integer): string;
 begin
@@ -581,26 +627,26 @@ begin
   SetLength(vUCS4Str, 2);
 
   re := TRegExpr.Create;
-  re.Expression := pattern;
-  if re.Exec(AText) then
+  re.Expression := RegExprString(pattern);
+  if re.Exec(RegExprString(AText)) then
   begin
-    itemString := re.Match[0];
-    lst := Explode(re.Match[0], '\u');
+    itemString := string(re.Match[0]);
+    lst := Explode(string(re.Match[0]), '\u');
     vUCS4Str[0] := Hex2Dec(lst[1]);
     if BIsPair then
       vUCS4Str[1] := Hex2Dec(lst[2]);
-    s := UCS4StringToWideString(vUCS4Str);
+    s := string(UCS4StringToWideString(vUCS4Str));
     lst.Free;
     Result := Result.Replace(itemString, s, [rfReplaceAll]);
 
     while re.ExecNext do
     begin
-      itemString := re.Match[0];
-      lst := Explode(re.Match[0], '\u');
+      itemString := string(re.Match[0]);
+      lst := Explode(string(re.Match[0]), '\u');
       vUCS4Str[0] := Hex2Dec(lst[1]);
       if BIsPair then
         vUCS4Str[1] := Hex2Dec(lst[2]);
-      s := UCS4StringToWideString(vUCS4Str);
+      s := string(UCS4StringToWideString(vUCS4Str));
       lst.Free;
       Result := Result.Replace(itemString, s, [rfReplaceAll]);
     end;
@@ -764,39 +810,14 @@ end;
 
 function ReplaceAll(const Subject: string;
   const OldPatterns, NewPatterns: array of string; IgnoreCase: boolean): string;
-var
-  ReplaceFlags: TReplaceFlags;
-  NewPattern: string;
-  I: integer;
 begin
-  ReplaceFlags := [rfReplaceAll];
-  if IgnoreCase then
-    Include(ReplaceFlags, rfIgnoreCase);
-  Result := Subject;
-  for I := Low(OldPatterns) to High(OldPatterns) do
-  begin
-    if I <= High(NewPatterns) then
-      NewPattern := NewPatterns[I]
-    else
-      NewPattern := '';
-    Result := StringReplace(Result, OldPatterns[I], NewPattern, ReplaceFlags);
-  end;
+  Result := commonbase_lib.ReplaceAll(Subject, OldPatterns, NewPatterns, IgnoreCase);
 end;
 
 function ReplaceAll(const Subject: string; const OldPatterns: array of string;
   NewPatterns: string; IgnoreCase: boolean): string;
-var
-  ReplaceFlags: TReplaceFlags;
-  I: integer;
 begin
-  ReplaceFlags := [rfReplaceAll];
-  if IgnoreCase then
-    Include(ReplaceFlags, rfIgnoreCase);
-  Result := Subject;
-  for I := Low(OldPatterns) to High(OldPatterns) do
-  begin
-    Result := StringReplace(Result, OldPatterns[I], NewPatterns, ReplaceFlags);
-  end;
+  Result := commonbase_lib.ReplaceAll(Subject, OldPatterns, NewPatterns, IgnoreCase);
 end;
 
 procedure echo(const Message: string);
@@ -861,6 +882,19 @@ begin
     die(s, 200)
   else
     die(s, AForceCode);
+end;
+
+procedure DisplayError(const Message: string; const Layout: string);
+begin
+  if Assigned(DisplayErrorHandler) then
+    DisplayErrorHandler(Message, Layout);
+end;
+
+procedure Redirect(const URL: string; const FlashMessage: string;
+  AStatusCode: Integer);
+begin
+  if Assigned(RedirectHandler) then
+    RedirectHandler(URL, FlashMessage, AStatusCode);
 end;
 
 function WordNumber(s: string): integer;
@@ -962,14 +996,8 @@ begin
 end;
 
 function StripSlash(const DataString: UnicodeString): UnicodeString;
-var
-  L : Integer;
 begin
-  L:=Length(DataString);
-  If (L>0) and (DataString[l]='/') then
-    Result:=Copy(DataString,1,L-1)
-  else
-    Result:=DataString;
+  Result := commonbase_lib.StripSlash(DataString);
 end;
 
 // http://www.festra.com/eng/snip12.htm
@@ -1371,37 +1399,8 @@ begin
 end;
 
 function JsonFormatter(JsonString: string; const UseUTF8: Boolean): string;
-  // error line : VJSONParser.Scanner.CurRow;
-var
-  VJSONData : TJSONData = nil;
-  VJSONParser : TLocalJSONParser;
-  setOptions : TJSONOptions;
 begin
-  Result := '';
-  JsonString := trim(JsonString);
-  if JsonString = '' then
-    Exit;
-
-  if UseUTF8 then
-    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict, joUTF8])
-  else
-    VJSONParser := TLocalJSONParser.Create(JsonString, [joStrict]);
-  try
-    try
-      setOptions := VJSONParser.Options;
-      Include(setOptions, joStrict);
-
-      VJSONData := VJSONParser.Parse;
-      Result := VJSONData.FormatJSON([], 2);
-      VJSONData.Free;
-    except
-      on E: Exception do
-      begin
-      end;
-    end;
-  finally
-    VJSONParser.Free;
-  end;
+  Result := commonbase_lib.JsonFormatter(JsonString, UseUTF8);
 
 end;
 
@@ -1911,8 +1910,8 @@ begin
   try
     with TRegExpr.Create do
     begin
-      Expression := RegexExpression;
-      Result := Exec(SourceString);
+      Expression := RegExprString(RegexExpression);
+      Result := Exec(RegExprString(SourceString));
       Free;
     end;
   except
@@ -1925,8 +1924,8 @@ begin
   try
     with TRegExpr.Create do
     begin
-      Expression := RegexExpression;
-      Result := Replace(SourceString, ReplaceString, UseSubstitution);
+      Expression := RegExprString(RegexExpression);
+      Result := string(Replace(RegExprString(SourceString), RegExprString(ReplaceString), UseSubstitution));
       Free;
     end;
   except
@@ -1936,18 +1935,18 @@ end;
 
 function isIPAddress(const IPAddress: string): boolean;
 begin
-  Result := execregexpr('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', IPAddress);
+  Result := execregexpr(RegExprString('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'), RegExprString(IPAddress));
 end;
 
 function isEmail(const s: string): boolean;
 begin
-  Result := execregexpr('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)', s);
+  Result := execregexpr(RegExprString('(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'), RegExprString(s));
 end;
 
 function isDomain(const s: string): boolean;
 begin
   //Result := execregexpr('(^(?!\-)(?:[a-zA-Z\d\-]{0,62}[a-zA-Z\d]\.){1,126}(?!\d+)[a-zA-Z\d]{1,63}$)', s);
-  Result := execregexpr('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$', s);
+  Result := execregexpr(RegExprString('^((\w+)\.)?(([\w-]+)?)(\.[\w-]+){1,2}$'), RegExprString(s));
 end;
 
 function GetHostNameIP(HostName: string): string;
@@ -2159,12 +2158,15 @@ end;
 
 initialization
   LANG := 'en'; //GetLanguageIDs( LANG, FallbackLANG);
+  AppData.isReady := False;
   AppData.debug := True;
+  _DebugInfo := TStringList.Create;
   Config := TMyConfig.Create(nil);
   Config.ValidateFile('config/config.json');
 
 
 finalization
+  FreeAndNil(_DebugInfo);
   FreeAndNil(Config);
 
 end.

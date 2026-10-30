@@ -36,7 +36,7 @@ var
 
 implementation
 
-uses config_lib, fastplaz_handler;
+uses config_lib;
 
 
 { TLogUtil }
@@ -66,7 +66,7 @@ begin
   if FPrefix=AValue then Exit;
   FPrefix:=AValue;
   FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
-  FullName := dir + '/' + FPrefix + FileName;
+  FullName := dir + '/' + UnicodeString(FPrefix) + FileName;
 end;
 
 constructor TLogUtil.Create;
@@ -111,7 +111,7 @@ begin
   if Skip then
     Exit;
   if CustomLogFile.IsEmpty then
-    CustomLogFile := FullName;
+    CustomLogFile := string(FullName);
   try
     if ModName <> '' then
       s := ModName + ': ';

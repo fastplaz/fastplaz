@@ -97,7 +97,7 @@ end;
 
 function TStringSmartHelper.SafeText: AnsiString;
 begin
-  Self := common.SafeText(Self);
+  Result := common.SafeText(Self);
 end;
 
 function TStringSmartHelper.RemoveSlash: AnsiString;

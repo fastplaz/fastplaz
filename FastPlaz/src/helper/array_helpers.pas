@@ -51,11 +51,13 @@ class function TArraySmartHelper.CreateFromDelimitedString(DelimString: String
   ): TStringArray;
 begin
   //todo:
+  Result := nil;
 end;
 
 class function TArraySmartHelper.IndexOf(AString: String): integer;
 begin
   //todo:
+  Result := -1;
 end;
 
 function TArraySmartHelper.Length: integer;

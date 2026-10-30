@@ -119,7 +119,7 @@ end;
 
 function TDateTimeSmartHelper.DayOfWeek: Word;
 begin
-  Result := DayOfTheWeek( Self);
+  Result := dateutils.DayOfTheWeek( Self);
 end;
 
 function TDateTimeSmartHelper.YearOf: Word;
