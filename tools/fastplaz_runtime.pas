@@ -18,7 +18,7 @@ uses
   error_controller, exception_controller, fastplaz_handler, info_controller, 
   initialize_controller, module_controller, session_controller, 
   theme_controller, modvar_util, fastplaz_runtime_register, redis_lib,
-  redis_controller;
+  redis_controller, commonbase_lib;
 
 implementation
 

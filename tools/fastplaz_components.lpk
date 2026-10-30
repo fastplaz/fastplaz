@@ -11,7 +11,7 @@
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Remote Dataset for FastPlaz"/>
-    <Files Count="2">
+    <Files Count="4">
       <Item1>
         <Filename Value="../FastPlaz/src/components/remotedataset_component.pas"/>
         <HasRegisterProc Value="True"/>
@@ -21,6 +21,14 @@
         <Filename Value="../FastPlaz/src/library/http_lib.pas"/>
         <UnitName Value="http_lib"/>
       </Item2>
+      <Item3>
+        <Filename Value="../FastPlaz/src/library/json_lib.pas"/>
+        <UnitName Value="json_lib"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../FastPlaz/src/library/commonbase_lib.pas"/>
+        <UnitName Value="commonbase_lib"/>
+      </Item4>
     </Files>
     <i18n>
       <EnableI18N Value="True"/>
