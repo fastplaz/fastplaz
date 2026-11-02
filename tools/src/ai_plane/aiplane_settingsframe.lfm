@@ -84,6 +84,7 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     OnChange = ValueChange
   end
   object btnDetect: TButton
+    Cursor = crHandPoint
     Left = 492
     Height = 23
     Hint = 'Start the runtime and read its model list'
@@ -124,6 +125,7 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     ShowAccelChar = False
   end
   object btnTest: TButton
+    Cursor = crHandPoint
     Left = 98
     Height = 28
     Top = 192

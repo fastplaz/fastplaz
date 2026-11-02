@@ -27,6 +27,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Buttons, LCLType,
+  LCLIntf,
   aiplane_types, aiplane_presets, aiplane_chatview;
 
 type
@@ -35,7 +36,7 @@ type
 
   TAIChatFrame = class(TFrame)
     btnLog: TSpeedButton;
-    btnNew: TButton;
+    btnNew: TSpeedButton;
     btnSend: TButton;
     cbbEffort: TComboBox;
     cbbModel: TComboBox;
@@ -59,6 +60,7 @@ type
   private
     FAdapter: TAIAdapter;
     FView: TAIChatView;
+    FInputHint: TStaticText;
     FPresetId: string;
     FCommand: string;
     FArguments: string;
@@ -71,6 +73,9 @@ type
     FFillingModels: boolean;
     FModelCount: integer;
     procedure SetupControls;
+    procedure InputChange(Sender: TObject);
+    procedure InputHintClick(Sender: TObject);
+    procedure FitComboWidths;
     procedure CreateAdapter;
     procedure FreeAdapter;
     procedure UpdateControls;
@@ -115,6 +120,68 @@ implementation
 
 const
   MAX_LOG_LINES = 2000;
+  MIN_COMBO_WIDTH = 60;
+  MAX_COMBO_WIDTH = 260;
+
+type
+  TToolIcon = (tiNew, tiLog);
+
+{ Toolbar glyphs drawn in code: no image files, they follow the theme's text
+  colour and the screen scaling, in the IDE and in the tester alike. }
+function MakeToolIcon(AIcon: TToolIcon; ASize: integer): TBitmap;
+var
+  c: TCanvas;
+  m, x1, x2, i, y: integer;
+begin
+  Result := TBitmap.Create;
+  Result.SetSize(ASize, ASize);
+  c := Result.Canvas;
+  c.Brush.Color := clFuchsia;
+  c.FillRect(0, 0, ASize, ASize);
+  c.Pen.Color := ColorToRGB(clBtnText);
+  c.Pen.Width := ASize div 8;
+  if c.Pen.Width < 1 then
+    c.Pen.Width := 1;
+  m := ASize div 2;
+  case AIcon of
+    tiNew:
+    begin
+      // plus sign
+      c.Line(m, ASize div 5, m, ASize - ASize div 5);
+      c.Line(ASize div 5, m, ASize - ASize div 5, m);
+    end;
+    tiLog:
+    begin
+      // lines of text
+      x1 := ASize div 6;
+      for i := 0 to 3 do
+      begin
+        y := ASize div 5 + i * (ASize * 3 div 5) div 3;
+        if Odd(i) then
+          x2 := ASize - ASize div 3
+        else
+          x2 := ASize - x1;
+        c.Line(x1, y, x2, y);
+      end;
+    end;
+  end;
+  Result.TransparentColor := clFuchsia;
+  Result.Transparent := True;
+end;
+
+function TextWidthOf(AControl: TControl; const AText: string): integer;
+var
+  bmp: TBitmap;
+begin
+  bmp := TBitmap.Create;
+  try
+    bmp.SetSize(4, 4);
+    bmp.Canvas.Font.Assign(AControl.Font);
+    Result := bmp.Canvas.TextWidth(AText);
+  finally
+    bmp.Free;
+  end;
+end;
 
 { TAIChatFrame }
 
@@ -139,6 +206,7 @@ end;
 procedure TAIChatFrame.SetupControls;
 var
   i: integer;
+  icon: TBitmap;
 begin
   cbbRuntime.Items.Clear;
   for i := 0 to AIPresetCount - 1 do
@@ -147,13 +215,89 @@ begin
   for i := 0 to High(AI_EFFORT_LEVELS) do
     cbbEffort.Items.Add(AI_EFFORT_LEVELS[i]);
   cbbEffort.ItemIndex := 0;
-  // TextHint is public, not published, so it cannot live in the .lfm.
-  mem_Input.TextHint := 'Ask the agent (Enter to send, Shift+Enter for a new line)';
+  // Placeholder. TMemo.TextHint does not work for a multi-line edit on
+  // Windows (EM_SETCUEBANNER is single-line only), so a windowed label sits
+  // on the memo while it is empty; a TLabel would be painted behind it.
+  FInputHint := TStaticText.Create(Self);
+  FInputHint.Parent := pnlInput;
+  FInputHint.Caption := 'Shift+Enter to line break';
+  FInputHint.AutoSize := True;
+  FInputHint.Color := clWindow;
+  FInputHint.Font.Color := clGrayText;
+  FInputHint.Cursor := crIBeam;
+  // a few pixels right of the caret, which stays visible
+  FInputHint.Left := mem_Input.Left + Scale96ToScreen(6);
+  FInputHint.Top := mem_Input.Top + Scale96ToScreen(3);
+  FInputHint.OnClick := @InputHintClick;
+  FInputHint.BringToFront;
+  mem_Input.OnChange := @InputChange;
+
+  icon := MakeToolIcon(tiNew, Scale96ToScreen(16));
+  try
+    btnNew.Glyph := icon;
+  finally
+    icon.Free;
+  end;
+  icon := MakeToolIcon(tiLog, Scale96ToScreen(16));
+  try
+    btnLog.Glyph := icon;
+  finally
+    icon.Free;
+  end;
+  FitComboWidths;
 
   FView := TAIChatView.Create(Self);
   FView.Parent := pnlView;
   FView.Align := alClient;
   FView.OnButtonClick := @ViewButtonClick;
+end;
+
+procedure TAIChatFrame.InputChange(Sender: TObject);
+begin
+  FInputHint.Visible := mem_Input.Text = '';
+  if FInputHint.Visible then
+    FInputHint.BringToFront;
+end;
+
+procedure TAIChatFrame.InputHintClick(Sender: TObject);
+begin
+  FocusInput;
+end;
+
+// Model and effort boxes are as wide as their text: the effort box fits its
+// longest level, the model box fits the current model and its drop-down list
+// fits the longest model id.
+procedure TAIChatFrame.FitComboWidths;
+
+  function Fit(ACombo: TComboBox; const AText: string): integer;
+  begin
+    Result := TextWidthOf(ACombo, AText) + GetSystemMetrics(SM_CXVSCROLL) +
+      Scale96ToScreen(16);
+    if Result < Scale96ToScreen(MIN_COMBO_WIDTH) then
+      Result := Scale96ToScreen(MIN_COMBO_WIDTH);
+    if Result > Scale96ToScreen(MAX_COMBO_WIDTH) then
+      Result := Scale96ToScreen(MAX_COMBO_WIDTH);
+  end;
+
+var
+  i: integer;
+  longest, s: string;
+begin
+  longest := '';
+  for i := 0 to cbbEffort.Items.Count - 1 do
+    if Length(cbbEffort.Items[i]) > Length(longest) then
+      longest := cbbEffort.Items[i];
+  cbbEffort.Width := Fit(cbbEffort, longest);
+
+  longest := cbbModel.Text;
+  for i := 0 to cbbModel.Items.Count - 1 do
+    if TextWidthOf(cbbModel, cbbModel.Items[i]) > TextWidthOf(cbbModel, longest) then
+      longest := cbbModel.Items[i];
+  s := cbbModel.Text;
+  if s = '' then
+    s := 'runtime default';
+  cbbModel.Width := Fit(cbbModel, s);
+  cbbModel.ItemWidth := TextWidthOf(cbbModel, longest) + Scale96ToScreen(24);
 end;
 
 procedure TAIChatFrame.SetRuntime(const APresetId: string; const ACommand: string;
@@ -288,6 +432,7 @@ begin
   finally
     FFillingModels := False;
   end;
+  FitComboWidths;
 end;
 
 procedure TAIChatFrame.SendPrompt(const AText: string);
@@ -520,7 +665,10 @@ end;
 
 procedure TAIChatFrame.cbbModelChange(Sender: TObject);
 begin
-  if FFillingModels or not Assigned(FAdapter) then
+  if FFillingModels then
+    Exit;
+  FitComboWidths;
+  if not Assigned(FAdapter) then
     Exit;
   if FAdapter.Model = Trim(cbbModel.Text) then
     Exit;
@@ -605,6 +753,7 @@ end;
 procedure TAIChatFrame.SetModel(const AValue: string);
 begin
   cbbModel.Text := AValue;
+  FitComboWidths;
   if Assigned(FAdapter) then
     FAdapter.Model := Trim(AValue);
 end;
