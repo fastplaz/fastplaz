@@ -27,6 +27,25 @@ object AIChatFrame: TAIChatFrame
     ClientHeight = 36
     ClientWidth = 659
     TabOrder = 0
+    object lblRuntime: TLabel
+      BorderSpacing.Right = 8
+      Layout = tlCenter
+      Cursor = crHandPoint
+      Left = 4
+      Height = 20
+      Hint = 'Change runtime'
+      Top = 4
+      Width = 51
+      Align = alLeft
+      Caption = 'runtime'
+      Font.Style = [fsBold]
+      ParentFont = False
+      ParentColor = False
+      ShowAccelChar = False
+      OnClick = lblRuntimeClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
     object cbbRuntime: TComboBox
       Left = 4
       Height = 28
@@ -49,6 +68,7 @@ object AIChatFrame: TAIChatFrame
       Align = alLeft
       ItemHeight = 20
       TabOrder = 1
+      Visible = False
       OnEditingDone = cbbModelChange
       OnSelect = cbbModelChange
     end
@@ -62,6 +82,7 @@ object AIChatFrame: TAIChatFrame
       ItemHeight = 20
       Style = csDropDownList
       TabOrder = 2
+      Visible = False
       OnSelect = cbbEffortSelect
     end
     object btnNew: TSpeedButton
@@ -89,7 +110,7 @@ object AIChatFrame: TAIChatFrame
   end
   object pnlView: TPanel
     Left = 0
-    Height = 357
+    Height = 340
     Top = 36
     Width = 659
     Align = alClient
@@ -100,7 +121,7 @@ object AIChatFrame: TAIChatFrame
     Cursor = crVSplit
     Left = 0
     Height = 6
-    Top = 393
+    Top = 376
     Width = 659
     Align = alBottom
     ResizeAnchor = akBottom
@@ -109,7 +130,7 @@ object AIChatFrame: TAIChatFrame
   object mem_Log: TMemo
     Left = 0
     Height = 150
-    Top = 399
+    Top = 382
     Width = 659
     Align = alBottom
     ReadOnly = True
@@ -121,7 +142,7 @@ object AIChatFrame: TAIChatFrame
   object pnlInput: TPanel
     Left = 0
     Height = 90
-    Top = 549
+    Top = 532
     Width = 659
     Align = alBottom
     BevelOuter = bvNone
@@ -152,17 +173,62 @@ object AIChatFrame: TAIChatFrame
       OnKeyDown = mem_InputKeyDown
     end
   end
-  object lblStatus: TLabel
-    Left = 5
-    Height = 1
-    Top = 644
-    Width = 649
+  object pnlStatus: TPanel
+    Left = 0
+    Height = 28
+    Top = 622
+    Width = 659
     Align = alBottom
-    BorderSpacing.Around = 5
-    Font.Color = clGrayText
-    ParentColor = False
-    ParentFont = False
-    ShowAccelChar = False
+    AutoSize = True
+    BevelOuter = bvNone
+    ChildSizing.LeftRightSpacing = 5
+    ChildSizing.TopBottomSpacing = 4
+    ClientHeight = 28
+    ClientWidth = 659
+    TabOrder = 4
+    object lblEffort: TLabel
+      Cursor = crHandPoint
+      Left = 5
+      Height = 20
+      Hint = 'Change thinking effort'
+      Top = 4
+      Width = 37
+      Align = alLeft
+      Caption = 'effort'
+      ParentColor = False
+      ShowAccelChar = False
+      OnClick = lblEffortClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
+    object lblModel: TLabel
+      Cursor = crHandPoint
+      Left = 68
+      Height = 20
+      Hint = 'Change model'
+      Top = 4
+      Width = 43
+      Align = alLeft
+      BorderSpacing.Left = 12
+      Caption = 'model'
+      ParentColor = False
+      ShowAccelChar = False
+      OnClick = lblModelClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
+    object lblStatus: TLabel
+      Left = 172
+      Height = 20
+      Top = 4
+      Width = 482
+      Align = alClient
+      BorderSpacing.Left = 12
+      Font.Color = clGrayText
+      ParentColor = False
+      ParentFont = False
+      ShowAccelChar = False
+    end
   end
   object tmrPoll: TTimer
     Enabled = False

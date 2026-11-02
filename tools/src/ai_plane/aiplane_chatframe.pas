@@ -27,7 +27,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Buttons, LCLType,
-  LCLIntf,
+  LCLIntf, Menus,
   aiplane_types, aiplane_presets, aiplane_chatview;
 
 type
@@ -41,7 +41,11 @@ type
     cbbEffort: TComboBox;
     cbbModel: TComboBox;
     cbbRuntime: TComboBox;
+    lblEffort: TLabel;
+    lblModel: TLabel;
+    lblRuntime: TLabel;
     lblStatus: TLabel;
+    pnlStatus: TPanel;
     mem_Input: TMemo;
     mem_Log: TMemo;
     pnlInput: TPanel;
@@ -50,6 +54,11 @@ type
     splLog: TSplitter;
     tmrPoll: TTimer;
     procedure cbbRuntimeSelect(Sender: TObject);
+    procedure lblEffortClick(Sender: TObject);
+    procedure lblModelClick(Sender: TObject);
+    procedure lblRuntimeClick(Sender: TObject);
+    procedure StatusLabelMouseEnter(Sender: TObject);
+    procedure StatusLabelMouseLeave(Sender: TObject);
     procedure cbbModelChange(Sender: TObject);
     procedure cbbEffortSelect(Sender: TObject);
     procedure btnNewClick(Sender: TObject);
@@ -61,6 +70,7 @@ type
     FAdapter: TAIAdapter;
     FView: TAIChatView;
     FInputHint: TStaticText;
+    FStatusMenu: TPopupMenu;
     FPresetId: string;
     FCommand: string;
     FArguments: string;
@@ -73,6 +83,13 @@ type
     FFillingModels: boolean;
     FModelCount: integer;
     procedure SetupControls;
+    procedure ShowStatusMenu(ALabel: TLabel);
+    function AddStatusMenuItem(const ACaption: string; ATag: integer;
+      AChecked, AEnabled: boolean; AHandler: TNotifyEvent): TMenuItem;
+    procedure RuntimeMenuClick(Sender: TObject);
+    procedure ModelMenuClick(Sender: TObject);
+    procedure EffortMenuClick(Sender: TObject);
+    function CurrentModel: string;
     procedure InputChange(Sender: TObject);
     procedure InputHintClick(Sender: TObject);
     procedure FitComboWidths;
@@ -167,6 +184,33 @@ begin
   end;
   Result.TransparentColor := clFuchsia;
   Result.Transparent := True;
+end;
+
+{ Readable name of an effort level, shown in the status bar and its menu. }
+function EffortCaption(const ALevel: string): string;
+begin
+  case LowerCase(ALevel) of
+    'auto': Result := 'Auto';
+    'off': Result := 'Off';
+    'minimal': Result := 'Minimal';
+    'low': Result := 'Low';
+    'medium': Result := 'Medium';
+    'high': Result := 'High';
+    'xhigh': Result := 'Extra High';
+    else
+      Result := ALevel;
+  end;
+end;
+
+{ "opencode/deepseek-v4.1-flash-free" -> "deepseek-v4.1-flash-free" }
+function ShortModelName(const AModel: string): string;
+var
+  p: integer;
+begin
+  Result := AModel;
+  p := LastDelimiter('/', Result);
+  if (p > 0) and (p < Length(Result)) then
+    Result := Copy(Result, p + 1, MaxInt);
 end;
 
 function TextWidthOf(AControl: TControl; const AText: string): integer;
@@ -395,15 +439,160 @@ var
     s := s + APart;
   end;
 
+var
+  preset: TAIRuntimePreset;
+  curModel: string;
 begin
+  if FAgentText <> '' then
+    lblRuntime.Caption := FAgentText
+  else if AIFindPreset(FPresetId, preset) then
+    lblRuntime.Caption := preset.Title
+  else
+    lblRuntime.Caption := FPresetId;
+
+  curModel := CurrentModel;
+  if curModel = '' then
+  begin
+    lblModel.Caption := 'default model';
+    lblModel.Hint := 'Change model (now: runtime default)';
+  end
+  else
+  begin
+    lblModel.Caption := ShortModelName(curModel);
+    lblModel.Hint := 'Change model (now: ' + curModel + ')';
+  end;
+  lblEffort.Caption := EffortCaption(GetEffort);
+
   s := '';
-  AddPart(FAgentText);
-  AddPart(FModelText);
   if Assigned(FAdapter) then
     AddPart(AIStateToString(FAdapter.State));
   AddPart(FUsageText);
   lblStatus.Caption := s;
   lblStatus.Hint := FSessionText;
+end;
+
+// The model in use: the user's choice, else what the runtime reported.
+function TAIChatFrame.CurrentModel: string;
+begin
+  Result := '';
+  if Assigned(FAdapter) then
+    Result := FAdapter.Model;
+  if Result = '' then
+    Result := FModelText;
+end;
+
+function TAIChatFrame.AddStatusMenuItem(const ACaption: string; ATag: integer;
+  AChecked, AEnabled: boolean; AHandler: TNotifyEvent): TMenuItem;
+begin
+  Result := TMenuItem.Create(FStatusMenu);
+  Result.Caption := ACaption;
+  Result.Tag := ATag;
+  Result.RadioItem := True;
+  Result.Checked := AChecked;
+  Result.Enabled := AEnabled;
+  Result.OnClick := AHandler;
+  FStatusMenu.Items.Add(Result);
+end;
+
+// Status bar labels open a menu right where they are; the combo boxes at
+// the top stay and both stay in sync.
+procedure TAIChatFrame.ShowStatusMenu(ALabel: TLabel);
+var
+  i: integer;
+  busy: boolean;
+  chosen, itemCaption: string;
+  p: TPoint;
+begin
+  if not Assigned(FStatusMenu) then
+    FStatusMenu := TPopupMenu.Create(Self);
+  FStatusMenu.Items.Clear;
+  busy := Assigned(FAdapter) and FAdapter.IsBusy;
+
+  if ALabel = lblRuntime then
+    for i := 0 to AIPresetCount - 1 do
+      AddStatusMenuItem(AIPreset(i).Title, i,
+        SameText(AIPreset(i).Id, FPresetId), not busy, @RuntimeMenuClick)
+  else if ALabel = lblModel then
+  begin
+    chosen := '';
+    if Assigned(FAdapter) then
+      chosen := FAdapter.Model;
+    AddStatusMenuItem('Runtime default', -1, chosen = '', True, @ModelMenuClick);
+    if Assigned(FAdapter) and (Length(FAdapter.Models) > 0) then
+    begin
+      AddStatusMenuItem('-', -2, False, True, nil);
+      for i := 0 to High(FAdapter.Models) do
+      begin
+        itemCaption := ShortModelName(FAdapter.Models[i].Id);
+        if itemCaption <> FAdapter.Models[i].Id then
+          itemCaption := itemCaption + #9 + FAdapter.Models[i].Id;
+        AddStatusMenuItem(itemCaption, i, FAdapter.Models[i].Id = CurrentModel, True,
+          @ModelMenuClick);
+      end;
+    end
+    else
+      AddStatusMenuItem('(the list arrives when the runtime starts)', -2, False,
+        False, nil);
+  end
+  else if ALabel = lblEffort then
+    for i := 0 to High(AI_EFFORT_LEVELS) do
+      AddStatusMenuItem(EffortCaption(AI_EFFORT_LEVELS[i]), i, AI_EFFORT_LEVELS[i] = GetEffort, True,
+        @EffortMenuClick);
+
+  p := ALabel.ClientToScreen(Point(0, 0));
+  FStatusMenu.PopUp(p.X, p.Y);
+end;
+
+procedure TAIChatFrame.RuntimeMenuClick(Sender: TObject);
+begin
+  cbbRuntime.ItemIndex := TMenuItem(Sender).Tag;
+  cbbRuntimeSelect(cbbRuntime);
+  UpdateStatus;
+end;
+
+procedure TAIChatFrame.ModelMenuClick(Sender: TObject);
+var
+  i: integer;
+begin
+  i := TMenuItem(Sender).Tag;
+  if i = -1 then
+    SetModel('')
+  else if Assigned(FAdapter) and (i >= 0) and (i <= High(FAdapter.Models)) then
+    SetModel(FAdapter.Models[i].Id);
+  DoSettingsChanged;
+  UpdateStatus;
+end;
+
+procedure TAIChatFrame.EffortMenuClick(Sender: TObject);
+begin
+  SetEffort(AI_EFFORT_LEVELS[TMenuItem(Sender).Tag]);
+  DoSettingsChanged;
+  UpdateStatus;
+end;
+
+procedure TAIChatFrame.lblRuntimeClick(Sender: TObject);
+begin
+  ShowStatusMenu(lblRuntime);
+end;
+
+procedure TAIChatFrame.lblModelClick(Sender: TObject);
+begin
+  ShowStatusMenu(lblModel);
+end;
+
+procedure TAIChatFrame.lblEffortClick(Sender: TObject);
+begin
+  ShowStatusMenu(lblEffort);
+end;
+
+procedure TAIChatFrame.StatusLabelMouseEnter(Sender: TObject);
+begin
+  TLabel(Sender).Font.Style := TLabel(Sender).Font.Style + [fsUnderline];
+end;
+
+procedure TAIChatFrame.StatusLabelMouseLeave(Sender: TObject);
+begin
+  TLabel(Sender).Font.Style := TLabel(Sender).Font.Style - [fsUnderline];
 end;
 
 procedure TAIChatFrame.FillModels;
@@ -677,6 +866,7 @@ begin
     Exit;
   FAdapter.Model := Trim(cbbModel.Text);
   DoSettingsChanged;
+  UpdateStatus;
 end;
 
 procedure TAIChatFrame.cbbEffortSelect(Sender: TObject);
@@ -684,6 +874,7 @@ begin
   if Assigned(FAdapter) then
     FAdapter.Effort := GetEffort;
   DoSettingsChanged;
+  UpdateStatus;
 end;
 
 procedure TAIChatFrame.btnNewClick(Sender: TObject);
