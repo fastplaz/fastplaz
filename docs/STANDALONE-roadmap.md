@@ -1,6 +1,6 @@
 # Standalone HTTP Mode — Roadmap
 
-Status: **phase 1 done** (2026-11-02), phase 2 open.
+Status: **phase 1 and 2 done** (2026-11-02).
 Branch: `feature/standalone`. Example project: `examples/standalone`.
 
 Goal: let a FastPlaz application run as a **long-lived standalone HTTP
@@ -150,46 +150,58 @@ keeps the server running, a second client gets its own session and no
 flash message of the first), the same binary as CGI, Dashboard `test.bin`
 under Apache unchanged, test suite (`test_fastplaz_app` added).
 
-Findings for phase 2:
+Findings for phase 2 (status in section 4):
 
 - **memory grows about 1.5 KB per request** (1000 requests: 9.4 → 11.0 MB);
-  the heaptrc audit is needed before production use
+  the heaptrc audit is needed before production use — fixed (double free
+  and FPC CORS leak, section 4)
 - consumer units that `uses fpcgi` and call `Application.Request` directly
   get the idle fpcgi application in HTTP mode; they must switch to
   `fastplaz_app` (CGI keeps working either way)
-- HTTPS is not detected behind a proxy yet (`HTTPS` is empty in HTTP mode)
-- `.html` files under `public_html` are not served as static files
+- HTTPS is not detected behind a proxy yet — done with `trust_proxy`
+- `.html` files under `public_html` are not served as static files (by design)
 
 ---
 
-## 4. Phase 2 — Production ready (1–2 weeks)
+## 4. Phase 2 — Production ready (done 2026-11-02)
 
-1. **Remove CGI environment reads**: base URL from the `Host` header; HTTPS,
-   host and client IP from `X-Forwarded-Proto` / `X-Forwarded-Host` /
-   `X-Forwarded-For` only when `trustProxy` is enabled (already in config).
-2. **Memory audit** with `heaptrc` under a load loop (e.g. 10k requests); fix
-   leaks found in handler, theme, session and model units.
-3. **Database**: reconnect on dropped connection; decide between keeping the
-   connection open and opening per request (config option).
-4. **Config / theme caching**: load once per process; optional reload on file
-   change or signal.
-5. **Error isolation**: an unhandled exception in one request returns 500 and
-   the process keeps serving.
-6. **Graceful shutdown** on SIGTERM / Ctrl+C / Windows service stop.
-7. **Unit tests** (see `UNIT_TEST.md`): state isolation between requests,
-   Redirect/Die not terminating, base URL behind a proxy, mode selection
-   priority.
-8. **Lazarus IDE**: "New Project" wizard gets a mode choice (CGI / HTTP);
-   generated `.lpr` uses `fastplaz_app`. Running the project from the IDE
-   starts the HTTP server for debugging.
-9. **Deployment docs**: nginx and Apache reverse proxy configs, systemd unit
-   (Linux), launchd (macOS), Windows service / NSSM; logging and restart
-   policy.
-10. **Consumer check**: build Dashboard, Carik, SimpleAI, SimpleBOT in CGI mode
-    (no regression), then run the Dashboard test app in HTTP mode.
+Deployment guide: [STANDALONE-deployment.md](STANDALONE-deployment.md).
 
-**Done when:** an app survives a sustained load test with stable memory, all
-unit tests pass in both modes, and consumer projects build unchanged.
+| # | Item | Status |
+|---|---|---|
+| 1 | CGI variables from the request; HTTPS/host/port from `X-Forwarded-*` only with `trust_proxy` | done (`RequestServerVariable()`) |
+| 2 | Memory audit with heaptrc | done: 0 unfreed blocks after 8 and 108 requests; two leaks fixed (see below) |
+| 3 | Database: dropped connections, transactions across requests | done: closed after every request by default, `db_persistent` + `db_idle_timeout` |
+| 4 | Config / theme caching | not needed: `config.json` is read once per process (restart to reload); templates are read per render as in CGI |
+| 5 | Error isolation | done: unhandled exception → 500, next request served (example `/fail`) |
+| 6 | Graceful shutdown | done: Ctrl+C / SIGTERM, `max_requests` |
+| 7 | Unit tests | done for mode selection, request variables, proxy headers, static filter, DB end of request; state isolation between requests checked end to end with curl (no in-process server test yet) |
+| 8 | IDE: generated projects | done: `.lpr`, module generators and the Simple template use `fastplaz_app`; no mode option needed, the binary picks CGI or HTTP at runtime |
+| 9 | Deployment docs | done: nginx, Apache, systemd, launchd, NSSM |
+| 10 | Consumer check | done in CGI mode: 46 projects (Dashboard dashboard/api, Carik telegram/carik) compile; Dashboard `test.bin` serves 200 under Apache |
+
+Bugs found and fixed on the way:
+
+- **request freed twice**: inside the handlers `EndRequest(...)` resolved to
+  the inherited `TWebHandler.EndRequest`, which frees the request and the
+  response; fpWeb then used and freed them again (CGI too), and
+  fastplaz_app's own end-of-request code never ran (ThemeUtil leaked per
+  request). Renamed to `RequestStarted` / `RequestFinished`.
+- **FPC 3.2 leak**: `TCustomHTTPModule` creates a CORS object it never
+  frees; `TMyCustomWebModule.Destroy` frees it (FPC < 3.3).
+- `DataBaseInit` reset the working directory to the executable's directory
+  and did not set `databaseActive` on an open connection.
+- `http_lib` pulled the web application unit into the IDE package without
+  using it.
+
+Still open:
+
+- consumer projects use `fpcgi` in 237 files (16 of them call
+  `Application.Request/Response/EnvironmentVariable`); they run unchanged as
+  CGI and need the `fpcgi` → `fastplaz_app` replacement before running in
+  HTTP mode (one `sed`, see the deployment guide)
+- an automated in-process test of state isolation between requests
+- Dashboard in HTTP mode (after the replacement above)
 
 ---
 
@@ -228,6 +240,6 @@ Estimated 3–6 extra weeks.
 | Phase | Effort |
 |---|---|
 | 1 — PoC | 3–5 days (done) |
-| 2 — Production ready | 1–2 weeks |
+| 2 — Production ready | 1–2 weeks (done) |
 | 3 — Multi-process via nginx upstream | config only |
 | 3 — Multi-threaded (not recommended) | 3–6 weeks |
