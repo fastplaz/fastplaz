@@ -4,7 +4,7 @@ program tools_test;
 
 uses
   Classes, consoletestrunner, fastplaz_testrunner, test_regex_tester_lib, test_tools_lib,
-  test_aiplane;
+  test_aiplane, test_aiplane_markdown;
 
 type
 

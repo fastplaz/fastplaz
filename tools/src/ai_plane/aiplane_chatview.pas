@@ -4,13 +4,20 @@ unit aiplane_chatview;
   Conversation view for AI Plane: a scroll box with one owner drawn paint box.
 
   Every message is a TAIChatItem (user, assistant, thinking, tool call, plan,
-  permission, error, info). Items are laid out once per width and only the
-  item that changed is measured again, so streaming stays cheap. Text inside
-  ``` fences is drawn in a monospace font on a shaded block.
+  permission, error, info). Assistant and thinking text is markdown
+  (aiplane_markdown): headings, lists, quotes, tables, fenced code, and
+  inline bold, italic, strikethrough, `code` and links. Other items are
+  plain text.
+
+  Layout turns an item into fragments (styled text, code block boxes, rules,
+  quote bars, table lines) once per width; painting only draws them. Only
+  the item that changed is laid out again, so streaming stays cheap; wrap
+  bursts of updates in BeginUpdate/EndUpdate.
 
   Tool, thinking and plan items fold to their header; a click on the header
   toggles them. Permission items draw their options as buttons and raise
-  OnButtonClick. Text is copied through the context menu.
+  OnButtonClick. Links open in the browser. Text is copied through the
+  context menu.
 
   LCL only, no IDEIntf: the IDE window and the tester app both use it.
 }
@@ -21,7 +28,7 @@ interface
 
 uses
   Classes, SysUtils, Contnrs, Controls, Forms, Graphics, ExtCtrls, Menus,
-  Clipbrd, LCLType, LCLIntf, aiplane_types;
+  Clipbrd, LCLType, LCLIntf, aiplane_types, aiplane_markdown;
 
 type
   TAIChatItemKind = (cikUser, cikAssistant, cikThinking, cikTool, cikPlan,
@@ -34,10 +41,25 @@ type
     Rect: TRect;  // in paint box coordinates, set while painting
   end;
 
-  TAIChatSegment = record
-    IsCode: boolean;
+  TAIChatFragKind = (
+    cfText,      // styled text
+    cfBox,       // filled rounded box (code block, table header)
+    cfLine,      // line from TopLeft to BottomRight (rule, table grid)
+    cfBar        // filled rectangle (quote bar)
+    );
+
+  { One piece of laid out content. Coordinates are relative to the item's
+    content origin (left edge of the text area, first line of content). }
+  TAIChatFrag = record
+    Kind: TAIChatFragKind;
+    R: TRect;
     Text: string;
-    Height: integer;
+    Mono: boolean;
+    Style: TFontStyles;
+    Scale: integer;     // font size in percent
+    Color: TColor;      // clNone = the item's text colour
+    Back: TColor;       // clNone = no background
+    Url: string;
   end;
 
   { TAIChatItem }
@@ -57,11 +79,13 @@ type
     Top: integer;
     Height: integer;
     HeaderHeight: integer;
+    ContentY: integer;    // content origin, relative to Top
     ButtonsHeight: integer;
-    Segments: array of TAIChatSegment;
+    Frags: array of TAIChatFrag;
     Valid: boolean;
     function Collapsible: boolean;
     function HeaderText: string;
+    function IsMarkdown: boolean;
   end;
 
   TAIChatButtonEvent = procedure(Sender: TObject; AItem: TAIChatItem;
@@ -80,6 +104,7 @@ type
     FPopup: TPopupMenu;
     FPopupItem: TAIChatItem;
     FUpdating: integer;
+    FDirty: boolean;
     function GetCount: integer;
     function GetItem(AIndex: integer): TAIChatItem;
     function BubbleWidth: integer;
@@ -89,6 +114,7 @@ type
     function AtBottom: boolean;
     procedure ScrollToBottom;
     function ItemAt(Y: integer): TAIChatItem;
+    function LinkAt(AItem: TAIChatItem; X, Y: integer): string;
     procedure BoxPaint(Sender: TObject);
     procedure BoxResize(Sender: TObject);
     procedure BoxMouseUp(Sender: TObject; Button: TMouseButton;
@@ -123,10 +149,15 @@ const
   MARGIN = 8;
   PAD = 8;
   GAP = 6;
+  LIST_GAP = 2;
+  LIST_INDENT = 18;
+  QUOTE_INDENT = 14;
+  CELL_PAD = 6;
+  INLINE_CODE_PAD = 3;
   BUTTON_HEIGHT = 24;
   BUTTON_PAD = 12;
-  MAX_COLLAPSED_PREVIEW = 80;
   DRAW_FLAGS = DT_WORDBREAK or DT_NOPREFIX or DT_EXPANDTABS or DT_EDITCONTROL;
+  HEADING_SCALE: array[1..6] of integer = (150, 130, 115, 105, 100, 100);
 
 function Blend(AColor1, AColor2: TColor; APercent: integer): TColor;
 var
@@ -140,11 +171,480 @@ begin
     (Blue(c1) * (100 - APercent) + Blue(c2) * APercent) div 100);
 end;
 
+function LinkColor: TColor;
+begin
+  Result := Blend(RGBToColor(30, 110, 220), clWindowText, 10);
+end;
+
+{ ---------- layout ---------- }
+
+type
+
+  { TChatLayout: turns runs and blocks into fragments. }
+
+  TChatLayout = class
+  private
+    FCanvas: TCanvas;
+    FBase: TFont;
+    FCode: TFont;
+    FBaseSize: integer;
+    FMono: boolean;
+    FStyle: TFontStyles;
+    FScale: integer;
+    FFontSet: boolean;
+    procedure UseFont(AMono: boolean; AStyle: TFontStyles; AScale: integer);
+    function LineHeight(AMono: boolean; AScale: integer): integer;
+    function AddFrag(AKind: TAIChatFragKind; const AR: TRect): integer;
+  public
+    Frags: array of TAIChatFrag;
+    constructor Create(ACanvas: TCanvas; ABase, ACode: TFont);
+    function Runs(const ARuns: TMDRuns; AX, AWidth, AY: integer;
+      AExtraStyle: TFontStyles; AScale: integer; AColor: TColor): integer;
+    function Blocks(const ABlocks: TMDBlocks; AWidth: integer): integer;
+    function CodeBlock(const ACode: string; AX, AWidth, AY: integer): integer;
+    function Table(const ABlock: TMDBlock; AX, AWidth, AY: integer): integer;
+  end;
+
+constructor TChatLayout.Create(ACanvas: TCanvas; ABase, ACode: TFont);
+begin
+  FCanvas := ACanvas;
+  FBase := ABase;
+  FCode := ACode;
+  FBaseSize := ABase.Size;
+  if FBaseSize = 0 then
+    FBaseSize := 9;
+end;
+
+procedure TChatLayout.UseFont(AMono: boolean; AStyle: TFontStyles; AScale: integer);
+begin
+  if FFontSet and (AMono = FMono) and (AStyle = FStyle) and (AScale = FScale) then
+    Exit;
+  if AMono then
+    FCanvas.Font.Assign(FCode)
+  else
+    FCanvas.Font.Assign(FBase);
+  FCanvas.Font.Style := AStyle;
+  if AScale <> 100 then
+  begin
+    if AMono then
+      FCanvas.Font.Size := FCode.Size * AScale div 100
+    else
+      FCanvas.Font.Size := FBaseSize * AScale div 100;
+  end;
+  FMono := AMono;
+  FStyle := AStyle;
+  FScale := AScale;
+  FFontSet := True;
+end;
+
+function TChatLayout.LineHeight(AMono: boolean; AScale: integer): integer;
+begin
+  UseFont(AMono, [], AScale);
+  Result := FCanvas.TextHeight('Ag');
+end;
+
+function TChatLayout.AddFrag(AKind: TAIChatFragKind; const AR: TRect): integer;
+begin
+  Result := Length(Frags);
+  SetLength(Frags, Result + 1);
+  Frags[Result] := Default(TAIChatFrag);
+  Frags[Result].Kind := AKind;
+  Frags[Result].R := AR;
+  Frags[Result].Scale := 100;
+  Frags[Result].Color := clNone;
+  Frags[Result].Back := clNone;
+end;
+
+{ Lays out styled runs with word wrap in [AX, AX + AWidth), starting at AY;
+  returns the y below the last line. Line breaks in the text are kept. }
+function TChatLayout.Runs(const ARuns: TMDRuns; AX, AWidth, AY: integer;
+  AExtraStyle: TFontStyles; AScale: integer; AColor: TColor): integer;
+var
+  x, y, lineH, lineStart, r, i, n, j, w, fh, extra, k: integer;
+  run: TMDRun;
+  style: TFontStyles;
+  mono: boolean;
+  token, part: string;
+  isSpace: boolean;
+  lastRun: integer;
+
+  procedure EndLine;
+  var
+    m: integer;
+  begin
+    // bottom-align the pieces of the line
+    for m := lineStart to High(Frags) do
+      if Frags[m].Kind = cfText then
+      begin
+        fh := Frags[m].R.Bottom - Frags[m].R.Top;
+        Frags[m].R.Top := y + lineH - fh;
+        Frags[m].R.Bottom := y + lineH;
+      end;
+    Inc(y, lineH);
+    x := 0;
+    lineH := LineHeight(False, AScale);
+    lineStart := Length(Frags);
+    lastRun := -1;
+  end;
+
+  // AWidthPx is the text width; inline code adds its padding once per box
+  procedure Emit(const AText: string; AWidthPx: integer);
+  var
+    m: integer;
+  begin
+    fh := FCanvas.TextHeight('Ag');
+    m := High(Frags);
+    // extend the previous piece when it is the same run on the same line
+    if (lastRun = r) and (m >= lineStart) and (Frags[m].Kind = cfText) then
+    begin
+      Frags[m].Text := Frags[m].Text + AText;
+      Inc(Frags[m].R.Right, AWidthPx);
+    end
+    else
+    begin
+      Inc(AWidthPx, extra);
+      m := AddFrag(cfText, Rect(AX + x, y, AX + x + AWidthPx, y + fh));
+      Frags[m].Text := AText;
+      Frags[m].Mono := mono;
+      Frags[m].Style := style;
+      Frags[m].Scale := AScale;
+      Frags[m].Color := AColor;
+      Frags[m].Url := run.Url;
+      if misLink in run.Style then
+        Frags[m].Color := LinkColor;
+      if misCode in run.Style then
+        Frags[m].Back := Blend(clWindow, clWindowText, 9);
+    end;
+    Inc(x, AWidthPx);
+    if fh > lineH then
+      lineH := fh;
+    lastRun := r;
+  end;
+
+begin
+  x := 0;
+  y := AY;
+  lineStart := Length(Frags);
+  lastRun := -1;
+  lineH := LineHeight(False, AScale);
+  if Length(ARuns) = 0 then
+    Exit(AY);
+
+  for r := 0 to High(ARuns) do
+  begin
+    run := ARuns[r];
+    style := AExtraStyle;
+    if misBold in run.Style then
+      Include(style, fsBold);
+    if misItalic in run.Style then
+      Include(style, fsItalic);
+    if misStrike in run.Style then
+      Include(style, fsStrikeOut);
+    if misLink in run.Style then
+      Include(style, fsUnderline);
+    mono := misCode in run.Style;
+    UseFont(mono, style, AScale);
+    extra := 0;
+
+    if mono then
+    begin
+      // inline code is one padded box per line piece
+      extra := 2 * INLINE_CODE_PAD;
+    end;
+
+    n := Length(run.Text);
+    i := 1;
+    while i <= n do
+    begin
+      if run.Text[i] = #10 then
+      begin
+        EndLine;
+        UseFont(mono, style, AScale);
+        Inc(i);
+        Continue;
+      end;
+      j := i;
+      isSpace := run.Text[i] = ' ';
+      while (j <= n) and (run.Text[j] <> #10) and ((run.Text[j] = ' ') = isSpace) do
+        Inc(j);
+      token := Copy(run.Text, i, j - i);
+      i := j;
+      UseFont(mono, style, AScale);
+      if isSpace then
+      begin
+        if x = 0 then
+          Continue;  // no spaces at the start of a line
+        w := FCanvas.TextWidth(token);
+        if x + w > AWidth then
+        begin
+          EndLine;
+          Continue;
+        end;
+        Emit(token, w);
+        Continue;
+      end;
+
+      w := FCanvas.TextWidth(token) + extra;
+      if (x + w > AWidth) and (x > 0) then
+      begin
+        EndLine;
+        UseFont(mono, style, AScale);
+      end;
+      // a word wider than the line is broken by characters (UTF-8 safe)
+      while w > AWidth do
+      begin
+        k := 1;
+        part := '';
+        while k <= Length(token) do
+        begin
+          j := k + 1;
+          while (j <= Length(token)) and ((Ord(token[j]) and $C0) = $80) do
+            Inc(j);
+          if (part <> '') and (FCanvas.TextWidth(part + Copy(token, k, j - k)) + extra > AWidth - x) then
+            Break;
+          part := part + Copy(token, k, j - k);
+          k := j;
+        end;
+        Emit(part, FCanvas.TextWidth(part));
+        Delete(token, 1, Length(part));
+        EndLine;
+        UseFont(mono, style, AScale);
+        w := FCanvas.TextWidth(token) + extra;
+      end;
+      if token <> '' then
+        Emit(token, w - extra);
+    end;
+  end;
+  if x > 0 then
+    EndLine
+  else if Length(Frags) > lineStart then
+    EndLine;
+  Result := y;
+end;
+
+{ Monospace text in a shaded box; long lines wrap by characters. }
+function TChatLayout.CodeBlock(const ACode: string; AX, AWidth, AY: integer): integer;
+var
+  lines: TStringList;
+  i, y, lineH, box, m, k, j, avail: integer;
+  s, part: string;
+begin
+  box := AddFrag(cfBox, Rect(AX, AY, AX + AWidth, AY));
+  Frags[box].Back := Blend(clWindow, clWindowText, 7);
+  lineH := LineHeight(True, 100);
+  UseFont(True, [], 100);
+  avail := AWidth - 2 * PAD;
+  y := AY + PAD;
+  lines := TStringList.Create;
+  try
+    lines.Text := ACode;
+    if lines.Count = 0 then
+      lines.Add('');
+    for i := 0 to lines.Count - 1 do
+    begin
+      s := lines[i];
+      repeat
+        part := s;
+        if FCanvas.TextWidth(s) > avail then
+        begin
+          part := '';
+          k := 1;
+          while k <= Length(s) do
+          begin
+            j := k + 1;
+            while (j <= Length(s)) and ((Ord(s[j]) and $C0) = $80) do
+              Inc(j);
+            if (part <> '') and (FCanvas.TextWidth(part + Copy(s, k, j - k)) > avail) then
+              Break;
+            part := part + Copy(s, k, j - k);
+            k := j;
+          end;
+        end;
+        if part <> '' then
+        begin
+          m := AddFrag(cfText, Rect(AX + PAD, y, AX + PAD + FCanvas.TextWidth(part), y + lineH));
+          Frags[m].Text := part;
+          Frags[m].Mono := True;
+        end;
+        Inc(y, lineH);
+        Delete(s, 1, Length(part));
+      until s = '';
+    end;
+  finally
+    lines.Free;
+  end;
+  Inc(y, PAD);
+  Frags[box].R.Bottom := y;
+  Result := y;
+end;
+
+function TChatLayout.Table(const ABlock: TMDBlock; AX, AWidth, AY: integer): integer;
+var
+  cols, r, c, total, y, rowH, cellBottom, x, m: integer;
+  widths: array of integer;
+  grid: TColor;
+  extra: TFontStyles;
+begin
+  cols := 0;
+  for r := 0 to High(ABlock.Rows) do
+    if Length(ABlock.Rows[r]) > cols then
+      cols := Length(ABlock.Rows[r]);
+  if cols = 0 then
+    Exit(AY);
+  // natural widths, then shrink to fit
+  SetLength(widths, cols);
+  for c := 0 to cols - 1 do
+    widths[c] := 40;
+  for r := 0 to High(ABlock.Rows) do
+    for c := 0 to High(ABlock.Rows[r]) do
+    begin
+      if r = 0 then
+        UseFont(False, [fsBold], 100)
+      else
+        UseFont(False, [], 100);
+      x := FCanvas.TextWidth(MDRunsText(ABlock.Rows[r][c])) + 2 * CELL_PAD + 2;
+      if x > widths[c] then
+        widths[c] := x;
+    end;
+  total := 0;
+  for c := 0 to cols - 1 do
+    Inc(total, widths[c]);
+  if total > AWidth then
+    for c := 0 to cols - 1 do
+      widths[c] := widths[c] * AWidth div total;
+
+  total := 0;
+  for c := 0 to cols - 1 do
+    Inc(total, widths[c]);
+  grid := Blend(clWindow, clWindowText, 22);
+  y := AY;
+  m := AddFrag(cfLine, Rect(AX, y, AX + total, y));
+  Frags[m].Color := grid;
+  for r := 0 to High(ABlock.Rows) do
+  begin
+    if r = 0 then
+    begin
+      extra := [fsBold];
+      m := AddFrag(cfBox, Rect(AX, y, AX + total, y));
+      Frags[m].Back := Blend(clWindow, clWindowText, 6);
+    end
+    else
+      extra := [];
+    rowH := LineHeight(False, 100);
+    x := AX;
+    for c := 0 to cols - 1 do
+    begin
+      if c <= High(ABlock.Rows[r]) then
+      begin
+        cellBottom := Runs(ABlock.Rows[r][c], x + CELL_PAD, widths[c] - 2 * CELL_PAD,
+          y + CELL_PAD, extra, 100, clNone);
+        if cellBottom - y - CELL_PAD > rowH then
+          rowH := cellBottom - y - CELL_PAD;
+      end;
+      Inc(x, widths[c]);
+    end;
+    Inc(rowH, 2 * CELL_PAD);
+    if r = 0 then
+      Frags[m].R.Bottom := y + rowH;
+    // vertical lines of this row
+    x := AX;
+    for c := 0 to cols do
+    begin
+      m := AddFrag(cfLine, Rect(x, y, x, y + rowH));
+      Frags[m].Color := grid;
+      if c < cols then
+        Inc(x, widths[c]);
+    end;
+    Inc(y, rowH);
+    m := AddFrag(cfLine, Rect(AX, y, AX + total, y));
+    Frags[m].Color := grid;
+  end;
+  Result := y + 1;
+end;
+
+function TChatLayout.Blocks(const ABlocks: TMDBlocks; AWidth: integer): integer;
+var
+  i, y, x0, m, markerW, top: integer;
+  b: TMDBlock;
+  prevList, isList: boolean;
+  quoteColor: TColor;
+begin
+  y := 0;
+  prevList := False;
+  quoteColor := Blend(clWindowText, clWindow, 35);
+  for i := 0 to High(ABlocks) do
+  begin
+    b := ABlocks[i];
+    isList := b.Kind in [mbBullet, mbNumbered];
+    if i > 0 then
+    begin
+      if isList and prevList then
+        Inc(y, LIST_GAP)
+      else if b.Kind = mbHeading then
+        Inc(y, GAP + 4)
+      else
+        Inc(y, GAP);
+    end;
+    prevList := isList;
+
+    case b.Kind of
+      mbParagraph:
+        y := Runs(b.Runs, 0, AWidth, y, [], 100, clNone);
+      mbHeading:
+        y := Runs(b.Runs, 0, AWidth, y, [fsBold], HEADING_SCALE[b.Level], clNone);
+      mbBullet, mbNumbered:
+      begin
+        x0 := b.Level * LIST_INDENT;
+        UseFont(False, [], 100);
+        if b.Kind = mbBullet then
+        begin
+          markerW := FCanvas.TextWidth('•') + 8;
+          m := AddFrag(cfText, Rect(x0, y, x0 + markerW, y + FCanvas.TextHeight('Ag')));
+          Frags[m].Text := '•';
+        end
+        else
+        begin
+          markerW := FCanvas.TextWidth('00.') + 6;
+          if FCanvas.TextWidth(b.Marker) + 6 > markerW then
+            markerW := FCanvas.TextWidth(b.Marker) + 6;
+          m := AddFrag(cfText, Rect(x0, y, x0 + markerW, y + FCanvas.TextHeight('Ag')));
+          Frags[m].Text := b.Marker;
+        end;
+        Frags[m].Color := Blend(clWindowText, clWindow, 30);
+        y := Runs(b.Runs, x0 + markerW, AWidth - x0 - markerW, y, [], 100, clNone);
+      end;
+      mbQuote:
+      begin
+        top := y;
+        y := Runs(b.Runs, QUOTE_INDENT, AWidth - QUOTE_INDENT, y, [], 100, quoteColor);
+        m := AddFrag(cfBar, Rect(2, top, 5, y));
+        Frags[m].Back := Blend(clWindow, clWindowText, 25);
+      end;
+      mbCode:
+        y := CodeBlock(b.Code, 0, AWidth, y);
+      mbRule:
+      begin
+        m := AddFrag(cfLine, Rect(0, y + 4, AWidth, y + 4));
+        Frags[m].Color := Blend(clWindow, clWindowText, 25);
+        Inc(y, 9);
+      end;
+      mbTable:
+        y := Table(b, 0, AWidth, y);
+    end;
+  end;
+  Result := y;
+end;
+
 { TAIChatItem }
 
 function TAIChatItem.Collapsible: boolean;
 begin
   Result := Kind in [cikThinking, cikTool, cikPlan];
+end;
+
+function TAIChatItem.IsMarkdown: boolean;
+begin
+  Result := Kind in [cikAssistant, cikThinking];
 end;
 
 function TAIChatItem.HeaderText: string;
@@ -268,9 +768,10 @@ end;
 
 procedure TAIChatView.MeasureItem(AItem: TAIChatItem);
 var
-  inner, i, h: integer;
-  parts: TStringList;
+  inner, h, contentH: integer;
   boldFont: TFont;
+  layout: TChatLayout;
+  plain: TMDRuns;
 begin
   inner := BubbleWidth - 2 * PAD;
   boldFont := TFont.Create;
@@ -284,35 +785,38 @@ begin
     boldFont.Free;
   end;
 
-  SetLength(AItem.Segments, 0);
-  if not (AItem.Collapsible and AItem.Collapsed) then
+  SetLength(AItem.Frags, 0);
+  contentH := 0;
+  if not (AItem.Collapsible and AItem.Collapsed) and (Trim(AItem.Text) <> '') then
   begin
-    parts := AISplitCodeBlocks(AItem.Text);
+    layout := TChatLayout.Create(FMeasure.Canvas, Font, FCodeFont);
     try
-      SetLength(AItem.Segments, parts.Count);
-      for i := 0 to parts.Count - 1 do
+      if AItem.IsMarkdown then
+        contentH := layout.Blocks(MDParse(AItem.Text), inner)
+      else
       begin
-        AItem.Segments[i].IsCode := parts.Objects[i] <> nil;
-        AItem.Segments[i].Text := parts[i];
-        if AItem.Segments[i].IsCode then
-          AItem.Segments[i].Height := TextHeight(parts[i] + ' ', FCodeFont, inner - 2 * PAD) + 2 * PAD
-        else
-          AItem.Segments[i].Height := TextHeight(parts[i], Font, inner);
+        SetLength(plain, 1);
+        plain[0].Text := TrimRight(AItem.Text);
+        plain[0].Style := [];
+        contentH := layout.Runs(plain, 0, inner, 0, [], 100, clNone);
       end;
+      AItem.Frags := layout.Frags;
     finally
-      parts.Free;
+      layout.Free;
     end;
   end;
+
+  AItem.ContentY := PAD + AItem.HeaderHeight;
+  if (AItem.HeaderHeight > 0) and (contentH > 0) then
+    Inc(AItem.ContentY, GAP);
 
   AItem.ButtonsHeight := 0;
   if (AItem.Kind = cikPermission) and (Length(AItem.Buttons) > 0) then
     AItem.ButtonsHeight := BUTTON_HEIGHT + GAP;
 
-  h := 2 * PAD + AItem.HeaderHeight + AItem.ButtonsHeight;
-  for i := 0 to High(AItem.Segments) do
-    Inc(h, AItem.Segments[i].Height + GAP);
-  if (AItem.HeaderHeight > 0) and (Length(AItem.Segments) = 0) and (AItem.ButtonsHeight = 0) then
-    h := AItem.HeaderHeight + 2 * PAD;
+  h := AItem.ContentY + contentH + PAD;
+  if AItem.ButtonsHeight > 0 then
+    Inc(h, AItem.ButtonsHeight);
   AItem.Height := h;
   AItem.Valid := True;
 end;
@@ -324,7 +828,11 @@ var
   stick: boolean;
 begin
   if FUpdating > 0 then
+  begin
+    FDirty := True;
     Exit;
+  end;
+  FDirty := False;
   stick := AtBottom;
   if FLayoutWidth <> FBox.Width then
   begin
@@ -412,7 +920,7 @@ end;
 procedure TAIChatView.EndUpdate;
 begin
   Dec(FUpdating);
-  if FUpdating = 0 then
+  if (FUpdating = 0) and FDirty then
     Relayout(0);
 end;
 
@@ -445,6 +953,20 @@ begin
   Result := nil;
 end;
 
+function TAIChatView.LinkAt(AItem: TAIChatItem; X, Y: integer): string;
+var
+  i: integer;
+  p: TPoint;
+begin
+  Result := '';
+  if not Assigned(AItem) then
+    Exit;
+  p := Point(X - MARGIN - PAD, Y - AItem.Top - AItem.ContentY);
+  for i := 0 to High(AItem.Frags) do
+    if (AItem.Frags[i].Url <> '') and PtInRect(AItem.Frags[i].R, p) then
+      Exit(AItem.Frags[i].Url);
+end;
+
 procedure TAIChatView.BoxResize(Sender: TObject);
 begin
   if FBox.Width <> FLayoutWidth then
@@ -467,6 +989,8 @@ begin
       for i := 0 to High(item.Buttons) do
         if PtInRect(item.Buttons[i].Rect, Point(X, Y)) then
           hand := True;
+    if LinkAt(item, X, Y) <> '' then
+      hand := True;
   end;
   if hand then
     FBox.Cursor := crHandPoint
@@ -479,6 +1003,7 @@ procedure TAIChatView.BoxMouseUp(Sender: TObject; Button: TMouseButton;
 var
   item: TAIChatItem;
   i: integer;
+  url: string;
 begin
   if Button <> mbLeft then
     Exit;
@@ -493,6 +1018,12 @@ begin
           FOnButtonClick(Self, item, item.Buttons[i].Id);
         Exit;
       end;
+  url := LinkAt(item, X, Y);
+  if url <> '' then
+  begin
+    OpenURL(url);
+    Exit;
+  end;
   if item.Collapsible and (Y < item.Top + PAD + item.HeaderHeight) then
   begin
     item.Collapsed := not item.Collapsed;
@@ -524,8 +1055,9 @@ procedure TAIChatView.PaintItem(ACanvas: TCanvas; AItem: TAIChatItem);
 var
   bubble, r: TRect;
   back, fore, accent: TColor;
-  i, y, x, inner, w: integer;
+  i, y, x, inner, w, ox, oy, baseSize: integer;
   s: string;
+  f: TAIChatFrag;
 begin
   fore := clWindowText;
   accent := clHighlight;
@@ -555,6 +1087,7 @@ begin
   end;
 
   bubble := Rect(MARGIN, AItem.Top, MARGIN + BubbleWidth, AItem.Top + AItem.Height);
+  ACanvas.Brush.Style := bsSolid;
   ACanvas.Brush.Color := back;
   if AItem.Kind in [cikAssistant, cikInfo] then
     ACanvas.Pen.Color := back
@@ -565,10 +1098,10 @@ begin
   inner := BubbleWidth - 2 * PAD;
   y := bubble.Top + PAD;
   x := bubble.Left + PAD;
-  ACanvas.Brush.Style := bsClear;
 
   if AItem.HeaderHeight > 0 then
   begin
+    ACanvas.Brush.Style := bsClear;
     ACanvas.Font.Assign(Font);
     ACanvas.Font.Style := [fsBold];
     if AItem.Kind = cikTool then
@@ -585,42 +1118,77 @@ begin
     s := AItem.HeaderText;
     r := Rect(x, y, x + inner, y + AItem.HeaderHeight);
     DrawText(ACanvas.Handle, PChar(s), Length(s), r, DRAW_FLAGS);
-    Inc(y, AItem.HeaderHeight);
-    if Length(AItem.Segments) > 0 then
-      Inc(y, GAP);
   end;
 
-  for i := 0 to High(AItem.Segments) do
+  // content fragments
+  ox := x;
+  oy := AItem.Top + AItem.ContentY;
+  baseSize := Font.Size;
+  if baseSize = 0 then
+    baseSize := 9;
+  for i := 0 to High(AItem.Frags) do
   begin
-    s := AItem.Segments[i].Text;
-    if AItem.Segments[i].IsCode then
-    begin
-      r := Rect(x, y, x + inner, y + AItem.Segments[i].Height);
-      ACanvas.Brush.Style := bsSolid;
-      ACanvas.Brush.Color := Blend(back, clWindowText, 8);
-      ACanvas.Pen.Color := ACanvas.Brush.Color;
-      ACanvas.RoundRect(r, 6, 6);
-      ACanvas.Brush.Style := bsClear;
-      ACanvas.Font.Assign(FCodeFont);
-      ACanvas.Font.Color := fore;
-      InflateRect(r, -PAD, -PAD);
-      s := s + ' ';
-    end
-    else
-    begin
-      ACanvas.Font.Assign(Font);
-      ACanvas.Font.Color := fore;
-      r := Rect(x, y, x + inner, y + AItem.Segments[i].Height);
+    f := AItem.Frags[i];
+    r := f.R;
+    OffsetRect(r, ox, oy);
+    case f.Kind of
+      cfBox:
+      begin
+        ACanvas.Brush.Style := bsSolid;
+        ACanvas.Brush.Color := f.Back;
+        ACanvas.Pen.Color := f.Back;
+        ACanvas.RoundRect(r, 6, 6);
+      end;
+      cfBar:
+      begin
+        ACanvas.Brush.Style := bsSolid;
+        ACanvas.Brush.Color := f.Back;
+        ACanvas.FillRect(r);
+      end;
+      cfLine:
+      begin
+        ACanvas.Pen.Color := f.Color;
+        ACanvas.Line(r.Left, r.Top, r.Right, r.Bottom);
+      end;
+      cfText:
+      begin
+        if f.Back <> clNone then
+        begin
+          ACanvas.Brush.Style := bsSolid;
+          ACanvas.Brush.Color := f.Back;
+          ACanvas.Pen.Color := f.Back;
+          ACanvas.RoundRect(r, 4, 4);
+        end;
+        ACanvas.Brush.Style := bsClear;
+        if f.Mono then
+          ACanvas.Font.Assign(FCodeFont)
+        else
+          ACanvas.Font.Assign(Font);
+        ACanvas.Font.Style := f.Style;
+        if f.Scale <> 100 then
+          if f.Mono then
+            ACanvas.Font.Size := FCodeFont.Size * f.Scale div 100
+          else
+            ACanvas.Font.Size := baseSize * f.Scale div 100;
+        if f.Color = clNone then
+          ACanvas.Font.Color := fore
+        else
+          ACanvas.Font.Color := f.Color;
+        if f.Back <> clNone then
+          ACanvas.TextOut(r.Left + INLINE_CODE_PAD, r.Top, f.Text)
+        else
+          ACanvas.TextOut(r.Left, r.Top, f.Text);
+      end;
     end;
-    DrawText(ACanvas.Handle, PChar(s), Length(s), r, DRAW_FLAGS);
-    Inc(y, AItem.Segments[i].Height + GAP);
   end;
 
   if AItem.ButtonsHeight > 0 then
   begin
+    y := AItem.Top + AItem.Height - PAD - BUTTON_HEIGHT;
     ACanvas.Font.Assign(Font);
     if AItem.Answer <> '' then
     begin
+      ACanvas.Brush.Style := bsClear;
       ACanvas.Font.Color := clGrayText;
       ACanvas.TextOut(x, y + 4, 'Answered: ' + AItem.Answer);
       for i := 0 to High(AItem.Buttons) do
@@ -672,21 +1240,17 @@ end;
 
 procedure TAIChatView.PopupCopyCode(Sender: TObject);
 var
-  parts: TStringList;
+  blocks: TMDBlocks;
   i: integer;
   s: string;
 begin
   if not Assigned(FPopupItem) then
     Exit;
   s := '';
-  parts := AISplitCodeBlocks(FPopupItem.Text);
-  try
-    for i := 0 to parts.Count - 1 do
-      if parts.Objects[i] <> nil then
-        s := s + parts[i] + LineEnding;
-  finally
-    parts.Free;
-  end;
+  blocks := MDParse(FPopupItem.Text);
+  for i := 0 to High(blocks) do
+    if blocks[i].Kind = mbCode then
+      s := s + blocks[i].Code + LineEnding;
   Clipboard.AsText := s;
 end;
 

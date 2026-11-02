@@ -18,7 +18,8 @@ integration (menu *FastPlaz → AI Plane*, dockable window, *AI Plane* tab in
 | `aiplane_acp.pas` | `TACPAdapter`: Agent Client Protocol (JSON-RPC 2.0 over stdio) |
 | `aiplane_claude.pas` | `TClaudeStreamAdapter`: Claude Code `--input-format/--output-format stream-json` |
 | `aiplane_presets.pas` | Known runtimes (command, arguments, adapter class), `AICreateAdapter()` |
-| `aiplane_chatview.pas` | `TAIChatView` (LCL): owner drawn conversation with bubbles, ``` code blocks, foldable tool/thinking/plan cards, permission buttons, copy menu |
+| `aiplane_markdown.pas` | Markdown parser (no LCL): headings, lists, quotes, fenced code, tables, rules; bold, italic, strikethrough, `code`, links. Half-streamed markup stays readable |
+| `aiplane_chatview.pas` | `TAIChatView` (LCL): owner drawn conversation; assistant and thinking text rendered as markdown, links open in the browser, foldable tool/thinking/plan cards, permission buttons, copy menu |
 | `aiplane_settingsframe.pas/.lfm` | `TAIPlaneSettingsFrame` (LCL): default runtime, command, arguments, model (*Detect* reads the runtime's list), effort and *Run Test* |
 | `aiplane_ide.pas/.lfm` | IDEIntf: `AIPlaneWindow` (dockable, hosts the chat), menu handler, settings in `config.json` under `aiplane`, project directory as working directory, unsaved editor buffers served to the agent |
 | `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line |
@@ -110,7 +111,8 @@ Spike findings (2026-11-02):
 
 ## Next steps
 
-1. Chat view: inline markdown (bold, `code`), text selection, keeping the
-   conversation across IDE restarts.
+1. Chat view: syntax highlighting in code blocks (SynEdit highlighters),
+   text selection with the mouse, keeping the conversation across IDE
+   restarts.
 2. IDE tools for the agent: `fs/write_text_file` into editor buffers, an MCP
    server for "open file in the IDE" and similar actions.

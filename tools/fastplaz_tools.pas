@@ -18,7 +18,7 @@ uses
   regexpr_unicodedata_lib, regex_tester_lib, openai_integration, tools_lib, 
   aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, 
   aiplane_presets, aiplane_chatview, aiplane_chatframe, 
-  aiplane_settingsframe, aiplane_ide, LazarusPackageIntf;
+  aiplane_settingsframe, aiplane_ide, aiplane_markdown, LazarusPackageIntf;
 
 implementation
 

@@ -854,8 +854,14 @@ begin
   end;
   // Drain a burst of output, but give the UI back regularly.
   rounds := 0;
-  while FAdapter.Poll and (rounds < 20) do
-    Inc(rounds);
+  // many chunks per tick: lay the conversation out once, at the end
+  FView.BeginUpdate;
+  try
+    while FAdapter.Poll and (rounds < 20) do
+      Inc(rounds);
+  finally
+    FView.EndUpdate;
+  end;
   if FAdapter.State in [aasIdle, aasStopped, aasFailed] then
   begin
     tmrPoll.Enabled := False;

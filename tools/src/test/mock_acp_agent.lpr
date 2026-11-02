@@ -15,6 +15,8 @@ program mock_acp_agent;
     fail         answers the prompt with a JSON-RPC error
     model?       reports the current model and effort
     unicode      replies with non-ASCII text
+    markdown     a markdown answer (headings, lists, code, table, ...),
+                 streamed line by line
     anything     "echo: <text>"
 
   Options: --banner prints a non-JSON line on stdout first.
@@ -330,6 +332,40 @@ begin
     Chunk(sid, 'agent_message_chunk', 'model=' + CurrentModel + ' effort=' + CurrentEffort)
   else if text = 'unicode' then
     Chunk(sid, 'agent_message_chunk', 'Halo dunia ' + #$E2#$9C#$93 + ' caf' + #$C3#$A9)
+  else if text = 'markdown' then
+  begin
+    Chunk(sid, 'agent_message_chunk', '## Ringkasan perubahan' + #10);
+    Chunk(sid, 'agent_message_chunk', 'Unit `tools_lib` sekarang **lebih aman** dan *lebih cepat*. Detail ada di [dokumentasi](https://fastplaz.com/docs) atau https://github.com/fastplaz/fastplaz.' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '### Langkah' + #10);
+    Chunk(sid, 'agent_message_chunk', '1. Baca `SanitizeIdentifier()` di **tools_lib**' + #10);
+    Chunk(sid, 'agent_message_chunk', '2. Jalankan test:' + #10);
+    Chunk(sid, 'agent_message_chunk', '   `run_tests.bat -a`' + #10);
+    Chunk(sid, 'agent_message_chunk', '3. Commit' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '- Perubahan utama' + #10);
+    Chunk(sid, 'agent_message_chunk', '  - nama modul dibersihkan' + #10);
+    Chunk(sid, 'agent_message_chunk', '  - ~~fungsi lama~~ dihapus' + #10);
+    Chunk(sid, 'agent_message_chunk', '- Catatan kecil' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '> Catatan: jalankan `lazbuild -B` bila hanya file .lfm yang berubah.' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '```pascal' + #10);
+    Chunk(sid, 'agent_message_chunk', 'function SanitizeIdentifier(const AName: string): string;' + #10);
+    Chunk(sid, 'agent_message_chunk', 'begin' + #10);
+    Chunk(sid, 'agent_message_chunk', '  Result := Trim(AName);  // komentar panjang supaya baris ini lebih lebar dari kotak kode dan harus dipotong' + #10);
+    Chunk(sid, 'agent_message_chunk', 'end;' + #10);
+    Chunk(sid, 'agent_message_chunk', '```' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '| Unit | Test | Status |' + #10);
+    Chunk(sid, 'agent_message_chunk', '|---|---|:-:|' + #10);
+    Chunk(sid, 'agent_message_chunk', '| tools_lib | 12 | **lulus** |' + #10);
+    Chunk(sid, 'agent_message_chunk', '| regex_tester_lib | 16 | lulus |' + #10);
+    Chunk(sid, 'agent_message_chunk', '| aiplane_markdown | 33 | baru |' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '---' + #10);
+    Chunk(sid, 'agent_message_chunk', 'Selesai. Variabel seperti my_var_name dan 2*3*4 tetap apa adanya.');
+  end
   else
     Chunk(sid, 'agent_message_chunk', 'echo: ' + text);
 
