@@ -76,7 +76,6 @@ unit http_lib;
 interface
 
 uses
-  fastplaz_app,
   fphttpclient,
   {$if fpc_fullversion >= 20701}
   //ghashmap,
