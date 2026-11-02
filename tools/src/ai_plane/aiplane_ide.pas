@@ -116,6 +116,9 @@ begin
   GlobalConfig['aiplane/command'] := ASettings.Command;
   GlobalConfig['aiplane/arguments'] := ASettings.Arguments;
   GlobalConfig['aiplane/model'] := ASettings.Model;
+  // the model last used with this runtime, brought back when switching to it
+  if ASettings.Runtime <> '' then
+    GlobalConfig['aiplane/models/' + ASettings.Runtime] := ASettings.Model;
   GlobalConfig['aiplane/effort'] := ASettings.Effort;
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_enabled'), ASettings.McpEnabled);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_port'), ASettings.McpPort);
@@ -252,6 +255,8 @@ end;
 procedure TAIPlaneWindow.ApplySettings;
 var
   settings: TAIPlaneSettings;
+  i: integer;
+  presetId: string;
 begin
   if Assigned(FChat.Adapter) and FChat.Adapter.IsBusy then
     Exit;
@@ -259,6 +264,12 @@ begin
   FApplying := True;
   try
     UpdateMcpServer(settings);
+    for i := 0 to AIPresetCount - 1 do
+    begin
+      presetId := AIPreset(i).Id;
+      FChat.RuntimeModels.Values[presetId] := GlobalConfig['aiplane/models/' + presetId];
+    end;
+    FChat.RuntimeModels.Values[settings.Runtime] := settings.Model;
     FChat.Model := settings.Model;
     FChat.Effort := settings.Effort;
     if not SameText(settings.Runtime, FChat.PresetId) or

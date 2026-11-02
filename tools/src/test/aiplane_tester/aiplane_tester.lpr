@@ -146,7 +146,9 @@ begin
     FSettingsAction := '';
     Exit;
   end;
+  // also waits for the runtime to answer before the first prompt
   busy := (Assigned(FChat.Adapter) and FChat.Adapter.IsBusy) or
+    ((FScript.Count > 0) and not FChat.ReadyToSend) or
     (Assigned(FSettings) and FSettings.Busy);
   Inc(FScriptWait);
   // A turn that waits for a permission click is not waited for forever.
@@ -256,12 +258,16 @@ end;
 procedure TTesterForm.LoadSettings;
 var
   runtime, command, args, cwd: string;
+  i: integer;
 begin
   runtime := Option('--runtime', FIni.ReadString('chat', 'runtime', AI_DEFAULT_PRESET));
   command := Option('--command', FIni.ReadString('chat', 'command', ''));
   args := Option('--args', FIni.ReadString('chat', 'arguments', ''));
   cwd := Option('--cwd', FIni.ReadString('chat', 'cwd', GetCurrentDir));
   FChat.WorkingDir := cwd;
+  for i := 0 to AIPresetCount - 1 do
+    FChat.RuntimeModels.Values[AIPreset(i).Id] :=
+      FIni.ReadString('models', AIPreset(i).Id, '');
   FChat.Model := FIni.ReadString('chat', 'model', '');
   FChat.Effort := FIni.ReadString('chat', 'effort', 'auto');
   FMock := runtime = 'mock';
@@ -272,6 +278,8 @@ begin
 end;
 
 procedure TTesterForm.SaveSettings(Sender: TObject);
+var
+  i: integer;
 begin
   if FMock then
     FIni.WriteString('chat', 'runtime', 'mock')
@@ -280,6 +288,10 @@ begin
     FIni.WriteString('chat', 'runtime', FChat.PresetId);
     FIni.WriteString('chat', 'command', FChat.Command);
     FIni.WriteString('chat', 'arguments', FChat.Arguments);
+    // the mock agent's models are not the real runtime's
+    for i := 0 to AIPresetCount - 1 do
+      FIni.WriteString('models', AIPreset(i).Id,
+        FChat.RuntimeModels.Values[AIPreset(i).Id]);
   end;
   FIni.WriteString('chat', 'model', FChat.Model);
   FIni.WriteString('chat', 'effort', FChat.Effort);

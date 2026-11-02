@@ -53,6 +53,14 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
   command, arguments, model and effort (`config.json`, key `aiplane`).
   Runtime, model and effort picked in the chat window become the new
   defaults too.
+* The model is remembered per runtime (`aiplane/models/<runtime>`).
+  Switching runtime in the chat window brings back the model last used
+  with that runtime (or the runtime default).
+* The runtime starts as soon as it is chosen, so its model list fills the
+  model box without a first prompt. *Send* stays disabled until the
+  runtime answers, and while the chosen model is not one it offers. The
+  reason shows in the status line. If the runtime fails to start, *New
+  conversation* tries again.
 * The runtime starts in the active project's directory and restarts when
   another project is opened (checked when the window is activated).
 
