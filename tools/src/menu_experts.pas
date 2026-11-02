@@ -37,7 +37,9 @@ uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
   model_lib, model_wzd, packageapp_wzd, packageapp_lib,
   json_tools, regex_tester,
   //Database Explorer
-  de_connector, de_dbbrowser, de_common, fastcode_configuration;
+  de_connector, de_dbbrowser, de_common, fastcode_configuration,
+  //AI Plane
+  aiplane_ide;
 
 // Asks for the module name, then creates "<permalink>_controller.pas" with
 // the given descriptor. The descriptor reads ModulTypeName and Permalink.
@@ -404,8 +406,10 @@ begin
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
 
-  // Database Explorer, JSON Tools
+  // AI Plane, Database Explorer, JSON Tools
   CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_AIPlane',
+    RS_AIPLANE_MENU, nil, @AIPlaneShowWindow, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_DatabaseExplorer',
     RS_DATABASE_EXPLORER_MENU, nil, @ViewDBConnector, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_JSONTools',
@@ -432,6 +436,7 @@ begin
     nil, '250', '250', '', '');
   IDEWindowCreators.Add(FDE_BROWSER_WINDOW_NAME, @CreateIDEBrowserWindow,
     nil, '250', '250', '', '');
+  AIPlaneRegisterWindow;
 
   // reveal in finder
   key := IDEShortCut(VK_E, [ssAlt, ssShift], VK_UNKNOWN, []);

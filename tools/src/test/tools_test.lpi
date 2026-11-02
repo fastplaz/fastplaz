@@ -50,6 +50,14 @@
         <Filename Value="..\regex_tester_lib.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="test_aiplane.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="test_aiplane_markdown.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -60,7 +68,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\..\..\FastPlaz\src\library"/>
-      <OtherUnitFiles Value="..;..\..\..\FastPlaz\src\library;..\..\..\FastPlaz\test"/>
+      <OtherUnitFiles Value="..;..\ai_plane;..\..\..\FastPlaz\src\library;..\..\..\FastPlaz\test"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

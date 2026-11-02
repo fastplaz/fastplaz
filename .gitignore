@@ -93,3 +93,11 @@ backup.sh
 
 # local environment (SMTP credentials etc.)
 .env
+
+# AI Plane test helpers (binaries without extension on Linux/macOS)
+tools/src/test/lib/
+tools/src/test/mock_acp_agent
+tools/src/test/aiplane_cli
+tools/src/test/aiplane_tester/lib/
+tools/src/test/aiplane_tester/aiplane_tester
+tools/src/test/aiplane_tester/aiplane_tester.res

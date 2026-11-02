@@ -7,7 +7,7 @@ interface
 uses
   LazFileUtils, fpjson, openai_integration, thread_custom, IDEMsgIntf,
   IDEExternToolIntf, SrcEditorIntf, SynEdit, Classes, SysUtils, Forms, Controls,
-  Graphics, Dialogs, ComCtrls, StdCtrls, ExtCtrls;
+  Graphics, Dialogs, ComCtrls, StdCtrls, ExtCtrls, aiplane_settingsframe;
 
 type
 
@@ -31,7 +31,10 @@ type
     Label6: TLabel;
     Label7: TLabel;
     mem_Prompt: TMemo;
+    PageControl1: TPageControl;
     Panel1: TPanel;
+    tsAIPlane: TTabSheet;
+    tsFastCode: TTabSheet;
     procedure btnCancelClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnTestConnectionClick(Sender: TObject);
@@ -41,6 +44,7 @@ type
     procedure FormShow(Sender: TObject);
   private
     selectedEditor: TSynEdit;
+    FAIPlane: TAIPlaneSettingsFrame;
     FTestBaseURL: string;
     FTestKey: string;
     FTestError: string;
@@ -52,6 +56,8 @@ type
     FCodePrompt: string;
     FCodeError: string;
     FCodeBusy: boolean;
+    procedure LoadAIPlane;
+    procedure SaveAIPlane;
     procedure DoTestConnection(Sender: TObject);
     procedure OnTestConnectionDone(Sender: TObject);
     procedure log(const Msg: string; AFileName: string = '';
@@ -61,6 +67,7 @@ type
     ResponseAsString: string;
     destructor Destroy; override;
     procedure Prepare;
+    procedure ShowAIPlaneTab;
     // asks the model for AQuestion and inserts the answer into the active
     // editor; the request runs in a worker thread
     function AskFastCode(const AQuestion: string): boolean;
@@ -76,7 +83,7 @@ function NormalizeOpenAIBaseURL(const AUrl: string): string;
 
 implementation
 
-uses config_lib, de_common, tools_lib;
+uses config_lib, de_common, tools_lib, aiplane_ide;
 
 function NormalizeOpenAIBaseURL(const AUrl: string): string;
 begin
@@ -107,6 +114,9 @@ begin
   FTestModels := TStringList.Create;
   FTestModels.Sorted := True;
   FTestModels.Duplicates := dupIgnore;
+  FAIPlane := TAIPlaneSettingsFrame.Create(Self);
+  FAIPlane.Parent := tsAIPlane;
+  FAIPlane.Align := alClient;
 end;
 
 procedure TfFastCodeConfiguration.FormKeyDown(Sender: TObject;
@@ -140,6 +150,38 @@ begin
   mem_Prompt.Lines.Text := GlobalConfig['fastcode/prompt'];
   edt_OpeningChar.Text := GlobalConfig['fastcode/opening_char'];
   edt_ClosingChar.Text := GlobalConfig['fastcode/closing_char'];
+  LoadAIPlane;
+end;
+
+procedure TfFastCodeConfiguration.LoadAIPlane;
+var
+  settings: TAIPlaneSettings;
+begin
+  settings := AIPlaneLoadSettings;
+  FAIPlane.Runtime := settings.Runtime;
+  FAIPlane.Command := settings.Command;
+  FAIPlane.Arguments := settings.Arguments;
+  FAIPlane.Model := settings.Model;
+  FAIPlane.Effort := settings.Effort;
+  FAIPlane.WorkingDir := AIPlaneProjectDirectory;
+end;
+
+procedure TfFastCodeConfiguration.SaveAIPlane;
+var
+  settings: TAIPlaneSettings;
+begin
+  settings.Runtime := FAIPlane.Runtime;
+  settings.Command := FAIPlane.Command;
+  settings.Arguments := FAIPlane.Arguments;
+  settings.Model := FAIPlane.Model;
+  settings.Effort := FAIPlane.Effort;
+  AIPlaneSaveSettings(settings);
+  AIPlaneSettingsChanged;
+end;
+
+procedure TfFastCodeConfiguration.ShowAIPlaneTab;
+begin
+  PageControl1.ActivePage := tsAIPlane;
 end;
 
 function TfFastCodeConfiguration.AskFastCode(const AQuestion: string): boolean;
@@ -168,7 +210,7 @@ begin
   FCodePrompt := string(GlobalConfig['fastcode/prompt']).Replace('%language%', language).Trim;
   if FCodeKey.IsEmpty and (FCodeBaseURL = OPENAI_BASEURL) then
   begin
-    ShowMessage('OpenAI Key not found. '#13'Please fill in the key from the "FastPlaz/Fast Code Configuration" menu');
+    ShowMessage('OpenAI Key not found. '#13'Please fill in the key in "FastPlaz/Configuration", Direct LLM tab');
     Exit;
   end;
 
@@ -271,6 +313,7 @@ begin
   GlobalConfig['fastcode/opening_char'] := edt_OpeningChar.Text;
   GlobalConfig['fastcode/closing_char'] := edt_ClosingChar.Text;
   GlobalConfig.Flush;
+  SaveAIPlane;
   Close;
 end;
 
