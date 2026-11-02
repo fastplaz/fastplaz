@@ -945,6 +945,12 @@ end;
 
 destructor TMyCustomWebModule.Destroy;
 begin
+  {$if FPC_FULLVERSION < 30300}
+  // FPC 3.2 TCustomHTTPModule creates its CORS support object but has no
+  // destructor to free it: 64 bytes lost per module, i.e. per request in
+  // standalone mode
+  CORS.Free;
+  {$endif}
   inherited Destroy;
 end;
 
