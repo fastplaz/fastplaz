@@ -7,7 +7,7 @@ and the unit tests all share the same code.
 
 Status: **phase 3** — core adapters, chat frame, LCL tester and the IDE
 integration (menu *FastPlaz → AI Plane*, dockable window, *AI Plane* tab in
-*Fast Code Configuration*).
+*FastPlaz → Configuration*).
 
 ## Units
 
@@ -46,7 +46,7 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
 ## In the IDE
 
 * *FastPlaz → AI Plane* opens the chat window; it docks like any IDE window.
-* *FastPlaz → Fast Code Configuration → AI Plane* sets the default runtime,
+* *FastPlaz → Configuration → AI Harness* sets the default runtime,
   command, arguments, model and effort (`config.json`, key `aiplane`).
   Runtime, model and effort picked in the chat window become the new
   defaults too.

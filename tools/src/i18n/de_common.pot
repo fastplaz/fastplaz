@@ -49,7 +49,7 @@ msgid "Fast Code Suggestion"
 msgstr ""
 
 #: de_common.rs_fast_code_configuration
-msgid "Fast Code Configuration"
+msgid "Configuration"
 msgstr ""
 
 #: de_common.rs_fast_code_mark

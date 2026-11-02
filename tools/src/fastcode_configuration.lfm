@@ -1,11 +1,11 @@
 object fFastCodeConfiguration: TfFastCodeConfiguration
   Left = 593
-  Height = 491
+  Height = 553
   Top = 327
   Width = 618
   BorderStyle = bsSizeToolWin
-  Caption = 'Fast Code Configuration'
-  ClientHeight = 491
+  Caption = 'Configuration'
+  ClientHeight = 553
   ClientWidth = 618
   DesignTimePPI = 120
   KeyPreview = True
@@ -17,15 +17,20 @@ object fFastCodeConfiguration: TfFastCodeConfiguration
   OnShow = FormShow
   object PageControl1: TPageControl
     Left = 0
-    Height = 442
+    Height = 504
     Top = 0
     Width = 618
-    ActivePage = tsFastCode
+    ActivePage = tsAIPlane
     Align = alClient
     TabIndex = 0
     TabOrder = 0
+    object tsAIPlane: TTabSheet
+      Caption = 'AI Harness'
+    end
     object tsFastCode: TTabSheet
-      Caption = 'Fast Code'
+      Caption = 'Direct LLM'
+      ClientHeight = 471
+      ClientWidth = 610
       object Label1: TLabel
         Left = 16
         Height = 20
@@ -146,14 +151,11 @@ object fFastCodeConfiguration: TfFastCodeConfiguration
         Text = 'cbbModel'
       end
     end
-    object tsAIPlane: TTabSheet
-      Caption = 'AI Plane'
-    end
   end
   object Panel1: TPanel
     Left = 0
     Height = 49
-    Top = 442
+    Top = 504
     Width = 618
     Align = alBottom
     ClientHeight = 49

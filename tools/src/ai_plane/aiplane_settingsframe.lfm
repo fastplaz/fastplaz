@@ -81,7 +81,7 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     Anchors = [akTop, akLeft, akRight]
     ItemHeight = 15
     TabOrder = 3
-    OnChange = ValueChange
+    OnChange = cbbModelChange
   end
   object btnDetect: TButton
     Cursor = crHandPoint

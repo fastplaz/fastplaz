@@ -4,7 +4,7 @@ unit aiplane_settingsframe;
   AI Plane default settings: runtime, command, arguments, model and effort,
   with model detection and a "Run Test" that sends one prompt.
 
-  Used by the AI Plane tab of Fast Code Configuration and by the tester app;
+  Used by the AI Harness tab of FastPlaz/Configuration and by the tester app;
   the host loads and stores the values (Runtime, Command, ... properties).
 
   Detection starts the runtime and waits for its session (ACP agents report
@@ -43,6 +43,7 @@ type
     tmrProbe: TTimer;
     procedure btnDetectClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
+    procedure cbbModelChange(Sender: TObject);
     procedure cbbRuntimeSelect(Sender: TObject);
     procedure tmrProbeTimer(Sender: TObject);
     procedure ValueChange(Sender: TObject);
@@ -54,6 +55,9 @@ type
     FProbeError: string;
     FWorkingDir: string;
     FOnChange: TNotifyEvent;
+    FAllModels: TStringList;
+    FFiltering: boolean;
+    procedure SetModelList(const AModels: TAIModelList);
     procedure SetupControls;
     procedure UpdateNote;
     procedure StartProbe(ATest: boolean);
@@ -101,6 +105,7 @@ implementation
 constructor TAIPlaneSettingsFrame.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FAllModels := TStringList.Create;
   SetupControls;
   SetRuntime(AI_DEFAULT_PRESET);
 end;
@@ -116,6 +121,7 @@ begin
     FProbe.Stop;
     FreeAndNil(FProbe);
   end;
+  FAllModels.Free;
   inherited Destroy;
 end;
 
@@ -189,9 +195,7 @@ begin
     else if Length(FProbe.Models) > 0 then
     begin
       // Fixed list, nothing to start.
-      cbbModel.Items.Clear;
-      for i := 0 to High(FProbe.Models) do
-        cbbModel.Items.Add(FProbe.Models[i].Id);
+      SetModelList(FProbe.Models);
       FinishProbe(Format('%d model(s)', [Length(FProbe.Models)]));
       Exit;
     end
@@ -292,13 +296,7 @@ begin
   end;
 
   if Length(FProbe.Models) > 0 then
-  begin
-    keep := cbbModel.Text;
-    cbbModel.Items.Clear;
-    for i := 0 to High(FProbe.Models) do
-      cbbModel.Items.Add(FProbe.Models[i].Id);
-    cbbModel.Text := keep;
-  end;
+    SetModelList(FProbe.Models);
 
   if FProbeTesting then
   begin
@@ -317,6 +315,74 @@ begin
     FinishProbe(Format('%d model(s) found', [Length(FProbe.Models)]));
 end;
 
+// The full model list; the combo box shows the part that matches what is
+// typed in it.
+procedure TAIPlaneSettingsFrame.SetModelList(const AModels: TAIModelList);
+var
+  i: integer;
+  keep: string;
+begin
+  FAllModels.Clear;
+  for i := 0 to High(AModels) do
+    FAllModels.Add(AModels[i].Id);
+  FFiltering := True;
+  try
+    keep := cbbModel.Text;
+    cbbModel.Items.Assign(FAllModels);
+    cbbModel.Text := keep;
+  finally
+    FFiltering := False;
+  end;
+  if FAllModels.Count > 0 then
+  begin
+    cbbModel.TextHint := Format('runtime default - type to search %d models', [FAllModels.Count]);
+    cbbModel.Hint := Format('%d model(s); type part of a name to filter, every word must match',
+      [FAllModels.Count]);
+  end
+  else
+  begin
+    cbbModel.TextHint := 'runtime default';
+    cbbModel.Hint := 'Model (empty = runtime default)';
+  end;
+end;
+
+procedure TAIPlaneSettingsFrame.cbbModelChange(Sender: TObject);
+var
+  typed: string;
+  caret: integer;
+begin
+  if FFiltering then
+    Exit;
+  ValueChange(Sender);
+  if FAllModels.Count = 0 then
+    Exit;
+  typed := cbbModel.Text;
+  caret := cbbModel.SelStart;
+  FFiltering := True;
+  try
+    // a picked model (exact name) shows the whole list again next time
+    if (typed = '') or (FAllModels.IndexOf(typed) >= 0) then
+      cbbModel.Items.Assign(FAllModels)
+    else
+      AIFilterModels(FAllModels, typed, cbbModel.Items);
+    // changing Items resets the edit text on some widgetsets
+    if cbbModel.Text <> typed then
+      cbbModel.Text := typed;
+    if cbbModel.Focused and (typed <> '') and (FAllModels.IndexOf(typed) < 0) and
+      (cbbModel.Items.Count > 0) and not cbbModel.DroppedDown then
+    begin
+      cbbModel.DroppedDown := True;
+      // dropping down selects the whole text: keep typing where we were
+      if cbbModel.Text <> typed then
+        cbbModel.Text := typed;
+    end;
+    cbbModel.SelStart := caret;
+    cbbModel.SelLength := 0;
+  finally
+    FFiltering := False;
+  end;
+end;
+
 procedure TAIPlaneSettingsFrame.DetectModels;
 begin
   StartProbe(False);
@@ -331,7 +397,7 @@ procedure TAIPlaneSettingsFrame.cbbRuntimeSelect(Sender: TObject);
 begin
   edt_Command.Text := '';
   edt_Arguments.Text := '';
-  cbbModel.Items.Clear;
+  SetModelList(nil);
   cbbModel.Text := '';
   UpdateNote;
   ValueChange(Sender);

@@ -118,7 +118,7 @@ begin
   if command = '' then
     command := preset.Command;
   Result := Format('%s is not available: "%s" was not found. Install it or set ' +
-    'its command in Fast Code Configuration, AI Plane tab.', [preset.Title, command]);
+    'its command in FastPlaz/Configuration, AI Harness tab.', [preset.Title, command]);
   if preset.Note <> '' then
     Result := Result + ' (' + preset.Note + ')';
 end;

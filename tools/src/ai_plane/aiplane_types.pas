@@ -163,6 +163,9 @@ function AIStateToString(AState: TAIAdapterState): string;
   a code block. Prose is trimmed and empty prose is dropped; an unclosed
   fence (still streaming) counts as code. The caller frees the list. }
 function AISplitCodeBlocks(const AText: string): TStringList;
+{ Copies to AOut the items of AItems that contain every word of AFilter
+  (case-insensitive, any order). An empty filter copies everything. }
+procedure AIFilterModels(AItems: TStrings; const AFilter: string; AOut: TStrings);
 
 implementation
 
@@ -232,6 +235,39 @@ begin
     Flush;
   finally
     lines.Free;
+  end;
+end;
+
+procedure AIFilterModels(AItems: TStrings; const AFilter: string; AOut: TStrings);
+var
+  words: TStringList;
+  i, w: integer;
+  item: string;
+  ok: boolean;
+begin
+  AOut.BeginUpdate;
+  words := TStringList.Create;
+  try
+    AOut.Clear;
+    words.Delimiter := ' ';
+    words.StrictDelimiter := True;
+    words.DelimitedText := LowerCase(Trim(AFilter));
+    for i := 0 to AItems.Count - 1 do
+    begin
+      item := LowerCase(AItems[i]);
+      ok := True;
+      for w := 0 to words.Count - 1 do
+        if (words[w] <> '') and (Pos(words[w], item) = 0) then
+        begin
+          ok := False;
+          Break;
+        end;
+      if ok then
+        AOut.Add(AItems[i]);
+    end;
+  finally
+    words.Free;
+    AOut.EndUpdate;
   end;
 end;
 

@@ -13,7 +13,7 @@ program aiplane_tester;
   --prompt sends the prompts one after another (separated by |), and
   --screenshot then saves the window to a PNG and quits. A turn that is
   still running after --timeout seconds (default 5) is left as it is.
-  --settings opens the settings window (the AI Plane tab of the IDE
+  --settings opens the settings window (the AI Harness tab of the IDE
   configuration), runs Detect or Run Test, and the screenshot shows it.
   --select selects text after the prompts (as a mouse drag between two
   points of the conversation, or everything); --selection-out writes the
@@ -299,7 +299,7 @@ begin
   if Assigned(FSettingsForm) then
     Exit;
   FSettingsForm := TForm.CreateNew(Self);
-  FSettingsForm.Caption := 'AI Plane Settings';
+  FSettingsForm.Caption := 'AI Harness Settings';
   FSettingsForm.Width := 600;
   FSettingsForm.Height := 440;
   FSettingsForm.Position := poMainFormCenter;

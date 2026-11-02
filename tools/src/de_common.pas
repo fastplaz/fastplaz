@@ -82,7 +82,7 @@ const
 
 resourcestring
   //rsDBConnector = 'DB Connector';
-  RS_FAST_CODE_CONFIGURATION = 'Fast Code Configuration';
+  RS_FAST_CODE_CONFIGURATION = 'Configuration';
   RS_FAST_CODE = 'Fast Code Suggestion';
   RS_FAST_CODE_MARK = '//';
   RS_DATABASE_EXPLORER_MENU = 'Database Explorer';

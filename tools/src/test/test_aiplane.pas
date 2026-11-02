@@ -58,6 +58,7 @@ type
     procedure TestSplitCodeBlock;
     procedure TestSplitUnclosedFence;
     procedure TestSplitEmpty;
+    procedure TestFilterModels;
   end;
 
   { TACPAdapterTest }
@@ -437,6 +438,34 @@ begin
     AssertEquals(0, parts.Count);
   finally
     parts.Free;
+  end;
+end;
+
+procedure TAIPlaneHelpersTest.TestFilterModels;
+var
+  all, found: TStringList;
+begin
+  all := TStringList.Create;
+  found := TStringList.Create;
+  try
+    all.Add('anthropic/claude-sonnet-4');
+    all.Add('anthropic/claude-opus-4');
+    all.Add('openai/gpt-5');
+    all.Add('opencode/deepseek-v4.1-flash-free');
+    AIFilterModels(all, '', found);
+    AssertEquals('empty filter keeps all', 4, found.Count);
+    AIFilterModels(all, 'CLAUDE', found);
+    AssertEquals('case-insensitive', 2, found.Count);
+    AIFilterModels(all, 'sonnet claude', found);
+    AssertEquals('every word, any order', 1, found.Count);
+    AssertEquals('anthropic/claude-sonnet-4', found[0]);
+    AIFilterModels(all, '  flash  free ', found);
+    AssertEquals('extra spaces', 1, found.Count);
+    AIFilterModels(all, 'llama', found);
+    AssertEquals(0, found.Count);
+  finally
+    found.Free;
+    all.Free;
   end;
 end;
 

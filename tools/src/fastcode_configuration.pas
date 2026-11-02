@@ -210,7 +210,7 @@ begin
   FCodePrompt := string(GlobalConfig['fastcode/prompt']).Replace('%language%', language).Trim;
   if FCodeKey.IsEmpty and (FCodeBaseURL = OPENAI_BASEURL) then
   begin
-    ShowMessage('OpenAI Key not found. '#13'Please fill in the key from the "FastPlaz/Fast Code Configuration" menu');
+    ShowMessage('OpenAI Key not found. '#13'Please fill in the key in "FastPlaz/Configuration", Direct LLM tab');
     Exit;
   end;
 

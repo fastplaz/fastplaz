@@ -56,8 +56,8 @@ msgid "Fast Code Suggestion"
 msgstr ""
 
 #: de_common.rs_fast_code_configuration
-msgid "Fast Code Configuration"
-msgstr "Konfigurasi Fast Code"
+msgid "Configuration"
+msgstr "Konfigurasi"
 
 # marker the Fast Code command looks for, must not be translated
 #: de_common.rs_fast_code_mark

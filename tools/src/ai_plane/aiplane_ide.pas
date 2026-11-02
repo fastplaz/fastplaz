@@ -2,8 +2,8 @@ unit aiplane_ide;
 
 {
   AI Plane inside the Lazarus IDE: the dockable window that hosts
-  TAIChatFrame, and the settings it shares with the AI Plane tab of
-  Fast Code Configuration.
+  TAIChatFrame, and the settings it shares with the AI Harness tab of
+  FastPlaz/Configuration.
 
   - Settings live in the FastPlaz config.json (GlobalConfig) under "aiplane".
   - The runtime works in the directory of the active project.
