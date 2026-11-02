@@ -28,7 +28,7 @@
 for more information visit https://www.fastplaz.com
 "/>
     <Version Major="1" Release="1" Build="145"/>
-    <Files Count="62">
+    <Files Count="63">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -278,6 +278,10 @@ for more information visit https://www.fastplaz.com
         <Filename Value="src\ai_plane\aiplane_markdown.pas"/>
         <UnitName Value="aiplane_markdown"/>
       </Item62>
+      <Item63>
+        <Filename Value="src\ai_plane\aiplane_codehighlight.pas"/>
+        <UnitName Value="aiplane_codehighlight"/>
+      </Item63>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

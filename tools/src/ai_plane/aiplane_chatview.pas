@@ -28,7 +28,7 @@ interface
 
 uses
   Classes, SysUtils, Contnrs, Controls, Forms, Graphics, ExtCtrls, Menus,
-  Clipbrd, LCLType, LCLIntf, aiplane_types, aiplane_markdown;
+  Clipbrd, LCLType, LCLIntf, aiplane_types, aiplane_markdown, aiplane_codehighlight;
 
 type
   TAIChatItemKind = (cikUser, cikAssistant, cikThinking, cikTool, cikPlan,
@@ -201,7 +201,7 @@ type
     function Runs(const ARuns: TMDRuns; AX, AWidth, AY: integer;
       AExtraStyle: TFontStyles; AScale: integer; AColor: TColor): integer;
     function Blocks(const ABlocks: TMDBlocks; AWidth: integer): integer;
-    function CodeBlock(const ACode: string; AX, AWidth, AY: integer): integer;
+    function CodeBlock(const ACode, ALang: string; AX, AWidth, AY: integer): integer;
     function Table(const ABlock: TMDBlock; AX, AWidth, AY: integer): integer;
   end;
 
@@ -422,56 +422,115 @@ begin
   Result := y;
 end;
 
-{ Monospace text in a shaded box; long lines wrap by characters. }
-function TChatLayout.CodeBlock(const ACode: string; AX, AWidth, AY: integer): integer;
+{ Monospace text in a shaded box, coloured by the SynEdit highlighter of the
+  fence language when there is one; long lines wrap by characters. }
+function TChatLayout.CodeBlock(const ACode, ALang: string; AX, AWidth, AY: integer): integer;
 var
-  lines: TStringList;
-  i, y, lineH, box, m, k, j, avail: integer;
-  s, part: string;
+  tokens: TAICodeLines;
+  plain: TStringList;
+  i, t, y, x, lineH, box, m, k, j, avail, w: integer;
+  rest, part, lang: string;
+  color: TColor;
+  style: TFontStyles;
 begin
   box := AddFrag(cfBox, Rect(AX, AY, AX + AWidth, AY));
   Frags[box].Back := Blend(clWindow, clWindowText, 7);
   lineH := LineHeight(True, 100);
-  UseFont(True, [], 100);
   avail := AWidth - 2 * PAD;
   y := AY + PAD;
-  lines := TStringList.Create;
-  try
-    lines.Text := ACode;
-    if lines.Count = 0 then
-      lines.Add('');
-    for i := 0 to lines.Count - 1 do
-    begin
-      s := lines[i];
-      repeat
-        part := s;
-        if FCanvas.TextWidth(s) > avail then
-        begin
-          part := '';
-          k := 1;
-          while k <= Length(s) do
-          begin
-            j := k + 1;
-            while (j <= Length(s)) and ((Ord(s[j]) and $C0) = $80) do
-              Inc(j);
-            if (part <> '') and (FCanvas.TextWidth(part + Copy(s, k, j - k)) > avail) then
-              Break;
-            part := part + Copy(s, k, j - k);
-            k := j;
-          end;
-        end;
-        if part <> '' then
-        begin
-          m := AddFrag(cfText, Rect(AX + PAD, y, AX + PAD + FCanvas.TextWidth(part), y + lineH));
-          Frags[m].Text := part;
-          Frags[m].Mono := True;
-        end;
-        Inc(y, lineH);
-        Delete(s, 1, Length(part));
-      until s = '';
+
+  if not AIHighlightCode(ACode, ALang, tokens) then
+  begin
+    // no highlighter: one plain token per line
+    plain := TStringList.Create;
+    try
+      plain.Text := ACode;
+      if plain.Count = 0 then
+        plain.Add('');
+      SetLength(tokens, plain.Count);
+      for i := 0 to plain.Count - 1 do
+      begin
+        SetLength(tokens[i], 1);
+        tokens[i][0].Text := plain[i];
+        tokens[i][0].Color := clNone;
+        tokens[i][0].Style := [];
+      end;
+    finally
+      plain.Free;
     end;
-  finally
-    lines.Free;
+  end;
+
+  // language label in the top right corner
+  // the name as written in the fence ("json", not the highlighter's "js")
+  lang := LowerCase(Trim(ALang));
+  if Pos(' ', lang) > 0 then
+    SetLength(lang, Pos(' ', lang) - 1);
+  if lang <> '' then
+  begin
+    UseFont(False, [], 85);
+    w := FCanvas.TextWidth(lang);
+    m := AddFrag(cfText, Rect(AX + AWidth - PAD - w, AY + 2, AX + AWidth - PAD,
+      AY + 2 + FCanvas.TextHeight('Ag')));
+    Frags[m].Text := lang;
+    Frags[m].Scale := 85;
+    Frags[m].Color := Blend(clWindowText, clWindow, 50);
+  end;
+
+  for i := 0 to High(tokens) do
+  begin
+    x := 0;
+    for t := 0 to High(tokens[i]) do
+    begin
+      rest := tokens[i][t].Text;
+      color := tokens[i][t].Color;
+      style := tokens[i][t].Style;
+      UseFont(True, style, 100);
+      while rest <> '' do
+      begin
+        // the longest prefix that still fits on this line
+        part := '';
+        k := 1;
+        while k <= Length(rest) do
+        begin
+          j := k + 1;
+          while (j <= Length(rest)) and ((Ord(rest[j]) and $C0) = $80) do
+            Inc(j);
+          if FCanvas.TextWidth(part + Copy(rest, k, j - k)) > avail - x then
+            Break;
+          part := part + Copy(rest, k, j - k);
+          k := j;
+        end;
+        if (part = '') and (x > 0) then
+        begin
+          // nothing fits behind the previous token: next line
+          Inc(y, lineH);
+          x := 0;
+          Continue;
+        end;
+        if part = '' then
+        begin
+          // narrower than one character: take it anyway
+          j := 2;
+          while (j <= Length(rest)) and ((Ord(rest[j]) and $C0) = $80) do
+            Inc(j);
+          part := Copy(rest, 1, j - 1);
+        end;
+        w := FCanvas.TextWidth(part);
+        m := AddFrag(cfText, Rect(AX + PAD + x, y, AX + PAD + x + w, y + lineH));
+        Frags[m].Text := part;
+        Frags[m].Mono := True;
+        Frags[m].Style := style;
+        Frags[m].Color := color;
+        Inc(x, w);
+        Delete(rest, 1, Length(part));
+        if rest <> '' then
+        begin
+          Inc(y, lineH);
+          x := 0;
+        end;
+      end;
+    end;
+    Inc(y, lineH);
   end;
   Inc(y, PAD);
   Frags[box].R.Bottom := y;
@@ -621,7 +680,7 @@ begin
         Frags[m].Back := Blend(clWindow, clWindowText, 25);
       end;
       mbCode:
-        y := CodeBlock(b.Code, 0, AWidth, y);
+        y := CodeBlock(b.Code, b.Lang, 0, AWidth, y);
       mbRule:
       begin
         m := AddFrag(cfLine, Rect(0, y + 4, AWidth, y + 4));

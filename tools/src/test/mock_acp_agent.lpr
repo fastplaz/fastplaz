@@ -357,6 +357,14 @@ begin
     Chunk(sid, 'agent_message_chunk', 'end;' + #10);
     Chunk(sid, 'agent_message_chunk', '```' + #10);
     Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '```sql' + #10);
+    Chunk(sid, 'agent_message_chunk', 'SELECT id, name FROM users WHERE active = 1 -- aktif saja' + #10);
+    Chunk(sid, 'agent_message_chunk', '```' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
+    Chunk(sid, 'agent_message_chunk', '```json' + #10);
+    Chunk(sid, 'agent_message_chunk', '{ "runtime": "opencode", "effort": 2, "ok": true }' + #10);
+    Chunk(sid, 'agent_message_chunk', '```' + #10);
+    Chunk(sid, 'agent_message_chunk', '' + #10);
     Chunk(sid, 'agent_message_chunk', '| Unit | Test | Status |' + #10);
     Chunk(sid, 'agent_message_chunk', '|---|---|:-:|' + #10);
     Chunk(sid, 'agent_message_chunk', '| tools_lib | 12 | **lulus** |' + #10);

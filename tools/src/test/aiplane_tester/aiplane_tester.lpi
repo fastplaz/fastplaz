@@ -24,6 +24,9 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="SynEdit"/>
+      </Item>
+      <Item>
         <PackageName Value="LCL"/>
       </Item>
     </RequiredPackages>
