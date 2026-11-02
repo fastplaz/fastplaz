@@ -1,5 +1,7 @@
 {"version":1,"strings":[
-{"hash":38096542,"name":"tffastcodeconfiguration.caption","sourcebytes":[70,97,115,116,32,67,111,100,101,32,67,111,110,102,105,103,117,114,97,116,105,111,110],"value":"Fast Code Configuration"},
+{"hash":116154878,"name":"tffastcodeconfiguration.caption","sourcebytes":[67,111,110,102,105,103,117,114,97,116,105,111,110],"value":"Configuration"},
+{"hash":244127715,"name":"tffastcodeconfiguration.tsaiplane.caption","sourcebytes":[65,73,32,72,97,114,110,101,115,115],"value":"AI Harness"},
+{"hash":195232141,"name":"tffastcodeconfiguration.tsfastcode.caption","sourcebytes":[68,105,114,101,99,116,32,76,76,77],"value":"Direct LLM"},
 {"hash":154135482,"name":"tffastcodeconfiguration.label1.caption","sourcebytes":[79,112,101,110,65,73,32,65,80,73,32,75,101,121,32,58],"value":"OpenAI API Key :"},
 {"hash":246611834,"name":"tffastcodeconfiguration.label2.caption","sourcebytes":[76,97,110,103,117,97,103,101,32,58],"value":"Language :"},
 {"hash":62297674,"name":"tffastcodeconfiguration.label3.caption","sourcebytes":[73,110,105,116,105,97,108,32,80,114,111,109,112,116,32,58],"value":"Initial Prompt :"},

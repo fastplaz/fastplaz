@@ -283,7 +283,7 @@ for more information visit https://www.fastplaz.com
         <UnitName Value="aiplane_codehighlight"/>
       </Item63>
       <Item64>
-        <Filename Value="srci_planeiplane_pi.pas"/>
+        <Filename Value="src\ai_plane\aiplane_pi.pas"/>
         <UnitName Value="aiplane_pi"/>
       </Item64>
     </Files>
