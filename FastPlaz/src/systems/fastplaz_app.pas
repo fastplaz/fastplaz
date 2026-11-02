@@ -99,6 +99,16 @@ function CGINameToHeaderName(const AName: string): string;
 // nothing in standalone mode (the server keeps running)
 procedure StopRequest;
 
+// standalone mode: serve ARequest from a file under the working directory
+// when it names one (theme assets, images, ...). Only asset extensions are
+// served; dot files, ".." and ztemp/ never are. False when the request is
+// not for such a file and must go to the application.
+function ServeStaticFile(ARequest: TRequest; AResponse: TResponse): boolean;
+// the relative file ServeStaticFile would send for a URL path, '' if none
+function StaticFileForPath(const AURLPath: string): string;
+// systems/server/static or --static=on|off (default on)
+function StaticFilesEnabled: boolean;
+
 var
   // called around every request, in every mode
   OnBeginRequest: TFastPlazRequestEvent = nil;
@@ -107,10 +117,41 @@ var
 implementation
 
 uses
-  CustApp, fpjson, jsonparser, jsonscanner;
+  CustApp, DateUtils, fpjson, jsonparser, jsonscanner;
 
 const
   CONFIG_FILE = 'config' + DirectorySeparator + 'config.json';
+
+  // extension -> content type of the files served in standalone mode;
+  // anything else (html templates, json, binaries, ...) goes to the app
+  STATIC_TYPES: array[0..25, 0..1] of string = (
+    ('css', 'text/css'),
+    ('js', 'application/javascript'),
+    ('mjs', 'application/javascript'),
+    ('map', 'application/json'),
+    ('png', 'image/png'),
+    ('jpg', 'image/jpeg'),
+    ('jpeg', 'image/jpeg'),
+    ('gif', 'image/gif'),
+    ('svg', 'image/svg+xml'),
+    ('webp', 'image/webp'),
+    ('avif', 'image/avif'),
+    ('ico', 'image/x-icon'),
+    ('bmp', 'image/bmp'),
+    ('woff', 'font/woff'),
+    ('woff2', 'font/woff2'),
+    ('ttf', 'font/ttf'),
+    ('otf', 'font/otf'),
+    ('eot', 'application/vnd.ms-fontobject'),
+    ('txt', 'text/plain'),
+    ('pdf', 'application/pdf'),
+    ('mp4', 'video/mp4'),
+    ('webm', 'video/webm'),
+    ('mp3', 'audio/mpeg'),
+    ('ogg', 'audio/ogg'),
+    ('wav', 'audio/wav'),
+    ('swf', 'application/x-shockwave-flash')
+  );
 
 var
   FApp: TCustomWebApplication = nil;       // created here, freed here
@@ -119,6 +160,7 @@ var
   FMode: TFastPlazAppMode = amHTTP;
   FPort: integer = FASTPLAZ_HTTP_PORT_DEFAULT;
   FAddress: string = FASTPLAZ_HTTP_ADDRESS_DEFAULT;
+  FStatic: boolean = True;
   FRequest: TRequest = nil;
   FResponse: TResponse = nil;
 
@@ -152,7 +194,7 @@ end;
 // systems/server from config/config.json; a missing or broken file is not
 // an error here, common.pas reports it
 procedure ReadServerConfig(out AMode: string; out APort: integer;
-  out AAddress: string);
+  out AAddress: string; out AStatic: boolean);
 var
   lst: TStringList;
   parser: TJSONParser;
@@ -162,6 +204,7 @@ begin
   AMode := '';
   APort := 0;
   AAddress := '';
+  AStatic := True;
   if not FileExists(CONFIG_FILE) then
     Exit;
   root := nil;
@@ -183,6 +226,7 @@ begin
       AMode := TJSONObject(server).Get('mode', '');
       APort := TJSONObject(server).Get('port', 0);
       AAddress := TJSONObject(server).Get('address', '');
+      AStatic := TJSONObject(server).Get('static', True);
     except
       // ignored, see above
     end;
@@ -202,7 +246,7 @@ begin
     Exit;
   FModeResolved := True;
 
-  ReadServerConfig(cfgMode, cfgPort, cfgAddress);
+  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic);
   if cfgPort > 0 then
     FPort := cfgPort;
   if cfgAddress <> '' then
@@ -226,6 +270,130 @@ begin
     FPort := StrToInt(s);
   if CommandLineValue('address', s) and (s <> '') then
     FAddress := s;
+  if CommandLineValue('static', s) then
+    FStatic := not (SameText(s, 'off') or SameText(s, 'false') or (s = '0'));
+end;
+
+function StaticFilesEnabled: boolean;
+begin
+  ResolveMode;
+  Result := FStatic;
+end;
+
+function StaticContentType(const AFileName: string): string;
+var
+  ext: string;
+  i: integer;
+begin
+  Result := '';
+  ext := LowerCase(ExtractFileExt(AFileName));
+  if (ext = '') or (ext = '.') then
+    Exit;
+  Delete(ext, 1, 1);
+  for i := Low(STATIC_TYPES) to High(STATIC_TYPES) do
+    if STATIC_TYPES[i, 0] = ext then
+      Exit(STATIC_TYPES[i, 1]);
+end;
+
+function StaticFileForPath(const AURLPath: string): string;
+var
+  path, segment, root, full: string;
+  parts: TStringArray;
+  i: integer;
+begin
+  Result := '';
+  path := AURLPath;
+  i := Pos('?', path);
+  if i > 0 then
+    path := Copy(path, 1, i - 1);
+  path := HTTPDecode(path);
+  // backslashes, drive letters / NTFS streams and NUL never name an asset
+  if (path = '') or (Pos('\', path) > 0) or (Pos(':', path) > 0) or
+    (Pos(#0, path) > 0) then
+    Exit;
+  parts := path.Split(['/'], TStringSplitOptions.ExcludeEmpty);
+  if Length(parts) = 0 then
+    Exit;
+  for i := 0 to High(parts) do
+  begin
+    segment := parts[i];
+    // "..", ".htaccess", ".git", ...
+    if segment[1] = '.' then
+      Exit;
+  end;
+  // logs, sessions, cache
+  if SameText(parts[0], 'ztemp') then
+    Exit;
+  if StaticContentType(parts[High(parts)]) = '' then
+    Exit;
+
+  path := string.Join(DirectorySeparator, parts);
+  root := IncludeTrailingPathDelimiter(ExpandFileName(GetCurrentDir));
+  full := ExpandFileName(root + path);
+  // must stay inside the root, whatever the file system made of the name
+  if not SameFileName(Copy(full, 1, Length(root)), root) then
+    Exit;
+  if (not FileExists(full)) or DirectoryExists(full) then
+    Exit;
+  Result := path;
+end;
+
+// RFC 7231 date: "Mon, 02 Nov 2026 10:39:58 GMT"
+function HTTPDateString(AUniversal: TDateTime): string;
+const
+  DAYS: array[1..7] of string = ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
+  MONTHS: array[1..12] of string = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+begin
+  Result := Format('%s, %s %s %s GMT', [DAYS[DayOfWeek(AUniversal)],
+    FormatDateTime('dd', AUniversal), MONTHS[MonthOf(AUniversal)],
+    FormatDateTime('yyyy hh:nn:ss', AUniversal)]);
+end;
+
+function ServeStaticFile(ARequest: TRequest; AResponse: TResponse): boolean;
+var
+  fileName, lastModified: string;
+  modified: TDateTime;
+  stream: TFileStream;
+begin
+  Result := False;
+  if not (SameText(ARequest.Method, 'GET') or SameText(ARequest.Method, 'HEAD')) then
+    Exit;
+  if not StaticFilesEnabled then
+    Exit;
+  fileName := StaticFileForPath(ARequest.URI);
+  if fileName = '' then
+    Exit;
+  if not FileAge(fileName, modified) then
+    Exit;
+  Result := True;
+
+  AResponse.Code := 200;
+  AResponse.CodeText := 'OK';
+  AResponse.ContentType := StaticContentType(fileName);
+  lastModified := HTTPDateString(LocalTimeToUniversal(modified));
+  AResponse.LastModified := lastModified;
+  // browsers send back the Last-Modified value they got
+  if ARequest.GetFieldByName('If-Modified-Since') = lastModified then
+  begin
+    AResponse.Code := 304;
+    AResponse.CodeText := 'Not Modified';
+    AResponse.ContentLength := 0;
+    AResponse.SendContent;
+    Exit;
+  end;
+
+  stream := TFileStream.Create(fileName, fmOpenRead or fmShareDenyWrite);
+  AResponse.ContentLength := stream.Size;
+  if SameText(ARequest.Method, 'HEAD') then
+  begin
+    stream.Free;
+    AResponse.SendHeaders;
+    Exit;
+  end;
+  AResponse.FreeContentStream := True;
+  AResponse.ContentStream := stream;
+  AResponse.SendContent;
 end;
 
 function AppMode: TFastPlazAppMode;
@@ -446,6 +614,18 @@ end;
 
 procedure TFastPlazHTTPHandler.HandleRequest(ARequest: TRequest; AResponse: TResponse);
 begin
+  // assets are answered before the application sees the request, like a
+  // web server would (nginx try_files)
+  try
+    if ServeStaticFile(ARequest, AResponse) then
+      Exit;
+  except
+    on E: Exception do
+    begin
+      ShowRequestException(AResponse, E);
+      Exit;
+    end;
+  end;
   BeginRequest(Self, ARequest, AResponse);
   try
     inherited HandleRequest(ARequest, AResponse);
