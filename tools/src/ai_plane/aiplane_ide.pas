@@ -22,7 +22,7 @@ uses
 
 const
   AIPLANE_WINDOW_NAME = 'AIPlaneWindow';
-  RS_AIPLANE_MENU = 'AI Plane';
+  RS_AIPLANE_MENU = '&AI Plane';
   RS_AIPLANE_CAPTION = 'AI Plane';
 
 type

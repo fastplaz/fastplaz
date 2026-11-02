@@ -85,10 +85,10 @@ resourcestring
   RS_FAST_CODE_CONFIGURATION = 'Configuration';
   RS_FAST_CODE = 'Fast Code Suggestion';
   RS_FAST_CODE_MARK = '//';
-  RS_DATABASE_EXPLORER_MENU = 'Database Explorer';
-  RS_JSON_TOOLS_MENU = 'JSON Validator && Formatter';
-  RS_REGEX_TESTER_MENU = 'Regex Tester';
-  RS_OPEN_TERMINAL_MENU = 'Open Console/Terminal';
+  RS_DATABASE_EXPLORER_MENU = '&Database Explorer';
+  RS_JSON_TOOLS_MENU = '&JSON Validator && Formatter';
+  RS_REGEX_TESTER_MENU = '&Regex Tester';
+  RS_OPEN_TERMINAL_MENU = 'Open Console/&Terminal';
   RS_OPEN_TERMINAL_NO_DIRECTORY = 'No saved project or file is open, nothing to open the terminal in.';
   RS_OPEN_TERMINAL_NOT_FOUND = 'No terminal application found. Set the TERMINAL environment variable.';
   RS_THERE_ARE_DEVELOPMENT_UPDATE = 'There are development update: ';

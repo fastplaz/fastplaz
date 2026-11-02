@@ -41,7 +41,7 @@ msgid "View DB Connector"
 msgstr ""
 
 #: de_common.rs_database_explorer_menu
-msgid "Database Explorer"
+msgid "&Database Explorer"
 msgstr ""
 
 #: de_common.rs_fast_code
@@ -57,11 +57,11 @@ msgid "//"
 msgstr ""
 
 #: de_common.rs_json_tools_menu
-msgid "JSON Validator && Formatter"
+msgid "&JSON Validator && Formatter"
 msgstr ""
 
 #: de_common.rs_open_terminal_menu
-msgid "Open Console/Terminal"
+msgid "Open Console/&Terminal"
 msgstr ""
 
 #: de_common.rs_open_terminal_not_found
@@ -73,7 +73,7 @@ msgid "No saved project or file is open, nothing to open the terminal in."
 msgstr ""
 
 #: de_common.rs_regex_tester_menu
-msgid "Regex Tester"
+msgid "&Regex Tester"
 msgstr ""
 
 #: de_common.rs_there_are_development_update
