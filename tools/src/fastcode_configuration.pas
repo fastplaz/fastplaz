@@ -158,6 +158,8 @@ var
   settings: TAIPlaneSettings;
 begin
   settings := AIPlaneLoadSettings;
+  FAIPlane.RuntimeModels.Clear;
+  AIPlaneLoadRuntimeModels(FAIPlane.RuntimeModels);
   FAIPlane.Runtime := settings.Runtime;
   FAIPlane.Command := settings.Command;
   FAIPlane.Arguments := settings.Arguments;
@@ -179,6 +181,8 @@ begin
   settings.Effort := FAIPlane.Effort;
   settings.McpEnabled := FAIPlane.McpEnabled;
   settings.McpPort := FAIPlane.McpPort;
+  // every runtime's model first: AIPlaneSaveSettings sets the active one
+  AIPlaneSaveRuntimeModels(FAIPlane.RuntimeModels);
   AIPlaneSaveSettings(settings);
   AIPlaneSettingsChanged;
 end;

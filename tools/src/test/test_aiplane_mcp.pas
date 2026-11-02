@@ -1,7 +1,7 @@
 unit test_aiplane_mcp;
 
 {
-  Tests for the AI Plane MCP server (aiplane_httpserver, aiplane_mcpserver):
+  Tests for the Agent Plane MCP server (aiplane_httpserver, aiplane_mcpserver):
   HTTP handling, token and Origin checks, sessions, tools/list, tools/call,
   permissions answered at once or later, port fallback.
 
@@ -340,7 +340,7 @@ begin
     'clientInfo', TJSONObject.Create(['name', 'test', 'version', '1'])]));
   try
     AssertEquals('2025-03-26', res.Objects['result'].Get('protocolVersion', ''));
-    AssertEquals('fastplaz-lazarus',
+    AssertEquals('fastplaz',
       res.Objects['result'].Objects['serverInfo'].Get('name', ''));
     AssertTrue(Assigned(res.Objects['result'].Objects['capabilities'].Find('tools')));
     AssertTrue('session id header', FSession <> '');

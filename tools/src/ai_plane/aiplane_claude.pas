@@ -66,9 +66,10 @@ type
     procedure NewSession; override;
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
+    function ModelAvailable(const AModel: string): boolean; override;
   end;
 
-{ Maps the AI Plane effort level to a claude --effort value ('' = omit). }
+{ Maps the Agent Plane effort level to a claude --effort value ('' = omit). }
 function ClaudeEffortArg(const AEffort: string): string;
 
 implementation
@@ -221,6 +222,13 @@ end;
 class function TClaudeStreamAdapter.AdapterName: string;
 begin
   Result := 'Claude Code (stream-json)';
+end;
+
+// The aliases, or a full model id such as claude-sonnet-4-5.
+function TClaudeStreamAdapter.ModelAvailable(const AModel: string): boolean;
+begin
+  Result := inherited ModelAvailable(AModel) or
+    (Pos('claude-', LowerCase(Trim(AModel))) = 1);
 end;
 
 procedure TClaudeStreamAdapter.BuildArguments(AArgs: TStrings);

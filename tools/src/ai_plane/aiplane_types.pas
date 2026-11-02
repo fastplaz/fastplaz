@@ -1,7 +1,7 @@
 unit aiplane_types;
 
 {
-  AI Plane core types.
+  Agent Plane core types.
 
   The chat UI only talks to TAIAdapter and receives TAIEvent records, so a
   runtime (Claude Code, OpenCode, Pi, ...) can be swapped without touching the
@@ -133,6 +133,9 @@ type
     procedure NewSession; virtual; abstract;
 
     function IsBusy: boolean;
+    { True when AModel can be used: empty (runtime default), in Models, or
+      the runtime gave no list to check against. }
+    function ModelAvailable(const AModel: string): boolean; virtual;
     class function AdapterName: string; virtual; abstract;
 
     property Command: string read FCommand write FCommand;
@@ -160,8 +163,8 @@ type
 
 const
   { Name of the IDE's MCP server as the agent sees it (Claude Code shows its
-    tools as mcp__lazarus__<tool>). }
-  AI_MCP_SERVER_ID = 'lazarus';
+    tools as mcp__fastplaz__<tool>). }
+  AI_MCP_SERVER_ID = 'fastplaz';
 
   AI_EFFORT_LEVELS: array[0..6] of string =
     ('auto', 'off', 'minimal', 'low', 'medium', 'high', 'xhigh');
@@ -375,6 +378,18 @@ end;
 function TAIAdapter.IsBusy: boolean;
 begin
   Result := FState in [aasStarting, aasBusy];
+end;
+
+function TAIAdapter.ModelAvailable(const AModel: string): boolean;
+var
+  i: integer;
+begin
+  Result := (Trim(AModel) = '') or (Length(FModels) = 0);
+  if Result then
+    Exit;
+  for i := 0 to High(FModels) do
+    if SameText(FModels[i].Id, Trim(AModel)) then
+      Exit(True);
 end;
 
 end.

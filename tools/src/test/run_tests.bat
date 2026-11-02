@@ -12,7 +12,7 @@ rem instantfpc does not accept -Fu paths on its command line, pass them here.
 rem -B: always rebuild, the cache only tracks the main program source.
 set "INSTANTFPCOPTIONS=-B -Fu.. -Fu..\ai_plane -Fu..\..\..\FastPlaz\src\library -Fu..\..\..\FastPlaz\test"
 
-rem The AI Plane tests talk to this fake agent.
+rem The Agent Plane tests talk to this fake agent.
 echo Compiling mock_acp_agent...
 if not exist lib mkdir lib
 fpc -O1 -FUlib mock_acp_agent.lpr > lib\mock_acp_agent.txt 2>&1

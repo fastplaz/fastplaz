@@ -1,7 +1,7 @@
 unit aiplane_chatframe;
 
 {
-  The AI Plane chat as a frame, so the IDE window and the tester app show the
+  The Agent Plane chat as a frame, so the IDE window and the tester app show the
   same thing:
 
     [Runtime v] [Model v] [Effort v]           [New] [Log]
@@ -19,6 +19,15 @@ unit aiplane_chatframe;
   The host sets the runtime (SetRuntime), the working directory and,
   optionally, OnReadFile to serve unsaved editor buffers. OnSettingsChanged
   tells it to persist runtime/model/effort.
+
+  The model is remembered per runtime (RuntimeModels, "preset=model"): picking
+  another runtime brings back the model last used with it, and starts the
+  runtime so its model list fills the model box.
+
+  The runtime starts as soon as it is chosen. Send stays disabled until it
+  answered and while the chosen model is not one it offers
+  (TAIAdapter.ModelAvailable); the reason is in the button hint and the
+  status line. New conversation retries a runtime that failed to start.
 }
 
 {$mode objfpc}{$H+}
@@ -34,6 +43,11 @@ type
   { Answer to a permission card shown with ShowToolPermission. }
   TAIToolPermissionAnswer = procedure(Sender: TObject;
     const AKey, AOptionId: string) of object;
+
+  { A line for the host's own log (the IDE Messages window): the runtime and
+    model became active, or the agent reported an error. }
+  TAIChatNotice = procedure(Sender: TObject; const AText: string;
+    AIsError: boolean) of object;
 
   { TAIChatFrame }
 
@@ -89,6 +103,18 @@ type
     FMcpToken: string;
     FMcpStatus: string;
     FOnToolPermission: TAIToolPermissionAnswer;
+    FRuntimeModels: TStringList;
+    FStartPending: boolean;
+    FWasReady: boolean;
+    FTurnQueued: boolean;
+    FActiveNotice: string;
+    FOnNotice: TAIChatNotice;
+    procedure ShowError(const AText: string);
+    procedure DoNotice(const AText: string; AIsError: boolean);
+    function RuntimeTitle: string;
+    procedure RememberModel;
+    function TurnRunning: boolean;
+    function SendBlockReason: string;
     procedure SetupControls;
     procedure ShowStatusMenu(ALabel: TLabel);
     function AddStatusMenuItem(const ACaption: string; ATag: integer;
@@ -124,11 +150,14 @@ type
     procedure SetRuntime(const APresetId: string; const ACommand: string = '';
       const AArguments: string = '');
     procedure SendPrompt(const AText: string);
+    { True when Send is enabled: the runtime answered and the chosen model is
+      one it offers. }
+    function ReadyToSend: boolean;
     procedure NewChat;
     procedure FocusInput;
     { The IDE's MCP server for the next runtime start (empty URL: no IDE
       tools). Restarts the runtime when it changed. AStatus is shown in the
-      status line ("MCP: 127.0.0.1:17845", "MCP: off", an error). }
+      status line ("MCP", an error, empty when off). }
     procedure SetMcpServer(const AUrl, AToken, AStatus: string);
     { Shows a permission card for one of the IDE's own tools; the answer goes
       to OnToolPermission, not to the runtime. }
@@ -142,11 +171,15 @@ type
     property Arguments: string read FArguments;
     property Model: string read GetModel write SetModel;
     property Effort: string read GetEffort write SetEffort;
+    { The model last used with each runtime, "preset=model". Updated by the
+      frame; the host loads and saves it. }
+    property RuntimeModels: TStringList read FRuntimeModels;
     property WorkingDir: string read FWorkingDir write SetWorkingDir;
     property OnReadFile: TAIReadFileHandler read FOnReadFile write FOnReadFile;
     property OnSettingsChanged: TNotifyEvent read FOnSettingsChanged write FOnSettingsChanged;
     property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
       write FOnToolPermission;
+    property OnNotice: TAIChatNotice read FOnNotice write FOnNotice;
   end;
 
 implementation
@@ -266,6 +299,7 @@ end;
 
 constructor TAIChatFrame.Create(AOwner: TComponent);
 begin
+  FRuntimeModels := TStringList.Create;
   inherited Create(AOwner);
   SetupControls;
   SetRuntime(AI_DEFAULT_PRESET);
@@ -278,6 +312,66 @@ begin
     tmrPoll.Enabled := False;
   FreeAdapter;
   inherited Destroy;
+  FreeAndNil(FRuntimeModels);
+end;
+
+procedure TAIChatFrame.ShowError(const AText: string);
+begin
+  FView.Add(cikError, AText);
+  DoNotice(AText, True);
+end;
+
+procedure TAIChatFrame.DoNotice(const AText: string; AIsError: boolean);
+begin
+  if Assigned(FOnNotice) then
+    FOnNotice(Self, AText, AIsError);
+end;
+
+// What the runtime calls itself, else the preset title.
+function TAIChatFrame.RuntimeTitle: string;
+var
+  preset: TAIRuntimePreset;
+begin
+  if FAgentText <> '' then
+    Result := FAgentText
+  else if AIFindPreset(FPresetId, preset) then
+    Result := preset.Title
+  else
+    Result := FPresetId;
+end;
+
+procedure TAIChatFrame.RememberModel;
+begin
+  // an empty value removes the entry: runtime default
+  if FPresetId <> '' then
+    FRuntimeModels.Values[FPresetId] := GetModel;
+end;
+
+// A prompt is running (or queued while the runtime starts): Send is Stop.
+function TAIChatFrame.TurnRunning: boolean;
+begin
+  Result := Assigned(FAdapter) and ((FAdapter.State = aasBusy) or
+    ((FAdapter.State = aasStarting) and FTurnQueued));
+end;
+
+function TAIChatFrame.ReadyToSend: boolean;
+begin
+  Result := not TurnRunning and (SendBlockReason = '');
+end;
+
+// Why Send is disabled; empty when the runtime answered and the chosen model
+// is one it offers.
+function TAIChatFrame.SendBlockReason: string;
+begin
+  Result := '';
+  if not Assigned(FAdapter) then
+    Exit('No runtime');
+  if FAdapter.State = aasFailed then
+    Exit('The runtime did not start; New conversation tries again');
+  if not FWasReady then
+    Exit('Waiting for the runtime ...');
+  if not FAdapter.ModelAvailable(FAdapter.Model) then
+    Exit(Format('Model "%s" is not available in this runtime', [FAdapter.Model]));
 end;
 
 // Controls are in the .lfm; this adds what depends on code: the runtime
@@ -411,7 +505,7 @@ begin
     on E: Exception do
     begin
       FAdapter := nil;
-      FView.Add(cikError, E.Message);
+      ShowError(E.Message);
       UpdateControls;
       Exit;
     end;
@@ -428,6 +522,13 @@ begin
   FModelText := '';
   FSessionText := '';
   FUsageText := '';
+  FWasReady := False;
+  FTurnQueued := False;
+  FActiveNotice := '';
+  // Start on the next tick, not here: the host may still switch runtime
+  // (SetRuntime right after Create), and only the last one should run.
+  FStartPending := True;
+  tmrPoll.Enabled := True;
   FillModels;
   UpdateControls;
   UpdateStatus;
@@ -451,16 +552,42 @@ end;
 
 procedure TAIChatFrame.UpdateControls;
 var
-  busy: boolean;
+  turn: boolean;
+  reason, notice, curModel: string;
 begin
-  busy := Assigned(FAdapter) and FAdapter.IsBusy;
-  if busy then
-    btnSend.Caption := 'Stop'
+  if Assigned(FAdapter) and (FAdapter.State = aasReady) then
+  begin
+    FWasReady := True;
+    // tell the host once per runtime/model pair
+    curModel := CurrentModel;
+    if curModel = '' then
+      curModel := 'runtime default';
+    notice := 'runtime ' + RuntimeTitle + ' active, model ' + curModel;
+    if notice <> FActiveNotice then
+    begin
+      FActiveNotice := notice;
+      DoNotice(notice, False);
+    end;
+  end;
+  turn := TurnRunning;
+  if turn then
+  begin
+    btnSend.Caption := 'Stop';
+    btnSend.Enabled := True;
+    btnSend.Hint := 'Stop the running turn (Esc)';
+  end
   else
+  begin
+    reason := SendBlockReason;
     btnSend.Caption := 'Send';
-  btnSend.Enabled := Assigned(FAdapter);
-  cbbRuntime.Enabled := not busy;
-  btnNew.Enabled := not busy;
+    btnSend.Enabled := reason = '';
+    if reason = '' then
+      btnSend.Hint := 'Send (Enter)'
+    else
+      btnSend.Hint := reason;
+  end;
+  cbbRuntime.Enabled := not turn;
+  btnNew.Enabled := not turn;
 end;
 
 procedure TAIChatFrame.UpdateStatus;
@@ -477,15 +604,9 @@ var
   end;
 
 var
-  preset: TAIRuntimePreset;
   curModel: string;
 begin
-  if FAgentText <> '' then
-    lblRuntime.Caption := FAgentText
-  else if AIFindPreset(FPresetId, preset) then
-    lblRuntime.Caption := preset.Title
-  else
-    lblRuntime.Caption := FPresetId;
+  lblRuntime.Caption := RuntimeTitle;
 
   curModel := CurrentModel;
   if curModel = '' then
@@ -503,7 +624,12 @@ begin
 
   s := '';
   if Assigned(FAdapter) then
+  begin
     AddPart(AIStateToString(FAdapter.State));
+    // a disabled button shows no hint: say it here
+    if FWasReady and not FAdapter.ModelAvailable(FAdapter.Model) then
+      AddPart('model not available');
+  end;
   AddPart(FUsageText);
   AddPart(FMcpStatus);
   lblStatus.Caption := s;
@@ -545,7 +671,7 @@ begin
   if not Assigned(FStatusMenu) then
     FStatusMenu := TPopupMenu.Create(Self);
   FStatusMenu.Items.Clear;
-  busy := Assigned(FAdapter) and FAdapter.IsBusy;
+  busy := TurnRunning;
 
   if ALabel = lblRuntime then
     for i := 0 to AIPresetCount - 1 do
@@ -666,25 +792,37 @@ begin
     FFillingModels := False;
   end;
   FitComboWidths;
+  // the chosen model can be checked against the list now
+  UpdateControls;
 end;
 
 procedure TAIChatFrame.SendPrompt(const AText: string);
+var
+  reason: string;
 begin
   if Trim(AText) = '' then
     Exit;
   if not Assigned(FAdapter) then
     CreateAdapter;
-  if not Assigned(FAdapter) or FAdapter.IsBusy then
+  if not Assigned(FAdapter) or TurnRunning then
     Exit;
+  reason := SendBlockReason;
+  if reason <> '' then
+  begin
+    FView.Add(cikError, reason);
+    Exit;
+  end;
   FView.Add(cikUser, AText);
   FCurrentText := nil;
   FCurrentThinking := nil;
+  FStartPending := False;
+  FTurnQueued := True;
   tmrPoll.Enabled := True;
   try
     FAdapter.Prompt(AText);
   except
     on E: Exception do
-      FView.Add(cikError, E.Message);
+      ShowError(E.Message);
   end;
   UpdateControls;
   UpdateStatus;
@@ -694,13 +832,14 @@ procedure TAIChatFrame.Send;
 var
   s: string;
 begin
-  if Assigned(FAdapter) and FAdapter.IsBusy then
+  if TurnRunning then
   begin
     FAdapter.Cancel;
     Exit;
   end;
   s := mem_Input.Text;
-  if Trim(s) = '' then
+  // keep the text while the runtime or the model is not usable
+  if (Trim(s) = '') or (SendBlockReason <> '') then
     Exit;
   mem_Input.Clear;
   SendPrompt(s);
@@ -708,19 +847,22 @@ end;
 
 procedure TAIChatFrame.NewChat;
 begin
-  if Assigned(FAdapter) and FAdapter.IsBusy then
+  if TurnRunning then
     Exit;
   FView.Clear;
   FCurrentText := nil;
   FCurrentThinking := nil;
   FUsageText := '';
-  if Assigned(FAdapter) then
+  if not Assigned(FAdapter) or (FAdapter.State = aasFailed) then
+    // the runtime did not start: try again
+    SetRuntime(FPresetId, FCommand, FArguments)
+  else if FAdapter.State <> aasStarting then
   begin
     try
       FAdapter.NewSession;
     except
       on E: Exception do
-        FView.Add(cikError, E.Message);
+        ShowError(E.Message);
     end;
     tmrPoll.Enabled := True;
   end;
@@ -782,12 +924,13 @@ begin
       FView.Changed(item);
     end;
     aekError:
-      FView.Add(cikError, AEvent.Text);
+      ShowError(AEvent.Text);
     aekDone:
     begin
       if (AEvent.StopReason <> '') and (AEvent.StopReason <> 'end_turn') and
         (AEvent.StopReason <> 'error') then
         FView.Add(cikInfo, 'Stopped: ' + AEvent.StopReason);
+      FTurnQueued := False;
       FCurrentText := nil;
       FCurrentThinking := nil;
       FillModels;
@@ -863,7 +1006,7 @@ begin
   FMcpToken := AToken;
   FMcpStatus := AStatus;
   // the runtime reads the server at start; restart it on a change
-  if serverMoved and Assigned(FAdapter) and not FAdapter.IsBusy then
+  if serverMoved and Assigned(FAdapter) and not TurnRunning then
     SetRuntime(FPresetId, FCommand, FArguments)
   else
     UpdateStatus;
@@ -909,6 +1052,20 @@ begin
     tmrPoll.Enabled := False;
     Exit;
   end;
+  if FStartPending then
+  begin
+    // the runtime starts right away, so Send knows whether it answers and
+    // the model box gets the runtime's list
+    FStartPending := False;
+    try
+      FAdapter.Start;
+    except
+      on E: Exception do
+        ShowError(E.Message);
+    end;
+    UpdateControls;
+    UpdateStatus;
+  end;
   // Drain a burst of output, but give the UI back regularly.
   rounds := 0;
   // many chunks per tick: lay the conversation out once, at the end
@@ -919,6 +1076,8 @@ begin
   finally
     FView.EndUpdate;
   end;
+  // the list may arrive without a model status (runtime started for it)
+  FillModels;
   if FAdapter.State in [aasIdle, aasStopped, aasFailed] then
   begin
     tmrPoll.Enabled := False;
@@ -930,6 +1089,7 @@ end;
 procedure TAIChatFrame.cbbRuntimeSelect(Sender: TObject);
 var
   i: integer;
+  newId: string;
 begin
   if (cbbRuntime.ItemIndex < 0) or
     SameText(AIPreset(cbbRuntime.ItemIndex).Id, FPresetId) then
@@ -937,14 +1097,25 @@ begin
   // Keep the current runtime when the new one is not installed.
   if AIRuntimeExecutable(AIPreset(cbbRuntime.ItemIndex).Id) = '' then
   begin
-    FView.Add(cikError, AIRuntimeMissingMessage(AIPreset(cbbRuntime.ItemIndex).Id));
+    ShowError(AIRuntimeMissingMessage(AIPreset(cbbRuntime.ItemIndex).Id));
     for i := 0 to AIPresetCount - 1 do
       if SameText(AIPreset(i).Id, FPresetId) then
         cbbRuntime.ItemIndex := i;
     Exit;
   end;
-  cbbModel.Text := '';
-  SetRuntime(AIPreset(cbbRuntime.ItemIndex).Id);
+  // The old runtime's model means nothing to the new one: bring back the
+  // model last used with it. Free the adapter first, SetRuntime keeps the
+  // adapter's model otherwise.
+  RememberModel;
+  newId := AIPreset(cbbRuntime.ItemIndex).Id;
+  FreeAdapter;
+  FFillingModels := True;
+  try
+    cbbModel.Text := FRuntimeModels.Values[newId];
+  finally
+    FFillingModels := False;
+  end;
+  SetRuntime(newId);
   FView.Add(cikInfo, 'Runtime: ' + AIPreset(cbbRuntime.ItemIndex).Title);
   DoSettingsChanged;
 end;
@@ -963,6 +1134,7 @@ begin
     Exit;
   FAdapter.Model := Trim(cbbModel.Text);
   DoSettingsChanged;
+  UpdateControls;
   UpdateStatus;
 end;
 
@@ -999,10 +1171,10 @@ begin
   if (Key = VK_RETURN) and not (ssShift in Shift) and not (ssCtrl in Shift) then
   begin
     Key := 0;
-    if not (Assigned(FAdapter) and FAdapter.IsBusy) then
+    if not TurnRunning then
       Send;
   end
-  else if (Key = VK_ESCAPE) and Assigned(FAdapter) and FAdapter.IsBusy then
+  else if (Key = VK_ESCAPE) and TurnRunning then
   begin
     Key := 0;
     FAdapter.Cancel;
@@ -1044,6 +1216,7 @@ begin
   FitComboWidths;
   if Assigned(FAdapter) then
     FAdapter.Model := Trim(AValue);
+  UpdateControls;
 end;
 
 procedure TAIChatFrame.SetWorkingDir(const AValue: string);
@@ -1057,6 +1230,7 @@ end;
 
 procedure TAIChatFrame.DoSettingsChanged;
 begin
+  RememberModel;
   if Assigned(FOnSettingsChanged) then
     FOnSettingsChanged(Self);
 end;

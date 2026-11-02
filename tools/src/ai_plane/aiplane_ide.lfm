@@ -3,7 +3,7 @@ object AIPlaneWindow: TAIPlaneWindow
   Height = 800
   Top = 120
   Width = 575
-  Caption = 'AI Plane'
+  Caption = 'Agent Plane'
   DesignTimePPI = 120
   LCLVersion = '4.8.0.0'
 end

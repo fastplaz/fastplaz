@@ -40,6 +40,8 @@ type
     FModelDirty: boolean;
     FEffortDirty: boolean;
     FCurrentModel: string;
+    FMcpExtensionFile: string;
+    function WriteMcpExtension: string;
     procedure ChannelLine(Sender: TObject; const ALine: string);
     procedure ChannelStderr(Sender: TObject; const ALine: string);
     procedure ChannelExit(Sender: TObject; AExitCode: integer);
@@ -75,11 +77,12 @@ type
     { Feeds one protocol line as if it came from Pi (tests). }
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
+    function ModelAvailable(const AModel: string): boolean; override;
   end;
 
 { Splits "provider/model-id" (the id may contain more slashes). }
 procedure PiSplitModel(const AModel: string; out AProvider, AModelId: string);
-{ Maps the AI Plane effort level to a Pi thinking level ('' = leave as is). }
+{ Maps the Agent Plane effort level to a Pi thinking level ('' = leave as is). }
 function PiThinkingLevel(const AEffort: string): string;
 
 implementation
@@ -201,7 +204,51 @@ begin
   FPermKinds.Free;
   FPermissions.Free;
   FPending.Free;
+  if (FMcpExtensionFile <> '') and FileExists(FMcpExtensionFile) then
+    DeleteFile(FMcpExtensionFile);
   inherited Destroy;
+end;
+
+// Pi reads MCP servers from mcp.json, or from an extension for one session
+// (pi.registerMcpServer, Pi with built-in MCP). A small extension in the
+// temp directory, loaded with -e, keeps the IDE's server and its token out
+// of the user's Pi configuration. Rewritten at every start: the port or
+// token may have changed.
+function TPiRpcAdapter.WriteMcpExtension: string;
+var
+  config, headers: TJSONObject;
+  list: TStringList;
+begin
+  if FMcpExtensionFile = '' then
+    FMcpExtensionFile := IncludeTrailingPathDelimiter(GetTempDir(False)) +
+      Format('aiplane_mcp_%d_%p.ts', [GetProcessID, Pointer(Self)]);
+  headers := TJSONObject.Create;
+  if McpToken <> '' then
+    headers.Add('Authorization', 'Bearer ' + McpToken);
+  config := TJSONObject.Create;
+  list := TStringList.Create;
+  try
+    config.Add('url', McpUrl);
+    config.Add('headers', headers);
+    // a handful of tools: declared to the model, no tool_search needed
+    config.Add('exposure', 'direct');
+    config.Add('description', 'The Lazarus IDE the user works in: editor, ' +
+      'project, compiler messages (FastPlaz Agent Plane)');
+    list.Add('// FastPlaz Agent Plane: the IDE''s MCP server for this Pi session.');
+    list.Add('export default function (pi: any) {');
+    list.Add('  if (typeof pi.registerMcpServer !== "function") {');
+    list.Add('    console.error("IDE tools off: this Pi has no MCP support (update Pi)");');
+    list.Add('    return;');
+    list.Add('  }');
+    list.Add('  pi.registerMcpServer("' + AI_MCP_SERVER_ID + '", ' +
+      config.AsJSON + ');');
+    list.Add('}');
+    list.SaveToFile(FMcpExtensionFile);
+  finally
+    list.Free;
+    config.Free;
+  end;
+  Result := FMcpExtensionFile;
 end;
 
 class function TPiRpcAdapter.AdapterName: string;
@@ -209,10 +256,28 @@ begin
   Result := 'Pi (RPC)';
 end;
 
+// "provider/id", or a bare id that some provider offers (see ApplyModel).
+function TPiRpcAdapter.ModelAvailable(const AModel: string): boolean;
+var
+  i: integer;
+begin
+  Result := inherited ModelAvailable(AModel);
+  if Result or (Pos('/', AModel) > 0) then
+    Exit;
+  for i := 0 to High(FModels) do
+    if SameText(Copy(FModels[i].Id, Pos('/', FModels[i].Id) + 1, MaxInt), Trim(AModel)) then
+      Exit(True);
+end;
+
 procedure TPiRpcAdapter.BuildArguments(AArgs: TStrings);
 begin
   AArgs.Add('--mode');
   AArgs.Add('rpc');
+  if McpUrl <> '' then
+  begin
+    AArgs.Add('-e');
+    AArgs.Add(WriteMcpExtension);
+  end;
   AArgs.AddStrings(Arguments);
 end;
 
@@ -244,8 +309,6 @@ begin
   // Pi accepts commands right away; ask what it has
   SetState(aasReady);
   DoEvent(aekStatus, 'agent: Pi');
-  if McpUrl <> '' then
-    DoEvent(aekLog, 'IDE tools off: Pi has no MCP client (a Pi extension is planned)');
   SendCommand('get_available_models');
   SendCommand('get_state');
   FModelDirty := Model <> '';

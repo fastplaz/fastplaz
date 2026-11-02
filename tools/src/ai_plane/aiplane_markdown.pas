@@ -1,7 +1,7 @@
 unit aiplane_markdown;
 
 {
-  Small markdown parser for the AI Plane chat.
+  Small markdown parser for the Agent Plane chat.
 
   Covers what coding agents write: headings, paragraphs, bullet and numbered
   lists (nested by indentation), block quotes, fenced code, horizontal

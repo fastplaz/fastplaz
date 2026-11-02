@@ -30,6 +30,7 @@ const
   AI_PRESET_OPENCODE = 'opencode';
   AI_PRESET_PI = 'pi';
   AI_PRESET_CLAUDE_ACP = 'claude-acp';
+  AI_PRESET_COPILOT = 'copilot';
   { Used when nothing is configured yet. }
   AI_DEFAULT_PRESET = AI_PRESET_OPENCODE;
 
@@ -153,5 +154,10 @@ initialization
   AddPreset(AI_PRESET_CLAUDE_ACP, 'Claude Code (ACP)', TACPAdapter,
     'claude-agent-acp', '', '',
     'ACP bridge: npm install -g @agentclientprotocol/claude-agent-acp');
+  // --allow-tool: the IDE asks for its own risky tools (compile), no second
+  // prompt from Copilot for the same call
+  AddPreset(AI_PRESET_COPILOT, 'GitHub Copilot CLI', TACPAdapter,
+    'copilot', '--acp --allow-tool=' + AI_MCP_SERVER_ID, '',
+    'native ACP (copilot --acp), sign in with copilot login');
 
 end.

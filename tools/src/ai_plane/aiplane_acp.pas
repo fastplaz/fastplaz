@@ -205,7 +205,7 @@ begin
   caps.Add('fs', fs);
   caps.Add('terminal', False);
   info := TJSONObject.Create;
-  info.Add('name', 'fastplaz-ai-plane');
+  info.Add('name', 'fastplaz-agent-plane');
   info.Add('version', '0.1');
   params := TJSONObject.Create;
   params.Add('protocolVersion', ACP_PROTOCOL_VERSION);

@@ -1,8 +1,13 @@
 unit aiplane_settingsframe;
 
 {
-  AI Plane default settings: runtime, command, arguments, model and effort,
+  Agent Plane default settings: runtime, command, arguments, model and effort,
   with model detection and a "Run Test" that sends one prompt.
+
+  With IDE tools (MCP) on, Run Test also checks the MCP path: it serves a
+  temporary MCP server with one tool, connection_check, hands it to the
+  runtime like the chat does, and asks the agent to call it. The result says
+  whether the runtime answered and whether the agent reached the tool.
 
   Used by the AI Harness tab of FastPlaz/Configuration and by the tester app;
   the host loads and stores the values (Runtime, Command, ... properties).
@@ -18,7 +23,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics, Spin,
-  aiplane_types, aiplane_presets;
+  aiplane_types, aiplane_presets, aiplane_mcpserver;
 
 type
 
@@ -61,6 +66,16 @@ type
     FOnChange: TNotifyEvent;
     FAllModels: TStringList;
     FFiltering: boolean;
+    FProbeMcp: TAIMcpServer;
+    FRuntimeModels: TStringList;
+    FLastRuntime: string;
+    FCheckWord: string;
+    FToolCalled: boolean;
+    function GetRuntimeModels: TStringList;
+    function StartProbeMcp: boolean;
+    procedure StopProbeMcp;
+    procedure ProbeMcpLog(Sender: TObject; const AText: string);
+    procedure ToolConnectionCheck(ACall: TAIMcpToolCall);
     procedure SetModelList(const AModels: TAIModelList);
     procedure SetupControls;
     procedure UpdateNote;
@@ -87,7 +102,8 @@ type
     destructor Destroy; override;
     { Fills the model list for the selected runtime. }
     procedure DetectModels;
-    { Starts the runtime and sends AIPLANE_TEST_PROMPT. }
+    { Starts the runtime and sends AIPLANE_TEST_PROMPT, or with IDE tools
+      on AIPLANE_TEST_MCP_PROMPT against a temporary MCP server. }
     procedure RunTest;
     function Busy: boolean;
     property Runtime: string read GetRuntime write SetRuntime;
@@ -98,6 +114,10 @@ type
     { IDE tools through the MCP server (on by default) and its port. }
     property McpEnabled: boolean read GetMcpEnabled write SetMcpEnabled;
     property McpPort: integer read GetMcpPort write SetMcpPort;
+    { The model last used with each runtime, "preset=model": switching the
+      runtime brings its model back. Reading it stores the current choice
+      first. The host loads and saves it. }
+    property RuntimeModels: TStringList read GetRuntimeModels;
     { Where the test runs the runtime ('' = current directory). }
     property WorkingDir: string read FWorkingDir write FWorkingDir;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -105,6 +125,9 @@ type
 
 const
   AIPLANE_TEST_PROMPT = 'Reply with exactly one word: OK';
+  AIPLANE_TEST_TOOL = 'connection_check';
+  AIPLANE_TEST_MCP_PROMPT = 'Call the ' + AI_MCP_SERVER_ID + ' tool ' +
+    AIPLANE_TEST_TOOL + ' and reply with only the word it returns.';
   AIPLANE_PROBE_TIMEOUT_MS = 90000;
 
 implementation
@@ -117,6 +140,7 @@ constructor TAIPlaneSettingsFrame.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FAllModels := TStringList.Create;
+  FRuntimeModels := TStringList.Create;
   SetupControls;
   SetRuntime(AI_DEFAULT_PRESET);
 end;
@@ -132,7 +156,9 @@ begin
     FProbe.Stop;
     FreeAndNil(FProbe);
   end;
+  StopProbeMcp;
   FAllModels.Free;
+  FRuntimeModels.Free;
   inherited Destroy;
 end;
 
@@ -195,13 +221,21 @@ begin
   FProbe.WorkingDir := FWorkingDir;
   FProbe.Model := GetModel;
   FProbe.Effort := GetEffort;
+  FToolCalled := False;
+  if ATest and GetMcpEnabled and StartProbeMcp then
+  begin
+    FProbe.McpUrl := FProbeMcp.Url;
+    FProbe.McpToken := FProbeMcp.Token;
+  end;
   btnDetect.Enabled := False;
   btnTest.Enabled := False;
   lblStatus.Font.Color := clWindowText;
   lblStatus.Caption := 'Starting ' + FProbe.Command + ' ...';
   FProbeStarted := GetTickCount64;
   try
-    if ATest then
+    if ATest and Assigned(FProbeMcp) then
+      FProbe.Prompt(AIPLANE_TEST_MCP_PROMPT)
+    else if ATest then
       FProbe.Prompt(AIPLANE_TEST_PROMPT)
     else if Length(FProbe.Models) > 0 then
     begin
@@ -237,6 +271,7 @@ begin
     probe.Stop;
     probe.Free;
   end;
+  StopProbeMcp;
   btnDetect.Enabled := True;
   btnTest.Enabled := True;
   if FProbeError <> '' then
@@ -246,9 +281,52 @@ begin
   end
   else
   begin
-    lblStatus.Font.Color := clGreen;
+    // a runtime that answers but does not reach the IDE tools is a warning
+    if Pos('IDE tools not reached', AMessage) > 0 then
+      lblStatus.Font.Color := $0060A0  // dark orange
+    else
+      lblStatus.Font.Color := clGreen;
     lblStatus.Caption := AMessage;
   end;
+end;
+
+// The test's own MCP server: the configured port, or the next free one when
+// the IDE's server holds it.
+function TAIPlaneSettingsFrame.StartProbeMcp: boolean;
+begin
+  FCheckWord := 'plaz-' + Copy(AIMcpNewToken, 1, 6);
+  FProbeMcp := TAIMcpServer.Create;
+  FProbeMcp.OnLog := @ProbeMcpLog;
+  FProbeMcp.Instructions := 'Agent Plane connection test of the IDE tools.';
+  FProbeMcp.RegisterTool(AIPLANE_TEST_TOOL, 'Connection check',
+    'Returns the check word of this Agent Plane connection test.',
+    '{"type":"object","properties":{}}', mtpAuto, @ToolConnectionCheck);
+  Result := FProbeMcp.Start(GetMcpPort);
+  if not Result then
+  begin
+    mem_Output.Lines.Add('[mcp] not started: ' + FProbeMcp.LastError);
+    FreeAndNil(FProbeMcp);
+  end;
+end;
+
+procedure TAIPlaneSettingsFrame.StopProbeMcp;
+begin
+  if not Assigned(FProbeMcp) then
+    Exit;
+  FProbeMcp.OnLog := nil;
+  FProbeMcp.Stop;
+  FreeAndNil(FProbeMcp);
+end;
+
+procedure TAIPlaneSettingsFrame.ProbeMcpLog(Sender: TObject; const AText: string);
+begin
+  mem_Output.Lines.Add('[mcp] ' + Copy(AText, 1, 300));
+end;
+
+procedure TAIPlaneSettingsFrame.ToolConnectionCheck(ACall: TAIMcpToolCall);
+begin
+  FToolCalled := True;
+  ACall.Finish('The check word is: ' + FCheckWord);
 end;
 
 procedure TAIPlaneSettingsFrame.ProbeEvent(Sender: TObject; const AEvent: TAIEvent);
@@ -265,15 +343,28 @@ begin
         FProbeError := AEvent.Text;
     end;
     aekLog:
-      if Copy(AEvent.Text, 1, 7) = 'stderr:' then
+      if (Copy(AEvent.Text, 1, 7) = 'stderr:') or
+        (Copy(AEvent.Text, 1, 14) = 'IDE tools off:') then
         mem_Output.Lines.Add(AEvent.Text);
+    aekToolCall:
+      mem_Output.Lines.Add('tool: ' + AEvent.ToolTitle);
   end;
 end;
 
 procedure TAIPlaneSettingsFrame.ProbePermission(Sender: TObject;
   const ARequest: TAIPermissionRequest);
+var
+  i: integer;
 begin
-  // The test prompt needs no tools; refuse anything it asks for.
+  // The test's own tool may run; refuse anything else it asks for.
+  if Assigned(FProbeMcp) and (Pos(AIPLANE_TEST_TOOL,
+    LowerCase(ARequest.ToolTitle + ' ' + ARequest.Detail)) > 0) then
+    for i := 0 to High(ARequest.Options) do
+      if ARequest.Options[i].Kind = 'allow_once' then
+      begin
+        TAIAdapter(Sender).RespondPermission(ARequest.Key, ARequest.Options[i].Id);
+        Exit;
+      end;
   TAIAdapter(Sender).RespondPermission(ARequest.Key, '');
 end;
 
@@ -281,6 +372,7 @@ procedure TAIPlaneSettingsFrame.tmrProbeTimer(Sender: TObject);
 var
   i: integer;
   keep: string;
+  elapsed: double;
 begin
   if not Assigned(FProbe) then
   begin
@@ -290,6 +382,8 @@ begin
   while FProbe.Poll do ;
   if not Assigned(FProbe) then
     Exit;
+  if Assigned(FProbeMcp) then
+    while FProbeMcp.Poll do ;
 
   if GetTickCount64 - FProbeStarted > AIPLANE_PROBE_TIMEOUT_MS then
   begin
@@ -315,11 +409,21 @@ begin
     begin
       mem_Output.Lines.Add('');
       mem_Output.Lines.Add('answer: ' + Trim(FProbeText));
-      if FProbeError = '' then
-        FinishProbe(Format('OK in %.1f s: %s', [(GetTickCount64 - FProbeStarted) / 1000,
-          Copy(Trim(FProbeText), 1, 60)]))
+      elapsed := (GetTickCount64 - FProbeStarted) / 1000;
+      if FProbeError <> '' then
+        FinishProbe('')
+      else if not Assigned(FProbeMcp) then
+        FinishProbe(Format('OK in %.1f s: %s', [elapsed, Copy(Trim(FProbeText), 1, 60)]))
+      else if FToolCalled and (Pos(FCheckWord, StringReplace(FProbeText,
+        LineEnding, '', [rfReplaceAll])) > 0) then
+        FinishProbe(Format('OK in %.1f s: runtime answered, IDE tools (MCP) reached',
+          [elapsed]))
+      else if FToolCalled then
+        FinishProbe(Format('OK in %.1f s: IDE tools (MCP) called, but the answer ' +
+          'did not repeat the check word', [elapsed]))
       else
-        FinishProbe('');
+        FinishProbe(Format('Runtime OK in %.1f s, IDE tools not reached: the ' +
+          'agent did not call %s (see the log below)', [elapsed, AIPLANE_TEST_TOOL]));
     end;
   end
   else if FProbe.State = aasReady then
@@ -406,10 +510,14 @@ end;
 
 procedure TAIPlaneSettingsFrame.cbbRuntimeSelect(Sender: TObject);
 begin
+  // keep the old runtime's model, bring back the new one's
+  if FLastRuntime <> '' then
+    FRuntimeModels.Values[FLastRuntime] := GetModel;
+  FLastRuntime := GetRuntime;
   edt_Command.Text := '';
   edt_Arguments.Text := '';
   SetModelList(nil);
-  cbbModel.Text := '';
+  cbbModel.Text := FRuntimeModels.Values[GetRuntime];
   UpdateNote;
   ValueChange(Sender);
   if AIRuntimeExecutable(GetRuntime) = '' then
@@ -454,7 +562,15 @@ begin
   for i := 0 to AIPresetCount - 1 do
     if SameText(AIPreset(i).Id, AValue) then
       cbbRuntime.ItemIndex := i;
+  FLastRuntime := GetRuntime;
   UpdateNote;
+end;
+
+function TAIPlaneSettingsFrame.GetRuntimeModels: TStringList;
+begin
+  if FLastRuntime <> '' then
+    FRuntimeModels.Values[FLastRuntime] := GetModel;
+  Result := FRuntimeModels;
 end;
 
 function TAIPlaneSettingsFrame.GetCommand: string;

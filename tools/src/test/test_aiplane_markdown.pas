@@ -1,6 +1,6 @@
 unit test_aiplane_markdown;
 
-{ Markdown parser used by the AI Plane chat view (aiplane_markdown). }
+{ Markdown parser used by the Agent Plane chat view (aiplane_markdown). }
 
 {$mode objfpc}{$H+}
 

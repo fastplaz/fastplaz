@@ -1,7 +1,7 @@
 unit aiplane_httpserver;
 
 {
-  Minimal HTTP/1.1 server for the AI Plane MCP endpoint.
+  Minimal HTTP/1.1 server for the Agent Plane MCP endpoint.
 
   - Listens on 127.0.0.1 only.
   - Non-blocking sockets, polled from the owner's timer (Poll), no threads:

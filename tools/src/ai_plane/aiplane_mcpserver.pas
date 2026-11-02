@@ -1,7 +1,7 @@
 unit aiplane_mcpserver;
 
 {
-  MCP server for AI Plane: the IDE offers its own tools (open a file, compile
+  MCP server for Agent Plane: the IDE offers its own tools (open a file, compile
   the project, ...) to the coding agent over the MCP Streamable HTTP
   transport, in its simplest form: POST /mcp with one JSON-RPC message, JSON
   response, no SSE stream.
@@ -586,8 +586,8 @@ begin
   caps := TJSONObject.Create;
   caps.Add('tools', tools);
   info := TJSONObject.Create;
-  info.Add('name', 'fastplaz-lazarus');
-  info.Add('title', 'Lazarus IDE (FastPlaz AI Plane)');
+  info.Add('name', 'fastplaz');
+  info.Add('title', 'Lazarus IDE (FastPlaz Agent Plane)');
   info.Add('version', '0.1');
   result := TJSONObject.Create;
   result.Add('protocolVersion', version);
@@ -687,7 +687,7 @@ begin
   ACall.FPermissionKey := 'mcp:' + IntToStr(FNextPermission);
   req := Default(TAIPermissionRequest);
   req.Key := ACall.FPermissionKey;
-  req.ToolTitle := 'Lazarus: ' + ATool.Name;
+  req.ToolTitle := 'FastPlaz: ' + ATool.Name;
   req.ToolKind := 'mcp';
   if ACall.FArgs.Count > 0 then
     req.Detail := ATool.Title + LineEnding + ACall.FArgs.FormatJSON([], 2)

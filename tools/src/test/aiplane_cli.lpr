@@ -1,10 +1,10 @@
 program aiplane_cli;
 
 {
-  Console tester for the AI Plane core: the same adapters the IDE window
+  Console tester for the Agent Plane core: the same adapters the IDE window
   uses, without rebuilding Lazarus.
 
-    aiplane_cli [--runtime claude|opencode|pi|claude-acp|mock]
+    aiplane_cli [--runtime claude|opencode|pi|copilot|claude-acp|mock]
                 [--command <exe>] [--args "<a b>"] [--model <id>]
                 [--effort <level>] [--cwd <dir>] [--log] [--yes]
                 [--prompt "<text>"]
@@ -15,12 +15,12 @@ program aiplane_cli;
 
   --runtime mock uses mock_acp_agent from the current directory.
   --yes answers every permission request with the first "allow" option.
-  --mcp [port] runs the AI Plane MCP server (default port 17845) with two
+  --mcp [port] runs the Agent Plane MCP server (default port 17845) with two
     demo tools and passes it to the runtime, to check that a real agent
     reaches the IDE tools:
       secret_word      returns a random word (auto)
       confirm_action   asks for permission first
-    Example: --mcp --prompt "Call the lazarus secret_word tool and tell me the word"
+    Example: --mcp --prompt "Call the fastplaz secret_word tool and tell me the word"
 
   Build: fpc -FU lib -Fu../ai_plane aiplane_cli.lpr
 }
@@ -249,7 +249,7 @@ begin
       cli.Adapter.McpToken := cli.Mcp.Token;
       WriteLn('  [mcp] secret word: ', cli.SecretWord);
     end;
-    WriteLn('AI Plane CLI - ', cli.Adapter.AdapterName, ': ', cli.Adapter.Command);
+    WriteLn('Agent Plane CLI - ', cli.Adapter.AdapterName, ': ', cli.Adapter.Command);
 
     oneShot := Option('--prompt');
     if oneShot <> '' then

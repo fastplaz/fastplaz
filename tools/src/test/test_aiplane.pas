@@ -1,7 +1,7 @@
 unit test_aiplane;
 
 {
-  AI Plane core tests.
+  Agent Plane core tests.
 
   TACPAdapterTest drives the real process layer against mock_acp_agent, which
   run_tests.sh/.bat compile first (or point AIPLANE_MOCK_AGENT at a build).
@@ -51,6 +51,7 @@ type
     procedure TestToolStatusFromString;
     procedure TestPresetCreatesAdapter;
     procedure TestPresetOverridesCommand;
+    procedure TestCopilotPreset;
     procedure TestUnknownPresetRaises;
     procedure TestRuntimeExecutable;
     procedure TestClaudeEffortArg;
@@ -78,6 +79,7 @@ type
   published
     procedure TestQueuedPromptStartsRuntime;
     procedure TestModelsFromConfigOptions;
+    procedure TestModelAvailable;
     procedure TestSecondTurnReusesProcess;
     procedure TestThinkingChunk;
     procedure TestPlanUpdate;
@@ -130,6 +132,7 @@ type
     procedure TestArguments;
     procedure TestMcpConfigArguments;
     procedure TestStaticModels;
+    procedure TestModelAvailable;
   end;
 
   { TPiRpcTest }
@@ -150,6 +153,7 @@ type
     procedure TestToolLifecycle;
     procedure TestToolError;
     procedure TestModelsAndState;
+    procedure TestModelAvailable;
     procedure TestPromptRejected;
     procedure TestSettledFinishesTurn;
     procedure TestSettledIgnoredWhenIdle;
@@ -161,6 +165,7 @@ type
     procedure TestSelectDialog;
     procedure TestInputDialogCancelled;
     procedure TestPresetUsesRpc;
+    procedure TestMcpExtensionArguments;
   end;
 
 implementation
@@ -331,6 +336,22 @@ begin
     a.Free;
   end;
   AssertTrue(AIPresetCount >= 3);
+end;
+
+procedure TAIPlaneHelpersTest.TestCopilotPreset;
+var
+  a: TAIAdapter;
+begin
+  a := AICreateAdapter(AI_PRESET_COPILOT);
+  try
+    AssertTrue('Copilot speaks ACP', a is TACPAdapter);
+    AssertEquals('copilot', a.Command);
+    AssertEquals('--acp', a.Arguments[0]);
+    AssertEquals('IDE tools without a second prompt', '--allow-tool=fastplaz',
+      a.Arguments[1]);
+  finally
+    a.Free;
+  end;
 end;
 
 procedure TAIPlaneHelpersTest.TestPresetOverridesCommand;
@@ -557,6 +578,16 @@ begin
   AssertEquals('mock/fast', FAdapter.Models[0].Id);
   AssertEquals('Mock Fast', FAdapter.Models[0].Name);
   AssertEquals('grouped options are flattened', 'mock/smart', FAdapter.Models[1].Id);
+end;
+
+procedure TACPAdapterTest.TestModelAvailable;
+begin
+  AssertTrue('no list yet: nothing to check against', FAdapter.ModelAvailable('mock/other'));
+  PromptAndWait('hello');
+  AssertTrue('runtime default', FAdapter.ModelAvailable(''));
+  AssertTrue(FAdapter.ModelAvailable('mock/fast'));
+  AssertTrue('case does not matter', FAdapter.ModelAvailable('Mock/Smart'));
+  AssertFalse(FAdapter.ModelAvailable('mock/other'));
 end;
 
 procedure TACPAdapterTest.TestSecondTurnReusesProcess;
@@ -821,7 +852,7 @@ begin
   PromptAndWait('mcp?');
   AssertTrue('agent capability read', FAdapter.McpHttp);
   AssertTrue(FRec.Text, Pos('"type" : "http"', FRec.Text) > 0);
-  AssertTrue(FRec.Text, Pos('"name" : "lazarus"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"name" : "fastplaz"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"url" : "http://127.0.0.1:17845/mcp"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"value" : "Bearer tok123"', FRec.Text) > 0);
 end;
@@ -1011,11 +1042,11 @@ begin
     fileName := args[args.IndexOf('--mcp-config') + 1];
     AssertTrue('config file written', FileExists(fileName));
     config.LoadFromFile(fileName);
-    AssertTrue(Pos('"lazarus"', config.Text) > 0);
+    AssertTrue(Pos('"fastplaz"', config.Text) > 0);
     AssertTrue(Pos('"type" : "http"', config.Text) > 0);
     AssertTrue(Pos('http://127.0.0.1:17845/mcp', config.Text) > 0);
     AssertTrue(Pos('Bearer tok123', config.Text) > 0);
-    AssertEquals('mcp__lazarus', args[args.IndexOf('--allowedTools') + 1]);
+    AssertEquals('mcp__fastplaz', args[args.IndexOf('--allowedTools') + 1]);
   finally
     config.Free;
     args.Free;
@@ -1028,6 +1059,14 @@ procedure TClaudeStreamTest.TestStaticModels;
 begin
   AssertEquals(3, Length(FAdapter.Models));
   AssertEquals('opus', FAdapter.Models[0].Id);
+end;
+
+procedure TClaudeStreamTest.TestModelAvailable;
+begin
+  AssertTrue(FAdapter.ModelAvailable(''));
+  AssertTrue(FAdapter.ModelAvailable('sonnet'));
+  AssertTrue('full model id', FAdapter.ModelAvailable('claude-sonnet-4-5'));
+  AssertFalse(FAdapter.ModelAvailable('gpt-5'));
 end;
 
 { TPiRpcTest }
@@ -1067,6 +1106,39 @@ begin
   finally
     args.Free;
   end;
+end;
+
+procedure TPiRpcTest.TestMcpExtensionArguments;
+var
+  probe: TPiProbe;
+  args, ext: TStringList;
+  fileName: string;
+begin
+  probe := TPiProbe.Create;
+  args := TStringList.Create;
+  ext := TStringList.Create;
+  try
+    probe.Probe(args);
+    AssertTrue('no server, no extension', args.IndexOf('-e') < 0);
+    args.Clear;
+    probe.McpUrl := 'http://127.0.0.1:17845/mcp';
+    probe.McpToken := 'tok123';
+    probe.Probe(args);
+    AssertTrue(args.IndexOf('-e') >= 0);
+    fileName := args[args.IndexOf('-e') + 1];
+    AssertTrue('extension written', FileExists(fileName));
+    ext.LoadFromFile(fileName);
+    AssertTrue(Pos('pi.registerMcpServer("fastplaz"', ext.Text) > 0);
+    AssertTrue(Pos('http:\/\/127.0.0.1:17845\/mcp', ext.Text) +
+      Pos('http://127.0.0.1:17845/mcp', ext.Text) > 0);
+    AssertTrue(Pos('Bearer tok123', ext.Text) > 0);
+    AssertTrue(Pos('"direct"', ext.Text) > 0);
+  finally
+    ext.Free;
+    args.Free;
+    probe.Free;
+  end;
+  AssertFalse('extension removed with the adapter', FileExists(fileName));
 end;
 
 procedure TPiRpcTest.TestSplitModel;
@@ -1132,6 +1204,16 @@ begin
     '"model":{"id":"gpt-5","provider":"openai"},"thinkingLevel":"medium","sessionId":"abc123"}}');
   AssertEquals('abc123', FAdapter.SessionId);
   AssertTrue(Pos('model: openai/gpt-5', FRec.Events.Text) > 0);
+end;
+
+procedure TPiRpcTest.TestModelAvailable;
+begin
+  FAdapter.HandleLine('{"id":"fp1","type":"response","command":"get_available_models","success":true,"data":{"models":[' +
+    '{"id":"claude-sonnet-4","name":"Claude Sonnet 4","provider":"anthropic"}]}}');
+  AssertTrue(FAdapter.ModelAvailable('anthropic/claude-sonnet-4'));
+  AssertTrue('bare id of a listed model', FAdapter.ModelAvailable('claude-sonnet-4'));
+  AssertFalse('other provider', FAdapter.ModelAvailable('openai/claude-sonnet-4'));
+  AssertFalse(FAdapter.ModelAvailable('gpt-5'));
 end;
 
 procedure TPiRpcTest.TestPromptRejected;
