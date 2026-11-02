@@ -52,6 +52,8 @@ type
   end;
 
 const
+  { Messages window view of FastPlaz's own lines; get_messages skips it. }
+  AI_FASTPLAZ_MESSAGE_VIEW = 'FastPlaz';
   AI_IDE_TOOLS_INSTRUCTIONS =
     'Tools of the Lazarus IDE the user is working in (Free Pascal). Paths are ' +
     'absolute or relative to the project directory. compile_project saves ' +
@@ -257,6 +259,9 @@ begin
   for v := 0 to IDEMessagesWindow.ViewCount - 1 do
   begin
     view := IDEMessagesWindow.Views[v];
+    // FastPlaz's own log (AI Plane, Database Explorer), not build output
+    if SameText(view.Caption, AI_FASTPLAZ_MESSAGE_VIEW) then
+      Continue;
     for i := 0 to view.Lines.Count - 1 do
     begin
       line := view.Lines[i];

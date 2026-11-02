@@ -44,6 +44,11 @@ type
   TAIToolPermissionAnswer = procedure(Sender: TObject;
     const AKey, AOptionId: string) of object;
 
+  { A line for the host's own log (the IDE Messages window): the runtime and
+    model became active, or the agent reported an error. }
+  TAIChatNotice = procedure(Sender: TObject; const AText: string;
+    AIsError: boolean) of object;
+
   { TAIChatFrame }
 
   TAIChatFrame = class(TFrame)
@@ -102,6 +107,11 @@ type
     FStartPending: boolean;
     FWasReady: boolean;
     FTurnQueued: boolean;
+    FActiveNotice: string;
+    FOnNotice: TAIChatNotice;
+    procedure ShowError(const AText: string);
+    procedure DoNotice(const AText: string; AIsError: boolean);
+    function RuntimeTitle: string;
     procedure RememberModel;
     function TurnRunning: boolean;
     function SendBlockReason: string;
@@ -169,6 +179,7 @@ type
     property OnSettingsChanged: TNotifyEvent read FOnSettingsChanged write FOnSettingsChanged;
     property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
       write FOnToolPermission;
+    property OnNotice: TAIChatNotice read FOnNotice write FOnNotice;
   end;
 
 implementation
@@ -302,6 +313,31 @@ begin
   FreeAdapter;
   inherited Destroy;
   FreeAndNil(FRuntimeModels);
+end;
+
+procedure TAIChatFrame.ShowError(const AText: string);
+begin
+  FView.Add(cikError, AText);
+  DoNotice(AText, True);
+end;
+
+procedure TAIChatFrame.DoNotice(const AText: string; AIsError: boolean);
+begin
+  if Assigned(FOnNotice) then
+    FOnNotice(Self, AText, AIsError);
+end;
+
+// What the runtime calls itself, else the preset title.
+function TAIChatFrame.RuntimeTitle: string;
+var
+  preset: TAIRuntimePreset;
+begin
+  if FAgentText <> '' then
+    Result := FAgentText
+  else if AIFindPreset(FPresetId, preset) then
+    Result := preset.Title
+  else
+    Result := FPresetId;
 end;
 
 procedure TAIChatFrame.RememberModel;
@@ -469,7 +505,7 @@ begin
     on E: Exception do
     begin
       FAdapter := nil;
-      FView.Add(cikError, E.Message);
+      ShowError(E.Message);
       UpdateControls;
       Exit;
     end;
@@ -488,6 +524,7 @@ begin
   FUsageText := '';
   FWasReady := False;
   FTurnQueued := False;
+  FActiveNotice := '';
   // Start on the next tick, not here: the host may still switch runtime
   // (SetRuntime right after Create), and only the last one should run.
   FStartPending := True;
@@ -516,10 +553,22 @@ end;
 procedure TAIChatFrame.UpdateControls;
 var
   turn: boolean;
-  reason: string;
+  reason, notice, curModel: string;
 begin
   if Assigned(FAdapter) and (FAdapter.State = aasReady) then
+  begin
     FWasReady := True;
+    // tell the host once per runtime/model pair
+    curModel := CurrentModel;
+    if curModel = '' then
+      curModel := 'runtime default';
+    notice := 'runtime ' + RuntimeTitle + ' active, model ' + curModel;
+    if notice <> FActiveNotice then
+    begin
+      FActiveNotice := notice;
+      DoNotice(notice, False);
+    end;
+  end;
   turn := TurnRunning;
   if turn then
   begin
@@ -555,15 +604,9 @@ var
   end;
 
 var
-  preset: TAIRuntimePreset;
   curModel: string;
 begin
-  if FAgentText <> '' then
-    lblRuntime.Caption := FAgentText
-  else if AIFindPreset(FPresetId, preset) then
-    lblRuntime.Caption := preset.Title
-  else
-    lblRuntime.Caption := FPresetId;
+  lblRuntime.Caption := RuntimeTitle;
 
   curModel := CurrentModel;
   if curModel = '' then
@@ -779,7 +822,7 @@ begin
     FAdapter.Prompt(AText);
   except
     on E: Exception do
-      FView.Add(cikError, E.Message);
+      ShowError(E.Message);
   end;
   UpdateControls;
   UpdateStatus;
@@ -819,7 +862,7 @@ begin
       FAdapter.NewSession;
     except
       on E: Exception do
-        FView.Add(cikError, E.Message);
+        ShowError(E.Message);
     end;
     tmrPoll.Enabled := True;
   end;
@@ -881,7 +924,7 @@ begin
       FView.Changed(item);
     end;
     aekError:
-      FView.Add(cikError, AEvent.Text);
+      ShowError(AEvent.Text);
     aekDone:
     begin
       if (AEvent.StopReason <> '') and (AEvent.StopReason <> 'end_turn') and
@@ -1018,7 +1061,7 @@ begin
       FAdapter.Start;
     except
       on E: Exception do
-        FView.Add(cikError, E.Message);
+        ShowError(E.Message);
     end;
     UpdateControls;
     UpdateStatus;
@@ -1054,7 +1097,7 @@ begin
   // Keep the current runtime when the new one is not installed.
   if AIRuntimeExecutable(AIPreset(cbbRuntime.ItemIndex).Id) = '' then
   begin
-    FView.Add(cikError, AIRuntimeMissingMessage(AIPreset(cbbRuntime.ItemIndex).Id));
+    ShowError(AIRuntimeMissingMessage(AIPreset(cbbRuntime.ItemIndex).Id));
     for i := 0 to AIPresetCount - 1 do
       if SameText(AIPreset(i).Id, FPresetId) then
         cbbRuntime.ItemIndex := i;

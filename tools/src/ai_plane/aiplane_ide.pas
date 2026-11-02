@@ -12,6 +12,9 @@ unit aiplane_ide;
   - The window runs the IDE's MCP server (aiplane_mcpserver, tools in
     aiplane_tools_ide) on 127.0.0.1 when "aiplane/mcp_enabled" is on (default),
     port "aiplane/mcp_port" (default 17845, next free port when taken).
+  - The IDE Messages window (view "FastPlaz") gets a line when the runtime
+    and model become active, when the MCP server starts or fails, and when
+    the agent reports an error.
 }
 
 {$mode objfpc}{$H+}
@@ -20,7 +23,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, ExtCtrls,
-  LazIDEIntf, IDEWindowIntf, SrcEditorIntf,
+  LazIDEIntf, IDEWindowIntf, SrcEditorIntf, IDEMsgIntf, IDEExternToolIntf,
   aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide;
 
 const
@@ -50,10 +53,14 @@ type
     FTools: TAIIdeTools;
     FMcpTimer: TTimer;
     FMcpPort: integer;
+    FMcpNotice: string;
     procedure UpdateMcpServer(const ASettings: TAIPlaneSettings);
     procedure McpTimer(Sender: TObject);
     procedure McpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
     procedure McpLog(Sender: TObject; const AText: string);
+    procedure ChatNotice(Sender: TObject; const AText: string; AIsError: boolean);
+    procedure log(AMessage: string; ACategory: string = 'AI Plane';
+      UrgencyLevel: TMessageLineUrgency = mluImportant);
     procedure ToolPermissionAnswer(Sender: TObject; const AKey, AOptionId: string);
     procedure ChatSettingsChanged(Sender: TObject);
     function ReadEditorBuffer(Sender: TObject; const APath: string;
@@ -177,6 +184,7 @@ begin
   FProjectDir := AIPlaneProjectDirectory;
   FChat.WorkingDir := FProjectDir;
   FChat.OnToolPermission := @ToolPermissionAnswer;
+  FChat.OnNotice := @ChatNotice;
 
   FMcp := TAIMcpServer.Create;
   FMcp.OnPermission := @McpPermission;
@@ -199,6 +207,7 @@ begin
     FMcpTimer.Enabled := False;
   if Assigned(FChat) then
     FChat.OnToolPermission := nil;
+    FChat.OnNotice := nil;
   FreeAndNil(FMcp);
   FreeAndNil(FTools);
   inherited Destroy;
@@ -206,6 +215,8 @@ end;
 
 // Starts, stops or moves the MCP server and tells the chat where it is.
 procedure TAIPlaneWindow.UpdateMcpServer(const ASettings: TAIPlaneSettings);
+var
+  notice: string;
 begin
   if ASettings.McpEnabled then
   begin
@@ -218,13 +229,54 @@ begin
   else if FMcp.Active then
     FMcp.Stop;
   FMcpTimer.Enabled := FMcp.Active;
-  // short in the status line; the address is in the protocol log
+  // short in the status line; the address goes to the Messages window
   if FMcp.Active then
-    FChat.SetMcpServer(FMcp.Url, FMcp.Token, 'MCP')
+  begin
+    FChat.SetMcpServer(FMcp.Url, FMcp.Token, 'MCP');
+    notice := 'MCP server active on ' + FMcp.Url;
+  end
   else if ASettings.McpEnabled then
-    FChat.SetMcpServer('', '', 'MCP: ' + FMcp.LastError)
+  begin
+    FChat.SetMcpServer('', '', 'MCP: ' + FMcp.LastError);
+    notice := 'MCP server not started: ' + FMcp.LastError;
+  end
   else
+  begin
     FChat.SetMcpServer('', '', '');
+    notice := 'MCP server off';
+  end;
+  // only changes, ApplySettings runs on every settings save
+  if notice <> FMcpNotice then
+  begin
+    if not FMcp.Active and ASettings.McpEnabled then
+      log(notice, 'AI Plane', mluError)
+    else if FMcp.Active or (FMcpNotice <> '') then
+      // "off" only when it was on before, not when the window opens
+      log(notice);
+    FMcpNotice := notice;
+  end;
+end;
+
+procedure TAIPlaneWindow.ChatNotice(Sender: TObject; const AText: string;
+  AIsError: boolean);
+begin
+  if AIsError then
+    log(AText, 'AI Plane', mluError)
+  else
+    log(AText);
+end;
+
+procedure TAIPlaneWindow.log(AMessage: string; ACategory: string;
+  UrgencyLevel: TMessageLineUrgency);
+begin
+  // IDE messages window and LCL controls are not thread safe
+  if (GetCurrentThreadId <> MainThreadID) or not Assigned(IDEMessagesWindow) then
+    Exit;
+  if ACategory = '' then
+    IDEMessagesWindow.AddCustomMessage(UrgencyLevel, AMessage, '', 0, 0, AI_FASTPLAZ_MESSAGE_VIEW)
+  else
+    IDEMessagesWindow.AddCustomMessage(UrgencyLevel, ACategory + ': ' + AMessage,
+      '', 0, 0, AI_FASTPLAZ_MESSAGE_VIEW);
 end;
 
 procedure TAIPlaneWindow.McpTimer(Sender: TObject);

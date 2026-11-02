@@ -77,8 +77,12 @@ the compiler messages with file, line and column. Design and later phases:
 * Settings (*Configuration → AI Harness*): **IDE tools (MCP)** on/off
   (`aiplane/mcp_enabled`, default on) and **Port** (`aiplane/mcp_port`,
   default `17845`; when taken the next free port up to `+9` is used). The
-  status line shows `MCP` when the server runs (the address is in the
-  protocol log), the error when it could not start, nothing when off.
+  status line shows `MCP` when the server runs, the error when it could
+  not start, nothing when off.
+* The IDE *Messages* window (view `FastPlaz`) gets a line when the runtime
+  and model become active, when the MCP server starts (with its address)
+  or fails, and when the agent reports an error. `get_messages` skips that
+  view, so these lines never reach the agent as build messages.
 * Registered per runtime:
 
   | Runtime | How |
@@ -93,6 +97,50 @@ the compiler messages with file, line and column. Design and later phases:
 * Verified 2026-11-02 with `aiplane_cli --mcp`: OpenCode 2.2.5 (ACP) and
   Claude Code 2.1.316 call the tools; the permission card answers the IDE
   side and Claude Code does not ask a second time.
+
+### Testing the IDE tools through the chat
+
+In the IDE:
+
+1. Install `fastplaz_tools.lpk`, open a project, then *FastPlaz → AI Plane*.
+2. The status line shows `MCP`. The *Messages* window shows
+   `AI Plane: MCP server active on http://127.0.0.1:17845/mcp` and, once
+   the runtime answers, `AI Plane: runtime ... active, model ...`. No `MCP`
+   in the status line: check *Configuration → AI Harness → IDE tools
+   (MCP)*. An error line in *Messages* says why the server did not start.
+3. Pick OpenCode or Claude Code (Pi has no MCP client yet).
+4. Ask for a tool by name, so the agent does not answer from the files it
+   reads itself:
+
+   | Prompt | Expected |
+   | --- | --- |
+   | `Use the lazarus project_info tool: what is this project's name and main file?` | the project name and `.lpi`/`.lpr` |
+   | `Use the lazarus list_open_files tool: which files are open?` | the editor tabs |
+   | `Open unit1.pas at line 20 with the lazarus open_file tool.` | the source editor jumps there |
+   | `Compile the project with the lazarus compile_project tool, then show the errors from get_messages.` | a permission card first; after *Allow for this session* the IDE compiles and the agent lists the errors |
+
+5. The chat shows the tool call as `lazarus_<tool>` (OpenCode) or
+   `mcp__lazarus__<tool>` (Claude Code). An agent error also lands in
+   *Messages* as `AI Plane: ...`.
+
+When the agent does not see the tools:
+
+* OpenCode: an older version may not take MCP servers over HTTP; the adapter
+  then turns the IDE tools off (the protocol log says `IDE tools off: ...`).
+* The port is taken by another IDE: the server moves to the next free port
+  (see the address in *Messages*); the runtime is given the new address.
+
+Without the IDE, `aiplane_cli --mcp` serves two demo tools, which checks
+the runtime ↔ MCP path in seconds:
+
+```
+aiplane_cli --runtime opencode --mcp --prompt "Call the lazarus secret_word tool and tell me the word"
+aiplane_cli --runtime claude --model haiku --mcp --prompt "Call the lazarus confirm_action tool" --yes
+```
+
+The CLI prints the secret word; the agent must answer with the same word.
+`confirm_action` asks in the terminal (`--yes` allows it); `--log` shows
+the protocol traffic. The tester app (`aiplane_tester`) has no MCP server.
 
 ## Runtimes
 
