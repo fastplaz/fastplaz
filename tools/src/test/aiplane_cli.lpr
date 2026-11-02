@@ -171,7 +171,7 @@ var
 begin
   DefaultSystemCodePage := CP_UTF8;
   SetTextCodePage(Output, CP_UTF8);
-  runtime := Option('--runtime', AI_PRESET_OPENCODE);
+  runtime := Option('--runtime', AI_DEFAULT_PRESET);
   command := Option('--command');
   if runtime = 'mock' then
   begin

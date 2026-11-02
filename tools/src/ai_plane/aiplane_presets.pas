@@ -29,6 +29,8 @@ const
   AI_PRESET_OPENCODE = 'opencode';
   AI_PRESET_PI = 'pi';
   AI_PRESET_CLAUDE_ACP = 'claude-acp';
+  { Used when nothing is configured yet. }
+  AI_DEFAULT_PRESET = AI_PRESET_OPENCODE;
 
 function AIPresetCount: integer;
 function AIPreset(AIndex: integer): TAIRuntimePreset;
@@ -104,10 +106,10 @@ begin
 end;
 
 initialization
-  AddPreset(AI_PRESET_CLAUDE, 'Claude Code', TClaudeStreamAdapter,
-    'claude', '', '', 'stream-json mode, no Node.js needed');
   AddPreset(AI_PRESET_OPENCODE, 'OpenCode', TACPAdapter,
     'opencode', 'acp', 'opencode models', 'native ACP');
+  AddPreset(AI_PRESET_CLAUDE, 'Claude Code', TClaudeStreamAdapter,
+    'claude', '', '', 'stream-json mode, no Node.js needed');
   AddPreset(AI_PRESET_PI, 'Pi', TACPAdapter,
     'pi-acp', '', '', 'ACP bridge: npm install -g pi-acp (not verified yet)');
   AddPreset(AI_PRESET_CLAUDE_ACP, 'Claude Code (ACP)', TACPAdapter,

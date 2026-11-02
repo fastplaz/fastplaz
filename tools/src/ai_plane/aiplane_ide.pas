@@ -83,7 +83,7 @@ begin
   Result.Model := GlobalConfig['aiplane/model'];
   Result.Effort := GlobalConfig['aiplane/effort'];
   if Result.Runtime = '' then
-    Result.Runtime := AI_PRESET_CLAUDE;
+    Result.Runtime := AI_DEFAULT_PRESET;
   if Result.Effort = '' then
     Result.Effort := 'auto';
 end;

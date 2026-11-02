@@ -25,18 +25,28 @@ type
   { TAIPlaneSettingsFrame }
 
   TAIPlaneSettingsFrame = class(TFrame)
+    btnDetect: TButton;
+    btnTest: TButton;
+    cbbEffort: TComboBox;
+    cbbModel: TComboBox;
+    cbbRuntime: TComboBox;
+    edt_Arguments: TEdit;
+    edt_Command: TEdit;
+    lblArguments: TLabel;
+    lblCommand: TLabel;
+    lblEffort: TLabel;
+    lblModel: TLabel;
+    lblNote: TLabel;
+    lblRuntime: TLabel;
+    lblStatus: TLabel;
+    mem_Output: TMemo;
+    tmrProbe: TTimer;
+    procedure btnDetectClick(Sender: TObject);
+    procedure btnTestClick(Sender: TObject);
+    procedure cbbRuntimeSelect(Sender: TObject);
+    procedure tmrProbeTimer(Sender: TObject);
+    procedure ValueChange(Sender: TObject);
   private
-    FRuntimeBox: TComboBox;
-    FCommandEdit: TEdit;
-    FArgsEdit: TEdit;
-    FModelBox: TComboBox;
-    FDetectButton: TButton;
-    FEffortBox: TComboBox;
-    FNoteLabel: TLabel;
-    FTestButton: TButton;
-    FStatusLabel: TLabel;
-    FOutput: TMemo;
-    FTimer: TTimer;
     FProbe: TAIAdapter;
     FProbeTesting: boolean;
     FProbeStarted: QWord;
@@ -44,18 +54,12 @@ type
     FProbeError: string;
     FWorkingDir: string;
     FOnChange: TNotifyEvent;
-    procedure BuildControls;
-    function AddRow(const ACaption: string; AControl: TControl; ATop: integer): integer;
+    procedure SetupControls;
     procedure UpdateNote;
     procedure StartProbe(ATest: boolean);
     procedure FinishProbe(const AMessage: string);
     procedure ProbeEvent(Sender: TObject; const AEvent: TAIEvent);
     procedure ProbePermission(Sender: TObject; const ARequest: TAIPermissionRequest);
-    procedure TimerTick(Sender: TObject);
-    procedure RuntimeSelect(Sender: TObject);
-    procedure DetectClick(Sender: TObject);
-    procedure TestClick(Sender: TObject);
-    procedure ValueChange(Sender: TObject);
     function GetRuntime: string;
     procedure SetRuntime(const AValue: string);
     function GetCommand: string;
@@ -92,28 +96,20 @@ implementation
 
 {$R *.lfm}
 
-const
-  LABEL_WIDTH = 90;
-  ROW_HEIGHT = 32;
-
 { TAIPlaneSettingsFrame }
 
 constructor TAIPlaneSettingsFrame.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  BuildControls;
-  FTimer := TTimer.Create(Self);
-  FTimer.Enabled := False;
-  FTimer.Interval := 30;
-  FTimer.OnTimer := @TimerTick;
-  if AIPresetCount > 0 then
-    FRuntimeBox.ItemIndex := 0;
-  UpdateNote;
+  SetupControls;
+  SetRuntime(AI_DEFAULT_PRESET);
 end;
 
 destructor TAIPlaneSettingsFrame.Destroy;
 begin
-  FTimer.Enabled := False;
+  // nil when loading the .lfm failed
+  if Assigned(tmrProbe) then
+    tmrProbe.Enabled := False;
   if Assigned(FProbe) then
   begin
     FProbe.OnEvent := nil;
@@ -123,99 +119,20 @@ begin
   inherited Destroy;
 end;
 
-function TAIPlaneSettingsFrame.AddRow(const ACaption: string; AControl: TControl;
-  ATop: integer): integer;
+// Controls are in the .lfm; the lists come from code.
+procedure TAIPlaneSettingsFrame.SetupControls;
 var
-  lbl: TLabel;
+  i: integer;
 begin
-  lbl := TLabel.Create(Self);
-  lbl.Parent := Self;
-  lbl.Caption := ACaption;
-  lbl.Left := 8;
-  lbl.Top := ATop + 4;
-  AControl.Parent := Self;
-  AControl.Left := LABEL_WIDTH + 8;
-  AControl.Top := ATop;
-  AControl.Width := Width - LABEL_WIDTH - 16;
-  AControl.Anchors := [akLeft, akTop, akRight];
-  Result := ATop + ROW_HEIGHT;
-end;
-
-procedure TAIPlaneSettingsFrame.BuildControls;
-var
-  y, i: integer;
-begin
-  y := 8;
-
-  FRuntimeBox := TComboBox.Create(Self);
-  FRuntimeBox.Style := csDropDownList;
+  cbbRuntime.Items.Clear;
   for i := 0 to AIPresetCount - 1 do
-    FRuntimeBox.Items.Add(AIPreset(i).Title);
-  FRuntimeBox.OnSelect := @RuntimeSelect;
-  y := AddRow('Runtime :', FRuntimeBox, y);
-
-  FCommandEdit := TEdit.Create(Self);
-  FCommandEdit.OnChange := @ValueChange;
-  y := AddRow('Command :', FCommandEdit, y);
-
-  FArgsEdit := TEdit.Create(Self);
-  FArgsEdit.OnChange := @ValueChange;
-  y := AddRow('Arguments :', FArgsEdit, y);
-
-  FModelBox := TComboBox.Create(Self);
-  FModelBox.TextHint := 'runtime default';
-  FModelBox.OnChange := @ValueChange;
-  y := AddRow('Model :', FModelBox, y);
-  FModelBox.Width := FModelBox.Width - 88;
-  FDetectButton := TButton.Create(Self);
-  FDetectButton.Parent := Self;
-  FDetectButton.Caption := 'Detect';
-  FDetectButton.Hint := 'Start the runtime and read its model list';
-  FDetectButton.SetBounds(Width - 88, FModelBox.Top, 80, FModelBox.Height);
-  FDetectButton.Anchors := [akTop, akRight];
-  FDetectButton.OnClick := @DetectClick;
-
-  FEffortBox := TComboBox.Create(Self);
-  FEffortBox.Style := csDropDownList;
+    cbbRuntime.Items.Add(AIPreset(i).Title);
+  cbbEffort.Items.Clear;
   for i := 0 to High(AI_EFFORT_LEVELS) do
-    FEffortBox.Items.Add(AI_EFFORT_LEVELS[i]);
-  FEffortBox.ItemIndex := 0;
-  FEffortBox.OnSelect := @ValueChange;
-  y := AddRow('Effort :', FEffortBox, y);
-  FEffortBox.Width := 120;
-  FEffortBox.Anchors := [akLeft, akTop];
-
-  FNoteLabel := TLabel.Create(Self);
-  FNoteLabel.Parent := Self;
-  FNoteLabel.Left := LABEL_WIDTH + 8;
-  FNoteLabel.Top := y;
-  FNoteLabel.Font.Color := clGrayText;
-  FNoteLabel.ShowAccelChar := False;
-  Inc(y, 24);
-
-  FTestButton := TButton.Create(Self);
-  FTestButton.Parent := Self;
-  FTestButton.Caption := 'Run Test';
-  FTestButton.Hint := 'Start the runtime and send: ' + AIPLANE_TEST_PROMPT;
-  FTestButton.SetBounds(LABEL_WIDTH + 8, y, 100, 28);
-  FTestButton.OnClick := @TestClick;
-
-  FStatusLabel := TLabel.Create(Self);
-  FStatusLabel.Parent := Self;
-  FStatusLabel.Left := LABEL_WIDTH + 116;
-  FStatusLabel.Top := y + 6;
-  FStatusLabel.ShowAccelChar := False;
-  Inc(y, 36);
-
-  FOutput := TMemo.Create(Self);
-  FOutput.Parent := Self;
-  FOutput.SetBounds(8, y, Width - 16, Height - y - 8);
-  FOutput.Anchors := [akLeft, akTop, akRight, akBottom];
-  FOutput.ReadOnly := True;
-  FOutput.ScrollBars := ssAutoBoth;
-  FOutput.WordWrap := False;
-
-  ShowHint := True;
+    cbbEffort.Items.Add(AI_EFFORT_LEVELS[i]);
+  cbbEffort.ItemIndex := 0;
+  btnTest.Hint := 'Start the runtime and send: ' + AIPLANE_TEST_PROMPT;
+  cbbModel.TextHint := 'runtime default';
 end;
 
 procedure TAIPlaneSettingsFrame.UpdateNote;
@@ -224,12 +141,12 @@ var
 begin
   if AIFindPreset(GetRuntime, preset) then
   begin
-    FCommandEdit.TextHint := preset.Command;
-    FArgsEdit.TextHint := preset.Arguments;
-    FNoteLabel.Caption := preset.AdapterClass.AdapterName + ' - ' + preset.Note;
+    edt_Command.TextHint := preset.Command;
+    edt_Arguments.TextHint := preset.Arguments;
+    lblNote.Caption := preset.AdapterClass.AdapterName + ' - ' + preset.Note;
   end
   else
-    FNoteLabel.Caption := '';
+    lblNote.Caption := '';
 end;
 
 function TAIPlaneSettingsFrame.Busy: boolean;
@@ -243,7 +160,7 @@ var
 begin
   if Busy then
     Exit;
-  FOutput.Clear;
+  mem_Output.Clear;
   FProbeText := '';
   FProbeError := '';
   FProbeTesting := ATest;
@@ -252,7 +169,7 @@ begin
   except
     on E: Exception do
     begin
-      FStatusLabel.Caption := E.Message;
+      lblStatus.Caption := E.Message;
       Exit;
     end;
   end;
@@ -261,10 +178,10 @@ begin
   FProbe.WorkingDir := FWorkingDir;
   FProbe.Model := GetModel;
   FProbe.Effort := GetEffort;
-  FDetectButton.Enabled := False;
-  FTestButton.Enabled := False;
-  FStatusLabel.Font.Color := clWindowText;
-  FStatusLabel.Caption := 'Starting ' + FProbe.Command + ' ...';
+  btnDetect.Enabled := False;
+  btnTest.Enabled := False;
+  lblStatus.Font.Color := clWindowText;
+  lblStatus.Caption := 'Starting ' + FProbe.Command + ' ...';
   FProbeStarted := GetTickCount64;
   try
     if ATest then
@@ -272,9 +189,9 @@ begin
     else if Length(FProbe.Models) > 0 then
     begin
       // Fixed list, nothing to start.
-      FModelBox.Items.Clear;
+      cbbModel.Items.Clear;
       for i := 0 to High(FProbe.Models) do
-        FModelBox.Items.Add(FProbe.Models[i].Id);
+        cbbModel.Items.Add(FProbe.Models[i].Id);
       FinishProbe(Format('%d model(s)', [Length(FProbe.Models)]));
       Exit;
     end
@@ -288,14 +205,14 @@ begin
       Exit;
     end;
   end;
-  FTimer.Enabled := True;
+  tmrProbe.Enabled := True;
 end;
 
 procedure TAIPlaneSettingsFrame.FinishProbe(const AMessage: string);
 var
   probe: TAIAdapter;
 begin
-  FTimer.Enabled := False;
+  tmrProbe.Enabled := False;
   probe := FProbe;
   FProbe := nil;
   if Assigned(probe) then
@@ -305,17 +222,17 @@ begin
     probe.Stop;
     probe.Free;
   end;
-  FDetectButton.Enabled := True;
-  FTestButton.Enabled := True;
+  btnDetect.Enabled := True;
+  btnTest.Enabled := True;
   if FProbeError <> '' then
   begin
-    FStatusLabel.Font.Color := clRed;
-    FStatusLabel.Caption := 'Failed: ' + FProbeError;
+    lblStatus.Font.Color := clRed;
+    lblStatus.Caption := 'Failed: ' + FProbeError;
   end
   else
   begin
-    FStatusLabel.Font.Color := clGreen;
-    FStatusLabel.Caption := AMessage;
+    lblStatus.Font.Color := clGreen;
+    lblStatus.Caption := AMessage;
   end;
 end;
 
@@ -325,16 +242,16 @@ begin
     aekText:
       FProbeText := FProbeText + AEvent.Text;
     aekStatus:
-      FOutput.Lines.Add(AEvent.Text);
+      mem_Output.Lines.Add(AEvent.Text);
     aekError:
     begin
-      FOutput.Lines.Add('error: ' + AEvent.Text);
+      mem_Output.Lines.Add('error: ' + AEvent.Text);
       if FProbeError = '' then
         FProbeError := AEvent.Text;
     end;
     aekLog:
       if Copy(AEvent.Text, 1, 7) = 'stderr:' then
-        FOutput.Lines.Add(AEvent.Text);
+        mem_Output.Lines.Add(AEvent.Text);
   end;
 end;
 
@@ -345,14 +262,14 @@ begin
   TAIAdapter(Sender).RespondPermission(ARequest.Key, '');
 end;
 
-procedure TAIPlaneSettingsFrame.TimerTick(Sender: TObject);
+procedure TAIPlaneSettingsFrame.tmrProbeTimer(Sender: TObject);
 var
   i: integer;
   keep: string;
 begin
   if not Assigned(FProbe) then
   begin
-    FTimer.Enabled := False;
+    tmrProbe.Enabled := False;
     Exit;
   end;
   while FProbe.Poll do ;
@@ -376,19 +293,19 @@ begin
 
   if Length(FProbe.Models) > 0 then
   begin
-    keep := FModelBox.Text;
-    FModelBox.Items.Clear;
+    keep := cbbModel.Text;
+    cbbModel.Items.Clear;
     for i := 0 to High(FProbe.Models) do
-      FModelBox.Items.Add(FProbe.Models[i].Id);
-    FModelBox.Text := keep;
+      cbbModel.Items.Add(FProbe.Models[i].Id);
+    cbbModel.Text := keep;
   end;
 
   if FProbeTesting then
   begin
     if FProbe.State = aasReady then
     begin
-      FOutput.Lines.Add('');
-      FOutput.Lines.Add('answer: ' + Trim(FProbeText));
+      mem_Output.Lines.Add('');
+      mem_Output.Lines.Add('answer: ' + Trim(FProbeText));
       if FProbeError = '' then
         FinishProbe(Format('OK in %.1f s: %s', [(GetTickCount64 - FProbeStarted) / 1000,
           Copy(Trim(FProbeText), 1, 60)]))
@@ -410,23 +327,23 @@ begin
   StartProbe(True);
 end;
 
-procedure TAIPlaneSettingsFrame.RuntimeSelect(Sender: TObject);
+procedure TAIPlaneSettingsFrame.cbbRuntimeSelect(Sender: TObject);
 begin
-  FCommandEdit.Text := '';
-  FArgsEdit.Text := '';
-  FModelBox.Items.Clear;
-  FModelBox.Text := '';
+  edt_Command.Text := '';
+  edt_Arguments.Text := '';
+  cbbModel.Items.Clear;
+  cbbModel.Text := '';
   UpdateNote;
   ValueChange(Sender);
   DetectModels;
 end;
 
-procedure TAIPlaneSettingsFrame.DetectClick(Sender: TObject);
+procedure TAIPlaneSettingsFrame.btnDetectClick(Sender: TObject);
 begin
   DetectModels;
 end;
 
-procedure TAIPlaneSettingsFrame.TestClick(Sender: TObject);
+procedure TAIPlaneSettingsFrame.btnTestClick(Sender: TObject);
 begin
   RunTest;
 end;
@@ -439,10 +356,10 @@ end;
 
 function TAIPlaneSettingsFrame.GetRuntime: string;
 begin
-  if FRuntimeBox.ItemIndex < 0 then
+  if cbbRuntime.ItemIndex < 0 then
     Result := ''
   else
-    Result := AIPreset(FRuntimeBox.ItemIndex).Id;
+    Result := AIPreset(cbbRuntime.ItemIndex).Id;
 end;
 
 procedure TAIPlaneSettingsFrame.SetRuntime(const AValue: string);
@@ -451,56 +368,56 @@ var
 begin
   for i := 0 to AIPresetCount - 1 do
     if SameText(AIPreset(i).Id, AValue) then
-      FRuntimeBox.ItemIndex := i;
+      cbbRuntime.ItemIndex := i;
   UpdateNote;
 end;
 
 function TAIPlaneSettingsFrame.GetCommand: string;
 begin
-  Result := Trim(FCommandEdit.Text);
+  Result := Trim(edt_Command.Text);
 end;
 
 procedure TAIPlaneSettingsFrame.SetCommand(const AValue: string);
 begin
-  FCommandEdit.Text := AValue;
+  edt_Command.Text := AValue;
 end;
 
 function TAIPlaneSettingsFrame.GetArguments: string;
 begin
-  Result := Trim(FArgsEdit.Text);
+  Result := Trim(edt_Arguments.Text);
 end;
 
 procedure TAIPlaneSettingsFrame.SetArguments(const AValue: string);
 begin
-  FArgsEdit.Text := AValue;
+  edt_Arguments.Text := AValue;
 end;
 
 function TAIPlaneSettingsFrame.GetModel: string;
 begin
-  Result := Trim(FModelBox.Text);
+  Result := Trim(cbbModel.Text);
 end;
 
 procedure TAIPlaneSettingsFrame.SetModel(const AValue: string);
 begin
-  FModelBox.Text := AValue;
+  cbbModel.Text := AValue;
 end;
 
 function TAIPlaneSettingsFrame.GetEffort: string;
 begin
-  if FEffortBox.ItemIndex < 0 then
+  if cbbEffort.ItemIndex < 0 then
     Result := 'auto'
   else
-    Result := FEffortBox.Items[FEffortBox.ItemIndex];
+    Result := cbbEffort.Items[cbbEffort.ItemIndex];
 end;
 
 procedure TAIPlaneSettingsFrame.SetEffort(const AValue: string);
 var
   i: integer;
 begin
-  i := FEffortBox.Items.IndexOf(LowerCase(AValue));
+  i := cbbEffort.Items.IndexOf(LowerCase(AValue));
   if i < 0 then
     i := 0;
-  FEffortBox.ItemIndex := i;
+  cbbEffort.ItemIndex := i;
 end;
 
 end.

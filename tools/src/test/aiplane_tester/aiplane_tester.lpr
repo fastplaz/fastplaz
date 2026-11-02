@@ -217,7 +217,7 @@ procedure TTesterForm.LoadSettings;
 var
   runtime, command, args, cwd: string;
 begin
-  runtime := Option('--runtime', FIni.ReadString('chat', 'runtime', AI_PRESET_OPENCODE));
+  runtime := Option('--runtime', FIni.ReadString('chat', 'runtime', AI_DEFAULT_PRESET));
   command := Option('--command', FIni.ReadString('chat', 'command', ''));
   args := Option('--args', FIni.ReadString('chat', 'arguments', ''));
   cwd := Option('--cwd', FIni.ReadString('chat', 'cwd', GetCurrentDir));

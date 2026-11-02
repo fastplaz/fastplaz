@@ -34,22 +34,31 @@ type
   { TAIChatFrame }
 
   TAIChatFrame = class(TFrame)
+    btnLog: TSpeedButton;
+    btnNew: TButton;
+    btnSend: TButton;
+    cbbEffort: TComboBox;
+    cbbModel: TComboBox;
+    cbbRuntime: TComboBox;
+    lblStatus: TLabel;
+    mem_Input: TMemo;
+    mem_Log: TMemo;
+    pnlInput: TPanel;
+    pnlTop: TPanel;
+    pnlView: TPanel;
+    splLog: TSplitter;
+    tmrPoll: TTimer;
+    procedure cbbRuntimeSelect(Sender: TObject);
+    procedure cbbModelChange(Sender: TObject);
+    procedure cbbEffortSelect(Sender: TObject);
+    procedure btnNewClick(Sender: TObject);
+    procedure btnLogClick(Sender: TObject);
+    procedure btnSendClick(Sender: TObject);
+    procedure mem_InputKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
+    procedure tmrPollTimer(Sender: TObject);
   private
     FAdapter: TAIAdapter;
-    FTop: TPanel;
-    FRuntimeBox: TComboBox;
-    FModelBox: TComboBox;
-    FEffortBox: TComboBox;
-    FNewButton: TButton;
-    FLogButton: TSpeedButton;
     FView: TAIChatView;
-    FLog: TMemo;
-    FLogSplitter: TSplitter;
-    FBottom: TPanel;
-    FInput: TMemo;
-    FSendButton: TButton;
-    FStatus: TLabel;
-    FTimer: TTimer;
     FPresetId: string;
     FCommand: string;
     FArguments: string;
@@ -61,7 +70,7 @@ type
     FOnSettingsChanged: TNotifyEvent;
     FFillingModels: boolean;
     FModelCount: integer;
-    procedure BuildControls;
+    procedure SetupControls;
     procedure CreateAdapter;
     procedure FreeAdapter;
     procedure UpdateControls;
@@ -72,14 +81,6 @@ type
     procedure AdapterPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
     function AdapterReadFile(Sender: TObject; const APath: string; out AContent: string): boolean;
     procedure ViewButtonClick(Sender: TObject; AItem: TAIChatItem; const AButtonId: string);
-    procedure TimerTick(Sender: TObject);
-    procedure RuntimeSelect(Sender: TObject);
-    procedure ModelChange(Sender: TObject);
-    procedure EffortSelect(Sender: TObject);
-    procedure NewClick(Sender: TObject);
-    procedure LogClick(Sender: TObject);
-    procedure SendClick(Sender: TObject);
-    procedure InputKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
     function GetEffort: string;
     function GetModel: string;
     procedure SetEffort(const AValue: string);
@@ -120,132 +121,39 @@ const
 constructor TAIChatFrame.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  BuildControls;
-  FTimer := TTimer.Create(Self);
-  FTimer.Interval := 30;
-  FTimer.Enabled := False;
-  FTimer.OnTimer := @TimerTick;
-  if AIPresetCount > 0 then
-    SetRuntime(AIPreset(0).Id);
+  SetupControls;
+  SetRuntime(AI_DEFAULT_PRESET);
 end;
 
 destructor TAIChatFrame.Destroy;
 begin
-  FTimer.Enabled := False;
+  // nil when loading the .lfm failed
+  if Assigned(tmrPoll) then
+    tmrPoll.Enabled := False;
   FreeAdapter;
   inherited Destroy;
 end;
 
-procedure TAIChatFrame.BuildControls;
+// Controls are in the .lfm; this adds what depends on code: the runtime
+// list, the effort levels and the owner drawn conversation view.
+procedure TAIChatFrame.SetupControls;
 var
   i: integer;
 begin
-  FTop := TPanel.Create(Self);
-  FTop.Parent := Self;
-  FTop.Align := alTop;
-  FTop.BevelOuter := bvNone;
-  FTop.AutoSize := True;
-  FTop.ChildSizing.LeftRightSpacing := 4;
-  FTop.ChildSizing.TopBottomSpacing := 4;
-  FTop.ChildSizing.HorizontalSpacing := 4;
-
-  FRuntimeBox := TComboBox.Create(Self);
-  FRuntimeBox.Parent := FTop;
-  FRuntimeBox.Style := csDropDownList;
-  FRuntimeBox.Width := 130;
-  FRuntimeBox.Hint := 'Runtime';
+  cbbRuntime.Items.Clear;
   for i := 0 to AIPresetCount - 1 do
-    FRuntimeBox.Items.Add(AIPreset(i).Title);
-  FRuntimeBox.OnSelect := @RuntimeSelect;
-
-  FModelBox := TComboBox.Create(Self);
-  FModelBox.Parent := FTop;
-  FModelBox.Width := 170;
-  FModelBox.Hint := 'Model (empty = runtime default)';
-  FModelBox.OnSelect := @ModelChange;
-  FModelBox.OnEditingDone := @ModelChange;
-
-  FEffortBox := TComboBox.Create(Self);
-  FEffortBox.Parent := FTop;
-  FEffortBox.Style := csDropDownList;
-  FEffortBox.Width := 80;
-  FEffortBox.Hint := 'Thinking effort';
+    cbbRuntime.Items.Add(AIPreset(i).Title);
+  cbbEffort.Items.Clear;
   for i := 0 to High(AI_EFFORT_LEVELS) do
-    FEffortBox.Items.Add(AI_EFFORT_LEVELS[i]);
-  FEffortBox.ItemIndex := 0;
-  FEffortBox.OnSelect := @EffortSelect;
-
-  FNewButton := TButton.Create(Self);
-  FNewButton.Parent := FTop;
-  FNewButton.Caption := 'New';
-  FNewButton.Hint := 'New conversation';
-  FNewButton.AutoSize := True;
-  FNewButton.OnClick := @NewClick;
-
-  FLogButton := TSpeedButton.Create(Self);
-  FLogButton.Parent := FTop;
-  FLogButton.Caption := 'Log';
-  FLogButton.Hint := 'Show protocol log';
-  FLogButton.AllowAllUp := True;
-  FLogButton.GroupIndex := 1;
-  FLogButton.Width := 40;
-  FLogButton.OnClick := @LogClick;
-
-  FTop.ChildSizing.Layout := cclLeftToRightThenTopToBottom;
-  FTop.ChildSizing.ControlsPerLine := 5;
-
-  FStatus := TLabel.Create(Self);
-  FStatus.Parent := Self;
-  FStatus.Align := alBottom;
-  FStatus.BorderSpacing.Around := 4;
-  FStatus.Font.Color := clGrayText;
-  FStatus.ShowAccelChar := False;
-  FStatus.Caption := '';
-
-  FBottom := TPanel.Create(Self);
-  FBottom.Parent := Self;
-  FBottom.Align := alBottom;
-  FBottom.BevelOuter := bvNone;
-  FBottom.Height := 72;
-
-  FSendButton := TButton.Create(Self);
-  FSendButton.Parent := FBottom;
-  FSendButton.Align := alRight;
-  FSendButton.BorderSpacing.Around := 4;
-  FSendButton.Width := 64;
-  FSendButton.Caption := 'Send';
-  FSendButton.OnClick := @SendClick;
-
-  FInput := TMemo.Create(Self);
-  FInput.Parent := FBottom;
-  FInput.Align := alClient;
-  FInput.BorderSpacing.Around := 4;
-  FInput.ScrollBars := ssAutoVertical;
-  FInput.WantReturns := True;
-  FInput.WordWrap := True;
-  FInput.OnKeyDown := @InputKeyDown;
-  FInput.TextHint := 'Ask the agent (Enter to send, Shift+Enter for a new line)';
-
-  FLog := TMemo.Create(Self);
-  FLog.Parent := Self;
-  FLog.Align := alBottom;
-  FLog.Height := 120;
-  FLog.ReadOnly := True;
-  FLog.ScrollBars := ssAutoBoth;
-  FLog.WordWrap := False;
-  FLog.Visible := False;
-
-  FLogSplitter := TSplitter.Create(Self);
-  FLogSplitter.Parent := Self;
-  FLogSplitter.Align := alBottom;
-  FLogSplitter.Visible := False;
+    cbbEffort.Items.Add(AI_EFFORT_LEVELS[i]);
+  cbbEffort.ItemIndex := 0;
+  // TextHint is public, not published, so it cannot live in the .lfm.
+  mem_Input.TextHint := 'Ask the agent (Enter to send, Shift+Enter for a new line)';
 
   FView := TAIChatView.Create(Self);
-  FView.Parent := Self;
+  FView.Parent := pnlView;
   FView.Align := alClient;
   FView.OnButtonClick := @ViewButtonClick;
-
-  ShowHint := True;
 end;
 
 procedure TAIChatFrame.SetRuntime(const APresetId: string; const ACommand: string;
@@ -259,11 +167,11 @@ begin
   FArguments := AArguments;
   for i := 0 to AIPresetCount - 1 do
     if SameText(AIPreset(i).Id, APresetId) then
-      FRuntimeBox.ItemIndex := i;
+      cbbRuntime.ItemIndex := i;
   keep := GetModel;
   FreeAdapter;
-  FModelBox.Items.Clear;
-  FModelBox.Text := keep;
+  cbbModel.Items.Clear;
+  cbbModel.Text := keep;
   FModelCount := -1;
   CreateAdapter;
 end;
@@ -304,7 +212,7 @@ procedure TAIChatFrame.FreeAdapter;
 begin
   if not Assigned(FAdapter) then
     Exit;
-  FTimer.Enabled := False;
+  tmrPoll.Enabled := False;
   FAdapter.OnEvent := nil;
   FAdapter.OnPermission := nil;
   try
@@ -322,12 +230,12 @@ var
 begin
   busy := Assigned(FAdapter) and FAdapter.IsBusy;
   if busy then
-    FSendButton.Caption := 'Stop'
+    btnSend.Caption := 'Stop'
   else
-    FSendButton.Caption := 'Send';
-  FSendButton.Enabled := Assigned(FAdapter);
-  FRuntimeBox.Enabled := not busy;
-  FNewButton.Enabled := not busy;
+    btnSend.Caption := 'Send';
+  btnSend.Enabled := Assigned(FAdapter);
+  cbbRuntime.Enabled := not busy;
+  btnNew.Enabled := not busy;
 end;
 
 procedure TAIChatFrame.UpdateStatus;
@@ -350,8 +258,8 @@ begin
   if Assigned(FAdapter) then
     AddPart(AIStateToString(FAdapter.State));
   AddPart(FUsageText);
-  FStatus.Caption := s;
-  FStatus.Hint := FSessionText;
+  lblStatus.Caption := s;
+  lblStatus.Hint := FSessionText;
 end;
 
 procedure TAIChatFrame.FillModels;
@@ -364,19 +272,19 @@ begin
   FModelCount := Length(FAdapter.Models);
   FFillingModels := True;
   try
-    keep := FModelBox.Text;
-    FModelBox.Items.BeginUpdate;
+    keep := cbbModel.Text;
+    cbbModel.Items.BeginUpdate;
     try
-      FModelBox.Items.Clear;
+      cbbModel.Items.Clear;
       for i := 0 to High(FAdapter.Models) do
-        FModelBox.Items.Add(FAdapter.Models[i].Id);
+        cbbModel.Items.Add(FAdapter.Models[i].Id);
     finally
-      FModelBox.Items.EndUpdate;
+      cbbModel.Items.EndUpdate;
     end;
     // Show what the runtime uses until the user picks something else.
     if keep = '' then
       keep := FModelText;
-    FModelBox.Text := keep;
+    cbbModel.Text := keep;
   finally
     FFillingModels := False;
   end;
@@ -393,7 +301,7 @@ begin
   FView.Add(cikUser, AText);
   FCurrentText := nil;
   FCurrentThinking := nil;
-  FTimer.Enabled := True;
+  tmrPoll.Enabled := True;
   try
     FAdapter.Prompt(AText);
   except
@@ -413,10 +321,10 @@ begin
     FAdapter.Cancel;
     Exit;
   end;
-  s := FInput.Text;
+  s := mem_Input.Text;
   if Trim(s) = '' then
     Exit;
-  FInput.Clear;
+  mem_Input.Clear;
   SendPrompt(s);
 end;
 
@@ -436,15 +344,15 @@ begin
       on E: Exception do
         FView.Add(cikError, E.Message);
     end;
-    FTimer.Enabled := True;
+    tmrPoll.Enabled := True;
   end;
   UpdateStatus;
 end;
 
 procedure TAIChatFrame.FocusInput;
 begin
-  if FInput.CanFocus then
-    FInput.SetFocus;
+  if mem_Input.CanFocus then
+    mem_Input.SetFocus;
 end;
 
 procedure TAIChatFrame.AdapterEvent(Sender: TObject; const AEvent: TAIEvent);
@@ -526,11 +434,11 @@ begin
       UpdateStatus;
     end;
     aekLog:
-      if FLog.Visible then
+      if mem_Log.Visible then
       begin
-        if FLog.Lines.Count > MAX_LOG_LINES then
-          FLog.Lines.Clear;
-        FLog.Lines.Add(Copy(AEvent.Text, 1, 2000));
+        if mem_Log.Lines.Count > MAX_LOG_LINES then
+          mem_Log.Lines.Clear;
+        mem_Log.Lines.Add(Copy(AEvent.Text, 1, 2000));
       end;
   end;
   if AEvent.Kind = aekDone then
@@ -578,13 +486,13 @@ begin
   FAdapter.RespondPermission(AItem.Key, AButtonId);
 end;
 
-procedure TAIChatFrame.TimerTick(Sender: TObject);
+procedure TAIChatFrame.tmrPollTimer(Sender: TObject);
 var
   rounds: integer;
 begin
   if not Assigned(FAdapter) then
   begin
-    FTimer.Enabled := False;
+    tmrPoll.Enabled := False;
     Exit;
   end;
   // Drain a burst of output, but give the UI back regularly.
@@ -593,64 +501,64 @@ begin
     Inc(rounds);
   if FAdapter.State in [aasIdle, aasStopped, aasFailed] then
   begin
-    FTimer.Enabled := False;
+    tmrPoll.Enabled := False;
     UpdateControls;
     UpdateStatus;
   end;
 end;
 
-procedure TAIChatFrame.RuntimeSelect(Sender: TObject);
+procedure TAIChatFrame.cbbRuntimeSelect(Sender: TObject);
 begin
-  if (FRuntimeBox.ItemIndex < 0) or
-    SameText(AIPreset(FRuntimeBox.ItemIndex).Id, FPresetId) then
+  if (cbbRuntime.ItemIndex < 0) or
+    SameText(AIPreset(cbbRuntime.ItemIndex).Id, FPresetId) then
     Exit;
-  FModelBox.Text := '';
-  SetRuntime(AIPreset(FRuntimeBox.ItemIndex).Id);
-  FView.Add(cikInfo, 'Runtime: ' + AIPreset(FRuntimeBox.ItemIndex).Title);
+  cbbModel.Text := '';
+  SetRuntime(AIPreset(cbbRuntime.ItemIndex).Id);
+  FView.Add(cikInfo, 'Runtime: ' + AIPreset(cbbRuntime.ItemIndex).Title);
   DoSettingsChanged;
 end;
 
-procedure TAIChatFrame.ModelChange(Sender: TObject);
+procedure TAIChatFrame.cbbModelChange(Sender: TObject);
 begin
   if FFillingModels or not Assigned(FAdapter) then
     Exit;
-  if FAdapter.Model = Trim(FModelBox.Text) then
+  if FAdapter.Model = Trim(cbbModel.Text) then
     Exit;
   // The runtime's own model is only shown, not chosen.
-  if (FAdapter.Model = '') and (Trim(FModelBox.Text) = FModelText) then
+  if (FAdapter.Model = '') and (Trim(cbbModel.Text) = FModelText) then
     Exit;
-  FAdapter.Model := Trim(FModelBox.Text);
+  FAdapter.Model := Trim(cbbModel.Text);
   DoSettingsChanged;
 end;
 
-procedure TAIChatFrame.EffortSelect(Sender: TObject);
+procedure TAIChatFrame.cbbEffortSelect(Sender: TObject);
 begin
   if Assigned(FAdapter) then
     FAdapter.Effort := GetEffort;
   DoSettingsChanged;
 end;
 
-procedure TAIChatFrame.NewClick(Sender: TObject);
+procedure TAIChatFrame.btnNewClick(Sender: TObject);
 begin
   NewChat;
   FocusInput;
 end;
 
-procedure TAIChatFrame.LogClick(Sender: TObject);
+procedure TAIChatFrame.btnLogClick(Sender: TObject);
 begin
-  FLog.Visible := FLogButton.Down;
-  FLogSplitter.Visible := FLog.Visible;
-  if FLog.Visible then
-    FLogSplitter.Top := FLog.Top - FLogSplitter.Height;
+  mem_Log.Visible := btnLog.Down;
+  splLog.Visible := mem_Log.Visible;
+  if mem_Log.Visible then
+    splLog.Top := mem_Log.Top - splLog.Height;
 end;
 
-procedure TAIChatFrame.SendClick(Sender: TObject);
+procedure TAIChatFrame.btnSendClick(Sender: TObject);
 begin
   Send;
   FocusInput;
 end;
 
-procedure TAIChatFrame.InputKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
+procedure TAIChatFrame.mem_InputKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
 begin
   if (Key = VK_RETURN) and not (ssShift in Shift) and not (ssCtrl in Shift) then
   begin
@@ -667,10 +575,10 @@ end;
 
 function TAIChatFrame.GetEffort: string;
 begin
-  if FEffortBox.ItemIndex < 0 then
+  if cbbEffort.ItemIndex < 0 then
     Result := 'auto'
   else
-    Result := FEffortBox.Items[FEffortBox.ItemIndex];
+    Result := cbbEffort.Items[cbbEffort.ItemIndex];
 end;
 
 function TAIChatFrame.GetModel: string;
@@ -679,24 +587,24 @@ begin
   if Assigned(FAdapter) then
     Result := FAdapter.Model
   else
-    Result := Trim(FModelBox.Text);
+    Result := Trim(cbbModel.Text);
 end;
 
 procedure TAIChatFrame.SetEffort(const AValue: string);
 var
   i: integer;
 begin
-  i := FEffortBox.Items.IndexOf(LowerCase(AValue));
+  i := cbbEffort.Items.IndexOf(LowerCase(AValue));
   if i < 0 then
     i := 0;
-  FEffortBox.ItemIndex := i;
+  cbbEffort.ItemIndex := i;
   if Assigned(FAdapter) then
     FAdapter.Effort := GetEffort;
 end;
 
 procedure TAIChatFrame.SetModel(const AValue: string);
 begin
-  FModelBox.Text := AValue;
+  cbbModel.Text := AValue;
   if Assigned(FAdapter) then
     FAdapter.Model := Trim(AValue);
 end;
