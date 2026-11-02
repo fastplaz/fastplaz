@@ -100,6 +100,9 @@ type
     procedure TestNewSession;
     procedure TestMissingExecutable;
     procedure TestStopThenPromptRestarts;
+    procedure TestMcpServerSentWhenAgentTakesHttp;
+    procedure TestMcpServerSkippedWithoutHttp;
+    procedure TestNoMcpServerWithoutUrl;
   end;
 
   { TClaudeStreamTest }
@@ -125,6 +128,7 @@ type
     procedure TestPermissionDenyResponse;
     procedure TestIgnoresGarbage;
     procedure TestArguments;
+    procedure TestMcpConfigArguments;
     procedure TestStaticModels;
   end;
 
@@ -809,6 +813,35 @@ begin
   AssertEquals('echo: again', FRec.Text);
 end;
 
+procedure TACPAdapterTest.TestMcpServerSentWhenAgentTakesHttp;
+begin
+  FAdapter.Arguments.Add('--mcp-http');
+  FAdapter.McpUrl := 'http://127.0.0.1:17845/mcp';
+  FAdapter.McpToken := 'tok123';
+  PromptAndWait('mcp?');
+  AssertTrue('agent capability read', FAdapter.McpHttp);
+  AssertTrue(FRec.Text, Pos('"type" : "http"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"name" : "lazarus"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"url" : "http://127.0.0.1:17845/mcp"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"value" : "Bearer tok123"', FRec.Text) > 0);
+end;
+
+procedure TACPAdapterTest.TestMcpServerSkippedWithoutHttp;
+begin
+  FAdapter.McpUrl := 'http://127.0.0.1:17845/mcp';
+  FAdapter.McpToken := 'tok123';
+  PromptAndWait('mcp?');
+  AssertFalse(FAdapter.McpHttp);
+  AssertEquals('[]', FRec.Text);
+end;
+
+procedure TACPAdapterTest.TestNoMcpServerWithoutUrl;
+begin
+  FAdapter.Arguments.Add('--mcp-http');
+  PromptAndWait('mcp?');
+  AssertEquals('[]', FRec.Text);
+end;
+
 { TClaudeStreamTest }
 
 procedure TClaudeStreamTest.SetUp;
@@ -956,6 +989,39 @@ begin
     args.Free;
     probe.Free;
   end;
+end;
+
+procedure TClaudeStreamTest.TestMcpConfigArguments;
+var
+  probe: TClaudeArgsProbe;
+  args, config: TStringList;
+  fileName: string;
+begin
+  probe := TClaudeArgsProbe.Create;
+  args := TStringList.Create;
+  config := TStringList.Create;
+  try
+    probe.Probe(args);
+    AssertTrue('no server, no --mcp-config', args.IndexOf('--mcp-config') < 0);
+    args.Clear;
+    probe.McpUrl := 'http://127.0.0.1:17845/mcp';
+    probe.McpToken := 'tok123';
+    probe.Probe(args);
+    AssertTrue(args.IndexOf('--mcp-config') >= 0);
+    fileName := args[args.IndexOf('--mcp-config') + 1];
+    AssertTrue('config file written', FileExists(fileName));
+    config.LoadFromFile(fileName);
+    AssertTrue(Pos('"lazarus"', config.Text) > 0);
+    AssertTrue(Pos('"type" : "http"', config.Text) > 0);
+    AssertTrue(Pos('http://127.0.0.1:17845/mcp', config.Text) > 0);
+    AssertTrue(Pos('Bearer tok123', config.Text) > 0);
+    AssertEquals('mcp__lazarus', args[args.IndexOf('--allowedTools') + 1]);
+  finally
+    config.Free;
+    args.Free;
+    probe.Free;
+  end;
+  AssertFalse('config file removed with the adapter', FileExists(fileName));
 end;
 
 procedure TClaudeStreamTest.TestStaticModels;

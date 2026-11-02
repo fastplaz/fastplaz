@@ -31,6 +31,9 @@ uses
   aiplane_types, aiplane_presets, aiplane_chatview;
 
 type
+  { Answer to a permission card shown with ShowToolPermission. }
+  TAIToolPermissionAnswer = procedure(Sender: TObject;
+    const AKey, AOptionId: string) of object;
 
   { TAIChatFrame }
 
@@ -82,6 +85,10 @@ type
     FOnSettingsChanged: TNotifyEvent;
     FFillingModels: boolean;
     FModelCount: integer;
+    FMcpUrl: string;
+    FMcpToken: string;
+    FMcpStatus: string;
+    FOnToolPermission: TAIToolPermissionAnswer;
     procedure SetupControls;
     procedure ShowStatusMenu(ALabel: TLabel);
     function AddStatusMenuItem(const ACaption: string; ATag: integer;
@@ -119,6 +126,15 @@ type
     procedure SendPrompt(const AText: string);
     procedure NewChat;
     procedure FocusInput;
+    { The IDE's MCP server for the next runtime start (empty URL: no IDE
+      tools). Restarts the runtime when it changed. AStatus is shown in the
+      status line ("MCP: 127.0.0.1:17845", "MCP: off", an error). }
+    procedure SetMcpServer(const AUrl, AToken, AStatus: string);
+    { Shows a permission card for one of the IDE's own tools; the answer goes
+      to OnToolPermission, not to the runtime. }
+    procedure ShowToolPermission(const ARequest: TAIPermissionRequest);
+    { Adds a line to the protocol log (shown with the Log button). }
+    procedure AddLog(const AText: string);
     property Adapter: TAIAdapter read FAdapter;
     property View: TAIChatView read FView;
     property PresetId: string read FPresetId;
@@ -129,6 +145,8 @@ type
     property WorkingDir: string read FWorkingDir write SetWorkingDir;
     property OnReadFile: TAIReadFileHandler read FOnReadFile write FOnReadFile;
     property OnSettingsChanged: TNotifyEvent read FOnSettingsChanged write FOnSettingsChanged;
+    property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
+      write FOnToolPermission;
   end;
 
 implementation
@@ -402,6 +420,8 @@ begin
   FAdapter.OnPermission := @AdapterPermission;
   FAdapter.OnReadFile := @AdapterReadFile;
   FAdapter.WorkingDir := FWorkingDir;
+  FAdapter.McpUrl := FMcpUrl;
+  FAdapter.McpToken := FMcpToken;
   FAdapter.Model := keepModel;
   FAdapter.Effort := keepEffort;
   FAgentText := FAdapter.Command;
@@ -485,6 +505,7 @@ begin
   if Assigned(FAdapter) then
     AddPart(AIStateToString(FAdapter.State));
   AddPart(FUsageText);
+  AddPart(FMcpStatus);
   lblStatus.Caption := s;
   lblStatus.Hint := FSessionText;
 end;
@@ -791,12 +812,7 @@ begin
       UpdateStatus;
     end;
     aekLog:
-      if mem_Log.Visible then
-      begin
-        if mem_Log.Lines.Count > MAX_LOG_LINES then
-          mem_Log.Lines.Clear;
-        mem_Log.Lines.Add(Copy(AEvent.Text, 1, 2000));
-      end;
+      AddLog(AEvent.Text);
   end;
   if AEvent.Kind = aekDone then
     UpdateControls;
@@ -823,6 +839,36 @@ begin
   FCurrentText := nil;
 end;
 
+procedure TAIChatFrame.ShowToolPermission(const ARequest: TAIPermissionRequest);
+begin
+  // same card; ViewButtonClick routes "mcp:" keys to OnToolPermission
+  AdapterPermission(Self, ARequest);
+end;
+
+procedure TAIChatFrame.AddLog(const AText: string);
+begin
+  if not mem_Log.Visible then
+    Exit;
+  if mem_Log.Lines.Count > MAX_LOG_LINES then
+    mem_Log.Lines.Clear;
+  mem_Log.Lines.Add(Copy(AText, 1, 2000));
+end;
+
+procedure TAIChatFrame.SetMcpServer(const AUrl, AToken, AStatus: string);
+var
+  serverMoved: boolean;
+begin
+  serverMoved := (AUrl <> FMcpUrl) or (AToken <> FMcpToken);
+  FMcpUrl := AUrl;
+  FMcpToken := AToken;
+  FMcpStatus := AStatus;
+  // the runtime reads the server at start; restart it on a change
+  if serverMoved and Assigned(FAdapter) and not FAdapter.IsBusy then
+    SetRuntime(FPresetId, FCommand, FArguments)
+  else
+    UpdateStatus;
+end;
+
 function TAIChatFrame.AdapterReadFile(Sender: TObject; const APath: string;
   out AContent: string): boolean;
 begin
@@ -833,14 +879,25 @@ procedure TAIChatFrame.ViewButtonClick(Sender: TObject; AItem: TAIChatItem;
   const AButtonId: string);
 var
   i: integer;
+var
+  isTool: boolean;
 begin
-  if not Assigned(FAdapter) or (AItem.Answer <> '') then
+  if AItem.Answer <> '' then
+    Exit;
+  isTool := Copy(AItem.Key, 1, 4) = 'mcp:';
+  if not isTool and not Assigned(FAdapter) then
     Exit;
   for i := 0 to High(AItem.Buttons) do
     if AItem.Buttons[i].Id = AButtonId then
       AItem.Answer := AItem.Buttons[i].Caption;
   FView.Changed(AItem);
-  FAdapter.RespondPermission(AItem.Key, AButtonId);
+  if isTool then
+  begin
+    if Assigned(FOnToolPermission) then
+      FOnToolPermission(Self, AItem.Key, AButtonId);
+  end
+  else
+    FAdapter.RespondPermission(AItem.Key, AButtonId);
 end;
 
 procedure TAIChatFrame.tmrPollTimer(Sender: TObject);

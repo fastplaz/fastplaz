@@ -19,7 +19,7 @@ uses
   aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, 
   aiplane_presets, aiplane_chatview, aiplane_chatframe, aiplane_settingsframe, 
   aiplane_ide, aiplane_markdown, aiplane_codehighlight, aiplane_pi, 
-  LazarusPackageIntf;
+  aiplane_httpserver, aiplane_mcpserver, aiplane_tools_ide, LazarusPackageIntf;
 
 implementation
 

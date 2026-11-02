@@ -17,7 +17,7 @@ unit aiplane_settingsframe;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics,
+  Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics, Spin,
   aiplane_types, aiplane_presets;
 
 type
@@ -30,17 +30,21 @@ type
     cbbEffort: TComboBox;
     cbbModel: TComboBox;
     cbbRuntime: TComboBox;
+    chkMcpEnabled: TCheckBox;
     edt_Arguments: TEdit;
     edt_Command: TEdit;
     lblArguments: TLabel;
     lblCommand: TLabel;
     lblEffort: TLabel;
+    lblMcpPort: TLabel;
     lblModel: TLabel;
     lblNote: TLabel;
     lblRuntime: TLabel;
     lblStatus: TLabel;
     mem_Output: TMemo;
+    spnMcpPort: TSpinEdit;
     tmrProbe: TTimer;
+    procedure McpEnabledChange(Sender: TObject);
     procedure btnDetectClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
     procedure cbbModelChange(Sender: TObject);
@@ -74,6 +78,10 @@ type
     procedure SetModel(const AValue: string);
     function GetEffort: string;
     procedure SetEffort(const AValue: string);
+    function GetMcpEnabled: boolean;
+    procedure SetMcpEnabled(AValue: boolean);
+    function GetMcpPort: integer;
+    procedure SetMcpPort(AValue: integer);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -87,6 +95,9 @@ type
     property Arguments: string read GetArguments write SetArguments;
     property Model: string read GetModel write SetModel;
     property Effort: string read GetEffort write SetEffort;
+    { IDE tools through the MCP server (on by default) and its port. }
+    property McpEnabled: boolean read GetMcpEnabled write SetMcpEnabled;
+    property McpPort: integer read GetMcpPort write SetMcpPort;
     { Where the test runs the runtime ('' = current directory). }
     property WorkingDir: string read FWorkingDir write FWorkingDir;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -492,6 +503,35 @@ begin
   if i < 0 then
     i := 0;
   cbbEffort.ItemIndex := i;
+end;
+
+procedure TAIPlaneSettingsFrame.McpEnabledChange(Sender: TObject);
+begin
+  spnMcpPort.Enabled := chkMcpEnabled.Checked;
+  lblMcpPort.Enabled := chkMcpEnabled.Checked;
+  ValueChange(Sender);
+end;
+
+function TAIPlaneSettingsFrame.GetMcpEnabled: boolean;
+begin
+  Result := chkMcpEnabled.Checked;
+end;
+
+procedure TAIPlaneSettingsFrame.SetMcpEnabled(AValue: boolean);
+begin
+  chkMcpEnabled.Checked := AValue;
+  spnMcpPort.Enabled := AValue;
+  lblMcpPort.Enabled := AValue;
+end;
+
+function TAIPlaneSettingsFrame.GetMcpPort: integer;
+begin
+  Result := spnMcpPort.Value;
+end;
+
+procedure TAIPlaneSettingsFrame.SetMcpPort(AValue: integer);
+begin
+  spnMcpPort.Value := AValue;
 end;
 
 end.

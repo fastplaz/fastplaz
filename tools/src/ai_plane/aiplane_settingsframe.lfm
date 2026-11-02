@@ -114,6 +114,38 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     TabOrder = 5
     OnSelect = ValueChange
   end
+  object chkMcpEnabled: TCheckBox
+    Left = 240
+    Height = 19
+    Hint = 'Let the agent use IDE tools (open files, compile the project, ...) through MCP over HTTP on 127.0.0.1'
+    Top = 138
+    Width = 120
+    Caption = 'IDE tools (MCP)'
+    Checked = True
+    State = cbChecked
+    TabOrder = 8
+    OnChange = McpEnabledChange
+  end
+  object lblMcpPort: TLabel
+    Left = 376
+    Height = 15
+    Top = 140
+    Width = 31
+    Caption = 'Port :'
+    ParentColor = False
+  end
+  object spnMcpPort: TSpinEdit
+    Left = 416
+    Height = 23
+    Hint = 'Port of the MCP server; the next free port is used when it is taken'
+    Top = 136
+    Width = 80
+    MaxValue = 65535
+    MinValue = 1024
+    TabOrder = 9
+    Value = 17845
+    OnChange = ValueChange
+  end
   object lblNote: TLabel
     Left = 98
     Height = 15

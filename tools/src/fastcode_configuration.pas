@@ -163,6 +163,8 @@ begin
   FAIPlane.Arguments := settings.Arguments;
   FAIPlane.Model := settings.Model;
   FAIPlane.Effort := settings.Effort;
+  FAIPlane.McpEnabled := settings.McpEnabled;
+  FAIPlane.McpPort := settings.McpPort;
   FAIPlane.WorkingDir := AIPlaneProjectDirectory;
 end;
 
@@ -175,6 +177,8 @@ begin
   settings.Arguments := FAIPlane.Arguments;
   settings.Model := FAIPlane.Model;
   settings.Effort := FAIPlane.Effort;
+  settings.McpEnabled := FAIPlane.McpEnabled;
+  settings.McpPort := FAIPlane.McpPort;
   AIPlaneSaveSettings(settings);
   AIPlaneSettingsChanged;
 end;

@@ -15,6 +15,12 @@ program aiplane_cli;
 
   --runtime mock uses mock_acp_agent from the current directory.
   --yes answers every permission request with the first "allow" option.
+  --mcp [port] runs the AI Plane MCP server (default port 17845) with two
+    demo tools and passes it to the runtime, to check that a real agent
+    reaches the IDE tools:
+      secret_word      returns a random word (auto)
+      confirm_action   asks for permission first
+    Example: --mcp --prompt "Call the lazarus secret_word tool and tell me the word"
 
   Build: fpc -FU lib -Fu../ai_plane aiplane_cli.lpr
 }
@@ -23,7 +29,7 @@ program aiplane_cli;
 
 uses
   {$IFDEF UNIX}cthreads,{$ENDIF}
-  Classes, SysUtils, aiplane_types, aiplane_presets;
+  Classes, SysUtils, aiplane_types, aiplane_presets, aiplane_mcpserver;
 
 type
 
@@ -32,6 +38,8 @@ type
   TCli = class
   public
     Adapter: TAIAdapter;
+    Mcp: TAIMcpServer;
+    SecretWord: string;
     ShowLog: boolean;
     AutoYes: boolean;
     Done: boolean;
@@ -39,6 +47,11 @@ type
     LastKind: TAIEventKind;
     procedure OnEvent(Sender: TObject; const AEvent: TAIEvent);
     procedure OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+    procedure OnMcpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+    procedure OnMcpLog(Sender: TObject; const AText: string);
+    procedure ToolSecretWord(ACall: TAIMcpToolCall);
+    procedure ToolConfirm(ACall: TAIMcpToolCall);
+    function Choose(const ARequest: TAIPermissionRequest): string;
     procedure RunTurn(const AText: string);
     procedure ListModels;
   end;
@@ -88,11 +101,13 @@ begin
     LastKind := AEvent.Kind;
 end;
 
-procedure TCli.OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+// The option id to answer with ('' = cancel).
+function TCli.Choose(const ARequest: TAIPermissionRequest): string;
 var
   i, choice: integer;
   answer: string;
 begin
+  Result := '';
   WriteLn;
   WriteLn('  [permission] ', ARequest.ToolTitle, ' ', Copy(ARequest.Detail, 1, 200));
   if AutoYes then
@@ -101,8 +116,7 @@ begin
       if Pos('allow', ARequest.Options[i].Kind) = 1 then
       begin
         WriteLn('  -> ', ARequest.Options[i].Name);
-        Adapter.RespondPermission(ARequest.Key, ARequest.Options[i].Id);
-        Exit;
+        Exit(ARequest.Options[i].Id);
       end;
   end;
   for i := 0 to High(ARequest.Options) do
@@ -111,9 +125,32 @@ begin
   ReadLn(answer);
   choice := StrToIntDef(Trim(answer), 0) - 1;
   if (choice >= 0) and (choice <= High(ARequest.Options)) then
-    Adapter.RespondPermission(ARequest.Key, ARequest.Options[choice].Id)
-  else
-    Adapter.RespondPermission(ARequest.Key, '');
+    Result := ARequest.Options[choice].Id;
+end;
+
+procedure TCli.OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+begin
+  Adapter.RespondPermission(ARequest.Key, Choose(ARequest));
+end;
+
+procedure TCli.OnMcpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+begin
+  Mcp.RespondPermission(ARequest.Key, Choose(ARequest));
+end;
+
+procedure TCli.OnMcpLog(Sender: TObject; const AText: string);
+begin
+  WriteLn('  [mcp] ', Copy(AText, 1, 300));
+end;
+
+procedure TCli.ToolSecretWord(ACall: TAIMcpToolCall);
+begin
+  ACall.Finish('The secret word is: ' + SecretWord);
+end;
+
+procedure TCli.ToolConfirm(ACall: TAIMcpToolCall);
+begin
+  ACall.Finish('Confirmed: ' + ACall.Str('action', '(nothing)'));
 end;
 
 procedure TCli.RunTurn(const AText: string);
@@ -131,7 +168,7 @@ begin
     end;
   end;
   while not Done do
-    if not Adapter.Poll then
+    if not Adapter.Poll and not (Assigned(Mcp) and Mcp.Poll) then
       Sleep(10);
 end;
 
@@ -189,6 +226,29 @@ begin
     cli.Adapter.WorkingDir := Option('--cwd', GetCurrentDir);
     cli.ShowLog := HasFlag('--log');
     cli.AutoYes := HasFlag('--yes');
+    if HasFlag('--mcp') then
+    begin
+      cli.SecretWord := 'kopi-' + Copy(AIMcpNewToken, 1, 6);
+      cli.Mcp := TAIMcpServer.Create;
+      cli.Mcp.OnLog := @cli.OnMcpLog;
+      cli.Mcp.OnPermission := @cli.OnMcpPermission;
+      cli.Mcp.RegisterTool('secret_word', 'Secret word',
+        'Returns the secret word of this test session.',
+        '{"type":"object","properties":{}}', mtpAuto, @cli.ToolSecretWord);
+      cli.Mcp.RegisterTool('confirm_action', 'Confirm an action',
+        'Asks the user to confirm an action, then reports it.',
+        '{"type":"object","properties":{"action":{"type":"string"}},"required":["action"]}',
+        mtpAsk, @cli.ToolConfirm);
+      if not cli.Mcp.Start(StrToIntDef(Option('--mcp', ''), AI_MCP_DEFAULT_PORT)) then
+      begin
+        WriteLn('  [mcp] ', cli.Mcp.LastError);
+        ExitCode := 1;
+        Exit;
+      end;
+      cli.Adapter.McpUrl := cli.Mcp.Url;
+      cli.Adapter.McpToken := cli.Mcp.Token;
+      WriteLn('  [mcp] secret word: ', cli.SecretWord);
+    end;
     WriteLn('AI Plane CLI - ', cli.Adapter.AdapterName, ': ', cli.Adapter.Command);
 
     oneShot := Option('--prompt');
@@ -227,6 +287,7 @@ begin
     cli.Adapter.Stop;
   finally
     cli.Adapter.Free;
+    cli.Mcp.Free;
     cli.Free;
   end;
 end.
