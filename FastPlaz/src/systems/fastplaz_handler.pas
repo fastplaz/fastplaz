@@ -932,6 +932,10 @@ begin
   FOnSearch := nil;
   FOnNotification := nil;
   VisibleModuleName := ClassName;
+  // a long-lived server would otherwise reuse the same module instance
+  // (and its fields) for every request; CGI gets a new one anyway
+  if IsStandalone then
+    Kind := wkOneShot;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
@@ -1627,6 +1631,44 @@ begin
   Die('<div class="warning">' + Format(Fmt, Args) + '</div>', ACode);
 end;
 
+// Called by fastplaz_app around every request. In CGI mode every request
+// has a fresh process, so only the timer is restarted; a standalone server
+// must not carry the state of one request (session, theme, flags) into the
+// next one.
+procedure FastPlazBeginRequest(ARequest: TRequest; AResponse: TResponse);
+begin
+  StartTime := _GetTickCount;
+  if not IsStandalone then
+    Exit;
+  AppData.initialized := False;
+  AppData.isReady := False;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.isDisplayError := False;
+  if Assigned(_DebugInfo) then
+    _DebugInfo.Clear;
+  LANG := 'en';
+  // the session id comes from the cookie of this request
+  FreeAndNil(SessionController);
+  SessionController := TSessionController.Create();
+end;
+
+procedure FastPlazEndRequest(ARequest: TRequest; AResponse: TResponse);
+var
+  i: integer;
+begin
+  if not IsStandalone then
+    Exit;
+  // the theme also owns HTMLUtil (CSRF state) and the tag callbacks, which
+  // point to the module of this request
+  FreeAndNil(ThemeUtil);
+  // modules loaded at start are created again for every request
+  if Assigned(ModuleLoaded) then
+    for i := 0 to ModuleLoaded.Count - 1 do
+      ModuleLoaded[i].ModuleStore := nil;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.DestroyComponents;
+end;
+
 initialization
   StartTime := _GetTickCount;
   Sanitize := True;
@@ -1647,6 +1689,8 @@ initialization
   ModUtil := TModUtil.Create;
   DisplayErrorHandler := @DoDisplayError;
   RedirectHandler := @DoRedirect;
+  OnBeginRequest := @FastPlazBeginRequest;
+  OnEndRequest := @FastPlazEndRequest;
   MethodMap := TStringList.Create;
   RouteRegexMap := TStringList.Create;
 
