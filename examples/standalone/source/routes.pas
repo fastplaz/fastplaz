@@ -14,6 +14,7 @@ uses main_controller, serverinfo_controller;
 initialization
   Route['/info'] := TServerInfoController;
   Route['/go'] := TGoController;
+  Route['/fail'] := TFailController;
   Route['/'] := TMainController; // main controller, keep it last
 
 end.

@@ -28,6 +28,15 @@ type
     procedure Get; override;
   end;
 
+  { TFailController }
+
+  // /fail : an unhandled exception; the request gets a 500 page and a
+  // standalone server keeps serving the next requests
+  TFailController = class(TMyCustomController)
+  public
+    procedure Get; override;
+  end;
+
 var
   // lives as long as the process: 1 in CGI mode, keeps counting in
   // standalone mode
@@ -74,7 +83,8 @@ begin
     + '</ul>'
     + '<p><a href="?name=FastPlaz">?name=FastPlaz</a> | '
     + '<a href="go">redirect with a flash message</a> | '
-    + '<a href="info">server info (JSON)</a></p>';
+    + '<a href="info">server info (JSON)</a> | '
+    + '<a href="fail">unhandled exception</a></p>';
 end;
 
 { TGoController }
@@ -82,6 +92,13 @@ end;
 procedure TGoController.Get;
 begin
   Redirect(BaseURL, 'Redirected at ' + FormatDateTime('hh:nn:ss', Now));
+end;
+
+{ TFailController }
+
+procedure TFailController.Get;
+begin
+  raise Exception.Create('Failure on purpose (example /fail route)');
 end;
 
 end.
