@@ -180,6 +180,18 @@ type
 
 function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
 
+// Standalone mode, called by fastplaz_handler around every request.
+// Finished: rolls back what the request left uncommitted (as the end of a
+// CGI process does) and closes the connections, so a dropped connection
+// ("server has gone away") or an open transaction never reaches the next
+// request. With DataBasePersistent the connections stay open; Started
+// then closes them when they were idle for DataBaseIdleTimeout seconds or
+// longer. A closed connection is opened again by DataBaseInit or by the
+// next query. InitializeFastPlaz sets both from systems/server/db_persistent
+// and systems/server/db_idle_timeout.
+procedure DataBaseRequestStarted;
+procedure DataBaseRequestFinished;
+
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; const aParams : array of string; SQLCount: string = ''; Where: string = ''; Order: string =''; Limit: integer=0; Offset: integer=0; Echo: integer = 0; sParams: string =''; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultJSON: TJSONObject; NoFieldName : boolean = True): boolean;
 function  QueryOpenToJson( SQL: string; var ResultArray: TJSONArray; NoFieldName : boolean = True): boolean;
@@ -203,15 +215,18 @@ function  DataToJSON( Data : TSQLQuery; var ResultJSON: TJSONArray; NoFieldName 
 
 var
   QueryExecRowAffected: Integer;
+  DataBasePersistent: boolean = False;
+  DataBaseIdleTimeout: integer = 300;
 
 implementation
 
-uses common, config_lib, logutil_lib;
+uses common, config_lib, logutil_lib, dateutils;
 
 var
   DB_Connector : TSQLConnector;
   DB_Transaction : TSQLTransaction;
   DB_LibLoader : TSQLDBLibraryLoader;
+  DB_LastRequest : TDateTime = 0;
 
   DB_Connector_Write : TSQLConnector;
   DB_Transaction_Write : TSQLTransaction;
@@ -242,14 +257,16 @@ end;
 function DataBaseInit(const RedirecURL: string; const DBConfigName: string
   ): boolean;
 var
-  s : string;
+  s, workDir : string;
 begin
   Result := False;
   AppData.useDatabase := True;
 
-  // already connected: keep the active configuration untouched
+  // already connected: keep the active configuration untouched (in
+  // standalone mode the flags are reset for every request)
   if DB_Connector.Connected then
   begin
+    AppData.databaseActive := True;
     Result := True;
     Exit;
   end;
@@ -268,8 +285,10 @@ begin
 
   // client library (optional): an empty value uses the system library
   s := string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [AppData.databaseRead])), UnicodeString('')));
-  if s <> '' then
+  // loaded once per process; a reconnect does not load it again
+  if (s <> '') and (not DB_LibLoader.Enabled) then
   begin
+    workDir := GetCurrentDir;
     // resolve the library path (relative to the current directory or absolute)
     if not SetCurrentDir( ExtractFilePath( s)) then
     begin
@@ -293,9 +312,10 @@ begin
           Redirect( RedirecURL);
       end;
     end;
+    // back to the working directory (the application root; with --root it
+    // is not the directory of the executable)
+    SetCurrentDir(workDir);
   end;
-  // back to app directory
-  SetCurrentDir(ExtractFilePath(Application.ExeName));
 
   if not DB_Connector.Connected then
   begin
@@ -334,6 +354,45 @@ begin
     end;
   end;//-- if not DB_Connector.Connected then
 
+end;
+
+procedure EndConnection(AConnector: TSQLConnector; AClose: boolean);
+begin
+  if (not Assigned(AConnector)) or (not AConnector.Connected) then
+    Exit;
+  try
+    if Assigned(AConnector.Transaction) and AConnector.Transaction.Active then
+      AConnector.Transaction.Rollback;
+  except
+    on E: Exception do
+      LogUtil.Add('end of request, rollback: ' + E.Message, 'database');
+  end;
+  if AClose then
+  try
+    AConnector.Close;
+  except
+    on E: Exception do
+      LogUtil.Add('end of request, close: ' + E.Message, 'database');
+  end;
+end;
+
+procedure DataBaseRequestStarted;
+begin
+  if not DataBasePersistent then
+    Exit;
+  if (DataBaseIdleTimeout > 0) and (DB_LastRequest > 0) and
+    (MilliSecondsBetween(Now, DB_LastRequest) >= Int64(DataBaseIdleTimeout) * 1000) then
+  begin
+    EndConnection(DB_Connector, True);
+    EndConnection(DB_Connector_Write, True);
+  end;
+end;
+
+procedure DataBaseRequestFinished;
+begin
+  EndConnection(DB_Connector, not DataBasePersistent);
+  EndConnection(DB_Connector_Write, not DataBasePersistent);
+  DB_LastRequest := Now;
 end;
 
 function QueryOpenToJson(SQL: string; var ResultJSON: TJSONObject;
@@ -474,7 +533,7 @@ end;
 
 function DatabaseSecond_Prepare( const ConnectionName:string = 'default'; Mode:string = ''):TSQLConnector;
 var
-  s : string;
+  s, workDir : string;
 begin
   Result := nil; //DB_Connector_Write
   if ((Assigned( DB_Connector_Write)) and (Mode = 'write')) then
@@ -486,8 +545,9 @@ begin
   // client library (optional): resolved like DataBaseInit does, so a relative
   // as well as an absolute path is accepted
   s := string( Config.GetValue( UnicodeString( format( _DATABASE_LIBRARY, [ConnectionName])), UnicodeString('')));
-  if s <> '' then
+  if (s <> '') and not (Assigned(DB_LibLoader_Write) and DB_LibLoader_Write.Enabled) then
   begin
+    workDir := GetCurrentDir;
     if not SetCurrentDir( ExtractFilePath( s)) then
     begin
       DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
@@ -495,7 +555,7 @@ begin
     s := GetCurrentDir + DirectorySeparator + ExtractFileName( s);
     if not FileExists( s) then
     begin
-      SetCurrentDir(ExtractFilePath(Application.ExeName));
+      SetCurrentDir(workDir);
       DisplayError( Format(_ERR_DATABASE_LIBRARY_NOT_EXIST, [ ConnectionName, s]));
     end;
 
@@ -510,8 +570,7 @@ begin
           DisplayError( 'Database Init ('+ConnectionName+'): Load Library, '+E.Message)
       end;
     end;
-    // back to app directory
-    SetCurrentDir(ExtractFilePath(Application.ExeName));
+    SetCurrentDir(workDir);
   end;
 
   if not Assigned( DB_Connector_Write) then begin

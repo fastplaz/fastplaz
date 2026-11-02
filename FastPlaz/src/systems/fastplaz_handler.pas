@@ -461,6 +461,9 @@ begin
   AppData.trustProxy := Config.GetValue(_SYSTEM_TRUST_PROXY, False);
   // same setting for the CGI variables derived in standalone mode
   SetTrustProxy(AppData.trustProxy);
+  // standalone mode: database connections kept between requests or not
+  DataBasePersistent := Config.GetValue('systems/server/db_persistent', False);
+  DataBaseIdleTimeout := Config.GetValue('systems/server/db_idle_timeout', 300);
 
   if AppData.baseUrl = '' then
   begin
@@ -1658,6 +1661,7 @@ begin
   // the session id comes from the cookie of this request
   FreeAndNil(SessionController);
   SessionController := TSessionController.Create();
+  DataBaseRequestStarted;
 end;
 
 procedure FastPlazEndRequest(ARequest: TRequest; AResponse: TResponse);
@@ -1675,6 +1679,8 @@ begin
       ModuleLoaded[i].ModuleStore := nil;
   if Assigned(FastPlasAppandler) then
     FastPlasAppandler.DestroyComponents;
+  // uncommitted work is rolled back as at the end of a CGI process
+  DataBaseRequestFinished;
 end;
 
 initialization

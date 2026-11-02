@@ -48,6 +48,8 @@ Options (command line wins over `config/config.json` → `systems/server`):
 | `--address=127.0.0.1` | `address` | `127.0.0.1` |
 | `--static=on\|off` | `static` | `on` |
 | `--max-requests=N` | `max_requests` | `0` (never); stop after N requests so a service manager starts a fresh process |
+| – | `db_persistent` | `false`: database connections are closed after every request (as in CGI); `true` keeps them open |
+| – | `db_idle_timeout` | `300` seconds; a kept connection idle that long is reopened |
 | `--root=<dir>` | – | directory of the binary (when it holds `config/config.json`) |
 
 `static` serves theme assets (css, js, images, fonts, ...) directly. Turn it
@@ -56,6 +58,9 @@ and `ztemp/` are never served as files.
 
 Run several processes on different ports for more throughput; each one
 handles one request at a time.
+
+Whatever a request leaves uncommitted in the database is rolled back at its
+end, as the end of a CGI process does.
 
 Ctrl+C (or SIGTERM on Linux/macOS) stops the server after the request in
 progress; a second Ctrl+C ends it at once.
@@ -121,5 +126,4 @@ option.
 
 ## Not yet done
 
-Phase 2 of the roadmap: database reconnect, service files, IDE project
-wizard.
+Phase 2 of the roadmap: service files, IDE project wizard.
