@@ -28,7 +28,7 @@
 for more information visit https://www.fastplaz.com
 "/>
     <Version Major="1" Release="1" Build="145"/>
-    <Files Count="64">
+    <Files Count="67">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -286,6 +286,18 @@ for more information visit https://www.fastplaz.com
         <Filename Value="src\ai_plane\aiplane_pi.pas"/>
         <UnitName Value="aiplane_pi"/>
       </Item64>
+      <Item65>
+        <Filename Value="src\ai_plane\aiplane_httpserver.pas"/>
+        <UnitName Value="aiplane_httpserver"/>
+      </Item65>
+      <Item66>
+        <Filename Value="src\ai_plane\aiplane_mcpserver.pas"/>
+        <UnitName Value="aiplane_mcpserver"/>
+      </Item66>
+      <Item67>
+        <Filename Value="src\ai_plane\aiplane_tools_ide.pas"/>
+        <UnitName Value="aiplane_tools_ide"/>
+      </Item67>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

@@ -24,7 +24,10 @@ integration (menu *FastPlaz → AI Plane*, dockable window, *AI Plane* tab in
 | `aiplane_chatview.pas` | `TAIChatView` (LCL): owner drawn conversation; assistant and thinking text rendered as markdown, links open in the browser, local images (relative to the project) drawn scaled, remote images shown as a placeholder link (never downloaded), titles as tooltips, foldable tool/thinking/plan cards, permission buttons; text selection by dragging or double click, Ctrl+C / Ctrl+A, copy menu (wrapped lines are joined again, table cells tab separated) |
 | `aiplane_settingsframe.pas/.lfm` | `TAIPlaneSettingsFrame` (LCL): default runtime, command, arguments, model (*Detect* reads the runtime's list), effort and *Run Test* |
 | `aiplane_ide.pas/.lfm` | IDEIntf: `AIPlaneWindow` (dockable, hosts the chat), menu handler, settings in `config.json` under `aiplane`, project directory as working directory, unsaved editor buffers served to the agent |
-| `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line |
+| `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line, permission cards for IDE tools (`ShowToolPermission`) |
+| `aiplane_httpserver.pas` | `TAIHttpServer`: minimal HTTP/1.1 server on `127.0.0.1`, non-blocking and polled (no threads); keep-alive, pipelining, chunked bodies, answers that come later; Windows/macOS/Linux socket differences (SIGPIPE, exclusive port) |
+| `aiplane_mcpserver.pas` | `TAIMcpServer`: MCP over Streamable HTTP (`POST /mcp`, JSON responses), Bearer token, `Origin` check, sessions, `tools/list`, `tools/call`, tools that ask the user first (once or for the session), result size limit, port fallback |
+| `aiplane_tools_ide.pas` | IDEIntf: the IDE tools offered over MCP (`open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`) |
 
 ## How the UI uses it
 
@@ -52,6 +55,35 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
   defaults too.
 * The runtime starts in the active project's directory and restarts when
   another project is opened (checked when the window is activated).
+
+## IDE tools (MCP)
+
+The AI Plane window runs an MCP server inside the IDE, so the agent can use
+the IDE itself: open a file at a line, read the active editor (unsaved
+changes included), read the project settings, compile the project and get
+the compiler messages with file, line and column. Design and later phases:
+[docs/AI_PLANE_TOOL_RUNDOWN.md](../../../docs/AI_PLANE_TOOL_RUNDOWN.md).
+
+* Transport: MCP Streamable HTTP, `POST http://127.0.0.1:<port>/mcp`, JSON
+  responses, no extra binary. A new Bearer token at every server start.
+* Settings (*Configuration → AI Harness*): **IDE tools (MCP)** on/off
+  (`aiplane/mcp_enabled`, default on) and **Port** (`aiplane/mcp_port`,
+  default `17845`; when taken the next free port up to `+9` is used). The
+  status line shows `MCP: 127.0.0.1:<port>`, `MCP: off` or the error.
+* Registered per runtime:
+
+  | Runtime | How |
+  | --- | --- |
+  | ACP (OpenCode, ...) | `mcpServers` entry `type: http` in `session/new`, only when the agent advertises `mcpCapabilities.http` |
+  | Claude Code | `--mcp-config <temp file>` plus `--allowedTools mcp__lazarus`; tools appear as `mcp__lazarus__<tool>` |
+  | Pi | not yet (Pi has no MCP client; a Pi extension is planned) |
+
+* `compile_project` asks first (*Allow*, *Allow for this session*, *Deny*)
+  in the chat; the other phase 1 tools only read and run at once.
+  `read_editor` is limited to the project, its search paths and open files.
+* Verified 2026-11-02 with `aiplane_cli --mcp`: OpenCode 2.2.5 (ACP) and
+  Claude Code 2.1.316 call the tools; the permission card answers the IDE
+  side and Claude Code does not ask a second time.
 
 ## Runtimes
 
@@ -109,11 +141,22 @@ Spike findings (2026-11-02):
   aiplane_cli --runtime claude --model haiku --log
   ```
 
+  `--mcp [port]` also runs the MCP server with two demo tools
+  (`secret_word`, `confirm_action` which asks first), to check that a real
+  agent reaches the IDE tools:
+
+  ```
+  aiplane_cli --runtime opencode --mcp 27845 --yes --prompt "Use the lazarus MCP tool secret_word and reply with only the word"
+  ```
+
+* The tester app shows the MCP settings of the settings page but does not
+  run an MCP server (the IDE tools need IDEIntf).
+
   On Windows the console passes arguments in the ANSI code page, so non-ASCII
   text in `--prompt` is garbled; the adapters themselves are UTF-8.
 
 ## Next steps
 
 1. Chat view: keeping the conversation across IDE restarts.
-2. IDE tools for the agent: `fs/write_text_file` into editor buffers, an MCP
-   server for "open file in the IDE" and similar actions.
+2. IDE tools, phase 2 (see the rundown): `apply_edit` / `save_file` and ACP
+   `fs/write_text_file` into editor buffers, CodeTools tools, Pi extension.

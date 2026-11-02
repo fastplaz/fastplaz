@@ -9,6 +9,9 @@ unit aiplane_ide;
   - The runtime works in the directory of the active project.
   - Files open in the source editor are served from the editor buffer, so the
     agent reads unsaved changes too.
+  - The window runs the IDE's MCP server (aiplane_mcpserver, tools in
+    aiplane_tools_ide) on 127.0.0.1 when "aiplane/mcp_enabled" is on (default),
+    port "aiplane/mcp_port" (default 17845, next free port when taken).
 }
 
 {$mode objfpc}{$H+}
@@ -16,9 +19,9 @@ unit aiplane_ide;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls,
+  Classes, SysUtils, Forms, Controls, ExtCtrls,
   LazIDEIntf, IDEWindowIntf, SrcEditorIntf,
-  aiplane_types, aiplane_chatframe;
+  aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide;
 
 const
   AIPLANE_WINDOW_NAME = 'AIPlaneWindow';
@@ -32,6 +35,8 @@ type
     Arguments: string;
     Model: string;
     Effort: string;
+    McpEnabled: boolean;
+    McpPort: integer;
   end;
 
   { TAIPlaneWindow }
@@ -41,6 +46,15 @@ type
     FChat: TAIChatFrame;
     FProjectDir: string;
     FApplying: boolean;
+    FMcp: TAIMcpServer;
+    FTools: TAIIdeTools;
+    FMcpTimer: TTimer;
+    FMcpPort: integer;
+    procedure UpdateMcpServer(const ASettings: TAIPlaneSettings);
+    procedure McpTimer(Sender: TObject);
+    procedure McpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
+    procedure McpLog(Sender: TObject; const AText: string);
+    procedure ToolPermissionAnswer(Sender: TObject; const AKey, AOptionId: string);
     procedure ChatSettingsChanged(Sender: TObject);
     function ReadEditorBuffer(Sender: TObject; const APath: string;
       out AContent: string): boolean;
@@ -48,10 +62,12 @@ type
     procedure SyncProjectDirectory;
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     { Applies the stored settings; keeps the conversation when the runtime
       stays the same. }
     procedure ApplySettings;
     property Chat: TAIChatFrame read FChat;
+    property Mcp: TAIMcpServer read FMcp;
   end;
 
 var
@@ -86,6 +102,11 @@ begin
     Result.Runtime := AI_DEFAULT_PRESET;
   if Result.Effort = '' then
     Result.Effort := 'auto';
+  Result.McpEnabled := GlobalConfig.GetValue(UnicodeString('aiplane/mcp_enabled'), True);
+  Result.McpPort := GlobalConfig.GetValue(UnicodeString('aiplane/mcp_port'),
+    integer(AI_MCP_DEFAULT_PORT));
+  if (Result.McpPort < 1024) or (Result.McpPort > 65535) then
+    Result.McpPort := AI_MCP_DEFAULT_PORT;
 end;
 
 procedure AIPlaneSaveSettings(const ASettings: TAIPlaneSettings);
@@ -96,6 +117,8 @@ begin
   GlobalConfig['aiplane/arguments'] := ASettings.Arguments;
   GlobalConfig['aiplane/model'] := ASettings.Model;
   GlobalConfig['aiplane/effort'] := ASettings.Effort;
+  GlobalConfig.SetValue(UnicodeString('aiplane/mcp_enabled'), ASettings.McpEnabled);
+  GlobalConfig.SetValue(UnicodeString('aiplane/mcp_port'), ASettings.McpPort);
   GlobalConfig.Flush;
 end;
 
@@ -150,9 +173,80 @@ begin
   FChat.OnReadFile := @ReadEditorBuffer;
   FProjectDir := AIPlaneProjectDirectory;
   FChat.WorkingDir := FProjectDir;
+  FChat.OnToolPermission := @ToolPermissionAnswer;
+
+  FMcp := TAIMcpServer.Create;
+  FMcp.OnPermission := @McpPermission;
+  FMcp.OnLog := @McpLog;
+  FTools := TAIIdeTools.Create;
+  FTools.Register(FMcp);
+  FMcpTimer := TTimer.Create(Self);
+  FMcpTimer.Enabled := False;
+  FMcpTimer.Interval := 40;
+  FMcpTimer.OnTimer := @McpTimer;
+
   ApplySettings;
   FChat.OnSettingsChanged := @ChatSettingsChanged;
   OnActivate := @FormActivate;
+end;
+
+destructor TAIPlaneWindow.Destroy;
+begin
+  if Assigned(FMcpTimer) then
+    FMcpTimer.Enabled := False;
+  if Assigned(FChat) then
+    FChat.OnToolPermission := nil;
+  FreeAndNil(FMcp);
+  FreeAndNil(FTools);
+  inherited Destroy;
+end;
+
+// Starts, stops or moves the MCP server and tells the chat where it is.
+procedure TAIPlaneWindow.UpdateMcpServer(const ASettings: TAIPlaneSettings);
+begin
+  if ASettings.McpEnabled then
+  begin
+    if not FMcp.Active or (FMcpPort <> ASettings.McpPort) then
+    begin
+      FMcpPort := ASettings.McpPort;
+      FMcp.Start(FMcpPort);
+    end;
+  end
+  else if FMcp.Active then
+    FMcp.Stop;
+  FMcpTimer.Enabled := FMcp.Active;
+  if FMcp.Active then
+    FChat.SetMcpServer(FMcp.Url, FMcp.Token, 'MCP: 127.0.0.1:' + IntToStr(FMcp.Port))
+  else if ASettings.McpEnabled then
+    FChat.SetMcpServer('', '', 'MCP: ' + FMcp.LastError)
+  else
+    FChat.SetMcpServer('', '', 'MCP: off');
+end;
+
+procedure TAIPlaneWindow.McpTimer(Sender: TObject);
+var
+  rounds: integer;
+begin
+  rounds := 0;
+  while FMcp.Poll and (rounds < 20) do
+    Inc(rounds);
+end;
+
+procedure TAIPlaneWindow.McpPermission(Sender: TObject;
+  const ARequest: TAIPermissionRequest);
+begin
+  FChat.ShowToolPermission(ARequest);
+end;
+
+procedure TAIPlaneWindow.McpLog(Sender: TObject; const AText: string);
+begin
+  FChat.AddLog('[mcp] ' + AText);
+end;
+
+procedure TAIPlaneWindow.ToolPermissionAnswer(Sender: TObject;
+  const AKey, AOptionId: string);
+begin
+  FMcp.RespondPermission(AKey, AOptionId);
 end;
 
 procedure TAIPlaneWindow.ApplySettings;
@@ -164,6 +258,7 @@ begin
   settings := AIPlaneLoadSettings;
   FApplying := True;
   try
+    UpdateMcpServer(settings);
     FChat.Model := settings.Model;
     FChat.Effort := settings.Effort;
     if not SameText(settings.Runtime, FChat.PresetId) or
