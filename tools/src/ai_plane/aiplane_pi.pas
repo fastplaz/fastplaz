@@ -244,6 +244,8 @@ begin
   // Pi accepts commands right away; ask what it has
   SetState(aasReady);
   DoEvent(aekStatus, 'agent: Pi');
+  if McpUrl <> '' then
+    DoEvent(aekLog, 'IDE tools off: Pi has no MCP client (a Pi extension is planned)');
   SendCommand('get_available_models');
   SendCommand('get_state');
   FModelDirty := Model <> '';

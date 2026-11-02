@@ -98,6 +98,8 @@ type
     FOnPermission: TAIPermissionHandler;
     FOnReadFile: TAIReadFileHandler;
     FWorkingDir: string;
+    FMcpUrl: string;
+    FMcpToken: string;
   protected
     FModels: TAIModelList;
     FState: TAIAdapterState;
@@ -141,6 +143,10 @@ type
     { auto, off, minimal, low, medium, high, xhigh. Empty or auto means the
       runtime default. }
     property Effort: string read FEffort write SetEffort;
+    { The IDE's MCP server (http://127.0.0.1:<port>/mcp) and its Bearer
+      token. Empty URL: no IDE tools. Read when the runtime starts. }
+    property McpUrl: string read FMcpUrl write FMcpUrl;
+    property McpToken: string read FMcpToken write FMcpToken;
     property Models: TAIModelList read FModels;
     property State: TAIAdapterState read FState;
     property SessionId: string read FSessionId;
@@ -153,6 +159,10 @@ type
   TAIAdapterClass = class of TAIAdapter;
 
 const
+  { Name of the IDE's MCP server as the agent sees it (Claude Code shows its
+    tools as mcp__lazarus__<tool>). }
+  AI_MCP_SERVER_ID = 'lazarus';
+
   AI_EFFORT_LEVELS: array[0..6] of string =
     ('auto', 'off', 'minimal', 'low', 'medium', 'high', 'xhigh');
 

@@ -42,6 +42,8 @@ type
     FAgentName: string;
     FModelDirty: boolean;
     FEffortDirty: boolean;
+    FMcpHttp: boolean;          // agent accepts MCP servers over HTTP
+    function McpServers: TJSONArray;
     procedure ChannelLine(Sender: TObject; const ALine: string);
     procedure ChannelStderr(Sender: TObject; const ALine: string);
     procedure ChannelExit(Sender: TObject; AExitCode: integer);
@@ -80,6 +82,8 @@ type
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
     property AgentName: string read FAgentName;
+    { From initialize: agentCapabilities.mcpCapabilities.http. }
+    property McpHttp: boolean read FMcpHttp;
   end;
 
 implementation
@@ -177,6 +181,7 @@ begin
   FPending.Clear;
   FPermissions.Clear;
   FSessionId := '';
+  FMcpHttp := False;
   FChannel := TAIProcessChannel.Create;
   FChannel.OnLine := @ChannelLine;
   FChannel.OnStderr := @ChannelStderr;
@@ -476,6 +481,8 @@ begin
         FAgentName := JStr(JObj(result, 'agentInfo'), 'name', Command);
         DoEvent(aekStatus, 'agent: ' + FAgentName + ' ' +
           JStr(JObj(result, 'agentInfo'), 'version'));
+        FMcpHttp := SameText(JStr(JObj(JObj(result, 'agentCapabilities'),
+          'mcpCapabilities'), 'http'), 'true');
         NewSessionRequest;
       end;
     'session/new':
@@ -848,8 +855,36 @@ begin
     dir := GetCurrentDir;
   params := TJSONObject.Create;
   params.Add('cwd', ExpandFileName(ExcludeTrailingPathDelimiter(dir)));
-  params.Add('mcpServers', TJSONArray.Create);
+  params.Add('mcpServers', McpServers);
   SendRequest('session/new', params);
+end;
+
+// The IDE's tools, when the host runs an MCP server and the agent takes
+// HTTP servers (ACP McpServerHttp).
+function TACPAdapter.McpServers: TJSONArray;
+var
+  server: TJSONObject;
+  headers: TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  if McpUrl = '' then
+    Exit;
+  if not FMcpHttp then
+  begin
+    DoEvent(aekLog, 'IDE tools off: ' + FAgentName +
+      ' does not accept MCP servers over HTTP');
+    Exit;
+  end;
+  headers := TJSONArray.Create;
+  if McpToken <> '' then
+    headers.Add(TJSONObject.Create(['name', 'Authorization',
+      'value', 'Bearer ' + McpToken]));
+  server := TJSONObject.Create;
+  server.Add('type', 'http');
+  server.Add('name', AI_MCP_SERVER_ID);
+  server.Add('url', McpUrl);
+  server.Add('headers', headers);
+  Result.Add(server);
 end;
 
 procedure TACPAdapter.FinishTurn(const AStopReason: string);

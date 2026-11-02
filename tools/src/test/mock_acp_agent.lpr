@@ -20,7 +20,10 @@ program mock_acp_agent;
                  streamed line by line
     anything     "echo: <text>"
 
+    mcp?         replies with the mcpServers JSON received in session/new
+
   Options: --banner prints a non-JSON line on stdout first.
+           --mcp-http advertises agentCapabilities.mcpCapabilities.http.
 }
 
 {$mode objfpc}{$H+}
@@ -47,6 +50,8 @@ var
   CurrentModel: string = 'mock/fast';
   CurrentEffort: string = 'medium';
   CancelRequested: boolean = False;
+  McpHttp: boolean = False;
+  ReceivedMcpServers: string = '';
 
 procedure TStdinReader.Execute;
 var
@@ -331,6 +336,8 @@ begin
   end
   else if text = 'model?' then
     Chunk(sid, 'agent_message_chunk', 'model=' + CurrentModel + ' effort=' + CurrentEffort)
+  else if text = 'mcp?' then
+    Chunk(sid, 'agent_message_chunk', ReceivedMcpServers)
   else if text = 'unicode' then
     Chunk(sid, 'agent_message_chunk', 'Halo dunia ' + #$E2#$9C#$93 + ' caf' + #$C3#$A9)
   else if text = 'image' then
@@ -403,11 +410,16 @@ begin
     Exit; // a response nobody waits for
   if method = 'initialize' then
     Respond(id, TJSONObject.Create(['protocolVersion', 1,
-      'agentCapabilities', TJSONObject.Create(['loadSession', False]),
+      'agentCapabilities', TJSONObject.Create(['loadSession', False,
+        'mcpCapabilities', TJSONObject.Create(['http', McpHttp, 'sse', False])]),
       'agentInfo', TJSONObject.Create(['name', 'MockAgent', 'version', '1.0']),
       'authMethods', TJSONArray.Create]))
   else if method = 'session/new' then
   begin
+    if Assigned(params) and Assigned(params.Find('mcpServers')) then
+      ReceivedMcpServers := params.Find('mcpServers').AsJSON
+    else
+      ReceivedMcpServers := '(none)';
     Inc(SessionCounter);
     Respond(id, TJSONObject.Create(['sessionId', 'mock_session_' + IntToStr(SessionCounter),
       'configOptions', ConfigOptions]));
@@ -433,11 +445,15 @@ var
   reader: TStdinReader;
   line: string;
   data: TJSONData;
+  i: integer;
 begin
   DefaultSystemCodePage := CP_UTF8;
   SetTextCodePage(Output, CP_UTF8);
   Lock := TCriticalSection.Create;
   Inbox := TStringList.Create;
+  for i := 1 to ParamCount do
+    if ParamStr(i) = '--mcp-http' then
+      McpHttp := True;
   if (ParamCount > 0) and (ParamStr(1) = '--banner') then
   begin
     WriteLn('Mock agent banner, not JSON');

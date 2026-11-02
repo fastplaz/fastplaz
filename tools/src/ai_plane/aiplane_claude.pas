@@ -36,6 +36,8 @@ type
     FSawTextDelta: boolean;
     FRestartNeeded: boolean;
     FNextId: integer;
+    FMcpConfigFile: string;
+    function WriteMcpConfig: string;
     procedure ChannelLine(Sender: TObject; const ALine: string);
     procedure ChannelStderr(Sender: TObject; const ALine: string);
     procedure ChannelExit(Sender: TObject; AExitCode: integer);
@@ -178,7 +180,42 @@ begin
   FreeAndNil(FChannel);
   FPermInputs.Free;
   FPermissions.Free;
+  if (FMcpConfigFile <> '') and FileExists(FMcpConfigFile) then
+    DeleteFile(FMcpConfigFile);
   inherited Destroy;
+end;
+
+// --mcp-config file for the IDE's MCP server, in the temp directory (a JSON
+// string on the command line would need quoting through cmd.exe /c).
+// Rewritten at every start: the port or token may have changed.
+function TClaudeStreamAdapter.WriteMcpConfig: string;
+var
+  root, servers, server, headers: TJSONObject;
+  list: TStringList;
+begin
+  if FMcpConfigFile = '' then
+    FMcpConfigFile := IncludeTrailingPathDelimiter(GetTempDir(False)) +
+      Format('aiplane_mcp_%d_%p.json', [GetProcessID, Pointer(Self)]);
+  headers := TJSONObject.Create;
+  if McpToken <> '' then
+    headers.Add('Authorization', 'Bearer ' + McpToken);
+  server := TJSONObject.Create;
+  server.Add('type', 'http');
+  server.Add('url', McpUrl);
+  server.Add('headers', headers);
+  servers := TJSONObject.Create;
+  servers.Add(AI_MCP_SERVER_ID, server);
+  root := TJSONObject.Create;
+  list := TStringList.Create;
+  try
+    root.Add('mcpServers', servers);
+    list.Text := root.FormatJSON;
+    list.SaveToFile(FMcpConfigFile);
+  finally
+    list.Free;
+    root.Free;
+  end;
+  Result := FMcpConfigFile;
 end;
 
 class function TClaudeStreamAdapter.AdapterName: string;
@@ -199,6 +236,15 @@ begin
   AArgs.Add('--include-partial-messages');
   AArgs.Add('--permission-prompt-tool');
   AArgs.Add('stdio');
+  if McpUrl <> '' then
+  begin
+    AArgs.Add('--mcp-config');
+    AArgs.Add(WriteMcpConfig);
+    // The IDE asks for its own risky tools (compile, edits); no second
+    // prompt from Claude Code for the same call.
+    AArgs.Add('--allowedTools');
+    AArgs.Add('mcp__' + AI_MCP_SERVER_ID);
+  end;
   if Model <> '' then
   begin
     AArgs.Add('--model');
