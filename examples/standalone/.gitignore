@@ -1,0 +1,13 @@
+# build output
+public_html/standalone.bin
+public_html/standalone.exe
+source/lib/
+source/*.lps
+source/*.res
+
+# runtime data
+public_html/ztemp/**
+!public_html/ztemp/.htaccess
+!public_html/ztemp/index.html
+!public_html/ztemp/*/
+!public_html/ztemp/*/index.html
