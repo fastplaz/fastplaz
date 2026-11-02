@@ -35,6 +35,7 @@ type
     procedure TestRequestVariables;
     procedure TestForwardedHeadersIgnoredByDefault;
     procedure TestForwardedHeadersWhenTrusted;
+    procedure TestModeSelection;
   end;
 
 implementation
@@ -268,6 +269,19 @@ begin
     SetTrustProxy(False);
     r.Free;
   end;
+end;
+
+procedure TFastPlazAppTest.TestModeSelection;
+begin
+  AssertTrue('default', SelectAppMode('', '', '') = amHTTP);
+  AssertTrue('web server', SelectAppMode('', 'CGI/1.1', '') = amCGI);
+  AssertTrue('web server wins over config', SelectAppMode('', 'CGI/1.1', 'http') = amCGI);
+  AssertTrue('config', SelectAppMode('', '', 'cgi') = amCGI);
+  AssertTrue('config, any case', SelectAppMode('', '', 'HTTP') = amHTTP);
+  AssertTrue('command line wins', SelectAppMode('http', 'CGI/1.1', 'cgi') = amHTTP);
+  AssertTrue('command line cgi', SelectAppMode('cgi', '', 'http') = amCGI);
+  AssertTrue('invalid command line ignored', SelectAppMode('fastcgi', '', 'cgi') = amCGI);
+  AssertTrue('invalid config ignored', SelectAppMode('', '', 'bogus') = amHTTP);
 end;
 
 initialization

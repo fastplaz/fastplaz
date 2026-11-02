@@ -80,6 +80,11 @@ type
 // one created for the selected mode
 function Application: TCustomWebApplication;
 
+// the mode rule: --mode (when valid), then CGI when the web server set
+// GATEWAY_INTERFACE, then systems/server/mode (when valid), else HTTP
+function SelectAppMode(const ACommandLineMode, AGatewayInterface,
+  AConfigMode: string): TFastPlazAppMode;
+
 function AppMode: TFastPlazAppMode;
 // True when running as a long-lived HTTP server (state survives requests)
 function IsStandalone: boolean;
@@ -268,11 +273,23 @@ begin
   end;
 end;
 
+function SelectAppMode(const ACommandLineMode, AGatewayInterface,
+  AConfigMode: string): TFastPlazAppMode;
+begin
+  Result := amHTTP;
+  if ParseMode(ACommandLineMode, Result) then
+    Exit;
+  if AGatewayInterface <> '' then
+    Exit(amCGI);
+  if ParseMode(AConfigMode, Result) then
+    Exit;
+  Result := amHTTP;
+end;
+
 procedure ResolveMode;
 var
   s, cfgMode, cfgAddress: string;
   cfgPort: integer;
-  modeSet: boolean;
 begin
   if FModeResolved then
     Exit;
@@ -284,19 +301,10 @@ begin
   if cfgAddress <> '' then
     FAddress := cfgAddress;
 
-  modeSet := CommandLineValue('mode', s) and ParseMode(s, FMode);
-  if not modeSet then
-  begin
-    if SysUtils.GetEnvironmentVariable('GATEWAY_INTERFACE') <> '' then
-    begin
-      FMode := amCGI;
-      modeSet := True;
-    end;
-  end;
-  if not modeSet then
-    modeSet := ParseMode(cfgMode, FMode);
-  if not modeSet then
-    FMode := amHTTP;
+  if not CommandLineValue('mode', s) then
+    s := '';
+  FMode := SelectAppMode(s, SysUtils.GetEnvironmentVariable('GATEWAY_INTERFACE'),
+    cfgMode);
 
   if CommandLineValue('port', s) and (StrToIntDef(s, 0) > 0) then
     FPort := StrToInt(s);
