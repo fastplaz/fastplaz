@@ -4,7 +4,7 @@ program aiplane_tester;
   Standalone window around TAIChatFrame: the same chat the IDE shows, built
   in seconds instead of rebuilding Lazarus.
 
-    aiplane_tester [--runtime claude|opencode|pi|claude-acp|mock]
+    aiplane_tester [--runtime claude|opencode|pi|copilot|claude-acp|mock]
                    [--command <exe>] [--args "<a b>"] [--cwd <dir>]
                    [--prompt "<a>|<b>"] [--screenshot <file.png>] [--timeout <s>]
                    [--settings detect|test]

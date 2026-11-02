@@ -95,14 +95,17 @@ the compiler messages with file, line and column. Design and later phases:
   | --- | --- |
   | ACP (OpenCode, ...) | `mcpServers` entry `type: http` in `session/new`, only when the agent advertises `mcpCapabilities.http` |
   | Claude Code | `--mcp-config <temp file>` plus `--allowedTools mcp__fastplaz`; tools appear as `mcp__fastplaz__<tool>` |
-  | Pi | not yet (Pi has no MCP client; a Pi extension is planned) |
+  | Pi | a temporary extension loaded with `pi --mode rpc -e <file>` calls `pi.registerMcpServer` for the session (Pi with built-in MCP, 1.4.0); tools appear as `mcp__fastplaz__<tool>` |
+  | GitHub Copilot CLI | ACP `mcpServers`; the preset adds `--allow-tool=fastplaz` so Copilot does not ask a second time |
 
 * `compile_project` asks first (*Allow*, *Allow for this session*, *Deny*)
   in the chat; the other phase 1 tools only read and run at once.
   `read_editor` is limited to the project, its search paths and open files.
 * Verified 2026-11-02 with `aiplane_cli --mcp`: OpenCode 2.2.5 (ACP) and
   Claude Code 2.1.316 call the tools; the permission card answers the IDE
-  side and Claude Code does not ask a second time.
+  side and Claude Code does not ask a second time. Verified 2026-11-03:
+  Pi 1.4.0 and GitHub Copilot CLI 1.0.103 call `secret_word` the same way
+  (Copilot without its own prompt thanks to `--allow-tool=fastplaz`).
 
 ### Testing the IDE tools through the chat
 
@@ -114,7 +117,7 @@ In the IDE:
    the runtime answers, `Agent Plane: runtime ... active, model ...`. No `MCP`
    in the status line: check *Configuration → AI Harness → IDE tools
    (MCP)*. An error line in *Messages* says why the server did not start.
-3. Pick OpenCode or Claude Code (Pi has no MCP client yet).
+3. Pick OpenCode, Claude Code, Pi or GitHub Copilot CLI.
 4. Ask for a tool by name, so the agent does not answer from the files it
    reads itself:
 
@@ -156,6 +159,7 @@ the protocol traffic. The tester app (`aiplane_tester`) has no MCP server.
 | `opencode` | ACP | `opencode acp` | yes (OpenCode 2.1.4) |
 | `pi` | Pi RPC | `pi --mode rpc` | yes (Pi 1.4.0): protocol and errors; answers need a provider login (`pi`, then `/login`) |
 | `claude-acp` | ACP | `claude-agent-acp` (npm bridge, needs Node.js) | no |
+| `copilot` | ACP | `copilot --acp --allow-tool=fastplaz` (sign in with `copilot login`) | yes (Copilot CLI 1.0.103), IDE tools included. Copilot offers no model list over ACP (only `mode` and `allow_all` options), so the chat shows the runtime default; add `--model <id>` to the arguments to pick one |
 
 Spike findings (2026-11-02):
 
@@ -222,4 +226,4 @@ Spike findings (2026-11-02):
 
 1. Chat view: keeping the conversation across IDE restarts.
 2. IDE tools, phase 2 (see the rundown): `apply_edit` / `save_file` and ACP
-   `fs/write_text_file` into editor buffers, CodeTools tools, Pi extension.
+   `fs/write_text_file` into editor buffers, CodeTools tools.

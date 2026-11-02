@@ -4,7 +4,7 @@ program aiplane_cli;
   Console tester for the Agent Plane core: the same adapters the IDE window
   uses, without rebuilding Lazarus.
 
-    aiplane_cli [--runtime claude|opencode|pi|claude-acp|mock]
+    aiplane_cli [--runtime claude|opencode|pi|copilot|claude-acp|mock]
                 [--command <exe>] [--args "<a b>"] [--model <id>]
                 [--effort <level>] [--cwd <dir>] [--log] [--yes]
                 [--prompt "<text>"]

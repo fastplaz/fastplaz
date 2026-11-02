@@ -51,6 +51,7 @@ type
     procedure TestToolStatusFromString;
     procedure TestPresetCreatesAdapter;
     procedure TestPresetOverridesCommand;
+    procedure TestCopilotPreset;
     procedure TestUnknownPresetRaises;
     procedure TestRuntimeExecutable;
     procedure TestClaudeEffortArg;
@@ -164,6 +165,7 @@ type
     procedure TestSelectDialog;
     procedure TestInputDialogCancelled;
     procedure TestPresetUsesRpc;
+    procedure TestMcpExtensionArguments;
   end;
 
 implementation
@@ -334,6 +336,22 @@ begin
     a.Free;
   end;
   AssertTrue(AIPresetCount >= 3);
+end;
+
+procedure TAIPlaneHelpersTest.TestCopilotPreset;
+var
+  a: TAIAdapter;
+begin
+  a := AICreateAdapter(AI_PRESET_COPILOT);
+  try
+    AssertTrue('Copilot speaks ACP', a is TACPAdapter);
+    AssertEquals('copilot', a.Command);
+    AssertEquals('--acp', a.Arguments[0]);
+    AssertEquals('IDE tools without a second prompt', '--allow-tool=fastplaz',
+      a.Arguments[1]);
+  finally
+    a.Free;
+  end;
 end;
 
 procedure TAIPlaneHelpersTest.TestPresetOverridesCommand;
@@ -1088,6 +1106,39 @@ begin
   finally
     args.Free;
   end;
+end;
+
+procedure TPiRpcTest.TestMcpExtensionArguments;
+var
+  probe: TPiProbe;
+  args, ext: TStringList;
+  fileName: string;
+begin
+  probe := TPiProbe.Create;
+  args := TStringList.Create;
+  ext := TStringList.Create;
+  try
+    probe.Probe(args);
+    AssertTrue('no server, no extension', args.IndexOf('-e') < 0);
+    args.Clear;
+    probe.McpUrl := 'http://127.0.0.1:17845/mcp';
+    probe.McpToken := 'tok123';
+    probe.Probe(args);
+    AssertTrue(args.IndexOf('-e') >= 0);
+    fileName := args[args.IndexOf('-e') + 1];
+    AssertTrue('extension written', FileExists(fileName));
+    ext.LoadFromFile(fileName);
+    AssertTrue(Pos('pi.registerMcpServer("fastplaz"', ext.Text) > 0);
+    AssertTrue(Pos('http:\/\/127.0.0.1:17845\/mcp', ext.Text) +
+      Pos('http://127.0.0.1:17845/mcp', ext.Text) > 0);
+    AssertTrue(Pos('Bearer tok123', ext.Text) > 0);
+    AssertTrue(Pos('"direct"', ext.Text) > 0);
+  finally
+    ext.Free;
+    args.Free;
+    probe.Free;
+  end;
+  AssertFalse('extension removed with the adapter', FileExists(fileName));
 end;
 
 procedure TPiRpcTest.TestSplitModel;
