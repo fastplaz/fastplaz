@@ -1,6 +1,6 @@
 # Standalone HTTP Mode — Roadmap
 
-Status: **draft / proposal** (2026-11-02). Nothing here is implemented yet.
+Status: **phase 1 done** (2026-11-02), phase 2 open.
 Branch: `feature/standalone`. Example project: `examples/standalone`.
 
 Goal: let a FastPlaz application run as a **long-lived standalone HTTP
@@ -117,31 +117,48 @@ binaries.
 
 ---
 
-## 3. Phase 1 — Proof of concept (3–5 days)
+## 3. Phase 1 — Proof of concept (done 2026-11-02)
 
-Single-threaded only (`Threaded := False`).
+Single-threaded only (`Threaded := False`). As implemented:
 
-1. **`fastplaz_app` wrapper unit** with mode selection (section 2). Replace
-   `uses fpcgi` in the 26 units with it.
-2. **Current request/response abstraction**: `CurrentRequest` /
-   `CurrentResponse` set in `TMyCustomWebModule.HandleRequest` and cleared
-   afterwards. Replace `Application.Request/Response` usages.
-3. **Redirect / Die without `Application.Terminate`**: raise a dedicated
-   exception (e.g. `EFastPlazStop`) after sending the response; catch it in
-   `HandleRequest`. CGI mode keeps the same visible behaviour.
-4. **Split `InitializeFastPlaz`** into `InitializeProcess` (config, theme
-   setup, log, DB) and `BeginRequest` / `EndRequest` (base URL, session,
-   superglobals, `ModuleLoaded`, flash messages, display-error flags).
-5. **Reset per-request globals** in `BeginRequest` / `EndRequest`.
-6. **Static files** in HTTP mode via `fpwebfile` (`RegisterFileLocation`) for
-   the theme and public directories; switchable off (`systems/server/static`)
-   when nginx serves them.
-7. **Example project** in `examples/standalone`: minimal app, `config.json`,
-   sample nginx and Apache reverse proxy configs.
+1. **`fastplaz_app` wrapper unit** with mode selection (section 2); `uses
+   fpcgi` replaced in the 26 units.
+2. **Current request/response**: tracked by fastplaz_app's own handlers
+   (`TFastPlazHTTPHandler`, and `TFastPlazCGIHandler` installed through
+   `CGIWebHandlerClass`, so an old `.lpr` with `uses fpcgi` is covered too).
+   A class helper gives `Application` the fpcgi style `Request`, `Response`
+   and `EnvironmentVariable`, so the ~90 existing usages compile unchanged.
+   `ServerVariable()` derives the CGI variables from the request.
+3. **Redirect / Die**: `Application.Terminate` replaced by `StopRequest`
+   (terminates in CGI only). No exception: `Die` still does not halt in
+   either mode, so the behaviour is the same in both.
+4. **Per-request lifecycle** (`OnBeginRequest` / `OnEndRequest` →
+   `FastPlazBeginRequest` / `FastPlazEndRequest`): `AppData.initialized`
+   is reset so `InitializeFastPlaz` runs per request, the session
+   controller is recreated from the request cookie, ThemeUtil (with
+   HTMLUtil and the tag callbacks) and the load-on-start modules are freed
+   afterwards, controller modules are one-shot. `InitializeFastPlaz` was not
+   split; that can still be done for speed in phase 2.
+5. **Static files**: served by the HTTP handler before routing (not
+   `fpwebfile`, whose module routing clashes with FastPlaz routes), asset
+   extensions only, see `StaticFileForPath()`.
+6. **Example project** in `examples/standalone` with README (nginx, Apache,
+   CGI).
 
-**Done when:** `http://127.0.0.1:8080` serves the example including theme
-assets, and two consecutive requests from different clients do not share
-`_GET`, `_POST`, `_SESSION` or flash messages.
+Verified: example at `http://127.0.0.1:8080` (theme assets, 304, redirect
+keeps the server running, a second client gets its own session and no
+flash message of the first), the same binary as CGI, Dashboard `test.bin`
+under Apache unchanged, test suite (`test_fastplaz_app` added).
+
+Findings for phase 2:
+
+- **memory grows about 1.5 KB per request** (1000 requests: 9.4 → 11.0 MB);
+  the heaptrc audit is needed before production use
+- consumer units that `uses fpcgi` and call `Application.Request` directly
+  get the idle fpcgi application in HTTP mode; they must switch to
+  `fastplaz_app` (CGI keeps working either way)
+- HTTPS is not detected behind a proxy yet (`HTTPS` is empty in HTTP mode)
+- `.html` files under `public_html` are not served as static files
 
 ---
 
@@ -210,7 +227,7 @@ Estimated 3–6 extra weeks.
 
 | Phase | Effort |
 |---|---|
-| 1 — PoC | 3–5 days |
+| 1 — PoC | 3–5 days (done) |
 | 2 — Production ready | 1–2 weeks |
 | 3 — Multi-process via nginx upstream | config only |
 | 3 — Multi-threaded (not recommended) | 3–6 weeks |
