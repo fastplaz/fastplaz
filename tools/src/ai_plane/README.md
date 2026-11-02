@@ -28,7 +28,7 @@ settings stay) and the `ai_plane` folder.
 | `aiplane_markdown.pas` | Markdown parser (no LCL): headings, lists, quotes, fenced code, tables, rules; bold, italic, strikethrough, `code`, links (with titles), images `![alt](src "title")` and linked images `[![alt](src)](href)`. Half-streamed markup stays readable |
 | `aiplane_codehighlight.pas` | Syntax colours for code blocks from the SynEdit highlighters (Pascal, LFM, SQL, JS/JSON, XML, HTML, Python, PHP, shell, batch, INI, CSS, C/C++, Java, diff, Perl), mapped to a theme-neutral palette |
 | `aiplane_chatview.pas` | `TAIChatView` (LCL): owner drawn conversation; assistant and thinking text rendered as markdown, links open in the browser, local images (relative to the project) drawn scaled, remote images shown as a placeholder link (never downloaded), titles as tooltips, foldable tool/thinking/plan cards, permission buttons; text selection by dragging or double click, Ctrl+C / Ctrl+A, copy menu (wrapped lines are joined again, table cells tab separated) |
-| `aiplane_settingsframe.pas/.lfm` | `TAIPlaneSettingsFrame` (LCL): default runtime, command, arguments, model (*Detect* reads the runtime's list), effort and *Run Test* |
+| `aiplane_settingsframe.pas/.lfm` | `TAIPlaneSettingsFrame` (LCL): default runtime, command, arguments, model (*Detect* reads the runtime's list), effort and *Run Test* (also checks the IDE tools when MCP is on) |
 | `aiplane_ide.pas/.lfm` | IDEIntf: `AIPlaneWindow` (dockable, hosts the chat), menu handler, settings in `config.json` under `aiplane`, project directory as working directory, unsaved editor buffers served to the agent |
 | `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line, permission cards for IDE tools (`ShowToolPermission`) |
 | `aiplane_httpserver.pas` | `TAIHttpServer`: minimal HTTP/1.1 server on `127.0.0.1`, non-blocking and polled (no threads); keep-alive, pipelining, chunked bodies, answers that come later; Windows/macOS/Linux socket differences (SIGPIPE, exclusive port) |
@@ -108,6 +108,21 @@ the compiler messages with file, line and column. Design and later phases:
   (Copilot without its own prompt thanks to `--allow-tool=fastplaz`).
 
 ### Testing the IDE tools through the chat
+
+Quickest check: *Configuration → AI Harness → Run Test*. With *IDE tools
+(MCP)* on, the test serves a temporary MCP server with one tool,
+`connection_check`, hands it to the runtime the way the chat does, and asks
+the agent to call it and repeat the check word it returns:
+
+| Result | Meaning |
+| --- | --- |
+| green `OK ...: runtime answered, IDE tools (MCP) reached` | the runtime works and the agent called the tool |
+| orange `Runtime OK ..., IDE tools not reached` | the runtime answers, but the agent never called the tool; the log shows why (for example `IDE tools off: ...`) |
+| red `Failed: ...` | the runtime did not start or answer |
+
+The test server uses the configured port, or the next free one while the
+IDE's own server holds it. With *IDE tools (MCP)* off, Run Test only sends
+`Reply with exactly one word: OK`.
 
 In the IDE:
 
