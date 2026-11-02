@@ -78,6 +78,7 @@ type
   published
     procedure TestQueuedPromptStartsRuntime;
     procedure TestModelsFromConfigOptions;
+    procedure TestModelAvailable;
     procedure TestSecondTurnReusesProcess;
     procedure TestThinkingChunk;
     procedure TestPlanUpdate;
@@ -130,6 +131,7 @@ type
     procedure TestArguments;
     procedure TestMcpConfigArguments;
     procedure TestStaticModels;
+    procedure TestModelAvailable;
   end;
 
   { TPiRpcTest }
@@ -150,6 +152,7 @@ type
     procedure TestToolLifecycle;
     procedure TestToolError;
     procedure TestModelsAndState;
+    procedure TestModelAvailable;
     procedure TestPromptRejected;
     procedure TestSettledFinishesTurn;
     procedure TestSettledIgnoredWhenIdle;
@@ -557,6 +560,16 @@ begin
   AssertEquals('mock/fast', FAdapter.Models[0].Id);
   AssertEquals('Mock Fast', FAdapter.Models[0].Name);
   AssertEquals('grouped options are flattened', 'mock/smart', FAdapter.Models[1].Id);
+end;
+
+procedure TACPAdapterTest.TestModelAvailable;
+begin
+  AssertTrue('no list yet: nothing to check against', FAdapter.ModelAvailable('mock/other'));
+  PromptAndWait('hello');
+  AssertTrue('runtime default', FAdapter.ModelAvailable(''));
+  AssertTrue(FAdapter.ModelAvailable('mock/fast'));
+  AssertTrue('case does not matter', FAdapter.ModelAvailable('Mock/Smart'));
+  AssertFalse(FAdapter.ModelAvailable('mock/other'));
 end;
 
 procedure TACPAdapterTest.TestSecondTurnReusesProcess;
@@ -1030,6 +1043,14 @@ begin
   AssertEquals('opus', FAdapter.Models[0].Id);
 end;
 
+procedure TClaudeStreamTest.TestModelAvailable;
+begin
+  AssertTrue(FAdapter.ModelAvailable(''));
+  AssertTrue(FAdapter.ModelAvailable('sonnet'));
+  AssertTrue('full model id', FAdapter.ModelAvailable('claude-sonnet-4-5'));
+  AssertFalse(FAdapter.ModelAvailable('gpt-5'));
+end;
+
 { TPiRpcTest }
 
 procedure TPiRpcTest.SetUp;
@@ -1132,6 +1153,16 @@ begin
     '"model":{"id":"gpt-5","provider":"openai"},"thinkingLevel":"medium","sessionId":"abc123"}}');
   AssertEquals('abc123', FAdapter.SessionId);
   AssertTrue(Pos('model: openai/gpt-5', FRec.Events.Text) > 0);
+end;
+
+procedure TPiRpcTest.TestModelAvailable;
+begin
+  FAdapter.HandleLine('{"id":"fp1","type":"response","command":"get_available_models","success":true,"data":{"models":[' +
+    '{"id":"claude-sonnet-4","name":"Claude Sonnet 4","provider":"anthropic"}]}}');
+  AssertTrue(FAdapter.ModelAvailable('anthropic/claude-sonnet-4'));
+  AssertTrue('bare id of a listed model', FAdapter.ModelAvailable('claude-sonnet-4'));
+  AssertFalse('other provider', FAdapter.ModelAvailable('openai/claude-sonnet-4'));
+  AssertFalse(FAdapter.ModelAvailable('gpt-5'));
 end;
 
 procedure TPiRpcTest.TestPromptRejected;

@@ -75,6 +75,7 @@ type
     { Feeds one protocol line as if it came from Pi (tests). }
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
+    function ModelAvailable(const AModel: string): boolean; override;
   end;
 
 { Splits "provider/model-id" (the id may contain more slashes). }
@@ -207,6 +208,19 @@ end;
 class function TPiRpcAdapter.AdapterName: string;
 begin
   Result := 'Pi (RPC)';
+end;
+
+// "provider/id", or a bare id that some provider offers (see ApplyModel).
+function TPiRpcAdapter.ModelAvailable(const AModel: string): boolean;
+var
+  i: integer;
+begin
+  Result := inherited ModelAvailable(AModel);
+  if Result or (Pos('/', AModel) > 0) then
+    Exit;
+  for i := 0 to High(FModels) do
+    if SameText(Copy(FModels[i].Id, Pos('/', FModels[i].Id) + 1, MaxInt), Trim(AModel)) then
+      Exit(True);
 end;
 
 procedure TPiRpcAdapter.BuildArguments(AArgs: TStrings);

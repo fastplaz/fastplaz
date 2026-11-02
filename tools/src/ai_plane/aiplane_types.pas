@@ -133,6 +133,9 @@ type
     procedure NewSession; virtual; abstract;
 
     function IsBusy: boolean;
+    { True when AModel can be used: empty (runtime default), in Models, or
+      the runtime gave no list to check against. }
+    function ModelAvailable(const AModel: string): boolean; virtual;
     class function AdapterName: string; virtual; abstract;
 
     property Command: string read FCommand write FCommand;
@@ -375,6 +378,18 @@ end;
 function TAIAdapter.IsBusy: boolean;
 begin
   Result := FState in [aasStarting, aasBusy];
+end;
+
+function TAIAdapter.ModelAvailable(const AModel: string): boolean;
+var
+  i: integer;
+begin
+  Result := (Trim(AModel) = '') or (Length(FModels) = 0);
+  if Result then
+    Exit;
+  for i := 0 to High(FModels) do
+    if SameText(FModels[i].Id, Trim(AModel)) then
+      Exit(True);
 end;
 
 end.
