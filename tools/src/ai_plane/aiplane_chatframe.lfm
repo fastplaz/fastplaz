@@ -28,20 +28,20 @@ object AIChatFrame: TAIChatFrame
     ClientWidth = 659
     TabOrder = 0
     object lblRuntime: TLabel
-      BorderSpacing.Left = 12
-      BorderSpacing.Right = 8
-      Layout = tlCenter
       Cursor = crHandPoint
-      Left = 4
-      Height = 20
+      Left = 166
+      Height = 28
       Hint = 'Change runtime'
       Top = 4
-      Width = 51
+      Width = 56
       Align = alLeft
+      BorderSpacing.Left = 12
+      BorderSpacing.Right = 8
       Caption = 'runtime'
       Font.Style = [fsBold]
-      ParentFont = False
+      Layout = tlCenter
       ParentColor = False
+      ParentFont = False
       ShowAccelChar = False
       OnClick = lblRuntimeClick
       OnMouseEnter = StatusLabelMouseEnter
@@ -61,7 +61,7 @@ object AIChatFrame: TAIChatFrame
       OnSelect = cbbRuntimeSelect
     end
     object cbbModel: TComboBox
-      Left = 158
+      Left = 230
       Height = 28
       Hint = 'Model (empty = runtime default)'
       Top = 4
@@ -74,7 +74,7 @@ object AIChatFrame: TAIChatFrame
       OnSelect = cbbModelChange
     end
     object cbbEffort: TComboBox
-      Left = 287
+      Left = 359
       Height = 28
       Hint = 'Thinking effort'
       Top = 4
@@ -88,7 +88,7 @@ object AIChatFrame: TAIChatFrame
     end
     object btnNew: TSpeedButton
       Cursor = crHandPoint
-      Left = 416
+      Left = 488
       Height = 28
       Hint = 'New conversation'
       Top = 4
@@ -98,7 +98,7 @@ object AIChatFrame: TAIChatFrame
     end
     object btnLog: TSpeedButton
       Cursor = crHandPoint
-      Left = 450
+      Left = 522
       Height = 28
       Hint = 'Show protocol log'
       Top = 4
@@ -106,6 +106,7 @@ object AIChatFrame: TAIChatFrame
       Align = alLeft
       AllowAllUp = True
       GroupIndex = 1
+      Visible = False
       OnClick = btnLogClick
     end
   end
@@ -188,14 +189,14 @@ object AIChatFrame: TAIChatFrame
     ClientWidth = 659
     TabOrder = 4
     object lblEffort: TLabel
-      BorderSpacing.Left = 12
       Cursor = crHandPoint
-      Left = 5
+      Left = 12
       Height = 20
       Hint = 'Change thinking effort'
       Top = 4
       Width = 37
       Align = alLeft
+      BorderSpacing.Left = 12
       Caption = 'effort'
       ParentColor = False
       ShowAccelChar = False
@@ -205,7 +206,7 @@ object AIChatFrame: TAIChatFrame
     end
     object lblModel: TLabel
       Cursor = crHandPoint
-      Left = 68
+      Left = 61
       Height = 20
       Hint = 'Change model'
       Top = 4
@@ -220,10 +221,10 @@ object AIChatFrame: TAIChatFrame
       OnMouseLeave = StatusLabelMouseLeave
     end
     object lblStatus: TLabel
-      Left = 172
+      Left = 116
       Height = 20
       Top = 4
-      Width = 482
+      Width = 538
       Align = alClient
       BorderSpacing.Left = 12
       Font.Color = clGrayText
