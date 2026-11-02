@@ -20,7 +20,7 @@ program aiplane_cli;
     reaches the IDE tools:
       secret_word      returns a random word (auto)
       confirm_action   asks for permission first
-    Example: --mcp --prompt "Call the lazarus secret_word tool and tell me the word"
+    Example: --mcp --prompt "Call the fastplaz secret_word tool and tell me the word"
 
   Build: fpc -FU lib -Fu../ai_plane aiplane_cli.lpr
 }

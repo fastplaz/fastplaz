@@ -4,7 +4,7 @@ Status (2026-11-02): **phase 1 implemented** (`aiplane_httpserver`,
 `aiplane_mcpserver`, `aiplane_tools_ide`, settings, ACP and Claude Code
 registration). Phases 2-4 are still proposals. Decisions taken on the open
 questions: plain tool names (Claude Code namespaces them as
-`mcp__lazarus__*` anyway), `compile_project` saves modified buffers first
+`mcp__fastplaz__*` anyway), `compile_project` saves modified buffers first
 (that is what `DoBuildProject` does, like F9), port in use → next free port up
 to `+9`.
 
@@ -101,9 +101,9 @@ The token is random per IDE session; the URL uses the actual port (section 3).
 
 | Runtime | How |
 | --- | --- |
-| ACP (OpenCode, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "lazarus", "url": "http://127.0.0.1:17845/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
-| Claude Code (stream-json) | `--mcp-config <temp json>`: `{"mcpServers": {"lazarus": {"type": "http", "url": "...", "headers": {"Authorization": "Bearer <token>"}}}}`; tools appear as `mcp__lazarus__<tool>`; `--allowedTools mcp__lazarus` so Claude Code does not ask a second time (the IDE asks for its risky tools itself) |
-| Pi | Pi extension `aiplane-lazarus.ts` registers the tools and POSTs `tools/call` to the same URL; URL and token passed to Pi when Agent Plane starts it |
+| ACP (OpenCode, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "fastplaz", "url": "http://127.0.0.1:17845/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
+| Claude Code (stream-json) | `--mcp-config <temp json>`: `{"mcpServers": {"fastplaz": {"type": "http", "url": "...", "headers": {"Authorization": "Bearer <token>"}}}}`; tools appear as `mcp__fastplaz__<tool>`; `--allowedTools mcp__fastplaz` so Claude Code does not ask a second time (the IDE asks for its risky tools itself) |
+| Pi | Pi extension `aiplane-fastplaz.ts` registers the tools and POSTs `tools/call` to the same URL; URL and token passed to Pi when Agent Plane starts it |
 
 For ACP the IDE should also advertise and implement the client-side
 capabilities it already partly has:
@@ -279,7 +279,7 @@ debugger is paused; every call except reads is `ask`.
 
 * Tool calls arrive back through the runtime as the same foldable tool cards
   the chat already draws for the runtime's own tools; IDE tools are labelled
-  (`Lazarus: compile_project`).
+  (`FastPlaz: compile_project`).
 * Status line: `MCP`, the error, or nothing when off; the address is in the
   protocol log.
 
@@ -377,7 +377,7 @@ Written in TypeScript and run by Pi's Node runtime; `fetch()` to
 
 ## 10. Open questions
 
-1. Tool name prefix: plain names (`open_file`) or `lazarus_open_file` to avoid
+1. Tool name prefix: plain names (`open_file`) or `fastplaz_open_file` to avoid
    clashing with the runtime's own tools in ACP agents that do not namespace
    MCP tools?
 2. Should `compile_project` save modified editor buffers first (the IDE does

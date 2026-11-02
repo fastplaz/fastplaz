@@ -163,8 +163,8 @@ type
 
 const
   { Name of the IDE's MCP server as the agent sees it (Claude Code shows its
-    tools as mcp__lazarus__<tool>). }
-  AI_MCP_SERVER_ID = 'lazarus';
+    tools as mcp__fastplaz__<tool>). }
+  AI_MCP_SERVER_ID = 'fastplaz';
 
   AI_EFFORT_LEVELS: array[0..6] of string =
     ('auto', 'off', 'minimal', 'low', 'medium', 'high', 'xhigh');

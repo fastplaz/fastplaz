@@ -834,7 +834,7 @@ begin
   PromptAndWait('mcp?');
   AssertTrue('agent capability read', FAdapter.McpHttp);
   AssertTrue(FRec.Text, Pos('"type" : "http"', FRec.Text) > 0);
-  AssertTrue(FRec.Text, Pos('"name" : "lazarus"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"name" : "fastplaz"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"url" : "http://127.0.0.1:17845/mcp"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"value" : "Bearer tok123"', FRec.Text) > 0);
 end;
@@ -1024,11 +1024,11 @@ begin
     fileName := args[args.IndexOf('--mcp-config') + 1];
     AssertTrue('config file written', FileExists(fileName));
     config.LoadFromFile(fileName);
-    AssertTrue(Pos('"lazarus"', config.Text) > 0);
+    AssertTrue(Pos('"fastplaz"', config.Text) > 0);
     AssertTrue(Pos('"type" : "http"', config.Text) > 0);
     AssertTrue(Pos('http://127.0.0.1:17845/mcp', config.Text) > 0);
     AssertTrue(Pos('Bearer tok123', config.Text) > 0);
-    AssertEquals('mcp__lazarus', args[args.IndexOf('--allowedTools') + 1]);
+    AssertEquals('mcp__fastplaz', args[args.IndexOf('--allowedTools') + 1]);
   finally
     config.Free;
     args.Free;

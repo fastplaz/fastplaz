@@ -94,7 +94,7 @@ the compiler messages with file, line and column. Design and later phases:
   | Runtime | How |
   | --- | --- |
   | ACP (OpenCode, ...) | `mcpServers` entry `type: http` in `session/new`, only when the agent advertises `mcpCapabilities.http` |
-  | Claude Code | `--mcp-config <temp file>` plus `--allowedTools mcp__lazarus`; tools appear as `mcp__lazarus__<tool>` |
+  | Claude Code | `--mcp-config <temp file>` plus `--allowedTools mcp__fastplaz`; tools appear as `mcp__fastplaz__<tool>` |
   | Pi | not yet (Pi has no MCP client; a Pi extension is planned) |
 
 * `compile_project` asks first (*Allow*, *Allow for this session*, *Deny*)
@@ -120,13 +120,13 @@ In the IDE:
 
    | Prompt | Expected |
    | --- | --- |
-   | `Use the lazarus project_info tool: what is this project's name and main file?` | the project name and `.lpi`/`.lpr` |
-   | `Use the lazarus list_open_files tool: which files are open?` | the editor tabs |
-   | `Open unit1.pas at line 20 with the lazarus open_file tool.` | the source editor jumps there |
-   | `Compile the project with the lazarus compile_project tool, then show the errors from get_messages.` | a permission card first; after *Allow for this session* the IDE compiles and the agent lists the errors |
+   | `Use the fastplaz project_info tool: what is this project's name and main file?` | the project name and `.lpi`/`.lpr` |
+   | `Use the fastplaz list_open_files tool: which files are open?` | the editor tabs |
+   | `Open unit1.pas at line 20 with the fastplaz open_file tool.` | the source editor jumps there |
+   | `Compile the project with the fastplaz compile_project tool, then show the errors from get_messages.` | a permission card first; after *Allow for this session* the IDE compiles and the agent lists the errors |
 
-5. The chat shows the tool call as `lazarus_<tool>` (OpenCode) or
-   `mcp__lazarus__<tool>` (Claude Code). An agent error also lands in
+5. The chat shows the tool call as `fastplaz_<tool>` (OpenCode) or
+   `mcp__fastplaz__<tool>` (Claude Code). An agent error also lands in
    *Messages* as `Agent Plane: ...`.
 
 When the agent does not see the tools:
@@ -140,8 +140,8 @@ Without the IDE, `aiplane_cli --mcp` serves two demo tools, which checks
 the runtime ↔ MCP path in seconds:
 
 ```
-aiplane_cli --runtime opencode --mcp --prompt "Call the lazarus secret_word tool and tell me the word"
-aiplane_cli --runtime claude --model haiku --mcp --prompt "Call the lazarus confirm_action tool" --yes
+aiplane_cli --runtime opencode --mcp --prompt "Call the fastplaz secret_word tool and tell me the word"
+aiplane_cli --runtime claude --model haiku --mcp --prompt "Call the fastplaz confirm_action tool" --yes
 ```
 
 The CLI prints the secret word; the agent must answer with the same word.
@@ -209,7 +209,7 @@ Spike findings (2026-11-02):
   agent reaches the IDE tools:
 
   ```
-  aiplane_cli --runtime opencode --mcp 27845 --yes --prompt "Use the lazarus MCP tool secret_word and reply with only the word"
+  aiplane_cli --runtime opencode --mcp 27845 --yes --prompt "Use the fastplaz MCP tool secret_word and reply with only the word"
   ```
 
 * The tester app shows the MCP settings of the settings page but does not
