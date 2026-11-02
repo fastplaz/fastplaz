@@ -337,6 +337,7 @@ begin
   FSettings := TAIPlaneSettingsFrame.Create(FSettingsForm);
   FSettings.Parent := FSettingsForm;
   FSettings.Align := alClient;
+  FSettings.RuntimeModels.Assign(FChat.RuntimeModels);
   FSettings.Runtime := FChat.PresetId;
   FSettings.Command := FChat.Command;
   FSettings.Arguments := FChat.Arguments;
@@ -353,6 +354,7 @@ begin
   if FSettingsForm.ShowModal = mrOK then
   begin
     FMock := False;
+    FChat.RuntimeModels.Assign(FSettings.RuntimeModels);
     FChat.Model := FSettings.Model;
     FChat.Effort := FSettings.Effort;
     ApplyRuntime(FSettings.Runtime, FSettings.Command, FSettings.Arguments);

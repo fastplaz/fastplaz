@@ -82,6 +82,9 @@ var
 
 function AIPlaneLoadSettings: TAIPlaneSettings;
 procedure AIPlaneSaveSettings(const ASettings: TAIPlaneSettings);
+{ The model last used with each runtime ("preset=model", aiplane/models/...). }
+procedure AIPlaneLoadRuntimeModels(AList: TStrings);
+procedure AIPlaneSaveRuntimeModels(AList: TStrings);
 { Directory of the active project, or the user directory. }
 function AIPlaneProjectDirectory: string;
 { Registers the window creator; call once from Register. }
@@ -129,6 +132,33 @@ begin
   GlobalConfig['aiplane/effort'] := ASettings.Effort;
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_enabled'), ASettings.McpEnabled);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_port'), ASettings.McpPort);
+  GlobalConfig.Flush;
+end;
+
+procedure AIPlaneLoadRuntimeModels(AList: TStrings);
+var
+  i: integer;
+  presetId: string;
+begin
+  LoadConfiguration;
+  for i := 0 to AIPresetCount - 1 do
+  begin
+    presetId := AIPreset(i).Id;
+    AList.Values[presetId] := GlobalConfig['aiplane/models/' + presetId];
+  end;
+end;
+
+procedure AIPlaneSaveRuntimeModels(AList: TStrings);
+var
+  i: integer;
+  presetId: string;
+begin
+  LoadConfiguration;
+  for i := 0 to AIPresetCount - 1 do
+  begin
+    presetId := AIPreset(i).Id;
+    GlobalConfig['aiplane/models/' + presetId] := AList.Values[presetId];
+  end;
   GlobalConfig.Flush;
 end;
 
@@ -308,8 +338,6 @@ end;
 procedure TAIPlaneWindow.ApplySettings;
 var
   settings: TAIPlaneSettings;
-  i: integer;
-  presetId: string;
 begin
   if Assigned(FChat.Adapter) and FChat.Adapter.IsBusy then
     Exit;
@@ -317,11 +345,7 @@ begin
   FApplying := True;
   try
     UpdateMcpServer(settings);
-    for i := 0 to AIPresetCount - 1 do
-    begin
-      presetId := AIPreset(i).Id;
-      FChat.RuntimeModels.Values[presetId] := GlobalConfig['aiplane/models/' + presetId];
-    end;
+    AIPlaneLoadRuntimeModels(FChat.RuntimeModels);
     FChat.RuntimeModels.Values[settings.Runtime] := settings.Model;
     FChat.Model := settings.Model;
     FChat.Effort := settings.Effort;

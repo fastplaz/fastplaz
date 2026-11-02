@@ -67,8 +67,11 @@ type
     FAllModels: TStringList;
     FFiltering: boolean;
     FProbeMcp: TAIMcpServer;
+    FRuntimeModels: TStringList;
+    FLastRuntime: string;
     FCheckWord: string;
     FToolCalled: boolean;
+    function GetRuntimeModels: TStringList;
     function StartProbeMcp: boolean;
     procedure StopProbeMcp;
     procedure ProbeMcpLog(Sender: TObject; const AText: string);
@@ -111,6 +114,10 @@ type
     { IDE tools through the MCP server (on by default) and its port. }
     property McpEnabled: boolean read GetMcpEnabled write SetMcpEnabled;
     property McpPort: integer read GetMcpPort write SetMcpPort;
+    { The model last used with each runtime, "preset=model": switching the
+      runtime brings its model back. Reading it stores the current choice
+      first. The host loads and saves it. }
+    property RuntimeModels: TStringList read GetRuntimeModels;
     { Where the test runs the runtime ('' = current directory). }
     property WorkingDir: string read FWorkingDir write FWorkingDir;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -133,6 +140,7 @@ constructor TAIPlaneSettingsFrame.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FAllModels := TStringList.Create;
+  FRuntimeModels := TStringList.Create;
   SetupControls;
   SetRuntime(AI_DEFAULT_PRESET);
 end;
@@ -150,6 +158,7 @@ begin
   end;
   StopProbeMcp;
   FAllModels.Free;
+  FRuntimeModels.Free;
   inherited Destroy;
 end;
 
@@ -501,10 +510,14 @@ end;
 
 procedure TAIPlaneSettingsFrame.cbbRuntimeSelect(Sender: TObject);
 begin
+  // keep the old runtime's model, bring back the new one's
+  if FLastRuntime <> '' then
+    FRuntimeModels.Values[FLastRuntime] := GetModel;
+  FLastRuntime := GetRuntime;
   edt_Command.Text := '';
   edt_Arguments.Text := '';
   SetModelList(nil);
-  cbbModel.Text := '';
+  cbbModel.Text := FRuntimeModels.Values[GetRuntime];
   UpdateNote;
   ValueChange(Sender);
   if AIRuntimeExecutable(GetRuntime) = '' then
@@ -549,7 +562,15 @@ begin
   for i := 0 to AIPresetCount - 1 do
     if SameText(AIPreset(i).Id, AValue) then
       cbbRuntime.ItemIndex := i;
+  FLastRuntime := GetRuntime;
   UpdateNote;
+end;
+
+function TAIPlaneSettingsFrame.GetRuntimeModels: TStringList;
+begin
+  if FLastRuntime <> '' then
+    FRuntimeModels.Values[FLastRuntime] := GetModel;
+  Result := FRuntimeModels;
 end;
 
 function TAIPlaneSettingsFrame.GetCommand: string;
