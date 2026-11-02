@@ -4,7 +4,7 @@ program fastplaz;
 
 uses
   {$IFNDEF Windows}cthreads,{$ENDIF}
-  fpcgi, sysutils, fastplaz_handler, common, app_controller, app_routes,
+  fastplaz_app, sysutils, fastplaz_handler, common, app_controller, app_routes,
   example_controller, warehouse_model, database_controller,
   example_form_controller, example_foreach_controller, 
 example_form_ajax_controller;

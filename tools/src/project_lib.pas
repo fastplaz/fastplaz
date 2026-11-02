@@ -58,7 +58,9 @@ begin
       Add('');
       Add('uses');
       Add('  {$IFNDEF Windows}cthreads,{$ENDIF}');
-      Add('  fpcgi, sysutils, fastplaz_handler, common, ' + LowerCase(AProjectName) + '_controller;');
+      // fastplaz_app: the same binary runs as CGI under a web server and as
+      // a standalone HTTP server (http://127.0.0.1:8080) when started directly
+      Add('  fastplaz_app, sysutils, fastplaz_handler, common, ' + LowerCase(AProjectName) + '_controller;');
       Add('');
       Add('{$R *.res}');
       Add('');
@@ -76,6 +78,10 @@ begin
       Add('  {$if FPC_FULLVERSION >= 30004}');
       Add('  Application.LegacyRouting := True;');
       Add('  {$endif}');
+      Add('');
+      Add('  if IsStandalone then');
+      Add('    WriteLn(Format(''FastPlaz standalone server: http://%s:%d/  (Ctrl+C to stop)'',');
+      Add('      [HTTPAddress, HTTPPort]));');
       Add('');
       Add('  Application.Initialize;');
       Add('  Application.Run;');
