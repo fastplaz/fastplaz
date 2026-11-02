@@ -11,7 +11,7 @@ unit aiplane_presets;
 interface
 
 uses
-  Classes, SysUtils, aiplane_types, aiplane_acp, aiplane_claude;
+  Classes, SysUtils, aiplane_types, aiplane_process, aiplane_acp, aiplane_claude;
 
 type
   TAIRuntimePreset = record
@@ -35,6 +35,11 @@ const
 function AIPresetCount: integer;
 function AIPreset(AIndex: integer): TAIRuntimePreset;
 function AIFindPreset(const AId: string; out APreset: TAIRuntimePreset): boolean;
+{ Full path of the runtime's executable (ACommand, or the preset's command
+  when empty), '' when it is not installed / not on PATH. }
+function AIRuntimeExecutable(const APresetId: string; const ACommand: string = ''): string;
+{ Message for a runtime whose executable was not found. }
+function AIRuntimeMissingMessage(const APresetId: string; const ACommand: string = ''): string;
 { Creates an adapter from a preset. ACommand/AArguments override the preset
   when not empty. }
 function AICreateAdapter(const APresetId: string; const ACommand: string = '';
@@ -83,6 +88,38 @@ begin
     end;
   APreset := Default(TAIRuntimePreset);
   Result := False;
+end;
+
+function AIRuntimeExecutable(const APresetId: string; const ACommand: string): string;
+var
+  preset: TAIRuntimePreset;
+  command: string;
+begin
+  Result := '';
+  command := ACommand;
+  if command = '' then
+  begin
+    if not AIFindPreset(APresetId, preset) then
+      Exit;
+    command := preset.Command;
+  end;
+  Result := AIFindExecutable(command);
+end;
+
+function AIRuntimeMissingMessage(const APresetId: string; const ACommand: string): string;
+var
+  preset: TAIRuntimePreset;
+  command: string;
+begin
+  if not AIFindPreset(APresetId, preset) then
+    Exit(Format('Unknown runtime: %s', [APresetId]));
+  command := ACommand;
+  if command = '' then
+    command := preset.Command;
+  Result := Format('%s is not available: "%s" was not found. Install it or set ' +
+    'its command in Fast Code Configuration, AI Plane tab.', [preset.Title, command]);
+  if preset.Note <> '' then
+    Result := Result + ' (' + preset.Note + ')';
 end;
 
 function AICreateAdapter(const APresetId: string; const ACommand: string;

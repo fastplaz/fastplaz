@@ -202,6 +202,23 @@ begin
   end;
 end;
 
+{ Colour of an effort level in the status bar. Mid-tone colours, readable
+  on light and dark themes; yellow is a darker amber so it shows on white. }
+function EffortColor(const ALevel: string): TColor;
+begin
+  case LowerCase(ALevel) of
+    'auto': Result := RGBToColor(40, 160, 70);      // green
+    'off': Result := clGrayText;
+    'minimal': Result := RGBToColor(200, 150, 0);   // yellow / amber
+    'low': Result := RGBToColor(0, 150, 160);       // teal
+    'medium': Result := RGBToColor(40, 110, 220);   // blue
+    'high': Result := RGBToColor(215, 45, 45);      // red
+    'xhigh': Result := RGBToColor(165, 50, 190);    // purple
+    else
+      Result := clWindowText;
+  end;
+end;
+
 { "opencode/deepseek-v4.1-flash-free" -> "deepseek-v4.1-flash-free" }
 function ShortModelName(const AModel: string): string;
 var
@@ -462,6 +479,7 @@ begin
     lblModel.Hint := 'Change model (now: ' + curModel + ')';
   end;
   lblEffort.Caption := EffortCaption(GetEffort);
+  lblEffort.Font.Color := EffortColor(GetEffort);
 
   s := '';
   if Assigned(FAdapter) then
@@ -510,8 +528,13 @@ begin
 
   if ALabel = lblRuntime then
     for i := 0 to AIPresetCount - 1 do
-      AddStatusMenuItem(AIPreset(i).Title, i,
-        SameText(AIPreset(i).Id, FPresetId), not busy, @RuntimeMenuClick)
+    begin
+      itemCaption := AIPreset(i).Title;
+      if AIRuntimeExecutable(AIPreset(i).Id) = '' then
+        itemCaption := itemCaption + #9 + '(not found)';
+      AddStatusMenuItem(itemCaption, i,
+        SameText(AIPreset(i).Id, FPresetId), not busy, @RuntimeMenuClick);
+    end
   else if ALabel = lblModel then
   begin
     chosen := '';
@@ -842,10 +865,21 @@ begin
 end;
 
 procedure TAIChatFrame.cbbRuntimeSelect(Sender: TObject);
+var
+  i: integer;
 begin
   if (cbbRuntime.ItemIndex < 0) or
     SameText(AIPreset(cbbRuntime.ItemIndex).Id, FPresetId) then
     Exit;
+  // Keep the current runtime when the new one is not installed.
+  if AIRuntimeExecutable(AIPreset(cbbRuntime.ItemIndex).Id) = '' then
+  begin
+    FView.Add(cikError, AIRuntimeMissingMessage(AIPreset(cbbRuntime.ItemIndex).Id));
+    for i := 0 to AIPresetCount - 1 do
+      if SameText(AIPreset(i).Id, FPresetId) then
+        cbbRuntime.ItemIndex := i;
+    Exit;
+  end;
   cbbModel.Text := '';
   SetRuntime(AIPreset(cbbRuntime.ItemIndex).Id);
   FView.Add(cikInfo, 'Runtime: ' + AIPreset(cbbRuntime.ItemIndex).Title);

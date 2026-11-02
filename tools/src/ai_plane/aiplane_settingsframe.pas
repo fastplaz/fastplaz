@@ -335,6 +335,14 @@ begin
   cbbModel.Text := '';
   UpdateNote;
   ValueChange(Sender);
+  if AIRuntimeExecutable(GetRuntime) = '' then
+  begin
+    // Still selectable: the user may type the command path next.
+    lblStatus.Font.Color := clRed;
+    lblStatus.Caption := 'Not found: ' + AIRuntimeMissingMessage(GetRuntime);
+    mem_Output.Lines.Text := AIRuntimeMissingMessage(GetRuntime);
+    Exit;
+  end;
   DetectModels;
 end;
 

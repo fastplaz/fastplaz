@@ -52,6 +52,7 @@ type
     procedure TestPresetCreatesAdapter;
     procedure TestPresetOverridesCommand;
     procedure TestUnknownPresetRaises;
+    procedure TestRuntimeExecutable;
     procedure TestClaudeEffortArg;
     procedure TestSplitProseOnly;
     procedure TestSplitCodeBlock;
@@ -305,6 +306,21 @@ begin
       raised := True;
   end;
   AssertTrue(raised);
+end;
+
+procedure TAIPlaneHelpersTest.TestRuntimeExecutable;
+begin
+  {$IFDEF WINDOWS}
+  AssertTrue('explicit command on PATH', AIRuntimeExecutable(AI_PRESET_PI, 'cmd') <> '');
+  {$ELSE}
+  AssertTrue('explicit command on PATH', AIRuntimeExecutable(AI_PRESET_PI, 'sh') <> '');
+  {$ENDIF}
+  AssertEquals('missing command', '',
+    AIRuntimeExecutable(AI_PRESET_PI, 'no_such_runtime_fastplaz'));
+  AssertEquals('unknown preset', '', AIRuntimeExecutable('nope'));
+  AssertTrue(Pos('"no_such_runtime_fastplaz" was not found',
+    AIRuntimeMissingMessage(AI_PRESET_PI, 'no_such_runtime_fastplaz')) > 0);
+  AssertTrue(Pos('Pi is not available', AIRuntimeMissingMessage(AI_PRESET_PI, 'x_y_z')) > 0);
 end;
 
 procedure TAIPlaneHelpersTest.TestClaudeEffortArg;
