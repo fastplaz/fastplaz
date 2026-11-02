@@ -60,6 +60,18 @@ type
     Color: TColor;      // clNone = the item's text colour
     Back: TColor;       // clNone = no background
     Url: string;
+    Selectable: boolean;
+    // how this piece joins the previous line when copied: 0 new line,
+    // 1 a space (word wrap), 2 nothing (a word or code line broken),
+    // 3 one line break (next table row)
+    WrapJoin: byte;
+  end;
+
+  { A place in the text: item index, fragment index, byte offset. }
+  TAIChatSelPos = record
+    Item: integer;
+    Frag: integer;
+    Offset: integer;
   end;
 
   { TAIChatItem }
@@ -105,6 +117,26 @@ type
     FPopupItem: TAIChatItem;
     FUpdating: integer;
     FDirty: boolean;
+    FSelAnchor: TAIChatSelPos;
+    FSelFocus: TAIChatSelPos;
+    FHasSel: boolean;
+    FMouseIsDown: boolean;
+    FDragged: boolean;
+    FDblClicked: boolean;
+    FDownPt: TPoint;
+    FMenuCopy: TMenuItem;
+    FMenuCopyCode: TMenuItem;
+    FMenuCopyMessage: TMenuItem;
+    procedure ApplyFragFont(ACanvas: TCanvas; const AFrag: TAIChatFrag);
+    function FragOffsetAt(const AFrag: TAIChatFrag; AX: integer): integer;
+    function PosAt(X, Y: integer; out APos: TAIChatSelPos): boolean;
+    function SelRange(AItem, AFrag: integer; out AStart, AEnd: integer): boolean;
+    procedure OrderedSelection(out ALo, AHi: TAIChatSelPos);
+    procedure BoxMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: integer);
+    procedure BoxDblClick(Sender: TObject);
+    procedure PopupCopySelection(Sender: TObject);
+    procedure PopupSelectAll(Sender: TObject);
     function GetCount: integer;
     function GetItem(AIndex: integer): TAIChatItem;
     function BubbleWidth: integer;
@@ -120,14 +152,25 @@ type
     procedure BoxMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: integer);
     procedure BoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: integer);
-    procedure PaintItem(ACanvas: TCanvas; AItem: TAIChatItem);
+    procedure PaintItem(ACanvas: TCanvas; AIndex: integer; AItem: TAIChatItem);
     procedure PopupCopyMessage(Sender: TObject);
     procedure PopupCopyCode(Sender: TObject);
     procedure PopupCopyAll(Sender: TObject);
     procedure PopupPopup(Sender: TObject);
+  protected
+    procedure KeyDown(var Key: word; Shift: TShiftState); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    { Selected text as plain text (word-wrapped lines joined again). }
+    function SelectedText: string;
+    function HasSelection: boolean;
+    procedure SelectAll;
+    { Selects from (X1, Y1) to (X2, Y2), paint box coordinates, as a mouse
+      drag would. }
+    procedure SelectRegion(X1, Y1, X2, Y2: integer);
+    procedure ClearSelection;
+    procedure CopySelection;
     function Add(AKind: TAIChatItemKind; const AText: string = ''): TAIChatItem;
     procedure AppendText(AItem: TAIChatItem; const AText: string);
     { Call after changing an item's fields directly. }
@@ -253,6 +296,7 @@ begin
   Frags[Result].Scale := 100;
   Frags[Result].Color := clNone;
   Frags[Result].Back := clNone;
+  Frags[Result].Selectable := AKind = cfText;
 end;
 
 { Lays out styled runs with word wrap in [AX, AX + AWidth), starting at AY;
@@ -267,8 +311,10 @@ var
   token, part: string;
   isSpace: boolean;
   lastRun: integer;
+  pendingJoin: byte;
 
-  procedure EndLine;
+  // AJoin: how the next line joins this one when copied (see WrapJoin)
+  procedure EndLine(AJoin: byte);
   var
     m: integer;
   begin
@@ -285,6 +331,7 @@ var
     lineH := LineHeight(False, AScale);
     lineStart := Length(Frags);
     lastRun := -1;
+    pendingJoin := AJoin;
   end;
 
   // AWidthPx is the text width; inline code adds its padding once per box
@@ -310,6 +357,8 @@ var
       Frags[m].Scale := AScale;
       Frags[m].Color := AColor;
       Frags[m].Url := run.Url;
+      Frags[m].WrapJoin := pendingJoin;
+      pendingJoin := 0;
       if misLink in run.Style then
         Frags[m].Color := LinkColor;
       if misCode in run.Style then
@@ -326,6 +375,7 @@ begin
   y := AY;
   lineStart := Length(Frags);
   lastRun := -1;
+  pendingJoin := 0;
   lineH := LineHeight(False, AScale);
   if Length(ARuns) = 0 then
     Exit(AY);
@@ -358,7 +408,7 @@ begin
     begin
       if run.Text[i] = #10 then
       begin
-        EndLine;
+        EndLine(0);
         UseFont(mono, style, AScale);
         Inc(i);
         Continue;
@@ -377,7 +427,7 @@ begin
         w := FCanvas.TextWidth(token);
         if x + w > AWidth then
         begin
-          EndLine;
+          EndLine(1);
           Continue;
         end;
         Emit(token, w);
@@ -387,7 +437,7 @@ begin
       w := FCanvas.TextWidth(token) + extra;
       if (x + w > AWidth) and (x > 0) then
       begin
-        EndLine;
+        EndLine(1);
         UseFont(mono, style, AScale);
       end;
       // a word wider than the line is broken by characters (UTF-8 safe)
@@ -407,7 +457,7 @@ begin
         end;
         Emit(part, FCanvas.TextWidth(part));
         Delete(token, 1, Length(part));
-        EndLine;
+        EndLine(2);
         UseFont(mono, style, AScale);
         w := FCanvas.TextWidth(token) + extra;
       end;
@@ -416,9 +466,9 @@ begin
     end;
   end;
   if x > 0 then
-    EndLine
+    EndLine(0)
   else if Length(Frags) > lineStart then
-    EndLine;
+    EndLine(0);
   Result := y;
 end;
 
@@ -430,6 +480,7 @@ var
   plain: TStringList;
   i, t, y, x, lineH, box, m, k, j, avail, w: integer;
   rest, part, lang: string;
+  join: byte;
   color: TColor;
   style: TFontStyles;
 begin
@@ -472,6 +523,7 @@ begin
     m := AddFrag(cfText, Rect(AX + AWidth - PAD - w, AY + 2, AX + AWidth - PAD,
       AY + 2 + FCanvas.TextHeight('Ag')));
     Frags[m].Text := lang;
+    Frags[m].Selectable := False;
     Frags[m].Scale := 85;
     Frags[m].Color := Blend(clWindowText, clWindow, 50);
   end;
@@ -479,6 +531,7 @@ begin
   for i := 0 to High(tokens) do
   begin
     x := 0;
+    join := 0;
     for t := 0 to High(tokens[i]) do
     begin
       rest := tokens[i][t].Text;
@@ -505,6 +558,7 @@ begin
           // nothing fits behind the previous token: next line
           Inc(y, lineH);
           x := 0;
+          join := 2;
           Continue;
         end;
         if part = '' then
@@ -521,12 +575,15 @@ begin
         Frags[m].Mono := True;
         Frags[m].Style := style;
         Frags[m].Color := color;
+        Frags[m].WrapJoin := join;
+        join := 0;
         Inc(x, w);
         Delete(rest, 1, Length(part));
         if rest <> '' then
         begin
           Inc(y, lineH);
           x := 0;
+          join := 2;
         end;
       end;
     end;
@@ -539,7 +596,7 @@ end;
 
 function TChatLayout.Table(const ABlock: TMDBlock; AX, AWidth, AY: integer): integer;
 var
-  cols, r, c, total, y, rowH, cellBottom, x, m: integer;
+  cols, r, c, total, y, rowH, cellBottom, x, m, first: integer;
   widths: array of integer;
   grid: TColor;
   extra: TFontStyles;
@@ -595,10 +652,14 @@ begin
     begin
       if c <= High(ABlock.Rows[r]) then
       begin
+        first := Length(Frags);
         cellBottom := Runs(ABlock.Rows[r][c], x + CELL_PAD, widths[c] - 2 * CELL_PAD,
           y + CELL_PAD, extra, 100, clNone);
         if cellBottom - y - CELL_PAD > rowH then
           rowH := cellBottom - y - CELL_PAD;
+        // copied rows are separated by one line break, not a blank line
+        if (r > 0) and (c = 0) and (first < Length(Frags)) then
+          Frags[first].WrapJoin := 3;
       end;
       Inc(x, widths[c]);
     end;
@@ -659,7 +720,7 @@ begin
         begin
           markerW := FCanvas.TextWidth('•') + 8;
           m := AddFrag(cfText, Rect(x0, y, x0 + markerW, y + FCanvas.TextHeight('Ag')));
-          Frags[m].Text := '•';
+          Frags[m].Text := '• ';
         end
         else
         begin
@@ -667,7 +728,7 @@ begin
           if FCanvas.TextWidth(b.Marker) + 6 > markerW then
             markerW := FCanvas.TextWidth(b.Marker) + 6;
           m := AddFrag(cfText, Rect(x0, y, x0 + markerW, y + FCanvas.TextHeight('Ag')));
-          Frags[m].Text := b.Marker;
+          Frags[m].Text := b.Marker + ' ';
         end;
         Frags[m].Color := Blend(clWindowText, clWindow, 30);
         y := Runs(b.Runs, x0 + markerW, AWidth - x0 - markerW, y, [], 100, clNone);
@@ -762,17 +823,33 @@ begin
   FBox.OnResize := @BoxResize;
   FBox.OnMouseUp := @BoxMouseUp;
   FBox.OnMouseMove := @BoxMouseMove;
+  FBox.OnMouseDown := @BoxMouseDown;
+  FBox.OnDblClick := @BoxDblClick;
+  TabStop := True;
 
   FPopup := TPopupMenu.Create(Self);
   FPopup.OnPopup := @PopupPopup;
+  FMenuCopy := TMenuItem.Create(FPopup);
+  FMenuCopy.Caption := 'Copy';
+  FMenuCopy.ShortCut := ShortCut(VK_C, [ssCtrl]);
+  FMenuCopy.OnClick := @PopupCopySelection;
+  FPopup.Items.Add(FMenuCopy);
   mi := TMenuItem.Create(FPopup);
-  mi.Caption := 'Copy message';
-  mi.OnClick := @PopupCopyMessage;
+  mi.Caption := 'Select all';
+  mi.ShortCut := ShortCut(VK_A, [ssCtrl]);
+  mi.OnClick := @PopupSelectAll;
   FPopup.Items.Add(mi);
   mi := TMenuItem.Create(FPopup);
-  mi.Caption := 'Copy code blocks';
-  mi.OnClick := @PopupCopyCode;
+  mi.Caption := '-';
   FPopup.Items.Add(mi);
+  FMenuCopyMessage := TMenuItem.Create(FPopup);
+  FMenuCopyMessage.Caption := 'Copy message';
+  FMenuCopyMessage.OnClick := @PopupCopyMessage;
+  FPopup.Items.Add(FMenuCopyMessage);
+  FMenuCopyCode := TMenuItem.Create(FPopup);
+  FMenuCopyCode.Caption := 'Copy code blocks';
+  FMenuCopyCode.OnClick := @PopupCopyCode;
+  FPopup.Items.Add(FMenuCopyCode);
   mi := TMenuItem.Create(FPopup);
   mi.Caption := 'Copy conversation';
   mi.OnClick := @PopupCopyAll;
@@ -896,6 +973,7 @@ begin
   if FLayoutWidth <> FBox.Width then
   begin
     FLayoutWidth := FBox.Width;
+    FHasSel := False;
     AFromIndex := 0;
     for i := 0 to FItems.Count - 1 do
       Items[i].Valid := False;
@@ -967,6 +1045,7 @@ end;
 
 procedure TAIChatView.Clear;
 begin
+  FHasSel := False;
   FItems.Clear;
   Relayout(0);
 end;
@@ -1036,9 +1115,33 @@ procedure TAIChatView.BoxMouseMove(Sender: TObject; Shift: TShiftState; X, Y: in
 var
   item: TAIChatItem;
   i: integer;
-  hand: boolean;
+  hand, onText: boolean;
+  pos: TAIChatSelPos;
+  p: TPoint;
 begin
+  if FMouseIsDown and (ssLeft in Shift) then
+  begin
+    if not FDragged and ((Abs(X - FDownPt.X) > 3) or (Abs(Y - FDownPt.Y) > 3)) then
+      FDragged := True;
+    if FDragged then
+    begin
+      // keep the view moving while dragging past its edges
+      if Y < VertScrollBar.Position then
+        VertScrollBar.Position := VertScrollBar.Position - 20
+      else if Y > VertScrollBar.Position + ClientHeight then
+        VertScrollBar.Position := VertScrollBar.Position + 20;
+      if PosAt(X, Y, pos) then
+      begin
+        FSelFocus := pos;
+        FHasSel := True;
+        FBox.Invalidate;
+      end;
+    end;
+    Exit;
+  end;
+
   hand := False;
+  onText := False;
   item := ItemAt(Y);
   if Assigned(item) then
   begin
@@ -1050,11 +1153,64 @@ begin
           hand := True;
     if LinkAt(item, X, Y) <> '' then
       hand := True;
+    p := Point(X - MARGIN - PAD, Y - item.Top - item.ContentY);
+    for i := 0 to High(item.Frags) do
+      if item.Frags[i].Selectable and PtInRect(item.Frags[i].R, p) then
+        onText := True;
   end;
   if hand then
     FBox.Cursor := crHandPoint
+  else if onText then
+    FBox.Cursor := crIBeam
   else
     FBox.Cursor := crDefault;
+end;
+
+procedure TAIChatView.BoxMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: integer);
+var
+  pos: TAIChatSelPos;
+begin
+  if Button <> mbLeft then
+    Exit;
+  if CanFocus then
+    SetFocus;
+  FMouseIsDown := True;
+  FDragged := False;
+  FDownPt := Point(X, Y);
+  if PosAt(X, Y, pos) then
+  begin
+    FSelAnchor := pos;
+    FSelFocus := pos;
+  end;
+end;
+
+procedure TAIChatView.BoxDblClick(Sender: TObject);
+var
+  p: TPoint;
+  pos: TAIChatSelPos;
+  t: string;
+  a, b: integer;
+begin
+  p := FBox.ScreenToClient(Mouse.CursorPos);
+  if not PosAt(p.X, p.Y, pos) or (pos.Frag < 0) then
+    Exit;
+  t := Items[pos.Item].Frags[pos.Frag].Text;
+  a := pos.Offset;
+  b := pos.Offset;
+  while (a > 0) and not (t[a] in [' ', #9]) do
+    Dec(a);
+  while (b < Length(t)) and not (t[b + 1] in [' ', #9]) do
+    Inc(b);
+  if b <= a then
+    Exit;
+  FSelAnchor := pos;
+  FSelAnchor.Offset := a;
+  FSelFocus := pos;
+  FSelFocus.Offset := b;
+  FHasSel := True;
+  FDblClicked := True;
+  FBox.Invalidate;
 end;
 
 procedure TAIChatView.BoxMouseUp(Sender: TObject; Button: TMouseButton;
@@ -1066,6 +1222,24 @@ var
 begin
   if Button <> mbLeft then
     Exit;
+  FMouseIsDown := False;
+  if FDblClicked then
+  begin
+    // the word selected by the double click stays
+    FDblClicked := False;
+    Exit;
+  end;
+  if FDragged then
+  begin
+    FDragged := False;
+    Exit;
+  end;
+  // a plain click drops the selection, then acts as before
+  if FHasSel then
+  begin
+    FHasSel := False;
+    FBox.Invalidate;
+  end;
   item := ItemAt(Y);
   if not Assigned(item) then
     Exit;
@@ -1106,15 +1280,15 @@ begin
       Break;
     if item.Top + item.Height < clip.Top then
       Continue;
-    PaintItem(FBox.Canvas, item);
+    PaintItem(FBox.Canvas, i, item);
   end;
 end;
 
-procedure TAIChatView.PaintItem(ACanvas: TCanvas; AItem: TAIChatItem);
+procedure TAIChatView.PaintItem(ACanvas: TCanvas; AIndex: integer; AItem: TAIChatItem);
 var
   bubble, r: TRect;
   back, fore, accent: TColor;
-  i, y, x, inner, w, ox, oy, baseSize: integer;
+  i, y, x, inner, w, ox, oy, baseSize, selStart, selEnd, selPad: integer;
   s: string;
   f: TAIChatFrag;
 begin
@@ -1218,17 +1392,19 @@ begin
           ACanvas.Pen.Color := f.Back;
           ACanvas.RoundRect(r, 4, 4);
         end;
+        ApplyFragFont(ACanvas, f);
+        if FHasSel and SelRange(AIndex, i, selStart, selEnd) then
+        begin
+          // not "pad": that would hide the PAD constant
+          selPad := 0;
+          if f.Back <> clNone then
+            selPad := INLINE_CODE_PAD;
+          ACanvas.Brush.Style := bsSolid;
+          ACanvas.Brush.Color := Blend(clWindow, clHighlight, 40);
+          ACanvas.FillRect(r.Left + selPad + ACanvas.TextWidth(Copy(f.Text, 1, selStart)), r.Top,
+            r.Left + selPad + ACanvas.TextWidth(Copy(f.Text, 1, selEnd)), r.Bottom);
+        end;
         ACanvas.Brush.Style := bsClear;
-        if f.Mono then
-          ACanvas.Font.Assign(FCodeFont)
-        else
-          ACanvas.Font.Assign(Font);
-        ACanvas.Font.Style := f.Style;
-        if f.Scale <> 100 then
-          if f.Mono then
-            ACanvas.Font.Size := FCodeFont.Size * f.Scale div 100
-          else
-            ACanvas.Font.Size := baseSize * f.Scale div 100;
         if f.Color = clNone then
           ACanvas.Font.Color := fore
         else
@@ -1281,14 +1457,365 @@ begin
   ACanvas.Brush.Style := bsSolid;
 end;
 
+procedure TAIChatView.ApplyFragFont(ACanvas: TCanvas; const AFrag: TAIChatFrag);
+var
+  baseSize: integer;
+begin
+  if AFrag.Mono then
+    ACanvas.Font.Assign(FCodeFont)
+  else
+    ACanvas.Font.Assign(Font);
+  ACanvas.Font.Style := AFrag.Style;
+  if AFrag.Scale <> 100 then
+  begin
+    baseSize := Font.Size;
+    if baseSize = 0 then
+      baseSize := 9;
+    if AFrag.Mono then
+      ACanvas.Font.Size := FCodeFont.Size * AFrag.Scale div 100
+    else
+      ACanvas.Font.Size := baseSize * AFrag.Scale div 100;
+  end;
+end;
+
+// Byte offset of the character boundary nearest to AX (pixels from the
+// fragment's left edge).
+function TAIChatView.FragOffsetAt(const AFrag: TAIChatFrag; AX: integer): integer;
+var
+  k, j, w, prevW: integer;
+begin
+  ApplyFragFont(FMeasure.Canvas, AFrag);
+  if AFrag.Back <> clNone then
+    Dec(AX, INLINE_CODE_PAD);
+  Result := 0;
+  prevW := 0;
+  k := 1;
+  while k <= Length(AFrag.Text) do
+  begin
+    j := k + 1;
+    while (j <= Length(AFrag.Text)) and ((Ord(AFrag.Text[j]) and $C0) = $80) do
+      Inc(j);
+    w := FMeasure.Canvas.TextWidth(Copy(AFrag.Text, 1, j - 1));
+    if AX < (prevW + w) div 2 then
+      Exit;
+    Result := j - 1;
+    prevW := w;
+    k := j;
+  end;
+end;
+
+// Text position under (X, Y) in paint box coordinates, or the nearest one.
+function TAIChatView.PosAt(X, Y: integer; out APos: TAIChatSelPos): boolean;
+var
+  idx, i, j, first, last, leftJ, rightJ: integer;
+  item: TAIChatItem;
+  p: TPoint;
+  f: TAIChatFrag;
+begin
+  Result := False;
+  APos.Item := -1;
+  APos.Frag := -1;
+  APos.Offset := 0;
+  if FItems.Count = 0 then
+    Exit;
+  idx := FItems.Count - 1;
+  for i := 0 to FItems.Count - 1 do
+    if Y < Items[i].Top + Items[i].Height then
+    begin
+      idx := i;
+      Break;
+    end;
+  // items without text (folded cards): look further down, then up
+  i := idx;
+  while (i < FItems.Count) do
+  begin
+    first := -1;
+    for j := 0 to High(Items[i].Frags) do
+      if Items[i].Frags[j].Selectable then
+      begin
+        first := j;
+        Break;
+      end;
+    if first >= 0 then
+      Break;
+    Inc(i);
+  end;
+  if i >= FItems.Count then
+  begin
+    i := idx;
+    while i >= 0 do
+    begin
+      first := -1;
+      for j := 0 to High(Items[i].Frags) do
+        if Items[i].Frags[j].Selectable then
+        begin
+          first := j;
+          Break;
+        end;
+      if first >= 0 then
+        Break;
+      Dec(i);
+    end;
+    if i < 0 then
+      Exit;
+  end;
+  if i <> idx then
+    // the pointer is on an item without text: snap to the next one's start
+    Y := Items[i].Top - 1;
+  idx := i;
+  item := Items[idx];
+  last := first;
+  for j := 0 to High(item.Frags) do
+    if item.Frags[j].Selectable then
+      last := j;
+
+  APos.Item := idx;
+  Result := True;
+  p := Point(X - MARGIN - PAD, Y - item.Top - item.ContentY);
+  if p.Y < item.Frags[first].R.Top then
+  begin
+    APos.Frag := first;
+    Exit;
+  end;
+
+  // pieces on the line under the pointer
+  leftJ := -1;
+  rightJ := -1;
+  for j := 0 to High(item.Frags) do
+  begin
+    f := item.Frags[j];
+    if not f.Selectable or (p.Y < f.R.Top) or (p.Y >= f.R.Bottom) then
+      Continue;
+    if (p.X >= f.R.Left) and (p.X < f.R.Right) then
+    begin
+      APos.Frag := j;
+      APos.Offset := FragOffsetAt(f, p.X - f.R.Left);
+      Exit;
+    end;
+    if (leftJ < 0) or (f.R.Left < item.Frags[leftJ].R.Left) then
+      leftJ := j;
+    if (rightJ < 0) or (f.R.Right > item.Frags[rightJ].R.Right) then
+      rightJ := j;
+  end;
+  if leftJ >= 0 then
+  begin
+    if p.X < item.Frags[leftJ].R.Left then
+    begin
+      APos.Frag := leftJ;
+      APos.Offset := 0;
+    end
+    else
+    begin
+      APos.Frag := rightJ;
+      APos.Offset := Length(item.Frags[rightJ].Text);
+    end;
+    Exit;
+  end;
+
+  // between lines: the start of the next line, else the very end
+  for j := 0 to High(item.Frags) do
+    if item.Frags[j].Selectable and (item.Frags[j].R.Top > p.Y) then
+    begin
+      APos.Frag := j;
+      APos.Offset := 0;
+      Exit;
+    end;
+  APos.Frag := last;
+  APos.Offset := Length(item.Frags[last].Text);
+end;
+
+function ComparePos(const A, B: TAIChatSelPos): integer;
+begin
+  Result := A.Item - B.Item;
+  if Result = 0 then
+    Result := A.Frag - B.Frag;
+  if Result = 0 then
+    Result := A.Offset - B.Offset;
+end;
+
+procedure TAIChatView.OrderedSelection(out ALo, AHi: TAIChatSelPos);
+begin
+  if ComparePos(FSelAnchor, FSelFocus) <= 0 then
+  begin
+    ALo := FSelAnchor;
+    AHi := FSelFocus;
+  end
+  else
+  begin
+    ALo := FSelFocus;
+    AHi := FSelAnchor;
+  end;
+end;
+
+// Selected byte range [AStart, AEnd) of one fragment.
+function TAIChatView.SelRange(AItem, AFrag: integer; out AStart, AEnd: integer): boolean;
+var
+  lo, hi: TAIChatSelPos;
+  len: integer;
+begin
+  Result := False;
+  AStart := 0;
+  AEnd := 0;
+  if not FHasSel or (AItem < 0) or (AItem >= FItems.Count) or
+    (AFrag < 0) or (AFrag > High(Items[AItem].Frags)) then
+    Exit;
+  OrderedSelection(lo, hi);
+  if (AItem < lo.Item) or ((AItem = lo.Item) and (AFrag < lo.Frag)) then
+    Exit;
+  if (AItem > hi.Item) or ((AItem = hi.Item) and (AFrag > hi.Frag)) then
+    Exit;
+  len := Length(Items[AItem].Frags[AFrag].Text);
+  AEnd := len;
+  if (AItem = lo.Item) and (AFrag = lo.Frag) then
+    AStart := lo.Offset;
+  if (AItem = hi.Item) and (AFrag = hi.Frag) then
+    AEnd := hi.Offset;
+  if AStart > len then
+    AStart := len;
+  if AEnd > len then
+    AEnd := len;
+  Result := AEnd > AStart;
+end;
+
+function TAIChatView.SelectedText: string;
+var
+  lo, hi: TAIChatSelPos;
+  i, j, a, b, prevItem: integer;
+  prev, f: TAIChatFrag;
+  sep: string;
+begin
+  Result := '';
+  if not FHasSel then
+    Exit;
+  OrderedSelection(lo, hi);
+  prevItem := -1;
+  prev := Default(TAIChatFrag);
+  for i := lo.Item to hi.Item do
+  begin
+    if (i < 0) or (i >= FItems.Count) then
+      Continue;
+    for j := 0 to High(Items[i].Frags) do
+    begin
+      f := Items[i].Frags[j];
+      if not f.Selectable or not SelRange(i, j, a, b) then
+        Continue;
+      sep := '';
+      if prevItem >= 0 then
+      begin
+        if i <> prevItem then
+          sep := LineEnding + LineEnding
+        else if f.R.Top >= prev.R.Bottom then
+        begin
+          // a new line
+          case f.WrapJoin of
+            1:
+              if (Result <> '') and (Result[Length(Result)] <> ' ') then
+                sep := ' ';
+            2: sep := '';
+            3: sep := LineEnding;
+            else
+              if f.R.Top > prev.R.Bottom + 3 then
+                sep := LineEnding + LineEnding  // next block
+              else
+                sep := LineEnding;
+          end;
+        end
+        else if f.R.Left > prev.R.Right + 4 then
+          sep := #9;  // table cell
+      end;
+      Result := Result + sep + Copy(f.Text, a + 1, b - a);
+      prev := f;
+      prevItem := i;
+    end;
+  end;
+end;
+
+function TAIChatView.HasSelection: boolean;
+begin
+  Result := FHasSel and (ComparePos(FSelAnchor, FSelFocus) <> 0);
+end;
+
+procedure TAIChatView.SelectAll;
+var
+  i, j: integer;
+  found: boolean;
+begin
+  found := False;
+  for i := 0 to FItems.Count - 1 do
+    for j := 0 to High(Items[i].Frags) do
+      if Items[i].Frags[j].Selectable then
+      begin
+        if not found then
+        begin
+          FSelAnchor.Item := i;
+          FSelAnchor.Frag := j;
+          FSelAnchor.Offset := 0;
+          found := True;
+        end;
+        FSelFocus.Item := i;
+        FSelFocus.Frag := j;
+        FSelFocus.Offset := Length(Items[i].Frags[j].Text);
+      end;
+  FHasSel := found;
+  FBox.Invalidate;
+end;
+
+procedure TAIChatView.SelectRegion(X1, Y1, X2, Y2: integer);
+begin
+  FHasSel := PosAt(X1, Y1, FSelAnchor) and PosAt(X2, Y2, FSelFocus);
+  FBox.Invalidate;
+end;
+
+procedure TAIChatView.ClearSelection;
+begin
+  if not FHasSel then
+    Exit;
+  FHasSel := False;
+  FBox.Invalidate;
+end;
+
+procedure TAIChatView.CopySelection;
+begin
+  if HasSelection then
+    Clipboard.AsText := SelectedText;
+end;
+
+procedure TAIChatView.KeyDown(var Key: word; Shift: TShiftState);
+begin
+  if (ssCtrl in Shift) and ((Key = VK_C) or (Key = VK_INSERT)) then
+  begin
+    CopySelection;
+    Key := 0;
+  end
+  else if (ssCtrl in Shift) and (Key = VK_A) then
+  begin
+    SelectAll;
+    Key := 0;
+  end
+  else if Key = VK_ESCAPE then
+    ClearSelection;
+  inherited KeyDown(Key, Shift);
+end;
+
+procedure TAIChatView.PopupCopySelection(Sender: TObject);
+begin
+  CopySelection;
+end;
+
+procedure TAIChatView.PopupSelectAll(Sender: TObject);
+begin
+  SelectAll;
+end;
+
 procedure TAIChatView.PopupPopup(Sender: TObject);
 var
   p: TPoint;
 begin
   p := FBox.ScreenToClient(Mouse.CursorPos);
   FPopupItem := ItemAt(p.Y);
-  FPopup.Items[0].Enabled := Assigned(FPopupItem);
-  FPopup.Items[1].Enabled := Assigned(FPopupItem) and (Pos('```', FPopupItem.Text) > 0);
+  FMenuCopy.Enabled := HasSelection;
+  FMenuCopyMessage.Enabled := Assigned(FPopupItem);
+  FMenuCopyCode.Enabled := Assigned(FPopupItem) and (Pos('```', FPopupItem.Text) > 0);
 end;
 
 procedure TAIChatView.PopupCopyMessage(Sender: TObject);

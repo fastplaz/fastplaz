@@ -8,12 +8,16 @@ program aiplane_tester;
                    [--command <exe>] [--args "<a b>"] [--cwd <dir>]
                    [--prompt "<a>|<b>"] [--screenshot <file.png>] [--timeout <s>]
                    [--settings detect|test]
+                   [--select all|x1,y1,x2,y2] [--selection-out <file>]
 
   --prompt sends the prompts one after another (separated by |), and
   --screenshot then saves the window to a PNG and quits. A turn that is
   still running after --timeout seconds (default 5) is left as it is.
   --settings opens the settings window (the AI Plane tab of the IDE
-  configuration), runs Detect or Run Test, and the screenshot shows it. Together they let
+  configuration), runs Detect or Run Test, and the screenshot shows it.
+  --select selects text after the prompts (as a mouse drag between two
+  points of the conversation, or everything); --selection-out writes the
+  text that Ctrl+C would copy. Together they let
   a script check the UI without anyone clicking.
 
   Runtime, model, effort, command and working directory are kept in
@@ -52,6 +56,7 @@ type
     procedure CreateSettingsForm;
     procedure MenuSettings(Sender: TObject);
     procedure ScriptTick(Sender: TObject);
+    procedure ApplySelection;
     procedure LoadSettings;
     procedure SaveSettings(Sender: TObject);
     procedure ApplyRuntime(const APresetId, ACommand, AArguments: string);
@@ -161,6 +166,7 @@ begin
     shotForm := Self;
     if Assigned(FSettingsForm) and FSettingsForm.Visible then
       shotForm := FSettingsForm;
+    ApplySelection;
     bmp := shotForm.GetFormImage;
     png := TPortableNetworkGraphic.Create;
     try
@@ -172,6 +178,40 @@ begin
     end;
     Close;
   end;
+end;
+
+procedure TTesterForm.ApplySelection;
+var
+  sel, outFile: string;
+  parts: TStringList;
+begin
+  sel := Option('--select');
+  outFile := Option('--selection-out');
+  if sel = '' then
+    Exit;
+  if sel = 'all' then
+    FChat.View.SelectAll
+  else
+  begin
+    parts := TStringList.Create;
+    try
+      parts.CommaText := sel;
+      if parts.Count = 4 then
+        FChat.View.SelectRegion(StrToIntDef(parts[0], 0), StrToIntDef(parts[1], 0),
+          StrToIntDef(parts[2], 0), StrToIntDef(parts[3], 0));
+    finally
+      parts.Free;
+    end;
+  end;
+  Application.ProcessMessages;
+  if outFile <> '' then
+    with TStringList.Create do
+    try
+      Text := FChat.View.SelectedText;
+      SaveToFile(outFile);
+    finally
+      Free;
+    end;
 end;
 
 procedure TTesterForm.BuildMenu;
