@@ -13,7 +13,7 @@ uses
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
-  fpcgi, httpdefs, fpHTTP, fpWeb,
+  fastplaz_app, httpdefs, fpHTTP, fpWeb,
   //webutil,
   custweb, dateutils, variants,
   SysUtils, Classes;
@@ -462,10 +462,14 @@ begin
 
   if AppData.baseUrl = '' then
   begin
-    _ := GetEnvironmentVariable('HTTPS');
+    _ := ServerVariable('HTTPS');
     if _ = 'on' then _ := 'https://' else _ := 'http://';
-    AppData.baseUrl := _ + GetEnvironmentVariable('SERVER_NAME') +
-      ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
+    if IsStandalone then
+      // no script path, and the Host header carries the port
+      AppData.baseUrl := _ + ServerVariable('HTTP_HOST') + '/'
+    else
+      AppData.baseUrl := _ + ServerVariable('SERVER_NAME') +
+        ExtractFilePath(ServerVariable('SCRIPT_NAME'));
   end;
 
   if AppData.themeEnable then
@@ -541,10 +545,11 @@ begin
     Application.Response.CodeText := HttpStatusText(AStatusCode);
   Application.Response.Location := SanitizeHeaderValue(URL);
   // send the (empty) response now so nothing written afterwards is appended,
-  // then let fpcgi free Application itself; destroying it here caused a
-  // double free in the unit finalization.
+  // then end the process in CGI mode (the application frees itself;
+  // destroying it here caused a double free in the unit finalization).
+  // A standalone server keeps running.
   Application.Response.SendContent;
-  Application.Terminate;
+  StopRequest;
 end;
 
 
@@ -573,7 +578,7 @@ begin
   end;
 
   Application.Response.SendContent;
-  Application.Terminate;
+  StopRequest;
 end;
 
 procedure Debug(const Message: integer; const Key: string);
@@ -766,9 +771,9 @@ end;
 // header name ("X-Requested-With")
 function TMyCustomWebModule.GetHeader(const KeyName: string): string;
 begin
-  Result := GetEnvironmentVariable( KeyName);
+  Result := ServerVariable( KeyName);
   if Result = '' then
-    Result := GetEnvironmentVariable( HeaderToEnvName( KeyName));
+    Result := ServerVariable( HeaderToEnvName( KeyName));
 end;
 
 function TMyCustomWebModule.GetIsActive: boolean;
@@ -1276,7 +1281,7 @@ end;
 
 function TSERVER.GetValue(const variable: string): string;
 begin
-  Result := GetEnvironmentVariable(variable);
+  Result := ServerVariable(variable);
 end;
 
 

@@ -5,7 +5,7 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles, fpjson, DateUtils, sqldb, HTTPDefs, Variants,
+  fastplaz_app, md5, IniFiles, fpjson, DateUtils, sqldb, HTTPDefs, Variants,
   Classes, SysUtils;
 
 const
@@ -625,7 +625,7 @@ begin
       cookie.Path := FCookiePath;
     cookie.HttpOnly := True;
     cookie.SameSite := ssLax;
-    cookie.Secure := (GetEnvironmentVariable('HTTPS') = 'on');
+    cookie.Secure := (ServerVariable('HTTPS') = 'on');
   except
     on E: Exception do
       LogUtil.Add('session cookie: ' + E.Message, 'sessions', True);

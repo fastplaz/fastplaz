@@ -7,7 +7,7 @@ interface
 
 uses
   //SynExportHTML,
-  fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
+  fastplaz_app, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   regexpr_lib,
   //netdb,
@@ -1173,7 +1173,8 @@ begin
   Application.Response.Contents.Add(Message);
   Application.Response.Code := ACode;
   Application.Response.SendContent;
-  Application.Terminate;
+  // ends the process in CGI mode only; a standalone server keeps running
+  StopRequest;
 end;
 
 function StripNumber(const AString: string): string;
