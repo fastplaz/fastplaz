@@ -11,7 +11,8 @@ unit aiplane_presets;
 interface
 
 uses
-  Classes, SysUtils, aiplane_types, aiplane_process, aiplane_acp, aiplane_claude;
+  Classes, SysUtils, aiplane_types, aiplane_process, aiplane_acp, aiplane_claude,
+  aiplane_pi;
 
 type
   TAIRuntimePreset = record
@@ -147,8 +148,8 @@ initialization
     'opencode', 'acp', 'opencode models', 'native ACP');
   AddPreset(AI_PRESET_CLAUDE, 'Claude Code', TClaudeStreamAdapter,
     'claude', '', '', 'stream-json mode, no Node.js needed');
-  AddPreset(AI_PRESET_PI, 'Pi', TACPAdapter,
-    'pi-acp', '', '', 'ACP bridge: npm install -g pi-acp (not verified yet)');
+  AddPreset(AI_PRESET_PI, 'Pi', TPiRpcAdapter,
+    'pi', '', '', 'native RPC mode (pi --mode rpc)');
   AddPreset(AI_PRESET_CLAUDE_ACP, 'Claude Code (ACP)', TACPAdapter,
     'claude-agent-acp', '', '',
     'ACP bridge: npm install -g @agentclientprotocol/claude-agent-acp');

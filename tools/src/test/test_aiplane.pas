@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, SysUtils, fpcunit, testregistry,
-  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_presets;
+  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_pi, aiplane_presets;
 
 type
 
@@ -127,7 +127,55 @@ type
     procedure TestStaticModels;
   end;
 
+  { TPiRpcTest }
+
+  TPiRpcTest = class(TTestCase)
+  private
+    FAdapter: TPiRpcAdapter;
+    FRec: TAIEventRecorder;
+    procedure Busy;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestArguments;
+    procedure TestSplitModel;
+    procedure TestThinkingLevel;
+    procedure TestTextAndThinking;
+    procedure TestToolLifecycle;
+    procedure TestToolError;
+    procedure TestModelsAndState;
+    procedure TestPromptRejected;
+    procedure TestSettledFinishesTurn;
+    procedure TestSettledIgnoredWhenIdle;
+    procedure TestMessageError;
+    procedure TestAborted;
+    procedure TestUsage;
+    procedure TestConfirmDialog;
+    procedure TestConfirmRejected;
+    procedure TestSelectDialog;
+    procedure TestInputDialogCancelled;
+    procedure TestPresetUsesRpc;
+  end;
+
 implementation
+
+type
+  TPiProbe = class(TPiRpcAdapter)
+  public
+    procedure Probe(AArgs: TStrings);
+    procedure MakeBusy;
+  end;
+
+procedure TPiProbe.Probe(AArgs: TStrings);
+begin
+  BuildArguments(AArgs);
+end;
+
+procedure TPiProbe.MakeBusy;
+begin
+  SetState(aasBusy);
+end;
 
 type
   TClaudeArgsProbe = class(TClaudeStreamAdapter)
@@ -887,9 +935,227 @@ begin
   AssertEquals('opus', FAdapter.Models[0].Id);
 end;
 
+{ TPiRpcTest }
+
+procedure TPiRpcTest.SetUp;
+begin
+  FRec := TAIEventRecorder.Create;
+  FAdapter := TPiProbe.Create;
+  FAdapter.OnEvent := @FRec.OnEvent;
+  FAdapter.OnPermission := @FRec.OnPermission;
+end;
+
+procedure TPiRpcTest.TearDown;
+begin
+  FreeAndNil(FAdapter);
+  FreeAndNil(FRec);
+end;
+
+procedure TPiRpcTest.Busy;
+begin
+  TPiProbe(FAdapter).MakeBusy;
+  FRec.Reset;
+end;
+
+procedure TPiRpcTest.TestArguments;
+var
+  args: TStringList;
+begin
+  args := TStringList.Create;
+  try
+    FAdapter.Arguments.Add('--no-session');
+    TPiProbe(FAdapter).Probe(args);
+    AssertEquals('--mode', args[0]);
+    AssertEquals('rpc', args[1]);
+    AssertEquals('--no-session', args[2]);
+    AssertEquals('pi', FAdapter.Command);
+  finally
+    args.Free;
+  end;
+end;
+
+procedure TPiRpcTest.TestSplitModel;
+var
+  provider, id: string;
+begin
+  PiSplitModel('anthropic/claude-sonnet-4', provider, id);
+  AssertEquals('anthropic', provider);
+  AssertEquals('claude-sonnet-4', id);
+  PiSplitModel('openrouter/meta/llama-4', provider, id);
+  AssertEquals('openrouter', provider);
+  AssertEquals('ids may contain slashes', 'meta/llama-4', id);
+  PiSplitModel('gpt-5', provider, id);
+  AssertEquals('', provider);
+  AssertEquals('gpt-5', id);
+end;
+
+procedure TPiRpcTest.TestThinkingLevel;
+begin
+  AssertEquals('', PiThinkingLevel('auto'));
+  AssertEquals('', PiThinkingLevel(''));
+  AssertEquals('off', PiThinkingLevel('off'));
+  AssertEquals('xhigh', PiThinkingLevel('XHigh'));
+  AssertEquals('max', PiThinkingLevel('max'));
+end;
+
+procedure TPiRpcTest.TestTextAndThinking;
+begin
+  FAdapter.HandleLine('{"type":"message_update","assistantMessageEvent":{"type":"thinking_delta","contentIndex":0,"delta":"hmm"}}');
+  FAdapter.HandleLine('{"type":"message_update","usage":{"input":1},"assistantMessageEvent":{"type":"text_delta","contentIndex":1,"delta":"Hel"}}');
+  FAdapter.HandleLine('{"type":"message_update","assistantMessageEvent":{"type":"text_delta","contentIndex":1,"delta":"lo"}}');
+  FAdapter.HandleLine('{"type":"message_update","assistantMessageEvent":{"type":"text_end","contentIndex":1,"content":"Hello"}}');
+  AssertEquals('hmm', FRec.Thinking);
+  AssertEquals('text_end does not repeat the text', 'Hello', FRec.Text);
+end;
+
+procedure TPiRpcTest.TestToolLifecycle;
+begin
+  FAdapter.HandleLine('{"type":"message_update","assistantMessageEvent":{"type":"toolcall_start","contentIndex":0,"id":"call_1","toolName":"read"}}');
+  FAdapter.HandleLine('{"type":"tool_execution_start","toolCallId":"call_1","toolName":"read","args":{"path":"src/a.pas"}}');
+  FAdapter.HandleLine('{"type":"tool_execution_end","toolCallId":"call_1","toolName":"read","result":{"content":[{"type":"text","text":"unit a;"}],"details":{}},"isError":false,"durationMs":3}');
+  AssertEquals(3, FRec.Tools.Count);
+  AssertEquals('call_1 pending read |', FRec.Tools[0]);
+  AssertEquals('call_1 running read src/a.pas|{ "path" : "src/a.pas" }', FRec.Tools[1]);
+  AssertEquals('call_1 completed read |unit a;', FRec.Tools[2]);
+end;
+
+procedure TPiRpcTest.TestToolError;
+begin
+  FAdapter.HandleLine('{"type":"tool_execution_end","toolCallId":"c2","toolName":"bash","result":{"content":[{"type":"text","text":"not found"}]},"isError":true}');
+  AssertEquals('c2 failed bash |not found', FRec.Tools[0]);
+end;
+
+procedure TPiRpcTest.TestModelsAndState;
+begin
+  FAdapter.HandleLine('{"id":"fp1","type":"response","command":"get_available_models","success":true,"data":{"models":[' +
+    '{"id":"claude-sonnet-4","name":"Claude Sonnet 4","provider":"anthropic"},' +
+    '{"id":"gpt-5","name":"GPT-5","provider":"openai"}]}}');
+  AssertEquals(2, Length(FAdapter.Models));
+  AssertEquals('anthropic/claude-sonnet-4', FAdapter.Models[0].Id);
+  AssertEquals('Claude Sonnet 4', FAdapter.Models[0].Name);
+  FAdapter.HandleLine('{"id":"fp2","type":"response","command":"get_state","success":true,"data":{' +
+    '"model":{"id":"gpt-5","provider":"openai"},"thinkingLevel":"medium","sessionId":"abc123"}}');
+  AssertEquals('abc123', FAdapter.SessionId);
+  AssertTrue(Pos('model: openai/gpt-5', FRec.Events.Text) > 0);
+end;
+
+procedure TPiRpcTest.TestPromptRejected;
+begin
+  Busy;
+  FAdapter.HandleLine('{"id":"fp3","type":"response","command":"prompt","success":false,"error":"No API key found for the selected model."}');
+  AssertTrue(FRec.Done);
+  AssertEquals('error', FRec.StopReason);
+  AssertEquals('No API key found for the selected model.', FRec.Errors[0]);
+  AssertTrue(FAdapter.State = aasReady);
+end;
+
+procedure TPiRpcTest.TestSettledFinishesTurn;
+begin
+  Busy;
+  FAdapter.HandleLine('{"id":"fp4","type":"response","command":"prompt","success":true,"data":{"disposition":"started"}}');
+  AssertFalse('accepted is not finished', FRec.Done);
+  FAdapter.HandleLine('{"type":"agent_end","messages":[],"willRetry":false}');
+  AssertFalse('agent_end is not the end yet', FRec.Done);
+  FAdapter.HandleLine('{"type":"agent_settled","aborted":false}');
+  AssertTrue(FRec.Done);
+  AssertEquals('end_turn', FRec.StopReason);
+  AssertTrue(FAdapter.State = aasReady);
+end;
+
+procedure TPiRpcTest.TestSettledIgnoredWhenIdle;
+begin
+  FAdapter.HandleLine('{"type":"agent_settled","aborted":false}');
+  AssertFalse(FRec.Done);
+end;
+
+procedure TPiRpcTest.TestMessageError;
+begin
+  Busy;
+  FAdapter.HandleLine('{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"error","errorMessage":"rate limited","usage":{"input":0,"output":0}}}');
+  FAdapter.HandleLine('{"type":"agent_settled","aborted":false}');
+  AssertEquals('rate limited', FRec.Errors[0]);
+  AssertEquals('error', FRec.StopReason);
+end;
+
+procedure TPiRpcTest.TestAborted;
+begin
+  Busy;
+  FAdapter.HandleLine('{"type":"agent_settled","aborted":true}');
+  AssertEquals('cancelled', FRec.StopReason);
+end;
+
+procedure TPiRpcTest.TestUsage;
+begin
+  FAdapter.HandleLine('{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"stop",' +
+    '"usage":{"input":100,"output":5,"cacheRead":0,"cacheWrite":0,"totalTokens":105,"cost":{"input":0.001,"output":0.0002,"total":0.0012}}}}');
+  AssertTrue(FRec.Events.Text, Pos('in 100, out 5, cost $0.0012', FRec.Events.Text) > 0);
+  // user messages are not assistant output
+  FRec.Reset;
+  FAdapter.HandleLine('{"type":"message_end","message":{"role":"user","content":"hi"}}');
+  AssertEquals(0, FRec.Events.Count);
+end;
+
+procedure TPiRpcTest.TestConfirmDialog;
+var
+  sent: string;
+begin
+  FAdapter.HandleLine('{"type":"extension_ui_request","id":"uuid-2","method":"confirm","title":"Run rm -rf build?","message":"This deletes the folder.","timeout":5000}');
+  AssertEquals(1, Length(FRec.Permissions));
+  AssertEquals('Run rm -rf build?', FRec.Permissions[0].ToolTitle);
+  AssertEquals('This deletes the folder.', FRec.Permissions[0].Detail);
+  AssertEquals(2, Length(FRec.Permissions[0].Options));
+  sent := FRec.Sent[FRec.Sent.Count - 1];
+  AssertTrue(sent, Pos('"type" : "extension_ui_response"', sent) > 0);
+  AssertTrue(sent, Pos('"id" : "uuid-2"', sent) > 0);
+  AssertTrue(sent, Pos('"confirmed" : true', sent) > 0);
+end;
+
+procedure TPiRpcTest.TestConfirmRejected;
+begin
+  FRec.AnswerPermission := 'reject';
+  FAdapter.HandleLine('{"type":"extension_ui_request","id":"u3","method":"confirm","title":"Sure?"}');
+  AssertTrue(Pos('"confirmed" : false', FRec.Sent[FRec.Sent.Count - 1]) > 0);
+end;
+
+procedure TPiRpcTest.TestSelectDialog;
+var
+  sent: string;
+begin
+  FAdapter.HandleLine('{"type":"extension_ui_request","id":"uuid-1","method":"select","title":"Allow dangerous command?","options":["Allow","Block"]}');
+  AssertEquals(2, Length(FRec.Permissions[0].Options));
+  AssertEquals('Block', FRec.Permissions[0].Options[1].Name);
+  sent := FRec.Sent[FRec.Sent.Count - 1];
+  AssertTrue(sent, Pos('"value" : "Allow"', sent) > 0);
+end;
+
+procedure TPiRpcTest.TestInputDialogCancelled;
+var
+  sent: string;
+begin
+  FAdapter.HandleLine('{"type":"extension_ui_request","id":"u9","method":"input","title":"Name?"}');
+  AssertEquals(0, Length(FRec.Permissions));
+  sent := FRec.Sent[FRec.Sent.Count - 1];
+  AssertTrue(sent, Pos('"id" : "u9"', sent) > 0);
+  AssertTrue(sent, Pos('"cancelled" : true', sent) > 0);
+end;
+
+procedure TPiRpcTest.TestPresetUsesRpc;
+var
+  a: TAIAdapter;
+begin
+  a := AICreateAdapter(AI_PRESET_PI);
+  try
+    AssertTrue(a is TPiRpcAdapter);
+    AssertEquals('pi', a.Command);
+  finally
+    a.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TAIPlaneHelpersTest);
   RegisterTest(TACPAdapterTest);
   RegisterTest(TClaudeStreamTest);
+  RegisterTest(TPiRpcTest);
 
 end.

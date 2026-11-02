@@ -16,6 +16,7 @@ integration (menu *FastPlaz → AI Plane*, dockable window, *AI Plane* tab in
 | `aiplane_types.pas` | `TAIAdapter` base class, `TAIEvent`, permission/model records |
 | `aiplane_process.pas` | `TAIProcessChannel`: child process with line based stdout, polled without threads; finds `.exe`/`.cmd` shims on `PATH` |
 | `aiplane_acp.pas` | `TACPAdapter`: Agent Client Protocol (JSON-RPC 2.0 over stdio) |
+| `aiplane_pi.pas` | `TPiRpcAdapter`: Pi's native RPC mode (`pi --mode rpc`): streamed text/thinking, tool execution, abort, new session, model list, `set_model`, `set_thinking_level` without restart, extension confirm/select dialogs as permission cards |
 | `aiplane_claude.pas` | `TClaudeStreamAdapter`: Claude Code `--input-format/--output-format stream-json` |
 | `aiplane_presets.pas` | Known runtimes (command, arguments, adapter class), `AICreateAdapter()` |
 | `aiplane_markdown.pas` | Markdown parser (no LCL): headings, lists, quotes, fenced code, tables, rules; bold, italic, strikethrough, `code`, links (with titles), images `![alt](src "title")` and linked images `[![alt](src)](href)`. Half-streamed markup stays readable |
@@ -58,7 +59,7 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
 | --- | --- | --- | --- |
 | `claude` | stream-json | `claude -p --input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-prompt-tool stdio` | yes (Claude Code 2.1.316), permission prompt not yet seen live |
 | `opencode` | ACP | `opencode acp` | yes (OpenCode 2.1.4) |
-| `pi` | ACP | `pi-acp` (npm bridge) | no |
+| `pi` | Pi RPC | `pi --mode rpc` | yes (Pi 1.4.0): protocol and errors; answers need a provider login (`pi`, then `/login`) |
 | `claude-acp` | ACP | `claude-agent-acp` (npm bridge, needs Node.js) | no |
 
 Spike findings (2026-11-02):
