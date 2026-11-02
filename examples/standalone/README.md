@@ -47,6 +47,7 @@ Options (command line wins over `config/config.json` → `systems/server`):
 | `--port=8080` | `port` | `8080` |
 | `--address=127.0.0.1` | `address` | `127.0.0.1` |
 | `--static=on\|off` | `static` | `on` |
+| `--max-requests=N` | `max_requests` | `0` (never); stop after N requests so a service manager starts a fresh process |
 | `--root=<dir>` | – | directory of the binary (when it holds `config/config.json`) |
 
 `static` serves theme assets (css, js, images, fonts, ...) directly. Turn it
@@ -55,6 +56,9 @@ and `ztemp/` are never served as files.
 
 Run several processes on different ports for more throughput; each one
 handles one request at a time.
+
+Ctrl+C (or SIGTERM on Linux/macOS) stops the server after the request in
+progress; a second Ctrl+C ends it at once.
 
 ## Behind nginx
 
@@ -112,4 +116,4 @@ option.
 ## Not yet done
 
 Phase 2 of the roadmap: `X-Forwarded-*` handling behind a proxy, memory
-audit for long runs, database reconnect, graceful shutdown, service files.
+audit for long runs, database reconnect, service files.

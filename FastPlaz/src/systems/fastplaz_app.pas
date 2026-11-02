@@ -72,6 +72,8 @@ type
   TFastPlazHTTPApplication = class(TCustomHTTPApplication)
   protected
     function InitializeWebHandler: TWebHandler; override;
+    // installs the Ctrl+C / SIGTERM handlers once the server really runs
+    procedure DoRun; override;
   end;
 
 // the web application: the one handling the current request, otherwise the
@@ -108,6 +110,15 @@ function ServeStaticFile(ARequest: TRequest; AResponse: TResponse): boolean;
 function StaticFileForPath(const AURLPath: string): string;
 // systems/server/static or --static=on|off (default on)
 function StaticFilesEnabled: boolean;
+// systems/server/max_requests or --max-requests=N: a standalone server stops
+// after N requests (0 = never), so a process manager can start a fresh one
+function MaxRequests: integer;
+// requests handled by this process
+function RequestCount: integer;
+
+// standalone mode: stop accepting and let Application.Run return after the
+// current request; safe to call from a signal handler (Ctrl+C, SIGTERM)
+procedure RequestShutdown;
 
 var
   // called around every request, in every mode
@@ -117,6 +128,8 @@ var
 implementation
 
 uses
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+  {$IFDEF UNIX}BaseUnix,{$ENDIF}
   CustApp, DateUtils, fpjson, jsonparser, jsonscanner;
 
 const
@@ -161,6 +174,10 @@ var
   FPort: integer = FASTPLAZ_HTTP_PORT_DEFAULT;
   FAddress: string = FASTPLAZ_HTTP_ADDRESS_DEFAULT;
   FStatic: boolean = True;
+  FMaxRequests: integer = 0;
+  FRequestCount: integer = 0;
+  FShutdownRequested: boolean = False;
+  FShutdownHandlersInstalled: boolean = False;
   FRequest: TRequest = nil;
   FResponse: TResponse = nil;
 
@@ -194,7 +211,7 @@ end;
 // systems/server from config/config.json; a missing or broken file is not
 // an error here, common.pas reports it
 procedure ReadServerConfig(out AMode: string; out APort: integer;
-  out AAddress: string; out AStatic: boolean);
+  out AAddress: string; out AStatic: boolean; out AMaxRequests: integer);
 var
   lst: TStringList;
   parser: TJSONParser;
@@ -205,6 +222,7 @@ begin
   APort := 0;
   AAddress := '';
   AStatic := True;
+  AMaxRequests := 0;
   if not FileExists(CONFIG_FILE) then
     Exit;
   root := nil;
@@ -227,6 +245,7 @@ begin
       APort := TJSONObject(server).Get('port', 0);
       AAddress := TJSONObject(server).Get('address', '');
       AStatic := TJSONObject(server).Get('static', True);
+      AMaxRequests := TJSONObject(server).Get('max_requests', 0);
     except
       // ignored, see above
     end;
@@ -246,7 +265,7 @@ begin
     Exit;
   FModeResolved := True;
 
-  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic);
+  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic, FMaxRequests);
   if cfgPort > 0 then
     FPort := cfgPort;
   if cfgAddress <> '' then
@@ -255,7 +274,7 @@ begin
   modeSet := CommandLineValue('mode', s) and ParseMode(s, FMode);
   if not modeSet then
   begin
-    if GetEnvironmentVariable('GATEWAY_INTERFACE') <> '' then
+    if SysUtils.GetEnvironmentVariable('GATEWAY_INTERFACE') <> '' then
     begin
       FMode := amCGI;
       modeSet := True;
@@ -272,6 +291,21 @@ begin
     FAddress := s;
   if CommandLineValue('static', s) then
     FStatic := not (SameText(s, 'off') or SameText(s, 'false') or (s = '0'));
+  if CommandLineValue('max-requests', s) then
+    FMaxRequests := StrToIntDef(s, FMaxRequests);
+  if FMaxRequests < 0 then
+    FMaxRequests := 0;
+end;
+
+function MaxRequests: integer;
+begin
+  ResolveMode;
+  Result := FMaxRequests;
+end;
+
+function RequestCount: integer;
+begin
+  Result := FRequestCount;
 end;
 
 function StaticFilesEnabled: boolean;
@@ -426,6 +460,53 @@ begin
   Result := FAddress;
 end;
 
+procedure RequestShutdown;
+begin
+  FShutdownRequested := True;
+  if (FRunningApp is TCustomHTTPApplication) then
+    FRunningApp.Terminate
+  else if (FApp is TCustomHTTPApplication) then
+    FApp.Terminate;
+end;
+
+{$IFDEF MSWINDOWS}
+function ConsoleCtrlHandler(ACtrlType: DWORD): WINBOOL; stdcall;
+begin
+  case ACtrlType of
+    CTRL_C_EVENT, CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_SHUTDOWN_EVENT:
+    begin
+      // a second Ctrl+C while stopping ends the process the default way
+      if FShutdownRequested then
+        Exit(False);
+      RequestShutdown;
+      Result := True;
+    end;
+    else
+      Result := False;
+  end;
+end;
+{$ENDIF}
+
+{$IFDEF UNIX}
+procedure ShutdownSignalHandler(ASignal: longint); cdecl;
+begin
+  if FShutdownRequested then
+    Halt(1);
+  RequestShutdown;
+end;
+{$ENDIF}
+
+procedure InstallShutdownHandlers;
+begin
+  {$IFDEF MSWINDOWS}
+  SetConsoleCtrlHandler(@ConsoleCtrlHandler, True);
+  {$ENDIF}
+  {$IFDEF UNIX}
+  fpSignal(SIGTERM, signalhandler(@ShutdownSignalHandler));
+  fpSignal(SIGINT, signalhandler(@ShutdownSignalHandler));
+  {$ENDIF}
+end;
+
 function Application: TCustomWebApplication;
 var
   http: TFastPlazHTTPApplication;
@@ -446,6 +527,9 @@ begin
       http.Port := FPort;
       http.Address := FAddress;
       http.Threaded := False;
+      // the accept loop wakes up every second, so a shutdown request from
+      // a signal handler is noticed without a new connection
+      http.AcceptIdleTimeout := 1000;
       FApp := http;
     end;
     // keep an application created by fpcgi registered: it is the one that
@@ -515,7 +599,7 @@ var
 begin
   r := CurrentRequest;
   if (r = nil) or (not IsStandalone) then
-    Exit(GetEnvironmentVariable(AName));
+    Exit(SysUtils.GetEnvironmentVariable(AName));
 
   n := UpperCase(Trim(AName));
   case n of
@@ -549,7 +633,7 @@ begin
       if Copy(n, 1, 5) = 'HTTP_' then
         Result := r.GetFieldByName(CGINameToHeaderName(n))
       else
-        Result := GetEnvironmentVariable(AName);
+        Result := SysUtils.GetEnvironmentVariable(AName);
   end;
 end;
 
@@ -559,7 +643,9 @@ begin
     Application.Terminate;
 end;
 
-procedure BeginRequest(AHandler: TWebHandler; ARequest: TRequest;
+// not BeginRequest/EndRequest: inside the handlers those names resolve to
+// TWebHandler.EndRequest, which frees the request and the response
+procedure RequestStarted(AHandler: TWebHandler; ARequest: TRequest;
   AResponse: TResponse);
 begin
   if AHandler.Owner is TCustomWebApplication then
@@ -570,7 +656,7 @@ begin
     OnBeginRequest(ARequest, AResponse);
 end;
 
-procedure EndRequest(ARequest: TRequest; AResponse: TResponse);
+procedure RequestFinished(ARequest: TRequest; AResponse: TResponse);
 begin
   try
     if Assigned(OnEndRequest) then
@@ -578,6 +664,9 @@ begin
   finally
     FRequest := nil;
     FResponse := nil;
+    Inc(FRequestCount);
+    if IsStandalone and (MaxRequests > 0) and (FRequestCount >= MaxRequests) then
+      RequestShutdown;
   end;
 end;
 
@@ -602,11 +691,11 @@ end;
 
 procedure TFastPlazCGIHandler.HandleRequest(ARequest: TRequest; AResponse: TResponse);
 begin
-  BeginRequest(Self, ARequest, AResponse);
+  RequestStarted(Self, ARequest, AResponse);
   try
     inherited HandleRequest(ARequest, AResponse);
   finally
-    EndRequest(ARequest, AResponse);
+    RequestFinished(ARequest, AResponse);
   end;
 end;
 
@@ -626,11 +715,11 @@ begin
       Exit;
     end;
   end;
-  BeginRequest(Self, ARequest, AResponse);
+  RequestStarted(Self, ARequest, AResponse);
   try
     inherited HandleRequest(ARequest, AResponse);
   finally
-    EndRequest(ARequest, AResponse);
+    RequestFinished(ARequest, AResponse);
   end;
 end;
 
@@ -639,6 +728,16 @@ end;
 function TFastPlazHTTPApplication.InitializeWebHandler: TWebHandler;
 begin
   Result := TFastPlazHTTPHandler.Create(Self);
+end;
+
+procedure TFastPlazHTTPApplication.DoRun;
+begin
+  if not FShutdownHandlersInstalled then
+  begin
+    FShutdownHandlersInstalled := True;
+    InstallShutdownHandlers;
+  end;
+  inherited DoRun;
 end;
 
 procedure ChangeToRootDir;
@@ -655,7 +754,7 @@ begin
       SetCurrentDir(dir);
     Exit;
   end;
-  if GetEnvironmentVariable('GATEWAY_INTERFACE') <> '' then
+  if SysUtils.GetEnvironmentVariable('GATEWAY_INTERFACE') <> '' then
     Exit;
   if FileExists(CONFIG_FILE) then
     Exit;
