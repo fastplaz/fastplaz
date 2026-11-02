@@ -992,6 +992,8 @@ end;
 procedure TAIChatFrame.SetWorkingDir(const AValue: string);
 begin
   FWorkingDir := AValue;
+  // relative image paths in answers are relative to the project
+  FView.BaseDir := AValue;
   if Assigned(FAdapter) then
     FAdapter.WorkingDir := AValue;
 end;

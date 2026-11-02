@@ -15,6 +15,7 @@ program mock_acp_agent;
     fail         answers the prompt with a JSON-RPC error
     model?       reports the current model and effort
     unicode      replies with non-ASCII text
+    image        local, remote, linked and missing images
     markdown     a markdown answer (headings, lists, code, table, ...),
                  streamed line by line
     anything     "echo: <text>"
@@ -332,6 +333,14 @@ begin
     Chunk(sid, 'agent_message_chunk', 'model=' + CurrentModel + ' effort=' + CurrentEffort)
   else if text = 'unicode' then
     Chunk(sid, 'agent_message_chunk', 'Halo dunia ' + #$E2#$9C#$93 + ' caf' + #$C3#$A9)
+  else if text = 'image' then
+  begin
+    Chunk(sid, 'agent_message_chunk', 'Gambar lokal (relatif ke folder kerja):' + #10 + #10);
+    Chunk(sid, 'agent_message_chunk', '![Menu FastPlaz](docs/images/menu.png "Menu FastPlaz di Lazarus")' + #10 + #10);
+    Chunk(sid, 'agent_message_chunk', 'Gambar remote tidak diunduh: ![Kanban Hero](https://teamthumb.ai.id/assets/images/kanban-hero.jpg "Kanban Hero")' + #10 + #10);
+    Chunk(sid, 'agent_message_chunk', 'Gambar ber-link: [![Kanban Hero](https://teamthumb.ai.id/assets/images/kanban-hero.jpg "Klik untuk buka situs")](https://github.com/fastplaz/fastplaz)' + #10 + #10);
+    Chunk(sid, 'agent_message_chunk', 'File yang tidak ada: ![Logo](./assets/images/tidak-ada.png)');
+  end
   else if text = 'markdown' then
   begin
     Chunk(sid, 'agent_message_chunk', '## Ringkasan perubahan' + #10);

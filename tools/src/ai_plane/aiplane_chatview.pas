@@ -9,6 +9,11 @@ unit aiplane_chatview;
   inline bold, italic, strikethrough, `code` and links. Other items are
   plain text.
 
+  Images: a local file (absolute, file://, or relative to BaseDir) is drawn
+  scaled to the text width and at most MAX_IMAGE_HEIGHT high. Remote
+  images are not downloaded: they show as a link-styled placeholder that
+  opens the URL. Titles become tooltips.
+
   Layout turns an item into fragments (styled text, code block boxes, rules,
   quote bars, table lines) once per width; painting only draws them. Only
   the item that changed is laid out again, so streaming stays cheap; wrap
@@ -45,7 +50,8 @@ type
     cfText,      // styled text
     cfBox,       // filled rounded box (code block, table header)
     cfLine,      // line from TopLeft to BottomRight (rule, table grid)
-    cfBar        // filled rectangle (quote bar)
+    cfBar,       // filled rectangle (quote bar)
+    cfImage      // picture from the image cache (Text = resolved path)
     );
 
   { One piece of laid out content. Coordinates are relative to the item's
@@ -60,6 +66,7 @@ type
     Color: TColor;      // clNone = the item's text colour
     Back: TColor;       // clNone = no background
     Url: string;
+    Hint: string;       // tooltip: link or image title
     Selectable: boolean;
     // how this piece joins the previous line when copied: 0 new line,
     // 1 a space (word wrap), 2 nothing (a word or code line broken),
@@ -127,6 +134,13 @@ type
     FMenuCopy: TMenuItem;
     FMenuCopyCode: TMenuItem;
     FMenuCopyMessage: TMenuItem;
+    FBaseDir: string;
+    FImages: TStringList;   // resolved path -> TPicture (nil: failed)
+    function ResolveLocalImage(const ASrc: string): string;
+    function ImagePicture(const APath: string): TPicture;
+    function ImageSize(const ASrc: string; out APath: string; out AW, AH: integer): boolean;
+    procedure SetBaseDir(const AValue: string);
+    procedure OpenTarget(const ATarget: string);
     procedure ApplyFragFont(ACanvas: TCanvas; const AFrag: TAIChatFrag);
     function FragOffsetAt(const AFrag: TAIChatFrag; AX: integer): integer;
     function PosAt(X, Y: integer; out APos: TAIChatSelPos): boolean;
@@ -184,6 +198,8 @@ type
     property Count: integer read GetCount;
     property Items[AIndex: integer]: TAIChatItem read GetItem;
     property OnButtonClick: TAIChatButtonEvent read FOnButtonClick write FOnButtonClick;
+    { Directory relative image paths are resolved against. }
+    property BaseDir: string read FBaseDir write SetBaseDir;
   end;
 
 implementation
@@ -197,6 +213,8 @@ const
   QUOTE_INDENT = 14;
   CELL_PAD = 6;
   INLINE_CODE_PAD = 3;
+  MAX_IMAGE_HEIGHT = 300;
+  MAX_IMAGE_FILE_SIZE = 20 * 1024 * 1024;
   BUTTON_HEIGHT = 24;
   BUTTON_PAD = 12;
   DRAW_FLAGS = DT_WORDBREAK or DT_NOPREFIX or DT_EXPANDTABS or DT_EDITCONTROL;
@@ -222,6 +240,8 @@ end;
 { ---------- layout ---------- }
 
 type
+  TImageSizeFunc = function(const ASrc: string; out APath: string;
+    out AW, AH: integer): boolean of object;
 
   { TChatLayout: turns runs and blocks into fragments. }
 
@@ -240,6 +260,7 @@ type
     function AddFrag(AKind: TAIChatFragKind; const AR: TRect): integer;
   public
     Frags: array of TAIChatFrag;
+    ImageSize: TImageSizeFunc;
     constructor Create(ACanvas: TCanvas; ABase, ACode: TFont);
     function Runs(const ARuns: TMDRuns; AX, AWidth, AY: integer;
       AExtraStyle: TFontStyles; AScale: integer; AColor: TColor): integer;
@@ -312,6 +333,8 @@ var
   isSpace: boolean;
   lastRun: integer;
   pendingJoin: byte;
+  imgPath, target, tip: string;
+  iw, ih, m2: integer;
 
   // AJoin: how the next line joins this one when copied (see WrapJoin)
   procedure EndLine(AJoin: byte);
@@ -357,6 +380,8 @@ var
       Frags[m].Scale := AScale;
       Frags[m].Color := AColor;
       Frags[m].Url := run.Url;
+      if run.Title <> '' then
+        Frags[m].Hint := run.Title;
       Frags[m].WrapJoin := pendingJoin;
       pendingJoin := 0;
       if misLink in run.Style then
@@ -383,6 +408,74 @@ begin
   for r := 0 to High(ARuns) do
   begin
     run := ARuns[r];
+
+    if misImage in run.Style then
+    begin
+      // clicking opens the wrapping link, else the image itself
+      target := run.Link;
+      if target = '' then
+        target := run.Url;
+      tip := run.Title;
+      if tip = '' then
+        tip := run.Text;
+      if Assigned(ImageSize) and ImageSize(run.Url, imgPath, iw, ih) then
+      begin
+        // a picture sits on its own line
+        if x > 0 then
+          EndLine(0);
+        if iw > AWidth then
+        begin
+          ih := ih * AWidth div iw;
+          iw := AWidth;
+        end;
+        if ih > MAX_IMAGE_HEIGHT then
+        begin
+          iw := iw * MAX_IMAGE_HEIGHT div ih;
+          ih := MAX_IMAGE_HEIGHT;
+        end;
+        if iw < 1 then
+          iw := 1;
+        if ih < 1 then
+          ih := 1;
+        m2 := AddFrag(cfImage, Rect(AX, y, AX + iw, y + ih));
+        Frags[m2].Text := imgPath;
+        Frags[m2].Url := target;
+        Frags[m2].Hint := tip;
+        Inc(y, ih + 4);
+        x := 0;
+        lineH := LineHeight(False, AScale);
+        lineStart := Length(Frags);
+        lastRun := -1;
+        pendingJoin := 0;
+      end
+      else
+      begin
+        // not drawable here (remote, missing): a link-styled placeholder
+        token := '▣ ' + run.Text;
+        if run.Text = '' then
+          token := '▣ ' + ExtractFileName(StringReplace(run.Url, '/', PathDelim, [rfReplaceAll]));
+        style := AExtraStyle + [fsUnderline];
+        mono := False;
+        extra := 0;
+        run.Url := target;
+        UseFont(False, style, AScale);
+        w := FCanvas.TextWidth(token);
+        if (x + w > AWidth) and (x > 0) then
+        begin
+          EndLine(1);
+          UseFont(False, style, AScale);
+        end;
+        Emit(token, w);
+        Frags[High(Frags)].Color := LinkColor;
+        if run.Title <> '' then
+          Frags[High(Frags)].Hint := run.Title + LineEnding + run.Url
+        else
+          Frags[High(Frags)].Hint := run.Url;
+        lastRun := -1;
+      end;
+      Continue;
+    end;
+
     style := AExtraStyle;
     if misBold in run.Style then
       Include(style, fsBold);
@@ -803,6 +896,9 @@ var
 begin
   inherited Create(AOwner);
   FItems := TObjectList.Create(True);
+  FImages := TStringList.Create;
+  FImages.OwnsObjects := True;
+  FImages.Sorted := True;
   BorderStyle := bsNone;
   HorzScrollBar.Visible := False;
   VertScrollBar.Tracking := True;
@@ -860,6 +956,7 @@ end;
 destructor TAIChatView.Destroy;
 begin
   FItems.Free;
+  FImages.Free;
   FCodeFont.Free;
   FMeasure.Free;
   inherited Destroy;
@@ -926,6 +1023,7 @@ begin
   if not (AItem.Collapsible and AItem.Collapsed) and (Trim(AItem.Text) <> '') then
   begin
     layout := TChatLayout.Create(FMeasure.Canvas, Font, FCodeFont);
+    layout.ImageSize := @ImageSize;
     try
       if AItem.IsMarkdown then
         contentH := layout.Blocks(MDParse(AItem.Text), inner)
@@ -1118,6 +1216,7 @@ var
   hand, onText: boolean;
   pos: TAIChatSelPos;
   p: TPoint;
+  tip: string;
 begin
   if FMouseIsDown and (ssLeft in Shift) then
   begin
@@ -1154,9 +1253,21 @@ begin
     if LinkAt(item, X, Y) <> '' then
       hand := True;
     p := Point(X - MARGIN - PAD, Y - item.Top - item.ContentY);
+    tip := '';
     for i := 0 to High(item.Frags) do
-      if item.Frags[i].Selectable and PtInRect(item.Frags[i].R, p) then
-        onText := True;
+      if PtInRect(item.Frags[i].R, p) then
+      begin
+        if item.Frags[i].Selectable then
+          onText := True;
+        if item.Frags[i].Hint <> '' then
+          tip := item.Frags[i].Hint;
+      end;
+    if tip <> FBox.Hint then
+    begin
+      Application.CancelHint;
+      FBox.Hint := tip;
+      FBox.ShowHint := tip <> '';
+    end;
   end;
   if hand then
     FBox.Cursor := crHandPoint
@@ -1254,7 +1365,7 @@ begin
   url := LinkAt(item, X, Y);
   if url <> '' then
   begin
-    OpenURL(url);
+    OpenTarget(url);
     Exit;
   end;
   if item.Collapsible and (Y < item.Top + PAD + item.HeaderHeight) then
@@ -1291,6 +1402,7 @@ var
   i, y, x, inner, w, ox, oy, baseSize, selStart, selEnd, selPad: integer;
   s: string;
   f: TAIChatFrag;
+  pic: TPicture;
 begin
   fore := clWindowText;
   accent := clHighlight;
@@ -1383,6 +1495,15 @@ begin
         ACanvas.Pen.Color := f.Color;
         ACanvas.Line(r.Left, r.Top, r.Right, r.Bottom);
       end;
+      cfImage:
+      begin
+        pic := ImagePicture(f.Text);
+        if Assigned(pic) and Assigned(pic.Graphic) then
+          ACanvas.StretchDraw(r, pic.Graphic);
+        ACanvas.Brush.Style := bsClear;
+        ACanvas.Pen.Color := Blend(clWindow, clWindowText, 18);
+        ACanvas.Rectangle(r);
+      end;
       cfText:
       begin
         if f.Back <> clNone then
@@ -1455,6 +1576,129 @@ begin
       end;
   end;
   ACanvas.Brush.Style := bsSolid;
+end;
+
+function TAIChatView.ResolveLocalImage(const ASrc: string): string;
+var
+  src, ext: string;
+begin
+  Result := '';
+  src := Trim(ASrc);
+  if (src = '') or (Pos('://', src) > 0) and (Copy(LowerCase(src), 1, 7) <> 'file://') then
+    Exit;  // remote images are never fetched
+  if Copy(LowerCase(src), 1, 5) = 'data:' then
+    Exit;
+  if Copy(LowerCase(src), 1, 7) = 'file://' then
+  begin
+    Delete(src, 1, 7);
+    // file:///C:/x -> C:/x
+    if (Length(src) > 2) and (src[1] = '/') and (src[3] = ':') then
+      Delete(src, 1, 1);
+  end;
+  src := StringReplace(src, '/', PathDelim, [rfReplaceAll]);
+  if (ExtractFileDrive(src) = '') and ((src = '') or (src[1] <> PathDelim)) then
+  begin
+    if FBaseDir = '' then
+      Exit;
+    src := IncludeTrailingPathDelimiter(FBaseDir) + src;
+  end;
+  src := ExpandFileName(src);
+  ext := LowerCase(ExtractFileExt(src));
+  if (ext <> '.png') and (ext <> '.jpg') and (ext <> '.jpeg') and (ext <> '.gif') and
+    (ext <> '.bmp') and (ext <> '.ico') then
+    Exit;
+  if FileExists(src) then
+    Result := src;
+end;
+
+// Cached picture of a resolved path; nil when it cannot be loaded.
+function TAIChatView.ImagePicture(const APath: string): TPicture;
+var
+  i: integer;
+  pic: TPicture;
+  info: TSearchRec;
+begin
+  Result := nil;
+  if APath = '' then
+    Exit;
+  i := FImages.IndexOf(APath);
+  if i >= 0 then
+    Exit(TPicture(FImages.Objects[i]));
+  pic := nil;
+  if (FindFirst(APath, faAnyFile, info) = 0) then
+  begin
+    if info.Size <= MAX_IMAGE_FILE_SIZE then
+    begin
+      pic := TPicture.Create;
+      try
+        pic.LoadFromFile(APath);
+      except
+        FreeAndNil(pic);
+      end;
+    end;
+    FindClose(info);
+  end;
+  // a failed load is cached too, so it is not retried on every layout
+  FImages.AddObject(APath, pic);
+  Result := pic;
+end;
+
+function TAIChatView.ImageSize(const ASrc: string; out APath: string;
+  out AW, AH: integer): boolean;
+var
+  pic: TPicture;
+begin
+  AW := 0;
+  AH := 0;
+  APath := ResolveLocalImage(ASrc);
+  pic := ImagePicture(APath);
+  Result := Assigned(pic) and (pic.Width > 0) and (pic.Height > 0);
+  if Result then
+  begin
+    AW := pic.Width;
+    AH := pic.Height;
+  end;
+end;
+
+procedure TAIChatView.SetBaseDir(const AValue: string);
+begin
+  if FBaseDir = AValue then
+    Exit;
+  FBaseDir := AValue;
+  // relative image paths may resolve differently now
+  FLayoutWidth := -1;
+  Relayout(0);
+end;
+
+procedure TAIChatView.OpenTarget(const ATarget: string);
+var
+  path: string;
+begin
+  if Pos('://', ATarget) > 0 then
+  begin
+    if Copy(LowerCase(ATarget), 1, 7) = 'file://' then
+    begin
+      path := ResolveLocalImage(ATarget);
+      if path <> '' then
+        OpenDocument(path);
+    end
+    else
+      OpenURL(ATarget);
+    Exit;
+  end;
+  if Copy(LowerCase(ATarget), 1, 7) = 'mailto:' then
+  begin
+    OpenURL(ATarget);
+    Exit;
+  end;
+  // a local file: relative to BaseDir
+  path := StringReplace(ATarget, '/', PathDelim, [rfReplaceAll]);
+  if (ExtractFileDrive(path) = '') and (FBaseDir <> '') and
+    ((path = '') or (path[1] <> PathDelim)) then
+    path := IncludeTrailingPathDelimiter(FBaseDir) + path;
+  path := ExpandFileName(path);
+  if FileExists(path) or DirectoryExists(path) then
+    OpenDocument(path);
 end;
 
 procedure TAIChatView.ApplyFragFont(ACanvas: TCanvas; const AFrag: TAIChatFrag);

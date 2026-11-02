@@ -6,7 +6,8 @@ unit aiplane_markdown;
   Covers what coding agents write: headings, paragraphs, bullet and numbered
   lists (nested by indentation), block quotes, fenced code, horizontal
   rules, pipe tables, and inline bold, italic, strikethrough, `code`,
-  [links](url) and bare http(s) URLs.
+  [links](url), bare http(s) URLs and images: ![alt](src "title"), also
+  wrapped in a link: [![alt](src)](href).
 
   Text arrives while it streams, so half-written markup must stay readable:
   an unclosed ``` fence is still a code block, and ** or * only start bold
@@ -26,13 +27,15 @@ uses
   Classes, SysUtils, StrUtils;
 
 type
-  TMDInlineStyle = (misBold, misItalic, misStrike, misCode, misLink);
+  TMDInlineStyle = (misBold, misItalic, misStrike, misCode, misLink, misImage);
   TMDInlineStyles = set of TMDInlineStyle;
 
   TMDRun = record
-    Text: string;
+    Text: string;             // image: the alt text
     Style: TMDInlineStyles;
-    Url: string;
+    Url: string;              // link target; image: the image source
+    Title: string;            // link or image title ("tooltip")
+    Link: string;             // image wrapped in a link: the link target
   end;
 
   TMDRuns = array of TMDRun;
@@ -78,10 +81,93 @@ end;
 
 { ---------- inline ---------- }
 
+// Index of the "]" matching the "[" at AOpen (nested brackets, escapes),
+// 0 when there is none.
+function MatchBracket(const AText: string; AOpen: integer): integer;
+var
+  depth, i: integer;
+begin
+  Result := 0;
+  depth := 0;
+  i := AOpen;
+  while i <= Length(AText) do
+  begin
+    case AText[i] of
+      '\': Inc(i);
+      '[': Inc(depth);
+      ']':
+      begin
+        Dec(depth);
+        if depth = 0 then
+          Exit(i);
+      end;
+    end;
+    Inc(i);
+  end;
+end;
+
+// Parses a link target that starts after "(" at AStart: url, optional
+// "title" (or 'title'), up to the closing ")". AClose gets its index.
+function ParseTarget(const AText: string; AStart: integer; out AUrl, ATitle: string;
+  out AClose: integer): boolean;
+var
+  i: integer;
+  quote: char;
+  inner: string;
+begin
+  Result := False;
+  AUrl := '';
+  ATitle := '';
+  AClose := 0;
+  quote := #0;
+  i := AStart;
+  while i <= Length(AText) do
+  begin
+    if quote <> #0 then
+    begin
+      if AText[i] = quote then
+        quote := #0;
+    end
+    else if AText[i] in ['"', ''''] then
+      quote := AText[i]
+    else if AText[i] = ')' then
+    begin
+      AClose := i;
+      Break;
+    end;
+    Inc(i);
+  end;
+  if AClose = 0 then
+    Exit;
+  inner := Trim(Copy(AText, AStart, AClose - AStart));
+  // <url with spaces> form
+  if (inner <> '') and (inner[1] = '<') and (Pos('>', inner) > 0) then
+  begin
+    i := Pos('>', inner);
+    AUrl := Copy(inner, 2, i - 2);
+    inner := Trim(Copy(inner, i + 1, MaxInt));
+  end
+  else
+  begin
+    i := Pos(' ', inner);
+    if i = 0 then
+      i := Length(inner) + 1;
+    AUrl := Copy(inner, 1, i - 1);
+    inner := Trim(Copy(inner, i + 1, MaxInt));
+  end;
+  // what is left is the optional "title"
+  ATitle := inner;
+  if (Length(ATitle) >= 2) and (ATitle[1] in ['"', '''']) and
+    (ATitle[Length(ATitle)] = ATitle[1]) then
+    ATitle := Copy(ATitle, 2, Length(ATitle) - 2);
+  Result := True;
+end;
+
 function MDParseInline(const AText: string): TMDRuns;
 var
   i, n, k, p, q: integer;
-  buf, ticks, url, linkText: string;
+  buf, ticks, url, linkText, title: string;
+  sub: TMDRuns;
   style: TMDInlineStyles;
   runs: TMDRuns;
 
@@ -108,6 +194,20 @@ var
   begin
     AddRun(buf, style, '');
     buf := '';
+  end;
+
+  // images are never merged with their neighbours
+  procedure AddImage(const AAlt, ASrc, ATitle, ALink: string);
+  var
+    m: integer;
+  begin
+    m := Length(runs);
+    SetLength(runs, m + 1);
+    runs[m].Text := AAlt;
+    runs[m].Style := style + [misImage];
+    runs[m].Url := ASrc;
+    runs[m].Title := ATitle;
+    runs[m].Link := ALink;
   end;
 
   function CharAt(AIndex: integer): char;
@@ -213,21 +313,41 @@ begin
           Inc(i, 2);
           Continue;
         end;
-      '[':
-      begin
-        p := PosEx(']', AText, i + 1);
-        if (p > 0) and (CharAt(p + 1) = '(') then
+      '!':
+        if CharAt(i + 1) = '[' then
         begin
-          q := PosEx(')', AText, p + 2);
-          if q > 0 then
+          p := MatchBracket(AText, i + 1);
+          if (p > 0) and (CharAt(p + 1) = '(') and ParseTarget(AText, p + 2, url, title, q) then
           begin
-            linkText := Copy(AText, i + 1, p - i - 1);
-            url := Trim(Copy(AText, p + 2, q - p - 2));
             Flush;
-            AddRun(linkText, style + [misLink], url);
+            AddImage(Copy(AText, i + 2, p - i - 2), url, title, '');
             i := q + 1;
             Continue;
           end;
+        end;
+      '[':
+      begin
+        p := MatchBracket(AText, i);
+        if (p > 0) and (CharAt(p + 1) = '(') and ParseTarget(AText, p + 2, url, title, q) then
+        begin
+          linkText := Copy(AText, i + 1, p - i - 1);
+          Flush;
+          sub := nil;
+          if Copy(TrimLeft(linkText), 1, 2) = '![' then
+            sub := MDParseInline(Trim(linkText));
+          if (Length(sub) = 1) and (misImage in sub[0].Style) then
+            // a clickable image
+            AddImage(sub[0].Text, sub[0].Url, sub[0].Title, url)
+          else
+          begin
+            if Length(sub) > 0 then
+              linkText := MDRunsText(sub);
+            AddRun(linkText, style + [misLink], url);
+            if title <> '' then
+              runs[High(runs)].Title := title;
+          end;
+          i := q + 1;
+          Continue;
         end;
       end;
       'h':

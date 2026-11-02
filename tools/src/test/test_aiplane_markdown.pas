@@ -30,6 +30,13 @@ type
     procedure TestBareUrlTrailingDot;
     procedure TestEscapes;
     procedure TestLoneStarIsText;
+    procedure TestImage;
+    procedure TestImageWithTitle;
+    procedure TestLinkedImage;
+    procedure TestImageRelativeAndAngle;
+    procedure TestBangWithoutImageIsText;
+    procedure TestLinkWithBracketsInText;
+    procedure TestLinkTitle;
   end;
 
   { TAIPlaneBlockTest }
@@ -60,7 +67,7 @@ implementation
 
 function RunsDump(const ARuns: TMDRuns): string;
 const
-  NAMES: array[TMDInlineStyle] of char = ('B', 'I', 'S', 'C', 'L');
+  NAMES: array[TMDInlineStyle] of char = ('B', 'I', 'S', 'C', 'L', 'G');
 var
   i: integer;
   st: TMDInlineStyle;
@@ -177,6 +184,73 @@ end;
 procedure TAIPlaneInlineTest.TestLoneStarIsText;
 begin
   AssertEquals('a * b', Inline('a * b'));
+end;
+
+procedure TAIPlaneInlineTest.TestImage;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('see ![Kanban Hero](https://x.id/a.jpg) here');
+  AssertEquals('see |G:Kanban Hero| here', RunsDump(runs));
+  AssertEquals('https://x.id/a.jpg', runs[1].Url);
+  AssertEquals('', runs[1].Link);
+end;
+
+procedure TAIPlaneInlineTest.TestImageWithTitle;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('![Kanban](https://x.id/a b.jpg "The (hero) image")');
+  AssertEquals(1, Length(runs));
+  AssertEquals('https://x.id/a', runs[0].Url);
+  runs := MDParseInline('![Kanban](https://x.id/a.jpg "The (hero) image")');
+  AssertEquals('https://x.id/a.jpg', runs[0].Url);
+  AssertEquals('quoted ) does not end the target', 'The (hero) image', runs[0].Title);
+end;
+
+procedure TAIPlaneInlineTest.TestLinkedImage;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('[![Kanban Hero](https://x.id/a.jpg "Klik")](https://github.com/fastplaz)');
+  AssertEquals('G:Kanban Hero', RunsDump(runs));
+  AssertEquals('https://x.id/a.jpg', runs[0].Url);
+  AssertEquals('Klik', runs[0].Title);
+  AssertEquals('https://github.com/fastplaz', runs[0].Link);
+end;
+
+procedure TAIPlaneInlineTest.TestImageRelativeAndAngle;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('![logo](./assets/images/logo.png)');
+  AssertEquals('./assets/images/logo.png', runs[0].Url);
+  runs := MDParseInline('![logo](<docs/my logo.png>)');
+  AssertEquals('docs/my logo.png', runs[0].Url);
+end;
+
+procedure TAIPlaneInlineTest.TestBangWithoutImageIsText;
+begin
+  AssertEquals('Hello! [not a link] !', Inline('Hello! [not a link] !'));
+  AssertEquals('an ![unclosed](x', Inline('an ![unclosed](x'));
+end;
+
+procedure TAIPlaneInlineTest.TestLinkWithBracketsInText;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('[array [0] item](https://x.id/a)');
+  AssertEquals('L:array [0] item', RunsDump(runs));
+  AssertEquals('https://x.id/a', runs[0].Url);
+end;
+
+procedure TAIPlaneInlineTest.TestLinkTitle;
+var
+  runs: TMDRuns;
+begin
+  runs := MDParseInline('[docs](https://x.id "Docs page")');
+  AssertEquals('https://x.id', runs[0].Url);
+  AssertEquals('Docs page', runs[0].Title);
 end;
 
 { TAIPlaneBlockTest }
