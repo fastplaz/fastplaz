@@ -92,7 +92,7 @@ end;
 constructor TTesterForm.Create(AOwner: TComponent);
 begin
   inherited CreateNew(AOwner);
-  Caption := 'AI Plane Tester';
+  Caption := 'Agent Plane Tester';
   Width := 520;
   Height := 720;
   Position := poScreenCenter;
@@ -417,7 +417,7 @@ begin
     runtimeName := 'mock agent'
   else
     runtimeName := FChat.PresetId;
-  Caption := 'AI Plane Tester - ' + runtimeName + ' - ' + FChat.WorkingDir;
+  Caption := 'Agent Plane Tester - ' + runtimeName + ' - ' + FChat.WorkingDir;
 end;
 
 var

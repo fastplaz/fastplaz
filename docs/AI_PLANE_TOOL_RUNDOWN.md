@@ -1,4 +1,4 @@
-# AI Plane IDE Tools — Rundown
+# Agent Plane IDE Tools — Rundown
 
 Status (2026-11-02): **phase 1 implemented** (`aiplane_httpserver`,
 `aiplane_mcpserver`, `aiplane_tools_ide`, settings, ACP and Claude Code
@@ -8,7 +8,7 @@ questions: plain tool names (Claude Code namespaces them as
 (that is what `DoBuildProject` does, like F9), port in use → next free port up
 to `+9`.
 
-Goal: let the coding agent running in AI Plane (OpenCode, Claude Code, Pi, other
+Goal: let the coding agent running in Agent Plane (OpenCode, Claude Code, Pi, other
 ACP agents) act on the Lazarus IDE itself — open a unit at a line, read the
 active editor, compile the project and read the errors, ask CodeTools where an
 identifier is declared, inspect a database through the Database Explorer, and so
@@ -103,7 +103,7 @@ The token is random per IDE session; the URL uses the actual port (section 3).
 | --- | --- |
 | ACP (OpenCode, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "lazarus", "url": "http://127.0.0.1:17845/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
 | Claude Code (stream-json) | `--mcp-config <temp json>`: `{"mcpServers": {"lazarus": {"type": "http", "url": "...", "headers": {"Authorization": "Bearer <token>"}}}}`; tools appear as `mcp__lazarus__<tool>`; `--allowedTools mcp__lazarus` so Claude Code does not ask a second time (the IDE asks for its risky tools itself) |
-| Pi | Pi extension `aiplane-lazarus.ts` registers the tools and POSTs `tools/call` to the same URL; URL and token passed to Pi when AI Plane starts it |
+| Pi | Pi extension `aiplane-lazarus.ts` registers the tools and POSTs `tools/call` to the same URL; URL and token passed to Pi when Agent Plane starts it |
 
 For ACP the IDE should also advertise and implement the client-side
 capabilities it already partly has:
@@ -141,7 +141,7 @@ Stored in the FastPlaz `config.json` under `aiplane`, edited in
 
 Behaviour:
 
-* **Enabled**: the server starts with the first runtime the AI Plane window
+* **Enabled**: the server starts with the first runtime the Agent Plane window
   starts, and is registered with every runtime that supports it.
 * **Disabled**: no server, no socket; runtimes get no MCP entry
   (`mcpServers: []`, no `--mcp-config`, Pi without the extension). The chat
@@ -266,7 +266,7 @@ debugger is paused; every call except reads is `ask`.
 * Path guard: project directory, required packages and unit search paths only;
   anything else asks.
 * Server: binds to `127.0.0.1` only, requires the per-session Bearer token,
-  rejects non-loopback `Origin` headers, stops when AI Plane stops its last
+  rejects non-loopback `Origin` headers, stops when Agent Plane stops its last
   runtime or MCP Tools is disabled.
 * Output limits: tool results are truncated (for example 32 KB or 500 lines)
   with a note, like Pi tool output today (`MAX_TOOL_OUTPUT`).

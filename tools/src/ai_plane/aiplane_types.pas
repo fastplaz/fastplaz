@@ -1,7 +1,7 @@
 unit aiplane_types;
 
 {
-  AI Plane core types.
+  Agent Plane core types.
 
   The chat UI only talks to TAIAdapter and receives TAIEvent records, so a
   runtime (Claude Code, OpenCode, Pi, ...) can be swapped without touching the

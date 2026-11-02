@@ -1,7 +1,7 @@
 unit aiplane_codehighlight;
 
 {
-  Syntax colours for code blocks in the AI Plane chat, using the SynEdit
+  Syntax colours for code blocks in the Agent Plane chat, using the SynEdit
   highlighters that ship with Lazarus (no extra package).
 
   The language comes from the code fence info string (```pascal, ```sql,

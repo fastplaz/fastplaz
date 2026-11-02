@@ -1,7 +1,7 @@
 unit test_aiplane_mcp;
 
 {
-  Tests for the AI Plane MCP server (aiplane_httpserver, aiplane_mcpserver):
+  Tests for the Agent Plane MCP server (aiplane_httpserver, aiplane_mcpserver):
   HTTP handling, token and Origin checks, sessions, tools/list, tools/call,
   permissions answered at once or later, port fallback.
 

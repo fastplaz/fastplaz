@@ -1,7 +1,7 @@
 unit aiplane_ide;
 
 {
-  AI Plane inside the Lazarus IDE: the dockable window that hosts
+  Agent Plane inside the Lazarus IDE: the dockable window that hosts
   TAIChatFrame, and the settings it shares with the AI Harness tab of
   FastPlaz/Configuration.
 
@@ -28,8 +28,8 @@ uses
 
 const
   AIPLANE_WINDOW_NAME = 'AIPlaneWindow';
-  RS_AIPLANE_MENU = '&AI Plane';
-  RS_AIPLANE_CAPTION = 'AI Plane';
+  RS_AIPLANE_MENU = '&Agent Plane';
+  RS_AIPLANE_CAPTION = 'Agent Plane';
 
 type
   TAIPlaneSettings = record
@@ -59,7 +59,7 @@ type
     procedure McpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
     procedure McpLog(Sender: TObject; const AText: string);
     procedure ChatNotice(Sender: TObject; const AText: string; AIsError: boolean);
-    procedure log(AMessage: string; ACategory: string = 'AI Plane';
+    procedure log(AMessage: string; ACategory: string = 'Agent Plane';
       UrgencyLevel: TMessageLineUrgency = mluImportant);
     procedure ToolPermissionAnswer(Sender: TObject; const AKey, AOptionId: string);
     procedure ChatSettingsChanged(Sender: TObject);
@@ -249,7 +249,7 @@ begin
   if notice <> FMcpNotice then
   begin
     if not FMcp.Active and ASettings.McpEnabled then
-      log(notice, 'AI Plane', mluError)
+      log(notice, 'Agent Plane', mluError)
     else if FMcp.Active or (FMcpNotice <> '') then
       // "off" only when it was on before, not when the window opens
       log(notice);
@@ -261,7 +261,7 @@ procedure TAIPlaneWindow.ChatNotice(Sender: TObject; const AText: string;
   AIsError: boolean);
 begin
   if AIsError then
-    log(AText, 'AI Plane', mluError)
+    log(AText, 'Agent Plane', mluError)
   else
     log(AText);
 end;

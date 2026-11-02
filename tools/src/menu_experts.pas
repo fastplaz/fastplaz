@@ -38,7 +38,7 @@ uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
   json_tools, regex_tester,
   //Database Explorer
   de_connector, de_dbbrowser, de_common, fastcode_configuration,
-  //AI Plane
+  //Agent Plane
   aiplane_ide;
 
 // Asks for the module name, then creates "<permalink>_controller.pas" with
@@ -406,7 +406,7 @@ begin
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
 
-  // AI Plane, Database Explorer, JSON Tools
+  // Agent Plane, Database Explorer, JSON Tools
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_AIPlane',
     RS_AIPLANE_MENU, nil, @AIPlaneShowWindow, nil);

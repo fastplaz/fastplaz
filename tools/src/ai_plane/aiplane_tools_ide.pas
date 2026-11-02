@@ -1,7 +1,7 @@
 unit aiplane_tools_ide;
 
 {
-  IDE tools for the AI Plane MCP server (phase 1 of
+  IDE tools for the Agent Plane MCP server (phase 1 of
   docs/AI_PLANE_TOOL_RUNDOWN.md):
 
     open_file           open a file in the source editor, optionally at a line
@@ -259,7 +259,7 @@ begin
   for v := 0 to IDEMessagesWindow.ViewCount - 1 do
   begin
     view := IDEMessagesWindow.Views[v];
-    // FastPlaz's own log (AI Plane, Database Explorer), not build output
+    // FastPlaz's own log (Agent Plane, Database Explorer), not build output
     if SameText(view.Caption, AI_FASTPLAZ_MESSAGE_VIEW) then
       Continue;
     for i := 0 to view.Lines.Count - 1 do
@@ -529,7 +529,7 @@ begin
   end;
   if FBuilding then
   begin
-    ACall.Fail('A compile started by AI Plane is still running.');
+    ACall.Fail('A compile started by Agent Plane is still running.');
     Exit;
   end;
   mode := ACall.Str('build_mode');

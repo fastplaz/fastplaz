@@ -1,7 +1,7 @@
 unit test_aiplane;
 
 {
-  AI Plane core tests.
+  Agent Plane core tests.
 
   TACPAdapterTest drives the real process layer against mock_acp_agent, which
   run_tests.sh/.bat compile first (or point AIPLANE_MOCK_AGENT at a build).

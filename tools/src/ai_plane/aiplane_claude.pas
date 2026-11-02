@@ -69,7 +69,7 @@ type
     function ModelAvailable(const AModel: string): boolean; override;
   end;
 
-{ Maps the AI Plane effort level to a claude --effort value ('' = omit). }
+{ Maps the Agent Plane effort level to a claude --effort value ('' = omit). }
 function ClaudeEffortArg(const AEffort: string): string;
 
 implementation

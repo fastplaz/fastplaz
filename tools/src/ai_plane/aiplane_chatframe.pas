@@ -1,7 +1,7 @@
 unit aiplane_chatframe;
 
 {
-  The AI Plane chat as a frame, so the IDE window and the tester app show the
+  The Agent Plane chat as a frame, so the IDE window and the tester app show the
   same thing:
 
     [Runtime v] [Model v] [Effort v]           [New] [Log]

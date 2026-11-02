@@ -1,7 +1,7 @@
 unit aiplane_chatview;
 
 {
-  Conversation view for AI Plane: a scroll box with one owner drawn paint box.
+  Conversation view for Agent Plane: a scroll box with one owner drawn paint box.
 
   Every message is a TAIChatItem (user, assistant, thinking, tool call, plan,
   permission, error, info). Assistant and thinking text is markdown

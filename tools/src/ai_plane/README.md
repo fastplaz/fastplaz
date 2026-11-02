@@ -1,13 +1,19 @@
-# AI Plane
+# Agent Plane
 
-Chat window inside the Lazarus IDE (menu *FastPlaz → AI Plane*) that talks to
+**FastPlaz Agent Plane: coding agents inside the Lazarus IDE.**
+
+Chat window inside the Lazarus IDE (menu *FastPlaz → Agent Plane*) that talks to
 coding agents such as Claude Code, OpenCode and Pi. This folder holds the core,
 which has no LCL or IDEIntf dependency, so the IDE package, a standalone tester
 and the unit tests all share the same code.
 
 Status: **phase 3** — core adapters, chat frame, LCL tester and the IDE
-integration (menu *FastPlaz → AI Plane*, dockable window, *AI Plane* tab in
+integration (menu *FastPlaz → Agent Plane*, dockable window, *AI Harness* tab in
 *FastPlaz → Configuration*).
+
+The tool was first called *AI Plane*; the internal names keep that: the
+`aiplane_*` units, the `aiplane/...` settings in `config.json` (so existing
+settings stay) and the `ai_plane` folder.
 
 ## Units
 
@@ -48,7 +54,7 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
 
 ## In the IDE
 
-* *FastPlaz → AI Plane* opens the chat window; it docks like any IDE window.
+* *FastPlaz → Agent Plane* opens the chat window; it docks like any IDE window.
 * *FastPlaz → Configuration → AI Harness* sets the default runtime,
   command, arguments, model and effort (`config.json`, key `aiplane`).
   Runtime, model and effort picked in the chat window become the new
@@ -66,7 +72,7 @@ handler of the same adapter; post it (`Application.QueueAsyncCall`).
 
 ## IDE tools (MCP)
 
-The AI Plane window runs an MCP server inside the IDE, so the agent can use
+The Agent Plane window runs an MCP server inside the IDE, so the agent can use
 the IDE itself: open a file at a line, read the active editor (unsaved
 changes included), read the project settings, compile the project and get
 the compiler messages with file, line and column. Design and later phases:
@@ -102,10 +108,10 @@ the compiler messages with file, line and column. Design and later phases:
 
 In the IDE:
 
-1. Install `fastplaz_tools.lpk`, open a project, then *FastPlaz → AI Plane*.
+1. Install `fastplaz_tools.lpk`, open a project, then *FastPlaz → Agent Plane*.
 2. The status line shows `MCP`. The *Messages* window shows
-   `AI Plane: MCP server active on http://127.0.0.1:17845/mcp` and, once
-   the runtime answers, `AI Plane: runtime ... active, model ...`. No `MCP`
+   `Agent Plane: MCP server active on http://127.0.0.1:17845/mcp` and, once
+   the runtime answers, `Agent Plane: runtime ... active, model ...`. No `MCP`
    in the status line: check *Configuration → AI Harness → IDE tools
    (MCP)*. An error line in *Messages* says why the server did not start.
 3. Pick OpenCode or Claude Code (Pi has no MCP client yet).
@@ -121,7 +127,7 @@ In the IDE:
 
 5. The chat shows the tool call as `lazarus_<tool>` (OpenCode) or
    `mcp__lazarus__<tool>` (Claude Code). An agent error also lands in
-   *Messages* as `AI Plane: ...`.
+   *Messages* as `Agent Plane: ...`.
 
 When the agent does not see the tools:
 

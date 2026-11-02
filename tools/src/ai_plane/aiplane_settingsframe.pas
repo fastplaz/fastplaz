@@ -1,7 +1,7 @@
 unit aiplane_settingsframe;
 
 {
-  AI Plane default settings: runtime, command, arguments, model and effort,
+  Agent Plane default settings: runtime, command, arguments, model and effort,
   with model detection and a "Run Test" that sends one prompt.
 
   Used by the AI Harness tab of FastPlaz/Configuration and by the tester app;

@@ -1,7 +1,7 @@
 program mock_acp_agent;
 
 {
-  A fake ACP agent for AI Plane tests and the tester app. It speaks the same
+  A fake ACP agent for Agent Plane tests and the tester app. It speaks the same
   JSON-RPC lines as a real runtime but needs no network, account or tokens.
 
   The prompt text picks the scenario:

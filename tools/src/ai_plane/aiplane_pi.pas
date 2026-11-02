@@ -80,7 +80,7 @@ type
 
 { Splits "provider/model-id" (the id may contain more slashes). }
 procedure PiSplitModel(const AModel: string; out AProvider, AModelId: string);
-{ Maps the AI Plane effort level to a Pi thinking level ('' = leave as is). }
+{ Maps the Agent Plane effort level to a Pi thinking level ('' = leave as is). }
 function PiThinkingLevel(const AEffort: string): string;
 
 implementation
