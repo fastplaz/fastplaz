@@ -148,12 +148,13 @@ Behaviour:
   works as it does today.
 * **Port in use** (another Lazarus instance, another program): the server
   tries the next ports up to `mcp_port + 9`, uses the first free one and
-  passes that URL to the runtime. The status line shows
-  `MCP: 127.0.0.1:17846` so the user can see it moved. When none is free, IDE
+  passes that URL to the runtime. The protocol log shows the address
+  (`MCP server on http://127.0.0.1:17846/mcp`). When none is free, IDE
   tools are off for this session and the chat shows why.
 * Changing either setting restarts the server and the runtime (like a runtime
   change today), keeping the conversation where the runtime can resume.
-* The status line shows `MCP: off`, `MCP: 127.0.0.1:<port>` or the error.
+* The status line shows `MCP` when the server runs, the error when it could
+  not start, and nothing when it is off.
 * Later: per-group switches (editor, build, CodeTools, FastPlaz, database) and
   a button to reset the remembered "allow for this session" choices.
 
@@ -279,7 +280,8 @@ debugger is paused; every call except reads is `ask`.
 * Tool calls arrive back through the runtime as the same foldable tool cards
   the chat already draws for the runtime's own tools; IDE tools are labelled
   (`Lazarus: compile_project`).
-* Status line: `MCP: 127.0.0.1:<port>`, `MCP: off` or the error.
+* Status line: `MCP`, the error, or nothing when off; the address is in the
+  protocol log.
 
 ---
 

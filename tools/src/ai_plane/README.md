@@ -77,7 +77,8 @@ the compiler messages with file, line and column. Design and later phases:
 * Settings (*Configuration → AI Harness*): **IDE tools (MCP)** on/off
   (`aiplane/mcp_enabled`, default on) and **Port** (`aiplane/mcp_port`,
   default `17845`; when taken the next free port up to `+9` is used). The
-  status line shows `MCP: 127.0.0.1:<port>`, `MCP: off` or the error.
+  status line shows `MCP` when the server runs (the address is in the
+  protocol log), the error when it could not start, nothing when off.
 * Registered per runtime:
 
   | Runtime | How |

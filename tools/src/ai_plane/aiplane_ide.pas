@@ -218,12 +218,13 @@ begin
   else if FMcp.Active then
     FMcp.Stop;
   FMcpTimer.Enabled := FMcp.Active;
+  // short in the status line; the address is in the protocol log
   if FMcp.Active then
-    FChat.SetMcpServer(FMcp.Url, FMcp.Token, 'MCP: 127.0.0.1:' + IntToStr(FMcp.Port))
+    FChat.SetMcpServer(FMcp.Url, FMcp.Token, 'MCP')
   else if ASettings.McpEnabled then
     FChat.SetMcpServer('', '', 'MCP: ' + FMcp.LastError)
   else
-    FChat.SetMcpServer('', '', 'MCP: off');
+    FChat.SetMcpServer('', '', '');
 end;
 
 procedure TAIPlaneWindow.McpTimer(Sender: TObject);

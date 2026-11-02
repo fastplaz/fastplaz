@@ -147,7 +147,7 @@ type
     procedure FocusInput;
     { The IDE's MCP server for the next runtime start (empty URL: no IDE
       tools). Restarts the runtime when it changed. AStatus is shown in the
-      status line ("MCP: 127.0.0.1:17845", "MCP: off", an error). }
+      status line ("MCP", an error, empty when off). }
     procedure SetMcpServer(const AUrl, AToken, AStatus: string);
     { Shows a permission card for one of the IDE's own tools; the answer goes
       to OnToolPermission, not to the runtime. }
