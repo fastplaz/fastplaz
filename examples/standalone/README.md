@@ -92,6 +92,12 @@ upstream fastplaz {
 # ... proxy_pass http://fastplaz;
 ```
 
+With `"trust_proxy": true` in `systems` the app takes HTTPS, host and port
+from `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-Port` (base URL,
+secure session cookie) and the client IP from `X-Forwarded-For`. Enable it
+only when the app listens on 127.0.0.1 behind the proxy: clients can send
+these headers themselves.
+
 ## Behind Apache
 
 ```apache
@@ -115,5 +121,5 @@ option.
 
 ## Not yet done
 
-Phase 2 of the roadmap: `X-Forwarded-*` handling behind a proxy, memory
-audit for long runs, database reconnect, service files.
+Phase 2 of the roadmap: database reconnect, service files, IDE project
+wizard.

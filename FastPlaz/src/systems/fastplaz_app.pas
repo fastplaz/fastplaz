@@ -93,6 +93,8 @@ function CurrentResponse: TResponse;
 // environment; in standalone mode it is derived from the request, and names
 // that are not request related (TEMP, PATH, ...) still come from the process.
 function ServerVariable(const AName: string): string;
+// the CGI variable AName derived from ARequest (standalone rules)
+function RequestServerVariable(ARequest: TRequest; const AName: string): string;
 
 // "X-Requested-With" <-> "HTTP_X_REQUESTED_WITH"
 function CGINameToHeaderName(const AName: string): string;
@@ -110,6 +112,11 @@ function ServeStaticFile(ARequest: TRequest; AResponse: TResponse): boolean;
 function StaticFileForPath(const AURLPath: string): string;
 // systems/server/static or --static=on|off (default on)
 function StaticFilesEnabled: boolean;
+// systems/trust_proxy (default off): in standalone mode HTTPS, HTTP_HOST,
+// SERVER_NAME and SERVER_PORT then follow X-Forwarded-Proto/-Host/-Port.
+// Only enable it when the server is reachable through the proxy alone.
+function TrustProxy: boolean;
+procedure SetTrustProxy(AValue: boolean);
 // systems/server/max_requests or --max-requests=N: a standalone server stops
 // after N requests (0 = never), so a process manager can start a fresh one
 function MaxRequests: integer;
@@ -178,6 +185,7 @@ var
   FRequestCount: integer = 0;
   FShutdownRequested: boolean = False;
   FShutdownHandlersInstalled: boolean = False;
+  FTrustProxy: boolean = False;
   FRequest: TRequest = nil;
   FResponse: TResponse = nil;
 
@@ -211,7 +219,8 @@ end;
 // systems/server from config/config.json; a missing or broken file is not
 // an error here, common.pas reports it
 procedure ReadServerConfig(out AMode: string; out APort: integer;
-  out AAddress: string; out AStatic: boolean; out AMaxRequests: integer);
+  out AAddress: string; out AStatic: boolean; out AMaxRequests: integer;
+  out ATrustProxy: boolean);
 var
   lst: TStringList;
   parser: TJSONParser;
@@ -223,6 +232,7 @@ begin
   AAddress := '';
   AStatic := True;
   AMaxRequests := 0;
+  ATrustProxy := False;
   if not FileExists(CONFIG_FILE) then
     Exit;
   root := nil;
@@ -238,6 +248,9 @@ begin
       end;
       if not (root is TJSONObject) then
         Exit;
+      server := TJSONObject(root).FindPath('systems.trust_proxy');
+      if server is TJSONBoolean then
+        ATrustProxy := server.AsBoolean;
       server := TJSONObject(root).FindPath('systems.server');
       if not (server is TJSONObject) then
         Exit;
@@ -265,7 +278,7 @@ begin
     Exit;
   FModeResolved := True;
 
-  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic, FMaxRequests);
+  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic, FMaxRequests, FTrustProxy);
   if cfgPort > 0 then
     FPort := cfgPort;
   if cfgAddress <> '' then
@@ -306,6 +319,18 @@ end;
 function RequestCount: integer;
 begin
   Result := FRequestCount;
+end;
+
+function TrustProxy: boolean;
+begin
+  ResolveMode;
+  Result := FTrustProxy;
+end;
+
+procedure SetTrustProxy(AValue: boolean);
+begin
+  ResolveMode;
+  FTrustProxy := AValue;
 end;
 
 function StaticFilesEnabled: boolean;
@@ -592,15 +617,36 @@ begin
     Result := Copy(Result, 1, i - 1);
 end;
 
-function ServerVariable(const AName: string): string;
+// first entry of a proxy header ("https, http" -> "https"), '' when the
+// proxy is not trusted
+function ForwardedValue(ARequest: TRequest; const AHeader: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  if not TrustProxy then
+    Exit;
+  Result := ARequest.GetFieldByName(AHeader);
+  i := Pos(',', Result);
+  if i > 0 then
+    Result := Copy(Result, 1, i - 1);
+  Result := Trim(Result);
+end;
+
+function RequestHost(ARequest: TRequest): string;
+begin
+  Result := ForwardedValue(ARequest, 'X-Forwarded-Host');
+  if Result = '' then
+    Result := ARequest.Host;
+end;
+
+function RequestServerVariable(ARequest: TRequest; const AName: string): string;
 var
   r: TRequest;
-  n: string;
+  n, s: string;
+  i: integer;
 begin
-  r := CurrentRequest;
-  if (r = nil) or (not IsStandalone) then
-    Exit(SysUtils.GetEnvironmentVariable(AName));
-
+  r := ARequest;
   n := UpperCase(Trim(AName));
   case n of
     'REQUEST_METHOD': Result := r.Method;
@@ -612,8 +658,35 @@ begin
     'DOCUMENT_ROOT': Result := ExcludeTrailingPathDelimiter(GetCurrentDir);
     'REMOTE_ADDR': Result := r.RemoteAddr;
     'REMOTE_HOST': Result := r.RemoteHost;
-    'SERVER_NAME': Result := HostWithoutPort(r.Host);
-    'SERVER_PORT': Result := IntToStr(r.ServerPort);
+    'SERVER_NAME': Result := HostWithoutPort(RequestHost(r));
+    'SERVER_PORT':
+    begin
+      Result := ForwardedValue(r, 'X-Forwarded-Port');
+      if StrToIntDef(Result, 0) <= 0 then
+      begin
+        // the port of the host the client used, else the one we listen on
+        s := RequestHost(r);
+        i := LastDelimiter(':]', s);
+        if (i > 0) and (s[i] = ':') then
+          Result := Copy(s, i + 1, MaxInt)
+        else if (ForwardedValue(r, 'X-Forwarded-Host') <> '') or
+          (ForwardedValue(r, 'X-Forwarded-Proto') <> '') then
+        begin
+          if SameText(ForwardedValue(r, 'X-Forwarded-Proto'), 'https') then
+            Result := '443'
+          else
+            Result := '80';
+        end
+        else
+          Result := IntToStr(r.ServerPort);
+      end;
+    end;
+    'HTTPS':
+      if SameText(ForwardedValue(r, 'X-Forwarded-Proto'), 'https') then
+        Result := 'on'
+      else
+        Result := '';
+    'HTTP_HOST': Result := RequestHost(r);
     'SERVER_PROTOCOL':
     begin
       Result := r.ProtocolVersion;
@@ -635,6 +708,17 @@ begin
       else
         Result := SysUtils.GetEnvironmentVariable(AName);
   end;
+end;
+
+function ServerVariable(const AName: string): string;
+var
+  r: TRequest;
+begin
+  r := CurrentRequest;
+  if (r = nil) or (not IsStandalone) then
+    Result := SysUtils.GetEnvironmentVariable(AName)
+  else
+    Result := RequestServerVariable(r, AName);
 end;
 
 procedure StopRequest;

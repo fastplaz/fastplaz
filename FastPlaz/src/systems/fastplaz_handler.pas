@@ -459,6 +459,8 @@ begin
   AppData.logDir := AppData.tempDir + DirectorySeparator + 'logs' + DirectorySeparator;
   AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
   AppData.trustProxy := Config.GetValue(_SYSTEM_TRUST_PROXY, False);
+  // same setting for the CGI variables derived in standalone mode
+  SetTrustProxy(AppData.trustProxy);
 
   if AppData.baseUrl = '' then
   begin

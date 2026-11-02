@@ -11,7 +11,7 @@ unit test_fastplaz_app;
 interface
 
 uses
-  fastplaz_app, Classes, SysUtils, fpcunit, testregistry;
+  fastplaz_app, httpdefs, Classes, SysUtils, fpcunit, testregistry;
 
 type
 
@@ -32,6 +32,9 @@ type
     procedure TestStaticOnlyAssetExtensions;
     procedure TestStaticRejectsTraversalAndHidden;
     procedure TestStaticRejectsZtempAndMissing;
+    procedure TestRequestVariables;
+    procedure TestForwardedHeadersIgnoredByDefault;
+    procedure TestForwardedHeadersWhenTrusted;
   end;
 
 implementation
@@ -182,6 +185,89 @@ begin
   AssertEquals('ztemp', '', StaticFileForPath('/ztemp/cache/x.css'));
   AssertEquals('ztemp case', '', StaticFileForPath('/ZTemp/cache/x.css'));
   AssertEquals('missing', '', StaticFileForPath('/themes/default/style/none.css'));
+end;
+
+function NewRequest: TRequest;
+begin
+  Result := TRequest.Create;
+  Result.Method := 'GET';
+  Result.URI := '/path/x?a=1';
+  Result.PathInfo := '/path/x';
+  Result.QueryString := 'a=1';
+  Result.Host := 'example.com:8080';
+  Result.ServerPort := 8080;
+  Result.RemoteAddr := '10.1.2.3';
+  Result.UserAgent := 'UnitTest/1.0';
+  Result.SetCustomHeader('X-Forwarded-Proto', 'https, http');
+  Result.SetCustomHeader('X-Forwarded-Host', 'public.example.org');
+end;
+
+procedure TFastPlazAppTest.TestRequestVariables;
+var
+  r: TRequest;
+begin
+  r := NewRequest;
+  try
+    AssertEquals('GET', RequestServerVariable(r, 'REQUEST_METHOD'));
+    AssertEquals('/path/x?a=1', RequestServerVariable(r, 'REQUEST_URI'));
+    AssertEquals('/path/x', RequestServerVariable(r, 'PATH_INFO'));
+    AssertEquals('a=1', RequestServerVariable(r, 'QUERY_STRING'));
+    AssertEquals('10.1.2.3', RequestServerVariable(r, 'remote_addr'));
+    AssertEquals('UnitTest/1.0', RequestServerVariable(r, 'HTTP_USER_AGENT'));
+    AssertEquals('custom header', 'https, http',
+      RequestServerVariable(r, 'HTTP_X_FORWARDED_PROTO'));
+    AssertEquals('', RequestServerVariable(r, 'GATEWAY_INTERFACE'));
+    // not request related: the process environment
+    _SetEnv('FASTPLAZ_APP_TEST_VAR', 'env');
+    try
+      AssertEquals('env', RequestServerVariable(r, 'FASTPLAZ_APP_TEST_VAR'));
+    finally
+      _SetEnv('FASTPLAZ_APP_TEST_VAR', '');
+    end;
+  finally
+    r.Free;
+  end;
+end;
+
+procedure TFastPlazAppTest.TestForwardedHeadersIgnoredByDefault;
+var
+  r: TRequest;
+begin
+  AssertFalse('trust_proxy is off by default', TrustProxy);
+  r := NewRequest;
+  try
+    AssertEquals('example.com:8080', RequestServerVariable(r, 'HTTP_HOST'));
+    AssertEquals('example.com', RequestServerVariable(r, 'SERVER_NAME'));
+    AssertEquals('8080', RequestServerVariable(r, 'SERVER_PORT'));
+    AssertEquals('HTTPS', '', RequestServerVariable(r, 'HTTPS'));
+  finally
+    r.Free;
+  end;
+end;
+
+procedure TFastPlazAppTest.TestForwardedHeadersWhenTrusted;
+var
+  r: TRequest;
+begin
+  r := NewRequest;
+  SetTrustProxy(True);
+  try
+    AssertEquals('public.example.org', RequestServerVariable(r, 'HTTP_HOST'));
+    AssertEquals('public.example.org', RequestServerVariable(r, 'SERVER_NAME'));
+    AssertEquals('first proto of the list', 'on', RequestServerVariable(r, 'HTTPS'));
+    AssertEquals('default https port', '443', RequestServerVariable(r, 'SERVER_PORT'));
+    r.SetCustomHeader('X-Forwarded-Port', '8443');
+    AssertEquals('8443', RequestServerVariable(r, 'SERVER_PORT'));
+    r.SetCustomHeader('X-Forwarded-Host', 'public.example.org:9000');
+    r.SetCustomHeader('X-Forwarded-Port', '');
+    AssertEquals('public.example.org', RequestServerVariable(r, 'SERVER_NAME'));
+    AssertEquals('port from the forwarded host', '9000', RequestServerVariable(r, 'SERVER_PORT'));
+    r.SetCustomHeader('X-Forwarded-Proto', 'http');
+    AssertEquals('', RequestServerVariable(r, 'HTTPS'));
+  finally
+    SetTrustProxy(False);
+    r.Free;
+  end;
 end;
 
 initialization
