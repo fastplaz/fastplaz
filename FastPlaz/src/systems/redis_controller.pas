@@ -28,7 +28,7 @@ unit redis_controller;
 interface
 
 uses
-  fpcgi, redis_lib, fastplaz_handler, common, Classes, SysUtils;
+  fastplaz_app, redis_lib, fastplaz_handler, common, Classes, SysUtils;
 
 const
   _REDIS_CONFIG_SERVERADDRESS = 'redis/%s/server';

@@ -5,7 +5,7 @@ unit docs_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler;
 
 type
 

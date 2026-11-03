@@ -6,7 +6,7 @@ interface
 
 uses
   security_util, user_model, fpjson,
-  fpcgi, common, logutil_lib, Math, Classes, SysUtils;
+  fastplaz_app, common, logutil_lib, Math, Classes, SysUtils;
 
 const
   USER_GROUP_DEFAULT_ID = 1;
