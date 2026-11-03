@@ -62,8 +62,9 @@ var
   modeText, visitor: string;
 begin
   Inc(RequestCount);
-  visits := s2i(_SESSION['visits']) + 1;
-  _SESSION['visits'] := visits;
+  // SessionController is string typed; _SESSION[] goes through Variant
+  visits := s2i(SessionController['visits']) + 1;
+  SessionController['visits'] := i2s(visits);
 
   if IsStandalone then
     modeText := Format('standalone HTTP (%s:%d)', [HTTPAddress, HTTPPort])
