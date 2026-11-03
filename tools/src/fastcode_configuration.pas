@@ -33,6 +33,7 @@ type
     mem_Prompt: TMemo;
     PageControl1: TPageControl;
     Panel1: TPanel;
+    Panel2: TPanel;
     tsAIPlane: TTabSheet;
     tsFastCode: TTabSheet;
     procedure btnCancelClick(Sender: TObject);
