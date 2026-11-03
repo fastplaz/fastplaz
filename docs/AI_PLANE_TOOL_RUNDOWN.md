@@ -235,8 +235,9 @@ against the Lazarus sources during phase 2.
 
 | Tool | Arguments | Returns | Perm |
 | --- | --- | --- | --- |
-| `fastplaz_create_module` | `name`, `kind: default\|json`, `route?` | created files | ask |
-| `fastplaz_create_model` | `connection`, `table` | created unit | ask |
+| `create_simple_controller` (done) | `name`, `permalink?`, `directory?` | `{file, class, permalink, route, saved, in_unit_path}` | ask* |
+| `create_api_controller` (done) | `name`, `permalink?`, `directory?` | as above | ask* |
+| `create_model` (done) | `name?`, `table?`, `directory?` | `{file, class, table, custom_table_name, saved, in_unit_path}` | ask* |
 | `fastplaz_create_structure` | `kind: web\|theme` | created dirs | ask |
 | `db_list_connections` | — | names and types from the Database Explorer config (no passwords) | auto |
 | `db_list_tables` | `connection` | table names | ask* |

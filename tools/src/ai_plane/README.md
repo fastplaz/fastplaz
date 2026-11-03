@@ -34,6 +34,7 @@ settings stay) and the `ai_plane` folder.
 | `aiplane_httpserver.pas` | `TAIHttpServer`: minimal HTTP/1.1 server on `127.0.0.1`, non-blocking and polled (no threads); keep-alive, pipelining, chunked bodies, answers that come later; Windows/macOS/Linux socket differences (SIGPIPE, exclusive port) |
 | `aiplane_mcpserver.pas` | `TAIMcpServer`: MCP over Streamable HTTP (`POST /mcp`, JSON responses), Bearer token, `Origin` check, sessions, `tools/list`, `tools/call`, tools that ask the user first (once or for the session), result size limit, port fallback |
 | `aiplane_tools_ide.pas` | IDEIntf: the IDE tools offered over MCP (`open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`) |
+| `aiplane_tools_fastplaz.pas` | IDEIntf: the FastPlaz generators offered over MCP (`create_simple_controller`, `create_api_controller`, `create_model`), the same code as the FastPlaz menu items |
 
 ## How the UI uses it
 
