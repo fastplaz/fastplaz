@@ -5,7 +5,7 @@ unit permissionadmin_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib, user_util,
   database_lib, security_util, permission_util;
 
 const

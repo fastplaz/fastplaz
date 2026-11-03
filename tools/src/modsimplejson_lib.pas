@@ -70,7 +70,7 @@ end;
 function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, dateutils, string_helpers, datetime_helpers, json_helpers, array_helpers';
+  Result := Result + ', fastplaz_app, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, dateutils, string_helpers, datetime_helpers, json_helpers, array_helpers';
 end;
 
 function TFileDescJSONModule.GetLocalizedName: string;

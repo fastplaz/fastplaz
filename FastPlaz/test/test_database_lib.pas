@@ -36,6 +36,9 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    procedure TestRequestFinishedRollsBackAndCloses;
+    procedure TestPersistentConnectionStaysOpen;
+    procedure TestIdleConnectionIsClosed;
     procedure TestReservedTableNameIsQuoted;
     procedure TestSaveAndDeleteFailuresReturnFalse;
     procedure TestConnected;
@@ -188,6 +191,56 @@ begin
   if FileExists(FDbFile) then
     DeleteFile(FDbFile);
   RemoveDir(ExcludeTrailingPathDelimiter(FDir));
+end;
+
+// standalone mode: what a request leaves uncommitted is rolled back, as the
+// end of a CGI process does, and the connection is closed (reopened on use)
+procedure TSimpleModelSQLiteTest.TestRequestFinishedRollsBackAndCloses;
+begin
+  DataBasePersistent := False;
+  FModel.Connector.ExecuteDirect('INSERT INTO persons (name, age, city) VALUES (''Uncommitted'', 1, ''X'')');
+  AssertTrue('transaction open', FModel.Connector.Transaction.Active);
+  DataBaseRequestFinished;
+  AssertFalse('closed after the request', FModel.Connector.Connected);
+  FModel.Connector.Open;
+  AssertEquals('insert rolled back', 3, CountRows);
+end;
+
+procedure TSimpleModelSQLiteTest.TestPersistentConnectionStaysOpen;
+begin
+  DataBasePersistent := True;
+  try
+    FModel.Connector.ExecuteDirect('INSERT INTO persons (name, age, city) VALUES (''Uncommitted'', 1, ''X'')');
+    DataBaseRequestFinished;
+    AssertTrue('kept open', FModel.Connector.Connected);
+    AssertFalse('transaction ended', FModel.Connector.Transaction.Active);
+    AssertEquals('insert rolled back', 3, CountRows);
+    // a fresh request within the idle timeout keeps it open
+    DataBaseIdleTimeout := 300;
+    DataBaseRequestStarted;
+    AssertTrue('still open', FModel.Connector.Connected);
+  finally
+    DataBasePersistent := False;
+  end;
+end;
+
+procedure TSimpleModelSQLiteTest.TestIdleConnectionIsClosed;
+begin
+  DataBasePersistent := True;
+  DataBaseIdleTimeout := 1;
+  try
+    DataBaseRequestFinished;
+    AssertTrue(FModel.Connector.Connected);
+    Sleep(1100);
+    DataBaseRequestStarted;
+    AssertFalse('closed after being idle', FModel.Connector.Connected);
+    // the next query opens it again
+    AssertEquals(3, CountRows);
+    AssertTrue(FModel.Connector.Connected);
+  finally
+    DataBasePersistent := False;
+    DataBaseIdleTimeout := 300;
+  end;
 end;
 
 // generated SQL quotes the table and its alias: "order" (and "groups" on

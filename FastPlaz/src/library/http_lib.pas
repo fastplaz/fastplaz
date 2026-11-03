@@ -76,7 +76,6 @@ unit http_lib;
 interface
 
 uses
-  fpcgi,
   fphttpclient,
   {$if fpc_fullversion >= 20701}
   //ghashmap,

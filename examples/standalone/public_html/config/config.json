@@ -1,0 +1,25 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz Standalone",
+    "slogan" : "Fast Pascal Framework for Web Development",
+    "baseurl" : "",
+    "admin_email" : "webmaster@localhost",
+    "debug" : false,
+    "module_default" : "main",
+    "language_default" : "en",
+    "theme_enable" : true,
+    "theme" : "default",
+    "cache" : "none",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "session_timeout" : 0,
+    "error_redirect" : false,
+    "trust_proxy" : false,
+    "server" : {
+      "mode" : "http",
+      "address" : "127.0.0.1",
+      "port" : 8080,
+      "static" : true
+    }
+  }
+}

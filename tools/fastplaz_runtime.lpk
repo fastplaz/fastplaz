@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Major="1" Release="11" Build="14"/>
-    <Files Count="49">
+    <Files Count="50">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -223,6 +223,10 @@
         <Filename Value="../FastPlaz/src/library/smtp_lib.pas"/>
         <UnitName Value="smtp_lib"/>
       </Item49>
+      <Item50>
+        <Filename Value="../FastPlaz/src/systems/fastplaz_app.pas"/>
+        <UnitName Value="fastplaz_app"/>
+      </Item50>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

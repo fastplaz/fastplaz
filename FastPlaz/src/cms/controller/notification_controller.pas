@@ -8,7 +8,7 @@ uses
   fastplaz_handler,
   html_lib, database_lib,
   security_util, user_util,
-  Classes, SysUtils, fpcgi, HTTPDefs;
+  Classes, SysUtils, fastplaz_app, HTTPDefs;
 
 const
   NOTIFICATION_ROUTE_REGEX = '^(notification)/?$';

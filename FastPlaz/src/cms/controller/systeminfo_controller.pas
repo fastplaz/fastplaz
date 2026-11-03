@@ -5,7 +5,7 @@ unit systeminfo_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib,
   database_lib, user_util, user_controller;
 
 const

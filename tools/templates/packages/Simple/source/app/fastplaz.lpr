@@ -4,7 +4,7 @@ program fastplaz;
 
 uses
   {$IFNDEF Windows}cthreads,{$ENDIF}
-  fpcgi, sysutils, fastplaz_handler, common, app_controller, app_routes,
+  fastplaz_app, sysutils, fastplaz_handler, common, app_controller, app_routes,
   example_controller, warehouse_model, database_controller,
   example_form_controller, example_foreach_controller, 
 example_form_ajax_controller;
@@ -26,6 +26,9 @@ begin
   {$if FPC_FULlVERSION >= 30004}
   Application.LegacyRouting := True;
   {$endif}
+
+  // startup banner, standalone mode only; see OnStandaloneBanner to change it
+  ShowStandaloneBanner;
 
   Application.Initialize;
   Application.Run;

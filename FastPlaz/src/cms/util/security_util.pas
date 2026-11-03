@@ -5,7 +5,7 @@ unit security_util;
 interface
 
 uses
-  fpcgi, common, hash_tools,
+  fastplaz_app, common, hash_tools,
   Math, Classes, SysUtils;
 
 const
