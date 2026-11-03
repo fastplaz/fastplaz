@@ -12,7 +12,8 @@ unit aiplane_mcpserver;
     TAIMcpToolCall and finishes it at once or later (Finish/Fail).
   - Tools marked mtpAsk / mtpAskSession raise OnPermission first; the host
     shows a card and calls RespondPermission. Until then the HTTP request
-    waits.
+    waits. The card text is the tool title, the tool's own summary
+    (SetToolDescriber) and the arguments as "name: value" lines.
   - Poll from a timer; everything runs in the caller's thread.
 
   Design: docs/AI_PLANE_TOOL_RUNDOWN.md. No LCL or IDEIntf here.
@@ -74,6 +75,9 @@ type
   end;
 
   TAIMcpToolHandler = procedure(ACall: TAIMcpToolCall) of object;
+  { Says in words what a call is about to do, for the permission card
+    (e.g. the file it creates). '' adds nothing. }
+  TAIMcpToolDescriber = function(ACall: TAIMcpToolCall): string of object;
 
   TAIMcpTool = record
     Name: string;
@@ -82,6 +86,7 @@ type
     InputSchema: string; // JSON object text
     Permission: TAIMcpToolPermission;
     Handler: TAIMcpToolHandler;
+    Describe: TAIMcpToolDescriber;
   end;
 
   TAIMcpLogEvent = procedure(Sender: TObject; const AText: string) of object;
@@ -124,6 +129,8 @@ type
     destructor Destroy; override;
     procedure RegisterTool(const AName, ATitle, ADescription, AInputSchema: string;
       APermission: TAIMcpToolPermission; AHandler: TAIMcpToolHandler);
+    { Adds a summary to the permission card of a registered tool. }
+    procedure SetToolDescriber(const AName: string; ADescribe: TAIMcpToolDescriber);
     { Starts on APort, or the next free port (AI_MCP_PORT_TRIES). A new token
       is made at every start. }
     function Start(APort: word = AI_MCP_DEFAULT_PORT): boolean;
@@ -148,6 +155,9 @@ type
 
 { Random hex string from two GUIDs (CoCreateGuid / /dev/urandom). }
 function AIMcpNewToken: string;
+{ Tool arguments as "name: value" lines for people: strings without quotes,
+  other values as JSON, empty strings and nulls left out. }
+function AIMcpArgsText(AArgs: TJSONObject): string;
 
 implementation
 
@@ -178,6 +188,35 @@ begin
   CreateGUID(g1);
   CreateGUID(g2);
   Result := LowerCase(Hex(g1) + Hex(g2));
+end;
+
+function AIMcpArgsText(AArgs: TJSONObject): string;
+var
+  i: integer;
+  v: TJSONData;
+  value: string;
+begin
+  Result := '';
+  if not Assigned(AArgs) then
+    Exit;
+  for i := 0 to AArgs.Count - 1 do
+  begin
+    v := AArgs.Items[i];
+    case v.JSONType of
+      jtNull: Continue;
+      jtString: value := v.AsString;
+      else
+        value := v.AsJSON;
+    end;
+    if value = '' then
+      Continue;
+    // one line per argument: a multi-line value is indented
+    value := StringReplace(StringReplace(value, #13#10, #10, [rfReplaceAll]),
+      #10, LineEnding + '    ', [rfReplaceAll]);
+    if Result <> '' then
+      Result := Result + LineEnding;
+    Result := Result + AArgs.Names[i] + ': ' + value;
+  end;
 end;
 
 function JStr(AObject: TJSONObject; const AName: string; const ADefault: string = ''): string;
@@ -335,6 +374,16 @@ begin
   FTools[n].InputSchema := AInputSchema;
   FTools[n].Permission := APermission;
   FTools[n].Handler := AHandler;
+  FTools[n].Describe := nil;
+end;
+
+procedure TAIMcpServer.SetToolDescriber(const AName: string; ADescribe: TAIMcpToolDescriber);
+var
+  i: integer;
+begin
+  for i := 0 to High(FTools) do
+    if FTools[i].Name = AName then
+      FTools[i].Describe := ADescribe;
 end;
 
 function TAIMcpServer.Start(APort: word): boolean;
@@ -677,6 +726,7 @@ procedure TAIMcpServer.AskPermission(ACall: TAIMcpToolCall; const ATool: TAIMcpT
 var
   req: TAIPermissionRequest;
   n: integer;
+  summary, args: string;
 begin
   if not Assigned(FOnPermission) then
   begin
@@ -689,10 +739,20 @@ begin
   req.Key := ACall.FPermissionKey;
   req.ToolTitle := 'FastPlaz: ' + ATool.Name;
   req.ToolKind := 'mcp';
-  if ACall.FArgs.Count > 0 then
-    req.Detail := ATool.Title + LineEnding + ACall.FArgs.FormatJSON([], 2)
-  else
-    req.Detail := ATool.Title;
+  summary := '';
+  if Assigned(ATool.Describe) then
+    try
+      summary := Trim(ATool.Describe(ACall));
+    except
+      on E: Exception do
+        Log('describe ' + ATool.Name + ': ' + E.Message);
+    end;
+  args := AIMcpArgsText(ACall.FArgs);
+  req.Detail := ATool.Title;
+  if summary <> '' then
+    req.Detail := req.Detail + LineEnding + summary;
+  if args <> '' then
+    req.Detail := req.Detail + LineEnding + LineEnding + args;
   n := 2;
   if ATool.Permission = mtpAskSession then
     n := 3;

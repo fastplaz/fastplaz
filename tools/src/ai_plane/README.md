@@ -19,7 +19,7 @@ settings stay) and the `ai_plane` folder.
 
 | Unit | Purpose |
 | --- | --- |
-| `aiplane_types.pas` | `TAIAdapter` base class, `TAIEvent`, permission/model records |
+| `aiplane_types.pas` | `TAIAdapter` base class, `TAIEvent`, permission/model records, agent questions (`TAIQuestions`, `AIParseQuestions`, `RespondQuestion`) |
 | `aiplane_process.pas` | `TAIProcessChannel`: child process with line based stdout, polled without threads; finds `.exe`/`.cmd` shims on `PATH` |
 | `aiplane_acp.pas` | `TACPAdapter`: Agent Client Protocol (JSON-RPC 2.0 over stdio) |
 | `aiplane_pi.pas` | `TPiRpcAdapter`: Pi's native RPC mode (`pi --mode rpc`): streamed text/thinking, tool execution, abort, new session, model list, `set_model`, `set_thinking_level` without restart, extension confirm/select dialogs as permission cards |
@@ -30,7 +30,8 @@ settings stay) and the `ai_plane` folder.
 | `aiplane_chatview.pas` | `TAIChatView` (LCL): owner drawn conversation; assistant and thinking text rendered as markdown, links open in the browser, local images (relative to the project) drawn scaled, remote images shown as a placeholder link (never downloaded), titles as tooltips, foldable tool/thinking/plan cards, permission buttons; text selection by dragging or double click, Ctrl+C / Ctrl+A, copy menu (wrapped lines are joined again, table cells tab separated) |
 | `aiplane_settingsframe.pas/.lfm` | `TAIPlaneSettingsFrame` (LCL): default runtime, command, arguments, model (*Detect* reads the runtime's list), effort and *Run Test* (also checks the IDE tools when MCP is on) |
 | `aiplane_ide.pas/.lfm` | IDEIntf: `AIPlaneWindow` (dockable, hosts the chat), menu handler, settings in `config.json` under `aiplane`, project directory as working directory, unsaved editor buffers served to the agent |
-| `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line, permission cards for IDE tools (`ShowToolPermission`) |
+| `aiplane_chatframe.pas/.lfm` | `TAIChatFrame` (LCL): runtime/model/effort pickers, conversation, input (Enter sends, Shift+Enter new line, Esc stops), Send/Stop, protocol log, status line, permission cards for IDE tools (`ShowToolPermission`), question cards (Claude Code `AskUserQuestion`) that open the question dialog |
+| `aiplane_questiondlg.pas` | `AIAskQuestions` (LCL): dialog for the questions an agent asks: radio buttons, or check boxes for multi-select, option descriptions, and an *Other* choice with its own text |
 | `aiplane_httpserver.pas` | `TAIHttpServer`: minimal HTTP/1.1 server on `127.0.0.1`, non-blocking and polled (no threads); keep-alive, pipelining, chunked bodies, answers that come later; Windows/macOS/Linux socket differences (SIGPIPE, exclusive port) |
 | `aiplane_mcpserver.pas` | `TAIMcpServer`: MCP over Streamable HTTP (`POST /mcp`, JSON responses), Bearer token, `Origin` check, sessions, `tools/list`, `tools/call`, tools that ask the user first (once or for the session), result size limit, port fallback |
 | `aiplane_tools_ide.pas` | IDEIntf: the IDE tools offered over MCP (`open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`) |
