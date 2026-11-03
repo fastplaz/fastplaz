@@ -41,72 +41,51 @@ uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
   //Agent Plane
   aiplane_ide;
 
-// Asks for the module name, then creates "<permalink>_controller.pas" with
-// the given descriptor. The descriptor reads ModulTypeName and Permalink.
-procedure GenerateModule(ADescriptorClass: TProjectFileDescriptorClass);
+const
+  NEW_UNIT_FLAGS = [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc];
+
+// Asks for the module name, then creates "<permalink>_controller.pas".
+procedure GenerateModule(AsAPI: boolean);
 var
   wizard: TfModuleSimpleWizard;
-  fileName: string;
+  moduleName, link, fileName: string;
 begin
   wizard := TfModuleSimpleWizard.Create(nil);
   try
     if wizard.ShowModal <> mrOk then
       Exit;
-    ModulTypeName := ControllerTypeName(wizard.edt_ModuleName.Text);
-    Permalink := SanitizePermalink(wizard.edt_Permalink.Text);
-    if Permalink = '' then
-      Permalink := SanitizePermalink(wizard.edt_ModuleName.Text);
+    moduleName := wizard.edt_ModuleName.Text;
+    link := wizard.edt_Permalink.Text;
   finally
     wizard.Free;
   end;
-  if Permalink = '' then
-    Permalink := 'sample';
-  fileName := SanitizeIdentifier(Permalink) + '_controller.pas';
-
-  bCreateProject := False;
-  bExpert := True;
-  try
-    LazarusIDE.DoNewEditorFile(ADescriptorClass.Create, fileName, '',
-      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  finally
-    bExpert := False;
-  end;
+  NewControllerUnit(AsAPI, moduleName, link, '', NEW_UNIT_FLAGS, fileName);
 end;
 
 procedure SimpleModuleGenerator_Proc(ASender: TObject);
 begin
-  GenerateModule(TFileDescDefaultModule);
+  GenerateModule(False);
 end;
 
 procedure JsonModuleGenerator_Proc(ASender: TObject);
 begin
-  GenerateModule(TFileDescJSONModule);
+  GenerateModule(True);
 end;
 
 procedure ModelGenerator_Proc(ASender: TObject);
 var
   wizard: TfModelWizard;
+  modelText, fileName: string;
 begin
   wizard := TfModelWizard.Create(nil);
   try
     if wizard.ShowModal <> mrOk then
       Exit;
-    ModelName := SanitizeIdentifier(StringReplace(UcWords(wizard.edt_ModelName.Text),
-      ' ', '', [rfReplaceAll]), 'Sample');
+    modelText := wizard.edt_ModelName.Text;
   finally
     wizard.Free;
   end;
-  CustomTableName := '';
-
-  bCreateProject := False;
-  bExpert := True;
-  try
-    LazarusIDE.DoNewEditorFile(TFileDescModel.Create,
-      LowerCase(ModelName) + '_model.pas', '',
-      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  finally
-    bExpert := False;
-  end;
+  NewModelUnit(modelText, '', '', NEW_UNIT_FLAGS, fileName);
 end;
 
 procedure CreatePackage_Proc(ASender: TObject);
