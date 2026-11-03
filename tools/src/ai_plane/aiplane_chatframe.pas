@@ -111,6 +111,7 @@ type
     FActiveNotice: string;
     FOnNotice: TAIChatNotice;
     FQuestions: TStringList;   // permission key -> AskUserQuestion input JSON
+    FOnToolFinished: TNotifyEvent;
     procedure AnswerQuestions(AItem: TAIChatItem);
     procedure QueuedAnswer(AData: PtrInt);
     procedure ShowError(const AText: string);
@@ -189,6 +190,9 @@ type
     property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
       write FOnToolPermission;
     property OnNotice: TAIChatNotice read FOnNotice write FOnNotice;
+    { A tool call of the agent completed or failed, or the turn ended: files
+      on disk may have changed. }
+    property OnToolFinished: TNotifyEvent read FOnToolFinished write FOnToolFinished;
   end;
 
 implementation
@@ -927,6 +931,9 @@ begin
       if AEvent.Text <> '' then
         item.Text := AEvent.Text;
       FView.Changed(item);
+      if (AEvent.Kind = aekToolUpdate) and (AEvent.ToolStatus in [atsCompleted, atsFailed]) and
+        Assigned(FOnToolFinished) then
+        FOnToolFinished(Self);
     end;
     aekPlan:
     begin
@@ -974,7 +981,11 @@ begin
       AddLog(AEvent.Text);
   end;
   if AEvent.Kind = aekDone then
+  begin
     UpdateControls;
+    if Assigned(FOnToolFinished) then
+      FOnToolFinished(Self);
+  end;
 end;
 
 procedure TAIChatFrame.AdapterPermission(Sender: TObject;

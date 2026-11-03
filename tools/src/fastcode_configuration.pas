@@ -168,6 +168,7 @@ begin
   FAIPlane.Effort := settings.Effort;
   FAIPlane.McpEnabled := settings.McpEnabled;
   FAIPlane.McpPort := settings.McpPort;
+  FAIPlane.AutoReload := settings.AutoReload;
   FAIPlane.WorkingDir := AIPlaneProjectDirectory;
 end;
 
@@ -182,6 +183,7 @@ begin
   settings.Effort := FAIPlane.Effort;
   settings.McpEnabled := FAIPlane.McpEnabled;
   settings.McpPort := FAIPlane.McpPort;
+  settings.AutoReload := FAIPlane.AutoReload;
   // every runtime's model first: AIPlaneSaveSettings sets the active one
   AIPlaneSaveRuntimeModels(FAIPlane.RuntimeModels);
   AIPlaneSaveSettings(settings);
