@@ -143,13 +143,13 @@ end;
 procedure TfFastCodeConfiguration.Prepare;
 begin
   LoadConfiguration;
-  edt_OpenAIBaseURL.Text := GlobalConfig['fastcode/openai_base_url'];
-  edt_OpenAIKey.Text := GlobalConfig['fastcode/openai_api_key'];
-  cbbModel.Text := GlobalConfig['fastcode/openai_model'];
-  edt_Language.Text := GlobalConfig['fastcode/language'];
-  mem_Prompt.Lines.Text := GlobalConfig['fastcode/prompt'];
-  edt_OpeningChar.Text := GlobalConfig['fastcode/opening_char'];
-  edt_ClosingChar.Text := GlobalConfig['fastcode/closing_char'];
+  edt_OpenAIBaseURL.Text := GlobalConfig.GetString('fastcode/openai_base_url');
+  edt_OpenAIKey.Text := GlobalConfig.GetString('fastcode/openai_api_key');
+  cbbModel.Text := GlobalConfig.GetString('fastcode/openai_model');
+  edt_Language.Text := GlobalConfig.GetString('fastcode/language');
+  mem_Prompt.Lines.Text := GlobalConfig.GetString('fastcode/prompt');
+  edt_OpeningChar.Text := GlobalConfig.GetString('fastcode/opening_char');
+  edt_ClosingChar.Text := GlobalConfig.GetString('fastcode/closing_char');
   LoadAIPlane;
 end;
 
@@ -211,11 +211,11 @@ begin
 
   // everything the worker thread needs is read here, in the main thread
   LoadConfiguration;
-  FCodeKey := Trim(GlobalConfig['fastcode/openai_api_key']);
-  FCodeBaseURL := NormalizeOpenAIBaseURL(GlobalConfig['fastcode/openai_base_url']);
-  FCodeModel := Trim(GlobalConfig['fastcode/openai_model']);
-  language := GlobalConfig['fastcode/language'];
-  FCodePrompt := string(GlobalConfig['fastcode/prompt']).Replace('%language%', language).Trim;
+  FCodeKey := Trim(GlobalConfig.GetString('fastcode/openai_api_key'));
+  FCodeBaseURL := NormalizeOpenAIBaseURL(GlobalConfig.GetString('fastcode/openai_base_url'));
+  FCodeModel := Trim(GlobalConfig.GetString('fastcode/openai_model'));
+  language := GlobalConfig.GetString('fastcode/language');
+  FCodePrompt := GlobalConfig.GetString('fastcode/prompt').Replace('%language%', language).Trim;
   if FCodeKey.IsEmpty and (FCodeBaseURL = OPENAI_BASEURL) then
   begin
     ShowMessage('OpenAI Key not found. '#13'Please fill in the key in "FastPlaz/Configuration", Direct LLM tab');
@@ -313,13 +313,13 @@ end;
 
 procedure TfFastCodeConfiguration.btnSaveClick(Sender: TObject);
 begin
-  GlobalConfig['fastcode/openai_base_url'] := Trim(edt_OpenAIBaseURL.Text);
-  GlobalConfig['fastcode/openai_api_key'] := edt_OpenAIKey.Text;
-  GlobalConfig['fastcode/openai_model'] := Trim(cbbModel.Text);
-  GlobalConfig['fastcode/language'] := edt_Language.Text;
-  GlobalConfig['fastcode/prompt'] := mem_Prompt.Text;
-  GlobalConfig['fastcode/opening_char'] := edt_OpeningChar.Text;
-  GlobalConfig['fastcode/closing_char'] := edt_ClosingChar.Text;
+  GlobalConfig.SetString('fastcode/openai_base_url', Trim(edt_OpenAIBaseURL.Text));
+  GlobalConfig.SetString('fastcode/openai_api_key', edt_OpenAIKey.Text);
+  GlobalConfig.SetString('fastcode/openai_model', Trim(cbbModel.Text));
+  GlobalConfig.SetString('fastcode/language', edt_Language.Text);
+  GlobalConfig.SetString('fastcode/prompt', mem_Prompt.Text);
+  GlobalConfig.SetString('fastcode/opening_char', edt_OpeningChar.Text);
+  GlobalConfig.SetString('fastcode/closing_char', edt_ClosingChar.Text);
   GlobalConfig.Flush;
   SaveAIPlane;
   Close;

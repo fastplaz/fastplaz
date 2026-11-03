@@ -103,11 +103,11 @@ uses
 function AIPlaneLoadSettings: TAIPlaneSettings;
 begin
   LoadConfiguration;
-  Result.Runtime := GlobalConfig['aiplane/runtime'];
-  Result.Command := GlobalConfig['aiplane/command'];
-  Result.Arguments := GlobalConfig['aiplane/arguments'];
-  Result.Model := GlobalConfig['aiplane/model'];
-  Result.Effort := GlobalConfig['aiplane/effort'];
+  Result.Runtime := GlobalConfig.GetString('aiplane/runtime');
+  Result.Command := GlobalConfig.GetString('aiplane/command');
+  Result.Arguments := GlobalConfig.GetString('aiplane/arguments');
+  Result.Model := GlobalConfig.GetString('aiplane/model');
+  Result.Effort := GlobalConfig.GetString('aiplane/effort');
   if Result.Runtime = '' then
     Result.Runtime := AI_DEFAULT_PRESET;
   if Result.Effort = '' then
@@ -122,14 +122,14 @@ end;
 procedure AIPlaneSaveSettings(const ASettings: TAIPlaneSettings);
 begin
   LoadConfiguration;
-  GlobalConfig['aiplane/runtime'] := ASettings.Runtime;
-  GlobalConfig['aiplane/command'] := ASettings.Command;
-  GlobalConfig['aiplane/arguments'] := ASettings.Arguments;
-  GlobalConfig['aiplane/model'] := ASettings.Model;
+  GlobalConfig.SetString('aiplane/runtime', ASettings.Runtime);
+  GlobalConfig.SetString('aiplane/command', ASettings.Command);
+  GlobalConfig.SetString('aiplane/arguments', ASettings.Arguments);
+  GlobalConfig.SetString('aiplane/model', ASettings.Model);
   // the model last used with this runtime, brought back when switching to it
   if ASettings.Runtime <> '' then
-    GlobalConfig['aiplane/models/' + ASettings.Runtime] := ASettings.Model;
-  GlobalConfig['aiplane/effort'] := ASettings.Effort;
+    GlobalConfig.SetString('aiplane/models/' + ASettings.Runtime, ASettings.Model);
+  GlobalConfig.SetString('aiplane/effort', ASettings.Effort);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_enabled'), ASettings.McpEnabled);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_port'), ASettings.McpPort);
   GlobalConfig.Flush;
@@ -144,7 +144,7 @@ begin
   for i := 0 to AIPresetCount - 1 do
   begin
     presetId := AIPreset(i).Id;
-    AList.Values[presetId] := GlobalConfig['aiplane/models/' + presetId];
+    AList.Values[presetId] := GlobalConfig.GetString('aiplane/models/' + presetId);
   end;
 end;
 
@@ -157,7 +157,7 @@ begin
   for i := 0 to AIPresetCount - 1 do
   begin
     presetId := AIPreset(i).Id;
-    GlobalConfig['aiplane/models/' + presetId] := AList.Values[presetId];
+    GlobalConfig.SetString('aiplane/models/' + presetId, AList.Values[presetId]);
   end;
   GlobalConfig.Flush;
 end;
