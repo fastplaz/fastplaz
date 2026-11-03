@@ -5,7 +5,7 @@ unit model_lib;
 interface
 
 uses
-  Forms, Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
+  Forms, Dialogs, Controls, LazarusPackageIntf, ProjectIntf, LazIDEIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -45,10 +45,71 @@ var
   // model name without the T prefix and the Model suffix, e.g. 'user group'
   ModelName: string;
 
+// Names NewModelUnit uses: AModelText is the name handed to TFileDescModel
+// (from ATableName when AModelName is empty), ACustomTableName is '' when
+// TSimpleModel derives the table from AClassName.
+procedure ResolveModelNames(const AModelName, ATableName: string;
+  out AModelText, AClassName, ACustomTableName, AFileName: string);
+
+// Creates "<modelname>_model.pas" through the IDE, as the "Database Model
+// Generator" menu does. With only ATableName the model name comes from the
+// table ('users' -> TUserModel); ATableName is written into the constructor
+// only when TSimpleModel would not derive it from the class. ADirectory ''
+// keeps the file virtual (unsaved). Sets ModelName and CustomTableName.
+function NewModelUnit(const AModelName, ATableName, ADirectory: string;
+  AFlags: TNewFlags; out AFileName: string): TModalResult;
+
 implementation
 
 uses
   fastplaz_tools_register, tools_lib, model_wzd;
+
+// 'TUserGroupModel' -> 'UserGroup'
+function ModelBaseName(const AClassName: string): string;
+begin
+  Result := Copy(AClassName, 2, Length(AClassName) - 1 - Length(MODEL_CLASS_SUFFIX));
+end;
+
+procedure ResolveModelNames(const AModelName, ATableName: string;
+  out AModelText, AClassName, ACustomTableName, AFileName: string);
+begin
+  if (Trim(AModelName) = '') and (Trim(ATableName) <> '') then
+    ModelNameFromTable(Trim(ATableName), AModelText, ACustomTableName)
+  else
+  begin
+    AModelText := AModelName;
+    ACustomTableName := Trim(ATableName);
+  end;
+  AClassName := ModelClassName(AModelText);
+  if (ACustomTableName <> '') and
+    (TableNameFromModelClass(AClassName) = ACustomTableName) then
+    ACustomTableName := '';
+  AFileName := LowerCase(ModelBaseName(AClassName)) + '_model.pas';
+end;
+
+function NewModelUnit(const AModelName, ATableName, ADirectory: string;
+  AFlags: TNewFlags; out AFileName: string): TModalResult;
+var
+  descriptor: TFileDescModel;
+  className: string;
+begin
+  // ModelName stays as given, TFileDescModel.Init turns it into the class
+  ResolveModelNames(AModelName, ATableName, ModelName, className,
+    CustomTableName, AFileName);
+  if ADirectory <> '' then
+    AFileName := IncludeTrailingPathDelimiter(ADirectory) + AFileName;
+
+  descriptor := TFileDescModel.Create;
+  bCreateProject := False;
+  bExpert := True;
+  try
+    // the IDE does not take ownership of the descriptor
+    Result := LazarusIDE.DoNewEditorFile(descriptor, AFileName, '', AFlags);
+  finally
+    bExpert := False;
+    descriptor.Free;
+  end;
+end;
 
 const
   CS_DEFAULT_FILENAME = 'default_model.pas';
@@ -97,9 +158,10 @@ begin
     end;
   end;
 
-  ModelName := SanitizeIdentifier(StringReplace(UcWords(ModelName), ' ', '',
-    [rfReplaceAll]), 'Sample');
+  // ModelClassName does the UcWords itself: running it on an already
+  // joined name would turn 'UserGroup' into TUsergroupModel
   FClassName := ModelClassName(ModelName);
+  ModelName := ModelBaseName(FClassName);
   if CustomTableName = '' then
     FTableName := TableNameFromModelClass(FClassName)
   else
