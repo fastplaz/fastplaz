@@ -5,7 +5,7 @@ unit modsimple_lib;
 interface
 
 uses
-  Forms, Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
+  Forms, Dialogs, Controls, LazarusPackageIntf, ProjectIntf, LazIDEIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -54,9 +54,63 @@ var
 // Permalink. Returns False when the wizard was cancelled.
 function AskModuleName(const ADefaultTypeName, ADefaultPermalink: string): boolean;
 
+// The permalink, else the module name, else 'sample', as a route key.
+function ControllerPermalink(const AModuleName, APermalink: string): string;
+
+// 'user-group' -> 'usergroup_controller.pas'
+function ControllerFileName(const APermalink: string): string;
+
+// Creates "<permalink>_controller.pas" through the IDE, as the "Create Simple
+// Controller" (AsAPI False) and "Create API Controller" menus do. APermalink
+// falls back to AModuleName, then to 'sample'. ADirectory '' keeps the file
+// virtual (unsaved). Sets ModulTypeName and Permalink; AFileName is the
+// file the IDE created.
+function NewControllerUnit(AsAPI: boolean; const AModuleName, APermalink,
+  ADirectory: string; AFlags: TNewFlags; out AFileName: string): TModalResult;
+
 implementation
 
-uses fastplaz_tools_register, tools_lib, modsimple_wzd;
+uses fastplaz_tools_register, tools_lib, modsimple_wzd, modsimplejson_lib;
+
+function ControllerPermalink(const AModuleName, APermalink: string): string;
+begin
+  Result := SanitizePermalink(APermalink);
+  if Result = '' then
+    Result := SanitizePermalink(AModuleName);
+  if Result = '' then
+    Result := 'sample';
+end;
+
+function ControllerFileName(const APermalink: string): string;
+begin
+  Result := SanitizeIdentifier(APermalink) + '_controller.pas';
+end;
+
+function NewControllerUnit(AsAPI: boolean; const AModuleName, APermalink,
+  ADirectory: string; AFlags: TNewFlags; out AFileName: string): TModalResult;
+var
+  descriptor: TProjectFileDescriptor;
+begin
+  ModulTypeName := ControllerTypeName(AModuleName);
+  Permalink := ControllerPermalink(AModuleName, APermalink);
+  AFileName := ControllerFileName(Permalink);
+  if ADirectory <> '' then
+    AFileName := IncludeTrailingPathDelimiter(ADirectory) + AFileName;
+
+  if AsAPI then
+    descriptor := TFileDescJSONModule.Create
+  else
+    descriptor := TFileDescDefaultModule.Create;
+  bCreateProject := False;
+  bExpert := True;
+  try
+    // the IDE does not take ownership of the descriptor
+    Result := LazarusIDE.DoNewEditorFile(descriptor, AFileName, '', AFlags);
+  finally
+    bExpert := False;
+    descriptor.Free;
+  end;
+end;
 
 function AskModuleName(const ADefaultTypeName, ADefaultPermalink: string): boolean;
 var

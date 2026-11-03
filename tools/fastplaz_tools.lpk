@@ -9,7 +9,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
+        <OtherUnitFiles Value="src;src\ai_plane;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
         <UnitOutputDirectory Value="lib\tools\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Linking>
@@ -28,7 +28,7 @@
 for more information visit https://www.fastplaz.com
 "/>
     <Version Major="1" Release="1" Build="145"/>
-    <Files Count="49">
+    <Files Count="69">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -226,6 +226,86 @@ for more information visit https://www.fastplaz.com
         <Filename Value="src\tools_lib.pas"/>
         <UnitName Value="tools_lib"/>
       </Item49>
+      <Item50>
+        <Filename Value="src\ai_plane\aiplane_types.pas"/>
+        <UnitName Value="aiplane_types"/>
+      </Item50>
+      <Item51>
+        <Filename Value="src\ai_plane\aiplane_process.pas"/>
+        <UnitName Value="aiplane_process"/>
+      </Item51>
+      <Item52>
+        <Filename Value="src\ai_plane\aiplane_acp.pas"/>
+        <UnitName Value="aiplane_acp"/>
+      </Item52>
+      <Item53>
+        <Filename Value="src\ai_plane\aiplane_claude.pas"/>
+        <UnitName Value="aiplane_claude"/>
+      </Item53>
+      <Item54>
+        <Filename Value="src\ai_plane\aiplane_presets.pas"/>
+        <UnitName Value="aiplane_presets"/>
+      </Item54>
+      <Item55>
+        <Filename Value="src\ai_plane\aiplane_chatview.pas"/>
+        <UnitName Value="aiplane_chatview"/>
+      </Item55>
+      <Item56>
+        <Filename Value="src\ai_plane\aiplane_chatframe.pas"/>
+        <UnitName Value="aiplane_chatframe"/>
+      </Item56>
+      <Item57>
+        <Filename Value="src\ai_plane\aiplane_settingsframe.pas"/>
+        <UnitName Value="aiplane_settingsframe"/>
+      </Item57>
+      <Item58>
+        <Filename Value="src\ai_plane\aiplane_ide.pas"/>
+        <UnitName Value="aiplane_ide"/>
+      </Item58>
+      <Item59>
+        <Filename Value="src\ai_plane\aiplane_chatframe.lfm"/>
+        <Type Value="LFM"/>
+      </Item59>
+      <Item60>
+        <Filename Value="src\ai_plane\aiplane_settingsframe.lfm"/>
+        <Type Value="LFM"/>
+      </Item60>
+      <Item61>
+        <Filename Value="src\ai_plane\aiplane_ide.lfm"/>
+        <Type Value="LFM"/>
+      </Item61>
+      <Item62>
+        <Filename Value="src\ai_plane\aiplane_markdown.pas"/>
+        <UnitName Value="aiplane_markdown"/>
+      </Item62>
+      <Item63>
+        <Filename Value="src\ai_plane\aiplane_codehighlight.pas"/>
+        <UnitName Value="aiplane_codehighlight"/>
+      </Item63>
+      <Item64>
+        <Filename Value="src\ai_plane\aiplane_pi.pas"/>
+        <UnitName Value="aiplane_pi"/>
+      </Item64>
+      <Item65>
+        <Filename Value="src\ai_plane\aiplane_httpserver.pas"/>
+        <UnitName Value="aiplane_httpserver"/>
+      </Item65>
+      <Item66>
+        <Filename Value="src\ai_plane\aiplane_mcpserver.pas"/>
+        <UnitName Value="aiplane_mcpserver"/>
+      </Item66>
+      <Item67>
+        <Filename Value="src\ai_plane\aiplane_tools_ide.pas"/>
+        <UnitName Value="aiplane_tools_ide"/>
+      </Item67>
+      <Item68>
+        <Filename Value="src\ai_plane\aiplane_tools_fastplaz.pas"/>
+        <UnitName Value="aiplane_tools_fastplaz"/>
+      </Item68>
+      <Item69>
+        <Filename Value="src\ai_plane\aiplane_questiondlg.pas"/>
+        <UnitName Value="aiplane_questiondlg"/>
+      </Item69>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>
