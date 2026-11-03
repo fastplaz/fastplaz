@@ -12,6 +12,10 @@ unit aiplane_ide;
   - The window runs the IDE's MCP server (aiplane_mcpserver, tools in
     aiplane_tools_ide) on 127.0.0.1 when "aiplane/mcp_enabled" is on (default),
     port "aiplane/mcp_port" (default 17845, next free port when taken).
+  - Open files the agent changed on disk are reloaded after each of its
+    tool calls ("aiplane/auto_reload", default on), so the IDE does not ask.
+    A file with unsaved changes in the editor is left alone: the IDE asks as
+    before.
   - The IDE Messages window (view "FastPlaz") gets a line when the runtime
     and model become active, when the MCP server starts or fails, and when
     the agent reports an error.
@@ -41,6 +45,7 @@ type
     Effort: string;
     McpEnabled: boolean;
     McpPort: integer;
+    AutoReload: boolean;
   end;
 
   { TAIPlaneWindow }
@@ -56,6 +61,8 @@ type
     FMcpTimer: TTimer;
     FMcpPort: integer;
     FMcpNotice: string;
+    FAutoReload: boolean;
+    procedure ReloadAgentChanges(Sender: TObject);
     procedure UpdateMcpServer(const ASettings: TAIPlaneSettings);
     procedure McpTimer(Sender: TObject);
     procedure McpPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
@@ -101,7 +108,8 @@ implementation
 {$R *.lfm}
 
 uses
-  Variants, de_common, aiplane_presets, aiplane_chatview;
+  Variants, ComCtrls, LazFileUtils, LazFileCache, CodeCache, CodeToolManager,
+  de_common, aiplane_presets, aiplane_chatview;
 
 function AIPlaneLoadSettings: TAIPlaneSettings;
 begin
@@ -120,6 +128,7 @@ begin
     integer(AI_MCP_DEFAULT_PORT));
   if (Result.McpPort < 1024) or (Result.McpPort > 65535) then
     Result.McpPort := AI_MCP_DEFAULT_PORT;
+  Result.AutoReload := GlobalConfig.GetValue(UnicodeString('aiplane/auto_reload'), True);
 end;
 
 procedure AIPlaneSaveSettings(const ASettings: TAIPlaneSettings);
@@ -135,6 +144,7 @@ begin
   GlobalConfig.SetString('aiplane/effort', ASettings.Effort);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_enabled'), ASettings.McpEnabled);
   GlobalConfig.SetValue(UnicodeString('aiplane/mcp_port'), ASettings.McpPort);
+  GlobalConfig.SetValue(UnicodeString('aiplane/auto_reload'), ASettings.AutoReload);
   GlobalConfig.Flush;
 end;
 
@@ -218,6 +228,7 @@ begin
   FChat.WorkingDir := FProjectDir;
   FChat.OnToolPermission := @ToolPermissionAnswer;
   FChat.OnNotice := @ChatNotice;
+  FChat.OnToolFinished := @ReloadAgentChanges;
 
   FMcp := TAIMcpServer.Create;
   FMcp.OnPermission := @McpPermission;
@@ -253,6 +264,7 @@ begin
   begin
     FChat.OnToolPermission := nil;
     FChat.OnNotice := nil;
+    FChat.OnToolFinished := nil;
   end;
   FreeAndNil(FMcp);
   FreeAndNil(FTools);
@@ -301,6 +313,82 @@ begin
       // "off" only when it was on before, not when the window opens
       log(notice);
     FMcpNotice := notice;
+  end;
+end;
+
+// Reverts the open editors whose file changed on disk, as the IDE's own
+// "reload from disk" does, but without asking. Editors with unsaved changes
+// are skipped: the IDE's check asks about them as before.
+procedure TAIPlaneWindow.ReloadAgentChanges(Sender: TObject);
+var
+  files: TStringList;
+  i, w, p: integer;
+  ed, curEditor: TSourceEditorInterface;
+  win: TSourceEditorWindowInterface;
+  code: TCodeBuffer;
+  ctl: TControl;
+  activeFile: string;
+begin
+  if not FAutoReload or not Assigned(LazarusIDE) or not Assigned(SourceEditorManagerIntf) or
+    not Assigned(CodeToolBoss) then
+    Exit;
+  // a dialog is open (the IDE's own reload question, a question card):
+  // the next tool call or the end of the turn tries again
+  if Screen.GetCurrentModalForm <> nil then
+    Exit;
+  InvalidateFileStateCache;
+  files := TStringList.Create;
+  try
+    for i := 0 to SourceEditorManagerIntf.UniqueSourceEditorCount - 1 do
+    begin
+      ed := SourceEditorManagerIntf.UniqueSourceEditors[i];
+      if (ed = nil) or ed.Modified or not FilenameIsAbsolute(ed.FileName) then
+        Continue;
+      code := CodeToolBoss.FindFile(ed.FileName);
+      if Assigned(code) and not code.Modified and code.FileOnDiskHasChanged and
+        FileExistsUTF8(ed.FileName) then
+        files.Add(ed.FileName);
+    end;
+    if files.Count = 0 then
+      Exit;
+
+    curEditor := SourceEditorManagerIntf.ActiveEditor;
+    activeFile := '';
+    if Assigned(curEditor) then
+      activeFile := curEditor.FileName;
+    for i := 0 to files.Count - 1 do
+    begin
+      ed := SourceEditorManagerIntf.SourceEditorIntfWithFilename(files[i]);
+      if ed = nil then
+        Continue;
+      win := SourceEditorManagerIntf.SourceWindowWithEditor(ed);
+      w := SourceEditorManagerIntf.SourceWindowCount - 1;
+      while (w >= 0) and (SourceEditorManagerIntf.SourceWindows[w] <> win) do
+        Dec(w);
+      // the page of the editor: the tab sheet that holds its SynEdit (the
+      // window's Items are not in page order)
+      p := -1;
+      ctl := ed.EditorControl;
+      while Assigned(ctl) and not (ctl is TCustomPage) do
+        ctl := ctl.Parent;
+      if Assigned(ctl) then
+        p := TCustomPage(ctl).PageIndex;
+      if (w < 0) or (p < 0) then
+        Continue;
+      if LazarusIDE.DoOpenEditorFile(files[i], p, w, [ofRevert, ofQuiet]) = mrOk then
+        log('reloaded ' + files[i] + ' (changed by the agent)', 'Agent Plane', mluHint)
+      else
+        log('could not reload ' + files[i], 'Agent Plane', mluWarning);
+    end;
+    // reverting may bring another tab to the front
+    if activeFile <> '' then
+    begin
+      ed := SourceEditorManagerIntf.SourceEditorIntfWithFilename(activeFile);
+      if Assigned(ed) and (SourceEditorManagerIntf.ActiveEditor <> ed) then
+        SourceEditorManagerIntf.ActiveEditor := ed;
+    end;
+  finally
+    files.Free;
   end;
 end;
 
@@ -359,6 +447,7 @@ begin
   if Assigned(FChat.Adapter) and FChat.Adapter.IsBusy then
     Exit;
   settings := AIPlaneLoadSettings;
+  FAutoReload := settings.AutoReload;
   FApplying := True;
   try
     UpdateMcpServer(settings);

@@ -35,6 +35,7 @@ type
     cbbEffort: TComboBox;
     cbbModel: TComboBox;
     cbbRuntime: TComboBox;
+    chkAutoReload: TCheckBox;
     chkMcpEnabled: TCheckBox;
     edt_Arguments: TEdit;
     edt_Command: TEdit;
@@ -97,6 +98,8 @@ type
     procedure SetMcpEnabled(AValue: boolean);
     function GetMcpPort: integer;
     procedure SetMcpPort(AValue: integer);
+    function GetAutoReload: boolean;
+    procedure SetAutoReload(AValue: boolean);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -114,6 +117,9 @@ type
     { IDE tools through the MCP server (on by default) and its port. }
     property McpEnabled: boolean read GetMcpEnabled write SetMcpEnabled;
     property McpPort: integer read GetMcpPort write SetMcpPort;
+    { Reload open files the agent changed, without the IDE asking (on by
+      default). }
+    property AutoReload: boolean read GetAutoReload write SetAutoReload;
     { The model last used with each runtime, "preset=model": switching the
       runtime brings its model back. Reading it stores the current choice
       first. The host loads and saves it. }
@@ -626,6 +632,16 @@ begin
   spnMcpPort.Enabled := chkMcpEnabled.Checked;
   lblMcpPort.Enabled := chkMcpEnabled.Checked;
   ValueChange(Sender);
+end;
+
+function TAIPlaneSettingsFrame.GetAutoReload: boolean;
+begin
+  Result := chkAutoReload.Checked;
+end;
+
+procedure TAIPlaneSettingsFrame.SetAutoReload(AValue: boolean);
+begin
+  chkAutoReload.Checked := AValue;
 end;
 
 function TAIPlaneSettingsFrame.GetMcpEnabled: boolean;
