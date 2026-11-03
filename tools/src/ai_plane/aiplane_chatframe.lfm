@@ -1,0 +1,243 @@
+object AIChatFrame: TAIChatFrame
+  Left = 0
+  Height = 650
+  Top = 0
+  Width = 659
+  ClientHeight = 650
+  ClientWidth = 659
+  DesignTimePPI = 120
+  LCLVersion = '4.8.0.0'
+  ParentFont = False
+  ParentShowHint = False
+  ShowHint = True
+  TabOrder = 0
+  DesignLeft = 300
+  DesignTop = 200
+  object pnlTop: TPanel
+    Left = 0
+    Height = 36
+    Top = 0
+    Width = 659
+    Align = alTop
+    AutoSize = True
+    BevelOuter = bvNone
+    ChildSizing.LeftRightSpacing = 4
+    ChildSizing.TopBottomSpacing = 4
+    ChildSizing.HorizontalSpacing = 4
+    ClientHeight = 36
+    ClientWidth = 659
+    TabOrder = 0
+    object lblRuntime: TLabel
+      Cursor = crHandPoint
+      Left = 166
+      Height = 28
+      Hint = 'Change runtime'
+      Top = 4
+      Width = 56
+      Align = alLeft
+      BorderSpacing.Left = 12
+      BorderSpacing.Right = 8
+      Caption = 'runtime'
+      Font.Style = [fsBold]
+      Layout = tlCenter
+      ParentColor = False
+      ParentFont = False
+      ShowAccelChar = False
+      OnClick = lblRuntimeClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
+    object cbbRuntime: TComboBox
+      Left = 4
+      Height = 28
+      Hint = 'Runtime'
+      Top = 4
+      Width = 150
+      Align = alLeft
+      ItemHeight = 20
+      Style = csDropDownList
+      TabOrder = 0
+      Visible = False
+      OnSelect = cbbRuntimeSelect
+    end
+    object cbbModel: TComboBox
+      Left = 230
+      Height = 28
+      Hint = 'Model (empty = runtime default)'
+      Top = 4
+      Width = 125
+      Align = alLeft
+      ItemHeight = 20
+      TabOrder = 1
+      Visible = False
+      OnEditingDone = cbbModelChange
+      OnSelect = cbbModelChange
+    end
+    object cbbEffort: TComboBox
+      Left = 359
+      Height = 28
+      Hint = 'Thinking effort'
+      Top = 4
+      Width = 125
+      Align = alLeft
+      ItemHeight = 20
+      Style = csDropDownList
+      TabOrder = 2
+      Visible = False
+      OnSelect = cbbEffortSelect
+    end
+    object btnNew: TSpeedButton
+      Cursor = crHandPoint
+      Left = 488
+      Height = 28
+      Hint = 'New conversation'
+      Top = 4
+      Width = 30
+      Align = alLeft
+      OnClick = btnNewClick
+    end
+    object btnLog: TSpeedButton
+      Cursor = crHandPoint
+      Left = 522
+      Height = 28
+      Hint = 'Show protocol log'
+      Top = 4
+      Width = 30
+      Align = alLeft
+      AllowAllUp = True
+      GroupIndex = 1
+      Visible = False
+      OnClick = btnLogClick
+    end
+  end
+  object pnlView: TPanel
+    Left = 0
+    Height = 340
+    Top = 36
+    Width = 659
+    Align = alClient
+    BevelOuter = bvNone
+    TabOrder = 1
+  end
+  object splLog: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 6
+    Top = 376
+    Width = 659
+    Align = alBottom
+    ResizeAnchor = akBottom
+    Visible = False
+  end
+  object mem_Log: TMemo
+    Left = 0
+    Height = 150
+    Top = 382
+    Width = 659
+    Align = alBottom
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 2
+    Visible = False
+    WordWrap = False
+  end
+  object pnlInput: TPanel
+    Left = 0
+    Height = 90
+    Top = 532
+    Width = 659
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 90
+    ClientWidth = 659
+    TabOrder = 3
+    object btnSend: TButton
+      Cursor = crHandPoint
+      Left = 574
+      Height = 80
+      Top = 5
+      Width = 80
+      Align = alRight
+      BorderSpacing.Around = 5
+      Caption = 'Send'
+      TabOrder = 1
+      OnClick = btnSendClick
+    end
+    object mem_Input: TMemo
+      Left = 5
+      Height = 80
+      Top = 5
+      Width = 564
+      Align = alClient
+      BorderSpacing.Around = 5
+      ScrollBars = ssAutoVertical
+      TabOrder = 0
+      OnKeyDown = mem_InputKeyDown
+    end
+  end
+  object pnlStatus: TPanel
+    Left = 0
+    Height = 28
+    Top = 622
+    Width = 659
+    Align = alBottom
+    AutoSize = True
+    BevelOuter = bvNone
+    ChildSizing.LeftRightSpacing = 5
+    ChildSizing.TopBottomSpacing = 4
+    ClientHeight = 28
+    ClientWidth = 659
+    TabOrder = 4
+    object lblEffort: TLabel
+      Cursor = crHandPoint
+      Left = 12
+      Height = 20
+      Hint = 'Change thinking effort'
+      Top = 4
+      Width = 37
+      Align = alLeft
+      BorderSpacing.Left = 12
+      Caption = 'effort'
+      ParentColor = False
+      ShowAccelChar = False
+      OnClick = lblEffortClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
+    object lblModel: TLabel
+      Cursor = crHandPoint
+      Left = 61
+      Height = 20
+      Hint = 'Change model'
+      Top = 4
+      Width = 43
+      Align = alLeft
+      BorderSpacing.Left = 12
+      Caption = 'model'
+      ParentColor = False
+      ShowAccelChar = False
+      OnClick = lblModelClick
+      OnMouseEnter = StatusLabelMouseEnter
+      OnMouseLeave = StatusLabelMouseLeave
+    end
+    object lblStatus: TLabel
+      Left = 116
+      Height = 20
+      Top = 4
+      Width = 538
+      Align = alClient
+      BorderSpacing.Left = 12
+      Font.Color = clGrayText
+      ParentColor = False
+      ParentFont = False
+      ShowAccelChar = False
+    end
+  end
+  object tmrPoll: TTimer
+    Enabled = False
+    Interval = 30
+    OnTimer = tmrPollTimer
+    Left = 40
+    Top = 120
+  end
+end

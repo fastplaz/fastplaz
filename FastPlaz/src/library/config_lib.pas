@@ -35,6 +35,12 @@ type
       default;
     property IsValid: boolean read FIsValid;
 
+    // String read/write without going through the Variant default property
+    // (Value[]), which costs a Variant conversion per call. GetString
+    // returns '' for a missing key, containers as their JSON text.
+    function GetString(const AKeyName: string): string;
+    procedure SetString(const AKeyName, AValue: string);
+
     // nil when the path does not exist or is not an object
     function GetObject(AKeyName: UnicodeString): TJSONObject;
 
@@ -88,12 +94,17 @@ begin
 end;
 
 function TMyConfig.GetConfigValue(KeyName: string): variant;
+begin
+  Result := GetString(KeyName);
+end;
+
+function TMyConfig.GetString(const AKeyName: string): string;
 var
   El: TJSONData;
 begin
   Result := '';
   try
-    El := FindElement(StripSlash(UnicodeString(KeyName)), False, True);
+    El := FindElement(StripSlash(UnicodeString(AKeyName)), False, True);
     if not Assigned(El) then
       Exit;
     // containers are returned as their JSON text, scalars as text
@@ -101,6 +112,14 @@ begin
       Result := El.AsJSON
     else
       Result := El.AsString;
+  except
+  end;
+end;
+
+procedure TMyConfig.SetString(const AKeyName, AValue: string);
+begin
+  try
+    SetValue(UnicodeString(AKeyName), UnicodeString(AValue));
   except
   end;
 end;

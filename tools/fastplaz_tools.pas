@@ -16,7 +16,10 @@ uses
   themestructure_wzd, webstructure_lib, webstructure_wzd, 
   fastcode_configuration, de_dbmemoedit, config_lib, regexpr_lib, 
   regexpr_unicodedata_lib, regex_tester_lib, openai_integration, tools_lib, 
-  LazarusPackageIntf;
+  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, 
+  aiplane_presets, aiplane_chatview, aiplane_chatframe, aiplane_settingsframe, 
+  aiplane_ide, aiplane_markdown, aiplane_codehighlight, aiplane_pi, 
+  aiplane_httpserver, aiplane_mcpserver, aiplane_tools_ide, LazarusPackageIntf;
 
 implementation
 
