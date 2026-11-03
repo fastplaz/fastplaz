@@ -11,6 +11,9 @@ unit aiplane_tools_fastplaz;
   The new unit is saved in the project directory (or a sub directory of it),
   added to the project and opened in the source editor. Existing files are
   never overwritten.
+
+  The permission card says which file would be created (DisplayFile) and
+  with which class, before anything happens.
 }
 
 {$mode objfpc}{$H+}
@@ -38,6 +41,9 @@ type
     procedure ToolSimpleController(ACall: TAIMcpToolCall);
     procedure ToolApiController(ACall: TAIMcpToolCall);
     procedure ToolModel(ACall: TAIMcpToolCall);
+    function DisplayFile(ACall: TAIMcpToolCall; const AFileName: string): string;
+    function DescribeController(ACall: TAIMcpToolCall): string;
+    function DescribeModel(ACall: TAIMcpToolCall): string;
   public
     procedure Register(AServer: TAIMcpServer);
   end;
@@ -118,6 +124,64 @@ begin
     'FastPlaz | Database Model Generator: a TSimpleModel unit for a database ' +
     'table. Saves <name>_model.pas, adds it to the project and opens it.',
     SCHEMA_MODEL, mtpAskSession, @ToolModel);
+  AServer.SetToolDescriber('create_simple_controller', @DescribeController);
+  AServer.SetToolDescriber('create_api_controller', @DescribeController);
+  AServer.SetToolDescriber('create_model', @DescribeModel);
+end;
+
+// The file as the user would look for it: relative to the project directory
+// when it is inside it. Nothing is checked here; the tool itself does that.
+function TAIFastPlazTools.DisplayFile(ACall: TAIMcpToolCall;
+  const AFileName: string): string;
+var
+  projectDir, directory: string;
+begin
+  directory := SetDirSeparators(Trim(ACall.Str('directory')));
+  Result := AFileName;
+  if Assigned(LazarusIDE) and Assigned(LazarusIDE.ActiveProject) and
+    FilenameIsAbsolute(LazarusIDE.ActiveProject.ProjectInfoFile) then
+  begin
+    projectDir := AppendPathDelim(ExtractFilePath(LazarusIDE.ActiveProject.ProjectInfoFile));
+    if directory = '' then
+      directory := projectDir
+    else if not FilenameIsAbsolute(directory) then
+      directory := projectDir + directory;
+    directory := AppendPathDelim(TrimFilename(ExpandFileNameUTF8(directory)));
+    Result := directory + AFileName;
+    if PathIsInPath(directory, projectDir) then
+      Result := CreateRelativePath(Result, projectDir);
+  end
+  else if directory <> '' then
+    Result := AppendPathDelim(directory) + AFileName;
+end;
+
+function TAIFastPlazTools.DescribeController(ACall: TAIMcpToolCall): string;
+var
+  moduleName, link: string;
+begin
+  Result := '';
+  moduleName := Trim(ACall.Str('name'));
+  if moduleName = '' then
+    Exit;
+  link := ControllerPermalink(moduleName, Trim(ACall.Str('permalink')));
+  Result := 'Creates ' + DisplayFile(ACall, ControllerFileName(link)) + LineEnding +
+    Format('Class %s, route /%s', [ControllerTypeName(moduleName), link]);
+end;
+
+function TAIFastPlazTools.DescribeModel(ACall: TAIMcpToolCall): string;
+var
+  modelText, table, fileName, modelClass, customTable, unused: string;
+begin
+  Result := '';
+  modelText := Trim(ACall.Str('name'));
+  table := Trim(ACall.Str('table'));
+  if ((modelText = '') and (table = '')) or HasControlChars(table) then
+    Exit;
+  ResolveModelNames(modelText, table, unused, modelClass, customTable, fileName);
+  if customTable = '' then
+    customTable := TableNameFromModelClass(modelClass);
+  Result := 'Creates ' + DisplayFile(ACall, fileName) + LineEnding +
+    Format('Class %s, table %s', [modelClass, customTable]);
 end;
 
 function TAIFastPlazTools.CheckProject(ACall: TAIMcpToolCall;
