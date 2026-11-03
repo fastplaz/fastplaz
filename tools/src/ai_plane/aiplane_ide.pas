@@ -24,7 +24,8 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, ExtCtrls,
   LazIDEIntf, ProjectIntf, IDEWindowIntf, SrcEditorIntf, IDEMsgIntf, IDEExternToolIntf,
-  aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide;
+  aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide,
+  aiplane_tools_fastplaz;
 
 const
   AIPLANE_WINDOW_NAME = 'AIPlaneWindow';
@@ -51,6 +52,7 @@ type
     FApplying: boolean;
     FMcp: TAIMcpServer;
     FTools: TAIIdeTools;
+    FFastPlazTools: TAIFastPlazTools;
     FMcpTimer: TTimer;
     FMcpPort: integer;
     FMcpNotice: string;
@@ -222,6 +224,8 @@ begin
   FMcp.OnLog := @McpLog;
   FTools := TAIIdeTools.Create;
   FTools.Register(FMcp);
+  FFastPlazTools := TAIFastPlazTools.Create;
+  FFastPlazTools.Register(FMcp);
   FMcpTimer := TTimer.Create(Self);
   FMcpTimer.Enabled := False;
   FMcpTimer.Interval := 40;
@@ -252,6 +256,7 @@ begin
   end;
   FreeAndNil(FMcp);
   FreeAndNil(FTools);
+  FreeAndNil(FFastPlazTools);
   inherited Destroy;
 end;
 
