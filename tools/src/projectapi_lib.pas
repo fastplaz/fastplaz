@@ -66,6 +66,7 @@ var
   structure: TWebStructure;
   projectTitle, targetExecutable: string;
   isCreateStructure: boolean;
+  runMode: TAppRunMode;
 begin
   ProjectName := 'fastplazapi';
   targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
@@ -83,6 +84,7 @@ begin
         ProjectName + _APP_EXTENSION;
     Header.Assign(wizard.mem_Header.Lines);
     isCreateStructure := wizard.cbx_GenerateStructure.Checked;
+    runMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -104,6 +106,7 @@ begin
       structure.Free;
     end;
   end;
+  ApplyRunMode(ExtractFilePath(targetExecutable), runMode);
 
   Result := mrOk;
 end;

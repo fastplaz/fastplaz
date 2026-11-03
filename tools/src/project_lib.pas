@@ -7,7 +7,7 @@ interface
 uses
   Forms, Dialogs, Controls,
   LazIDEIntf, LazarusPackageIntf, ProjectIntf, PackageIntf,
-  Classes, SysUtils;
+  tools_lib, Classes, SysUtils;
 
 resourcestring
   rs_Project_Name = 'Simple Application';
@@ -39,9 +39,14 @@ procedure SetupFastPlazProject(AProject: TLazProject;
 // Opens the readme that ships with the runtime package, when it exists.
 procedure OpenRuntimeReadme(const AReadmeName: string);
 
+// Writes the run mode chosen in a wizard to <AWebRootDir>/config/config.json
+// and reports it in the messages window. Nothing is written when the file
+// does not exist (web structure not generated).
+procedure ApplyRunMode(const AWebRootDir: string; AMode: TAppRunMode);
+
 implementation
 
-uses fastplaz_tools_register, tools_lib, modsimple_lib, project_wzd, webstructure_lib,
+uses fastplaz_tools_register, modsimple_lib, LazFileUtils, project_wzd, webstructure_lib,
   IDEExternToolIntf;
 
 function FastPlazProgramSource(const AProjectName: string): string;
@@ -135,6 +140,32 @@ begin
     LazarusIDE.DoOpenEditorFile(filename, -1, -1, [ofAddToRecent]);
 end;
 
+procedure ApplyRunMode(const AWebRootDir: string; AMode: TAppRunMode);
+var
+  configFile: string;
+begin
+  configFile := IncludeTrailingPathDelimiter(AWebRootDir) + 'config' +
+    DirectorySeparator + 'config.json';
+  // a relative directory would resolve against the IDE's working directory
+  if (not FilenameIsAbsolute(AWebRootDir)) or (not FileExists(configFile)) then
+  begin
+    log('Run mode ' + UpperCase(APP_RUN_MODE_NAMES[AMode]) +
+      ': config/config.json not found, set systems/server/mode manually', '',
+      mluHint);
+    Exit;
+  end;
+  if SetConfigRunMode(configFile, AMode) then
+  begin
+    if AMode = armHTTP then
+      log(Format('Run mode HTTP: http://%s:%d/ (%s)', [APP_HTTP_ADDRESS_DEFAULT,
+        APP_HTTP_PORT_DEFAULT, configFile]), '', mluProgress)
+    else
+      log('Run mode CGI (' + configFile + ')', '', mluProgress);
+  end
+  else
+    log('Run mode: cannot update ' + configFile, '', mluError);
+end;
+
 { TProjectFastPlazDescriptor }
 
 constructor TProjectFastPlazDescriptor.Create;
@@ -159,6 +190,7 @@ var
   structure: TWebStructure;
   projectTitle, targetExecutable: string;
   isCreateStructure: boolean;
+  runMode: TAppRunMode;
 begin
   ProjectName := DEFAULT_PROJECT_NAME;
   targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
@@ -174,6 +206,7 @@ begin
       targetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
         ProjectName + _APP_EXTENSION;
     isCreateStructure := wizard.cbx_GenerateStructure.Checked;
+    runMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -195,6 +228,7 @@ begin
       structure.Free;
     end;
   end;
+  ApplyRunMode(ExtractFilePath(targetExecutable), runMode);
 
   Result := mrOk;
 end;

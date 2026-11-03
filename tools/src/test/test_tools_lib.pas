@@ -5,7 +5,7 @@ unit test_tools_lib;
 interface
 
 uses
-  tools_lib, Classes, SysUtils, fpcunit, testregistry;
+  tools_lib, fpjson, Classes, SysUtils, fpcunit, testregistry;
 
 type
 
@@ -39,6 +39,11 @@ type
     procedure TestFastCodeResponseText;
     procedure TestFastCodeResponseTextEscapes;
     procedure TestFastCodeResponseTextInvalid;
+    procedure TestConfigWithRunModeHTTP;
+    procedure TestConfigWithRunModeCGI;
+    procedure TestConfigWithRunModeKeepsServer;
+    procedure TestConfigWithRunModeInvalid;
+    procedure TestSetConfigRunMode;
   end;
 
 implementation
@@ -299,6 +304,84 @@ begin
   AssertEquals('', FastCodeResponseText('not json'));
   AssertEquals('', FastCodeResponseText('{"choices":[]}'));
   AssertEquals('', FastCodeResponseText('{"choices":[{"message":{"content":null}}]}'));
+end;
+
+procedure TToolsLibTest.TestConfigWithRunModeHTTP;
+var
+  data: TJSONData;
+begin
+  data := GetJSON(ConfigWithRunMode(
+    '{ "systems" : { "sitename" : "FastPlaz" }, "database" : {} }', armHTTP));
+  try
+    AssertEquals('http', data.FindPath('systems.server.mode').AsString);
+    AssertEquals('127.0.0.1', data.FindPath('systems.server.address').AsString);
+    AssertEquals(8080, data.FindPath('systems.server.port').AsInteger);
+    AssertEquals('FastPlaz', data.FindPath('systems.sitename').AsString);
+    AssertNotNull(data.FindPath('database'));
+  finally
+    data.Free;
+  end;
+end;
+
+procedure TToolsLibTest.TestConfigWithRunModeCGI;
+var
+  data: TJSONData;
+begin
+  // comments are accepted, a missing "systems" object is created
+  data := GetJSON(ConfigWithRunMode('{ /* note */ "database" : {} }', armCGI));
+  try
+    AssertEquals('cgi', data.FindPath('systems.server.mode').AsString);
+    AssertNull(data.FindPath('systems.server.port'));
+    AssertNull(data.FindPath('systems.server.address'));
+  finally
+    data.Free;
+  end;
+end;
+
+procedure TToolsLibTest.TestConfigWithRunModeKeepsServer;
+var
+  data: TJSONData;
+begin
+  data := GetJSON(ConfigWithRunMode(
+    '{ "systems" : { "server" : { "mode" : "cgi", "port" : 9000, "static" : false } } }',
+    armHTTP));
+  try
+    AssertEquals('http', data.FindPath('systems.server.mode').AsString);
+    AssertEquals(9000, data.FindPath('systems.server.port').AsInteger);
+    AssertEquals('127.0.0.1', data.FindPath('systems.server.address').AsString);
+    AssertFalse(data.FindPath('systems.server.static').AsBoolean);
+  finally
+    data.Free;
+  end;
+end;
+
+procedure TToolsLibTest.TestConfigWithRunModeInvalid;
+begin
+  AssertEquals('', ConfigWithRunMode('', armHTTP));
+  AssertEquals('', ConfigWithRunMode('{ broken', armHTTP));
+  AssertEquals('', ConfigWithRunMode('[1, 2]', armCGI));
+end;
+
+procedure TToolsLibTest.TestSetConfigRunMode;
+var
+  fileName: string;
+  data: TJSONData;
+begin
+  fileName := FTempDir + DirectorySeparator + 'config' + DirectorySeparator +
+    'config.json';
+  AssertFalse('missing file', SetConfigRunMode(fileName, armHTTP));
+  WriteText(fileName, '{ "systems" : { "sitename" : "x" } }');
+  AssertTrue(SetConfigRunMode(fileName, armCGI));
+  data := GetJSON(ReadText(fileName));
+  try
+    AssertEquals('cgi', data.FindPath('systems.server.mode').AsString);
+    AssertEquals('x', data.FindPath('systems.sitename').AsString);
+  finally
+    data.Free;
+  end;
+  WriteText(fileName, 'not json');
+  AssertFalse('invalid file', SetConfigRunMode(fileName, armCGI));
+  AssertEquals('not json', Trim(ReadText(fileName)));
 end;
 
 initialization
