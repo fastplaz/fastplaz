@@ -25,12 +25,15 @@ type
   public
     Permissions: integer;
     LastKey: string;
+    LastDetail: string;
     { '', 'allow_once', 'allow_always', 'reject_once', or 'later' }
     Answer: string;
     procedure Echo(ACall: TAIMcpToolCall);
     procedure Big(ACall: TAIMcpToolCall);
     procedure Boom(ACall: TAIMcpToolCall);
     procedure Risky(ACall: TAIMcpToolCall);
+    function Describe(ACall: TAIMcpToolCall): string;
+    function DescribeBoom(ACall: TAIMcpToolCall): string;
     procedure OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
   end;
 
@@ -84,6 +87,9 @@ type
     procedure TestParseError;
     procedure TestChunkedAndPipelined;
     procedure TestNewTokenPerStart;
+    procedure TestArgsText;
+    procedure TestPermissionCardText;
+    procedure TestPermissionCardDescriberRaises;
   end;
 
 implementation
@@ -114,10 +120,21 @@ begin
   ACall.Finish('risky done');
 end;
 
+function TMcpTestTools.Describe(ACall: TAIMcpToolCall): string;
+begin
+  Result := 'Creates ' + ACall.Str('name') + '_controller.pas';
+end;
+
+function TMcpTestTools.DescribeBoom(ACall: TAIMcpToolCall): string;
+begin
+  raise Exception.Create('describe failed');
+end;
+
 procedure TMcpTestTools.OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
 begin
   Inc(Permissions);
   LastKey := ARequest.Key;
+  LastDetail := ARequest.Detail;
   if (Answer <> '') and (Answer <> 'later') then
     TAIMcpServer(Sender).RespondPermission(ARequest.Key, Answer);
 end;
@@ -581,6 +598,54 @@ begin
   FServer.Stop;
   AssertFalse(FServer.Active);
   AssertEquals('', FServer.Url);
+end;
+
+procedure TAIMcpServerTest.TestArgsText;
+var
+  args: TJSONObject;
+begin
+  AssertEquals('', AIMcpArgsText(nil));
+  args := TJSONObject(GetJSON('{"name":"transaksi","directory":"controllers",' +
+    '"empty":"","none":null,"count":3,"flag":true,"list":[1,2],"text":"a' + '\n' + 'b"}'));
+  try
+    AssertEquals('name: transaksi' + LineEnding + 'directory: controllers' + LineEnding +
+      'count: 3' + LineEnding + 'flag: true' + LineEnding + 'list: [1, 2]' + LineEnding +
+      'text: a' + LineEnding + '    b', AIMcpArgsText(args));
+  finally
+    args.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestPermissionCardText;
+var
+  res: TJSONObject;
+begin
+  FServer.SetToolDescriber('always', @FTools.Describe);
+  FTools.Answer := AI_MCP_ALLOW_ONCE;
+  res := CallTool('always', TJSONObject.Create(['name', 'transaksi', 'directory', 'controllers']));
+  res.Free;
+  AssertEquals('Always ask' + LineEnding + 'Creates transaksi_controller.pas' + LineEnding +
+    LineEnding + 'name: transaksi' + LineEnding + 'directory: controllers', FTools.LastDetail);
+  // no arguments, no describer: the title only
+  res := CallTool('risky');
+  res.Free;
+  AssertEquals('Risky', FTools.LastDetail);
+end;
+
+procedure TAIMcpServerTest.TestPermissionCardDescriberRaises;
+var
+  res: TJSONObject;
+begin
+  FServer.SetToolDescriber('always', @FTools.DescribeBoom);
+  FTools.Answer := AI_MCP_ALLOW_ONCE;
+  res := CallTool('always', TJSONObject.Create(['name', 'x']));
+  try
+    // the card is still shown, without the summary, and the tool runs
+    AssertEquals('risky done', ResultText(res));
+  finally
+    res.Free;
+  end;
+  AssertEquals('Always ask' + LineEnding + LineEnding + 'name: x', FTools.LastDetail);
 end;
 
 initialization

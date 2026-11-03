@@ -37,7 +37,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Buttons, LCLType,
   LCLIntf, Menus,
-  aiplane_types, aiplane_presets, aiplane_chatview;
+  aiplane_types, aiplane_presets, aiplane_chatview, aiplane_questiondlg;
 
 type
   { Answer to a permission card shown with ShowToolPermission. }
@@ -110,6 +110,10 @@ type
     FTurnQueued: boolean;
     FActiveNotice: string;
     FOnNotice: TAIChatNotice;
+    FQuestions: TStringList;   // permission key -> AskUserQuestion input JSON
+    FOnToolFinished: TNotifyEvent;
+    procedure AnswerQuestions(AItem: TAIChatItem);
+    procedure QueuedAnswer(AData: PtrInt);
     procedure ShowError(const AText: string);
     procedure DoNotice(const AText: string; AIsError: boolean);
     function RuntimeTitle: string;
@@ -186,6 +190,9 @@ type
     property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
       write FOnToolPermission;
     property OnNotice: TAIChatNotice read FOnNotice write FOnNotice;
+    { A tool call of the agent completed or failed, or the turn ended: files
+      on disk may have changed. }
+    property OnToolFinished: TNotifyEvent read FOnToolFinished write FOnToolFinished;
   end;
 
 implementation
@@ -196,6 +203,8 @@ const
   MAX_LOG_LINES = 2000;
   MIN_COMBO_WIDTH = 60;
   MAX_COMBO_WIDTH = 260;
+  QUESTION_ANSWER = 'answer';
+  QUESTION_SKIP = 'skip';
 
 type
   TToolIcon = (tiNew, tiLog);
@@ -306,6 +315,7 @@ end;
 constructor TAIChatFrame.Create(AOwner: TComponent);
 begin
   FRuntimeModels := TStringList.Create;
+  FQuestions := TStringList.Create;
   inherited Create(AOwner);
   SetupControls;
   SetRuntime(AI_DEFAULT_PRESET);
@@ -316,8 +326,10 @@ begin
   // nil when loading the .lfm failed
   if Assigned(tmrPoll) then
     tmrPoll.Enabled := False;
+  Application.RemoveAsyncCalls(Self);
   FreeAdapter;
   inherited Destroy;
+  FreeAndNil(FQuestions);
   FreeAndNil(FRuntimeModels);
 end;
 
@@ -857,6 +869,7 @@ begin
   if TurnRunning then
     Exit;
   FView.Clear;
+  FQuestions.Clear;
   FCurrentText := nil;
   FCurrentThinking := nil;
   FUsageText := '';
@@ -918,6 +931,9 @@ begin
       if AEvent.Text <> '' then
         item.Text := AEvent.Text;
       FView.Changed(item);
+      if (AEvent.Kind = aekToolUpdate) and (AEvent.ToolStatus in [atsCompleted, atsFailed]) and
+        Assigned(FOnToolFinished) then
+        FOnToolFinished(Self);
     end;
     aekPlan:
     begin
@@ -965,7 +981,11 @@ begin
       AddLog(AEvent.Text);
   end;
   if AEvent.Kind = aekDone then
+  begin
     UpdateControls;
+    if Assigned(FOnToolFinished) then
+      FOnToolFinished(Self);
+  end;
 end;
 
 procedure TAIChatFrame.AdapterPermission(Sender: TObject;
@@ -974,6 +994,27 @@ var
   item: TAIChatItem;
   i: integer;
 begin
+  if Length(ARequest.Questions) > 0 then
+  begin
+    // the agent asks: the card lists the questions, the dialog answers them
+    item := FView.Add(cikPermission, AIQuestionsText(ARequest.Questions));
+    item.IsQuestion := True;
+    item.Key := ARequest.Key;
+    item.Title := ARequest.ToolTitle;
+    FQuestions.Values[ARequest.Key] := ARequest.Detail;
+    SetLength(item.Buttons, 2);
+    item.Buttons[0].Id := QUESTION_ANSWER;
+    item.Buttons[0].Caption := 'Answer...';
+    item.Buttons[0].Kind := 'allow_once';
+    item.Buttons[1].Id := QUESTION_SKIP;
+    item.Buttons[1].Caption := 'Skip';
+    item.Buttons[1].Kind := 'reject_once';
+    FView.Changed(item);
+    FCurrentText := nil;
+    // open the dialog right away, after this event has been handled
+    Application.QueueAsyncCall(@QueuedAnswer, PtrInt(item));
+    Exit;
+  end;
   item := FView.Add(cikPermission, ARequest.Detail);
   item.Key := ARequest.Key;
   item.Title := ARequest.ToolTitle;
@@ -987,6 +1028,51 @@ begin
   FView.Changed(item);
   // A new item while the text streams starts a new text item after it.
   FCurrentText := nil;
+end;
+
+procedure TAIChatFrame.AnswerQuestions(AItem: TAIChatItem);
+var
+  questions: TAIQuestions;
+  answers: TStringArray;
+  i: integer;
+  s: string;
+begin
+  if (AItem.Answer <> '') or not Assigned(FAdapter) then
+    Exit;
+  i := FQuestions.IndexOfName(AItem.Key);
+  if (i < 0) or not AIParseQuestions(FQuestions.ValueFromIndex[i], questions) then
+    Exit;
+  if not AIAskQuestions(questions, answers) then
+    Exit;  // the card stays open: Answer... or Skip later
+  // the dialog was modal: the turn may have ended meanwhile
+  if (AItem.Answer <> '') or (FQuestions.IndexOfName(AItem.Key) < 0) then
+    Exit;
+  FQuestions.Delete(FQuestions.IndexOfName(AItem.Key));
+  s := '';
+  for i := 0 to High(answers) do
+  begin
+    if s <> '' then
+      s := s + '; ';
+    if questions[i].Header <> '' then
+      s := s + questions[i].Header + ': ';
+    s := s + answers[i];
+  end;
+  AItem.Answer := s;
+  FView.Changed(AItem);
+  FAdapter.RespondQuestion(AItem.Key, answers);
+end;
+
+procedure TAIChatFrame.QueuedAnswer(AData: PtrInt);
+var
+  i: integer;
+begin
+  // the item may be gone (new chat) by the time this runs
+  for i := FView.Count - 1 downto 0 do
+    if FView.Items[i] = TAIChatItem(AData) then
+    begin
+      AnswerQuestions(FView.Items[i]);
+      Exit;
+    end;
 end;
 
 procedure TAIChatFrame.ShowToolPermission(const ARequest: TAIPermissionRequest);
@@ -1034,6 +1120,21 @@ var
 begin
   if AItem.Answer <> '' then
     Exit;
+  if AItem.IsQuestion then
+  begin
+    if AButtonId = QUESTION_ANSWER then
+      AnswerQuestions(AItem)
+    else if Assigned(FAdapter) then
+    begin
+      i := FQuestions.IndexOfName(AItem.Key);
+      if i >= 0 then
+        FQuestions.Delete(i);
+      AItem.Answer := 'Skipped';
+      FView.Changed(AItem);
+      FAdapter.RespondQuestion(AItem.Key, []);
+    end;
+    Exit;
+  end;
   isTool := Copy(AItem.Key, 1, 4) = 'mcp:';
   if not isTool and not Assigned(FAdapter) then
     Exit;

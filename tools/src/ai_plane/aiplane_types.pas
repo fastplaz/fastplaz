@@ -55,6 +55,21 @@ type
     Kind: string;   // allow_once, allow_always, reject_once, reject_always
   end;
 
+  TAIQuestionOption = record
+    Caption: string;
+    Description: string;
+  end;
+
+  { One question the agent asks the user (Claude Code's AskUserQuestion). }
+  TAIQuestion = record
+    Question: string;
+    Header: string;     // short label, may be empty
+    Options: array of TAIQuestionOption;
+    MultiSelect: boolean;
+  end;
+
+  TAIQuestions = array of TAIQuestion;
+
   TAIPermissionRequest = record
     Key: string;    // pass back to TAIAdapter.RespondPermission
     ToolCallId: string;
@@ -62,6 +77,9 @@ type
     ToolKind: string;
     Detail: string;
     Options: array of TAIPermissionOption;
+    { Not empty: the agent asks the user these questions instead of asking
+      for permission. Answer with TAIAdapter.RespondQuestion. }
+    Questions: TAIQuestions;
   end;
 
   { The handler may answer at once (RespondPermission inside the handler) or
@@ -129,6 +147,10 @@ type
       processed, so a loop can skip sleeping. }
     function Poll: boolean; virtual; abstract;
     procedure RespondPermission(const AKey, AOptionId: string); virtual; abstract;
+    { Answers a request that carried Questions. AAnswers[i] answers
+      Questions[i] (several choices joined with ", "); an empty array means
+      the user declined. The default declines through RespondPermission. }
+    procedure RespondQuestion(const AKey: string; const AAnswers: array of string); virtual;
     { Starts a new conversation; the runtime keeps running when it can. }
     procedure NewSession; virtual; abstract;
 
@@ -179,8 +201,16 @@ function AISplitCodeBlocks(const AText: string): TStringList;
 { Copies to AOut the items of AItems that contain every word of AFilter
   (case-insensitive, any order). An empty filter copies everything. }
 procedure AIFilterModels(AItems: TStrings; const AFilter: string; AOut: TStrings);
+{ Reads the "questions" array of an AskUserQuestion input. Questions without
+  text are skipped. False when there is no question. }
+function AIParseQuestions(const AInputJSON: string; out AQuestions: TAIQuestions): boolean;
+{ Plain text for a question card: every question with its options. }
+function AIQuestionsText(const AQuestions: TAIQuestions): string;
 
 implementation
+
+uses
+  fpjson, jsonparser;
 
 function AIEvent(AKind: TAIEventKind; const AText: string): TAIEvent;
 begin
@@ -284,6 +314,115 @@ begin
   end;
 end;
 
+function AIParseQuestions(const AInputJSON: string; out AQuestions: TAIQuestions): boolean;
+var
+  data, d: TJSONData;
+  arr, opts: TJSONArray;
+  q, o: TJSONObject;
+  i, j, n, m: integer;
+
+  function Str(AObj: TJSONObject; const AName: string): string;
+  var
+    v: TJSONData;
+  begin
+    Result := '';
+    v := AObj.Find(AName);
+    if Assigned(v) and (v.JSONType in [jtString, jtNumber]) then
+      Result := v.AsString;
+  end;
+
+begin
+  AQuestions := nil;
+  try
+    data := GetJSON(AInputJSON);
+  except
+    Exit(False);
+  end;
+  // GetJSON('') gives nil
+  if not Assigned(data) then
+    Exit(False);
+  try
+    if data.JSONType <> jtObject then
+      Exit(False);
+    d := TJSONObject(data).Find('questions');
+    if not Assigned(d) or (d.JSONType <> jtArray) then
+      Exit(False);
+    arr := TJSONArray(d);
+    n := 0;
+    SetLength(AQuestions, arr.Count);
+    for i := 0 to arr.Count - 1 do
+    begin
+      if arr[i].JSONType <> jtObject then
+        Continue;
+      q := TJSONObject(arr[i]);
+      if Trim(Str(q, 'question')) = '' then
+        Continue;
+      AQuestions[n] := Default(TAIQuestion);
+      AQuestions[n].Question := Str(q, 'question');
+      AQuestions[n].Header := Str(q, 'header');
+      d := q.Find('multiSelect');
+      AQuestions[n].MultiSelect := Assigned(d) and (d.JSONType = jtBoolean) and d.AsBoolean;
+      d := q.Find('options');
+      if Assigned(d) and (d.JSONType = jtArray) then
+      begin
+        opts := TJSONArray(d);
+        m := 0;
+        SetLength(AQuestions[n].Options, opts.Count);
+        for j := 0 to opts.Count - 1 do
+        begin
+          if opts[j].JSONType = jtString then
+          begin
+            AQuestions[n].Options[m].Caption := opts[j].AsString;
+            AQuestions[n].Options[m].Description := '';
+          end
+          else if opts[j].JSONType = jtObject then
+          begin
+            o := TJSONObject(opts[j]);
+            AQuestions[n].Options[m].Caption := Str(o, 'label');
+            AQuestions[n].Options[m].Description := Str(o, 'description');
+          end
+          else
+            Continue;
+          if AQuestions[n].Options[m].Caption <> '' then
+            Inc(m);
+        end;
+        SetLength(AQuestions[n].Options, m);
+      end;
+      Inc(n);
+    end;
+    SetLength(AQuestions, n);
+    Result := n > 0;
+  finally
+    data.Free;
+  end;
+end;
+
+function AIQuestionsText(const AQuestions: TAIQuestions): string;
+var
+  i, j: integer;
+  s: string;
+begin
+  Result := '';
+  for i := 0 to High(AQuestions) do
+  begin
+    if Result <> '' then
+      Result := Result + LineEnding + LineEnding;
+    s := AQuestions[i].Question;
+    if AQuestions[i].Header <> '' then
+      s := '[' + AQuestions[i].Header + '] ' + s;
+    if AQuestions[i].MultiSelect then
+      s := s + ' (choose any)';
+    Result := Result + s;
+    for j := 0 to High(AQuestions[i].Options) do
+    begin
+      s := '  - ' + AQuestions[i].Options[j].Caption;
+      if AQuestions[i].Options[j].Description <> '' then
+        s := s + ': ' + AQuestions[i].Options[j].Description;
+      Result := Result + LineEnding + s;
+    end;
+  end;
+end;
+
 { TAIAdapter }
 
 constructor TAIAdapter.Create;
@@ -373,6 +512,11 @@ begin
     Exit;
   FModel := AValue;
   ModelChanged;
+end;
+
+procedure TAIAdapter.RespondQuestion(const AKey: string; const AAnswers: array of string);
+begin
+  RespondPermission(AKey, '');
 end;
 
 function TAIAdapter.IsBusy: boolean;

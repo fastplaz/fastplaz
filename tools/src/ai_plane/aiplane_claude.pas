@@ -11,7 +11,9 @@ unit aiplane_claude;
   on stdin. Text arrives as partial "stream_event" deltas, tool calls as
   "assistant"/"user" messages, and each turn ends with a "result" message.
   Permission prompts arrive as control_request/can_use_tool and are answered
-  with control_response.
+  with control_response. AskUserQuestion comes the same way; its request
+  carries Questions and the answers go back as updatedInput.answers
+  (question text -> chosen label).
 
   Model and effort are command line flags, so changing them restarts the
   process and resumes the same session (--resume).
@@ -42,6 +44,7 @@ type
     procedure ChannelStderr(Sender: TObject; const ALine: string);
     procedure ChannelExit(Sender: TObject; AExitCode: integer);
     procedure WriteJSON(AMessage: TJSONObject);
+    procedure WriteText(const AText: string);
     procedure HandleStreamEvent(AEvent: TJSONObject);
     procedure HandleAssistant(AMessage: TJSONObject);
     procedure HandleUser(AMessage: TJSONObject);
@@ -63,6 +66,7 @@ type
     procedure Cancel; override;
     function Poll: boolean; override;
     procedure RespondPermission(const AKey, AOptionId: string); override;
+    procedure RespondQuestion(const AKey: string; const AAnswers: array of string); override;
     procedure NewSession; override;
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
@@ -77,6 +81,7 @@ implementation
 const
   PERMISSION_ALLOW = 'allow';
   PERMISSION_DENY = 'deny';
+  QUESTION_TOOL = 'AskUserQuestion';
   MAX_TOOL_OUTPUT = 4000;
 
 function JStr(AObject: TJSONObject; const AName: string; const ADefault: string = ''): string;
@@ -415,6 +420,77 @@ begin
   WriteJSON(msg);
 end;
 
+procedure TClaudeStreamAdapter.RespondQuestion(const AKey: string;
+  const AAnswers: array of string);
+var
+  i: integer;
+  requestId, inputJSON: string;
+  questions: TAIQuestions;
+  input: TJSONData;
+  inputText, answersText: string;
+
+  function Quoted(const AText: string): string;
+  begin
+    Result := '"' + StringToJSONString(AText) + '"';
+  end;
+
+begin
+  if Length(AAnswers) = 0 then
+  begin
+    RespondPermission(AKey, PERMISSION_DENY);
+    Exit;
+  end;
+  i := FPermissions.IndexOfName(AKey);
+  if i < 0 then
+    Exit;
+  requestId := FPermissions.ValueFromIndex[i];
+  FPermissions.Delete(i);
+  i := FPermInputs.IndexOfName(AKey);
+  inputJSON := '{}';
+  if i >= 0 then
+  begin
+    inputJSON := FPermInputs.ValueFromIndex[i];
+    FPermInputs.Delete(i);
+  end;
+  AIParseQuestions(inputJSON, questions);
+
+  input := GetJSON(inputJSON);
+  if not Assigned(input) or (input.JSONType <> jtObject) then
+  begin
+    input.Free;
+    input := TJSONObject.Create;
+  end;
+  try
+    TJSONObject(input).Delete('answers');
+    inputText := Trim(input.AsJSON);
+  finally
+    input.Free;
+  end;
+
+  // Written by hand: TJSONObject keeps member names as ShortString and cuts
+  // them at 255 characters, while Claude Code matches every answer to the
+  // full question text (a long question then counts as not answered).
+  answersText := '';
+  for i := 0 to High(questions) do
+    if (i <= High(AAnswers)) and (AAnswers[i] <> '') then
+    begin
+      if answersText <> '' then
+        answersText := answersText + ', ';
+      answersText := answersText + Quoted(questions[i].Question) + ' : ' + Quoted(AAnswers[i]);
+    end;
+  answersText := '"answers" : { ' + answersText + ' }';
+  // insert it before the closing brace of the input object
+  Delete(inputText, Length(inputText), 1);
+  inputText := TrimRight(inputText);
+  if inputText <> '{' then
+    inputText := inputText + ',';
+  inputText := inputText + ' ' + answersText + ' }';
+
+  WriteText('{ "type" : "control_response", "response" : { "subtype" : "success", ' +
+    '"request_id" : ' + Quoted(requestId) + ', "response" : { "behavior" : "allow", ' +
+    '"updatedInput" : ' + inputText + ' } } }');
+end;
+
 procedure TClaudeStreamAdapter.NewSession;
 begin
   if FState = aasBusy then
@@ -443,9 +519,14 @@ begin
   finally
     AMessage.Free;
   end;
-  DoEvent(aekLog, '>> ' + s);
+  WriteText(s);
+end;
+
+procedure TClaudeStreamAdapter.WriteText(const AText: string);
+begin
+  DoEvent(aekLog, '>> ' + AText);
   if Assigned(FChannel) and FChannel.Running then
-    FChannel.WriteLine(s);
+    FChannel.WriteLine(AText);
 end;
 
 procedure TClaudeStreamAdapter.ChannelLine(Sender: TObject; const ALine: string);
@@ -676,6 +757,8 @@ begin
   perm.Options[1].Id := PERMISSION_DENY;
   perm.Options[1].Name := 'Deny';
   perm.Options[1].Kind := 'reject_once';
+  if perm.ToolTitle = QUESTION_TOOL then
+    AIParseQuestions(perm.Detail, perm.Questions);
   FPermissions.Values[perm.Key] := JStr(AMessage, 'request_id');
   FPermInputs.Values[perm.Key] := perm.Detail;
   DoPermission(perm);

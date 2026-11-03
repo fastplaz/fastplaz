@@ -15,7 +15,8 @@ interface
 
 uses
   Classes, SysUtils, fpcunit, testregistry,
-  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_pi, aiplane_presets;
+  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_pi, aiplane_presets,
+  fpjson, jsonparser;
 
 type
 
@@ -60,6 +61,9 @@ type
     procedure TestSplitUnclosedFence;
     procedure TestSplitEmpty;
     procedure TestFilterModels;
+    procedure TestParseQuestions;
+    procedure TestParseQuestionsInvalid;
+    procedure TestQuestionsText;
   end;
 
   { TACPAdapterTest }
@@ -128,6 +132,11 @@ type
     procedure TestResultError;
     procedure TestPermissionAllowResponse;
     procedure TestPermissionDenyResponse;
+    procedure TestQuestionRequest;
+    procedure TestQuestionAnswerResponse;
+    procedure TestQuestionDeclined;
+    procedure TestQuestionLongTextKept;
+    procedure TestQuestionBaseAdapterDeclines;
     procedure TestIgnoresGarbage;
     procedure TestArguments;
     procedure TestMcpConfigArguments;
@@ -464,6 +473,53 @@ begin
   finally
     parts.Free;
   end;
+end;
+
+procedure TAIPlaneHelpersTest.TestParseQuestions;
+var
+  q: TAIQuestions;
+begin
+  AssertTrue(AIParseQuestions('{"questions":[{"question":"Which?","header":"Kind",' +
+    '"options":[{"label":"A","description":"first"},{"label":"B"},"C",{"description":"no label"}],' +
+    '"multiSelect":true},{"question":"","options":[]},{"question":"Name?"}]}', q));
+  AssertEquals(2, Length(q));
+  AssertEquals('Which?', q[0].Question);
+  AssertEquals('Kind', q[0].Header);
+  AssertTrue(q[0].MultiSelect);
+  AssertEquals(3, Length(q[0].Options));
+  AssertEquals('A', q[0].Options[0].Caption);
+  AssertEquals('first', q[0].Options[0].Description);
+  AssertEquals('B', q[0].Options[1].Caption);
+  AssertEquals('C', q[0].Options[2].Caption);
+  AssertEquals('Name?', q[1].Question);
+  AssertFalse(q[1].MultiSelect);
+  AssertEquals(0, Length(q[1].Options));
+end;
+
+procedure TAIPlaneHelpersTest.TestParseQuestionsInvalid;
+var
+  q: TAIQuestions;
+begin
+  AssertFalse(AIParseQuestions('', q));
+  AssertFalse(AIParseQuestions('not json', q));
+  AssertFalse(AIParseQuestions('[1]', q));
+  AssertFalse(AIParseQuestions('{"command":"ls"}', q));
+  AssertFalse(AIParseQuestions('{"questions":{}}', q));
+  AssertFalse(AIParseQuestions('{"questions":[1,{"header":"x"}]}', q));
+  AssertEquals(0, Length(q));
+end;
+
+procedure TAIPlaneHelpersTest.TestQuestionsText;
+var
+  q: TAIQuestions;
+  s: string;
+begin
+  AIParseQuestions('{"questions":[{"question":"Which?","header":"Kind","multiSelect":true,' +
+    '"options":[{"label":"A","description":"first"},{"label":"B"}]}]}', q);
+  s := AIQuestionsText(q);
+  AssertTrue(s, Pos('[Kind] Which? (choose any)', s) = 1);
+  AssertTrue(s, Pos('  - A: first', s) > 0);
+  AssertTrue(s, Pos('  - B', s) > 0);
 end;
 
 procedure TAIPlaneHelpersTest.TestFilterModels;
@@ -873,6 +929,9 @@ begin
   AssertEquals('[]', FRec.Text);
 end;
 
+const
+  QUESTION_LINE = '{"type":"control_request","request_id":"req_q","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion","tool_use_id":"toolu_q","input":{"questions":[{"question":"Controller jenis apa?","header":"Jenis","options":[{"label":"Simple Controller","description":"Halaman web"},{"label":"API Controller (JSON)","description":"REST"}],"multiSelect":false},{"question":"Nama = modul?","header":"Nama","options":[{"label":"report","description":"TReportController"}],"multiSelect":true}]}}}';
+
 { TClaudeStreamTest }
 
 procedure TClaudeStreamTest.SetUp;
@@ -983,6 +1042,91 @@ begin
   FAdapter.HandleLine('{"type":"control_request","request_id":"req_8","request":{"subtype":"can_use_tool","tool_name":"Write","input":{"file_path":"x"}}}');
   AssertEquals(1, FRec.Sent.Count);
   AssertTrue(Pos('"behavior" : "deny"', FRec.Sent[0]) > 0);
+end;
+
+procedure TClaudeStreamTest.TestQuestionRequest;
+begin
+  FRec.AnswerPermission := '';
+  FAdapter.HandleLine(QUESTION_LINE);
+  AssertEquals(1, Length(FRec.Permissions));
+  AssertEquals('AskUserQuestion', FRec.Permissions[0].ToolTitle);
+  AssertEquals(2, Length(FRec.Permissions[0].Questions));
+  AssertEquals('Controller jenis apa?', FRec.Permissions[0].Questions[0].Question);
+  AssertEquals(2, Length(FRec.Permissions[0].Questions[0].Options));
+  AssertTrue(FRec.Permissions[0].Questions[1].MultiSelect);
+  AssertEquals(0, FRec.Sent.Count);
+end;
+
+procedure TClaudeStreamTest.TestQuestionAnswerResponse;
+var
+  sent: string;
+begin
+  FRec.AnswerPermission := '';
+  FAdapter.HandleLine(QUESTION_LINE);
+  FAdapter.RespondQuestion(FRec.Permissions[0].Key, ['API Controller (JSON)', 'report, invoice']);
+  AssertEquals(1, FRec.Sent.Count);
+  sent := FRec.Sent[0];
+  AssertTrue(sent, Pos('"request_id" : "req_q"', sent) > 0);
+  AssertTrue(sent, Pos('"behavior" : "allow"', sent) > 0);
+  // the questions go back with the answers keyed by question text
+  AssertTrue(sent, Pos('"questions" : [', sent) > 0);
+  AssertTrue(sent, Pos('"answers" : { "Controller jenis apa?" : "API Controller (JSON)", ' +
+    '"Nama = modul?" : "report, invoice" }', sent) > 0);
+  // answered once only
+  FAdapter.RespondQuestion(FRec.Permissions[0].Key, ['again']);
+  AssertEquals(1, FRec.Sent.Count);
+end;
+
+procedure TClaudeStreamTest.TestQuestionLongTextKept;
+var
+  question, sent: string;
+  data: TJSONData;
+begin
+  // TJSONObject cuts member names at 255 characters; the answer key must be
+  // the whole question or Claude Code treats it as not answered
+  question := StringOfChar('q', 300) + ' "quoted" ' + StringOfChar('z', 10) + '?';
+  FRec.AnswerPermission := '';
+  FAdapter.HandleLine('{"type":"control_request","request_id":"req_l","request":{' +
+    '"subtype":"can_use_tool","tool_name":"AskUserQuestion","input":{"questions":[{' +
+    '"question":"' + StringReplace(question, '"', '\"', [rfReplaceAll]) + '","header":"Long",' +
+    '"options":[{"label":"Yes"}]}]}}}');
+  AssertEquals(1, Length(FRec.Permissions));
+  AssertEquals(question, FRec.Permissions[0].Questions[0].Question);
+  FAdapter.RespondQuestion(FRec.Permissions[0].Key, ['Yes']);
+  AssertEquals(1, FRec.Sent.Count);
+  sent := FRec.Sent[0];
+  AssertTrue(sent, Pos('"answers" : { "' + StringReplace(question, '"', '\"', [rfReplaceAll]) +
+    '" : "Yes" }', sent) > 0);
+  // still valid JSON
+  data := GetJSON(sent);
+  try
+    AssertEquals('control_response', TJSONObject(data).Get('type', ''));
+  finally
+    data.Free;
+  end;
+end;
+
+procedure TClaudeStreamTest.TestQuestionDeclined;
+begin
+  FRec.AnswerPermission := '';
+  FAdapter.HandleLine(QUESTION_LINE);
+  FAdapter.RespondQuestion(FRec.Permissions[0].Key, []);
+  AssertEquals(1, FRec.Sent.Count);
+  AssertTrue(FRec.Sent[0], Pos('"behavior" : "deny"', FRec.Sent[0]) > 0);
+  AssertTrue(FRec.Sent[0], Pos('"request_id" : "req_q"', FRec.Sent[0]) > 0);
+end;
+
+procedure TClaudeStreamTest.TestQuestionBaseAdapterDeclines;
+var
+  pi: TPiRpcAdapter;
+begin
+  // runtimes without question support decline through RespondPermission
+  pi := TPiRpcAdapter.Create;
+  try
+    pi.RespondQuestion('unknown', ['x']);
+  finally
+    pi.Free;
+  end;
 end;
 
 procedure TClaudeStreamTest.TestIgnoresGarbage;
