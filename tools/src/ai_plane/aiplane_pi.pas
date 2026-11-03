@@ -306,9 +306,10 @@ begin
   finally
     args.Free;
   end;
-  // Pi accepts commands right away; ask what it has
-  SetState(aasReady);
+  // Pi accepts commands right away; ask what it has. The name goes first:
+  // the host announces the runtime as soon as it is ready.
   DoEvent(aekStatus, 'agent: Pi');
+  SetState(aasReady);
   SendCommand('get_available_models');
   SendCommand('get_state');
   FModelDirty := Model <> '';

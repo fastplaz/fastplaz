@@ -105,6 +105,7 @@ type
     FOnToolPermission: TAIToolPermissionAnswer;
     FRuntimeModels: TStringList;
     FStartPending: boolean;
+    FHoldStart: boolean;
     FWasReady: boolean;
     FTurnQueued: boolean;
     FActiveNotice: string;
@@ -141,6 +142,7 @@ type
     procedure SetEffort(const AValue: string);
     procedure SetModel(const AValue: string);
     procedure SetWorkingDir(const AValue: string);
+    procedure SetHoldStart(AValue: boolean);
     procedure DoSettingsChanged;
   public
     constructor Create(AOwner: TComponent); override;
@@ -175,6 +177,10 @@ type
       frame; the host loads and saves it. }
     property RuntimeModels: TStringList read FRuntimeModels;
     property WorkingDir: string read FWorkingDir write SetWorkingDir;
+    { True keeps the runtime from starting on its own (the host does not know
+      the working directory yet); False starts it if it is due. Sending a
+      prompt still starts it. }
+    property HoldStart: boolean read FHoldStart write SetHoldStart;
     property OnReadFile: TAIReadFileHandler read FOnReadFile write FOnReadFile;
     property OnSettingsChanged: TNotifyEvent read FOnSettingsChanged write FOnSettingsChanged;
     property OnToolPermission: TAIToolPermissionAnswer read FOnToolPermission
@@ -553,20 +559,21 @@ end;
 procedure TAIChatFrame.UpdateControls;
 var
   turn: boolean;
-  reason, notice, curModel: string;
+  reason, key, curModel: string;
 begin
   if Assigned(FAdapter) and (FAdapter.State = aasReady) then
   begin
     FWasReady := True;
-    // tell the host once per runtime/model pair
+    // Tell the host once per runtime/model pair. The key leaves out the
+    // title: the runtime may report a better name ("pi" -> "Pi") later.
     curModel := CurrentModel;
     if curModel = '' then
       curModel := 'runtime default';
-    notice := 'runtime ' + RuntimeTitle + ' active, model ' + curModel;
-    if notice <> FActiveNotice then
+    key := FPresetId + #9 + curModel;
+    if key <> FActiveNotice then
     begin
-      FActiveNotice := notice;
-      DoNotice(notice, False);
+      FActiveNotice := key;
+      DoNotice('runtime ' + RuntimeTitle + ' active, model ' + curModel, False);
     end;
   end;
   turn := TurnRunning;
@@ -1052,7 +1059,7 @@ begin
     tmrPoll.Enabled := False;
     Exit;
   end;
-  if FStartPending then
+  if FStartPending and not FHoldStart then
   begin
     // the runtime starts right away, so Send knows whether it answers and
     // the model box gets the runtime's list
@@ -1226,6 +1233,16 @@ begin
   FView.BaseDir := AValue;
   if Assigned(FAdapter) then
     FAdapter.WorkingDir := AValue;
+end;
+
+procedure TAIChatFrame.SetHoldStart(AValue: boolean);
+begin
+  if FHoldStart = AValue then
+    Exit;
+  FHoldStart := AValue;
+  // the timer stopped while the start was held
+  if not FHoldStart and FStartPending and Assigned(FAdapter) then
+    tmrPoll.Enabled := True;
 end;
 
 procedure TAIChatFrame.DoSettingsChanged;
