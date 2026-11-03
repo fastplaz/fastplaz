@@ -7,7 +7,7 @@ interface
 uses
   LazFileUtils, Forms, Controls, FileUtil, Dialogs,
   ProjectIntf, PackageIntf, LazIDEIntf,
-  Classes, SysUtils;
+  tools_lib, Classes, SysUtils;
 
 resourcestring
   rs_ProjectAPI_Name = 'API Application';
@@ -21,6 +21,14 @@ type
   private
     Header: TStringList;
     ProjectName: string;
+    FTitle: string;
+    FTargetExecutable: string;
+    FCreateStructure: boolean;
+    FRunMode: TAppRunMode;
+  protected
+    // the wizard runs here: the IDE only aborts cleanly before InitProject,
+    // a cancel from InitProject makes it create a default project instead
+    function DoInitDescriptor: TModalResult; override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -32,7 +40,7 @@ type
 
 implementation
 
-uses fastplaz_tools_register, tools_lib, modsimple_lib, project_lib,
+uses fastplaz_tools_register, modsimple_lib, project_lib,
   projectapi_wzd, webstructure_lib, IDEExternToolIntf;
 
 { TProjectAPIFastPlazDescriptor }
@@ -60,16 +68,12 @@ begin
   Result := rs_ProjectAPI_Description;
 end;
 
-function TProjectAPIFastPlazDescriptor.InitProject(AProject: TLazProject): TModalResult;
+function TProjectAPIFastPlazDescriptor.DoInitDescriptor: TModalResult;
 var
   wizard: TfProjectAPIWizard;
-  structure: TWebStructure;
-  projectTitle, targetExecutable: string;
-  isCreateStructure: boolean;
-  runMode: TAppRunMode;
 begin
   ProjectName := 'fastplazapi';
-  targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
+  FTargetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
 
   Header.Clear;
   wizard := TfProjectAPIWizard.Create(nil);
@@ -77,36 +81,42 @@ begin
     wizard.edt_WebRootDir.Text := GetUserDir;
     if wizard.ShowModal <> mrOk then
       Exit(mrCancel);
-    projectTitle := UcWords(wizard.edt_ProjectName.Text);
+    FTitle := UcWords(wizard.edt_ProjectName.Text);
     ProjectName := SanitizeProjectName(wizard.edt_ProjectName.Text, 'fastplazapi');
     if (wizard.edt_WebRootDir.Text <> '') and (wizard.edt_WebRootDir.Text <> GetUserDir) then
-      targetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
+      FTargetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
         ProjectName + _APP_EXTENSION;
     Header.Assign(wizard.mem_Header.Lines);
-    isCreateStructure := wizard.cbx_GenerateStructure.Checked;
-    runMode := wizard.RunMode;
+    FCreateStructure := wizard.cbx_GenerateStructure.Checked;
+    FRunMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
+  Result := mrOk;
+end;
 
+function TProjectAPIFastPlazDescriptor.InitProject(AProject: TLazProject): TModalResult;
+var
+  structure: TWebStructure;
+begin
   Result := inherited InitProject(AProject);
   if Result <> mrOk then
     Exit;
-  SetupFastPlazProject(AProject, ProjectName, projectTitle, targetExecutable);
+  SetupFastPlazProject(AProject, ProjectName, FTitle, FTargetExecutable);
 
   // web dir structure
-  if isCreateStructure then
+  if FCreateStructure then
   begin
     structure := TWebStructure.Create;
     try
-      if not structure.GenerateStructure(ExtractFilePath(targetExecutable),
+      if not structure.GenerateStructure(ExtractFilePath(FTargetExecutable),
         ProjectName + _APP_EXTENSION, Header, API_TEMPLATE_FOLDER) then
         log(structure.ErrorMessage, '', mluError);
     finally
       structure.Free;
     end;
   end;
-  ApplyRunMode(ExtractFilePath(targetExecutable), runMode);
+  ApplyRunMode(ExtractFilePath(FTargetExecutable), FRunMode);
 
   Result := mrOk;
 end;

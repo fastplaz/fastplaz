@@ -20,6 +20,14 @@ type
   TProjectFastPlazDescriptor = class(TProjectDescriptor)
   private
     ProjectName: string;
+    FTitle: string;
+    FTargetExecutable: string;
+    FCreateStructure: boolean;
+    FRunMode: TAppRunMode;
+  protected
+    // the wizard runs here: the IDE only aborts cleanly before InitProject,
+    // a cancel from InitProject makes it create a default project instead
+    function DoInitDescriptor: TModalResult; override;
   public
     constructor Create; override;
     function GetLocalizedName: string; override;
@@ -183,51 +191,53 @@ begin
   Result := rs_Project_Description;
 end;
 
-function TProjectFastPlazDescriptor.InitProject(AProject: TLazProject): TModalResult;
+function TProjectFastPlazDescriptor.DoInitDescriptor: TModalResult;
 var
   wizard: TfProjectWizard;
-  structure: TWebStructure;
-  projectTitle, targetExecutable: string;
-  isCreateStructure: boolean;
-  runMode: TAppRunMode;
 begin
   ProjectName := DEFAULT_PROJECT_NAME;
-  targetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
+  FTargetExecutable := '.' + DirectorySeparator + ProjectName + _APP_EXTENSION;
 
   wizard := TfProjectWizard.Create(nil);
   try
     wizard.edt_WebRootDir.Text := GetUserDir;
     if wizard.ShowModal <> mrOk then
       Exit(mrCancel);
-    projectTitle := UcWords(wizard.edt_ProjectName.Text);
+    FTitle := UcWords(wizard.edt_ProjectName.Text);
     ProjectName := SanitizeProjectName(wizard.edt_ProjectName.Text);
     if (wizard.edt_WebRootDir.Text <> '') and (wizard.edt_WebRootDir.Text <> GetUserDir) then
-      targetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
+      FTargetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
         ProjectName + _APP_EXTENSION;
-    isCreateStructure := wizard.cbx_GenerateStructure.Checked;
-    runMode := wizard.RunMode;
+    FCreateStructure := wizard.cbx_GenerateStructure.Checked;
+    FRunMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
+  Result := mrOk;
+end;
 
+function TProjectFastPlazDescriptor.InitProject(AProject: TLazProject): TModalResult;
+var
+  structure: TWebStructure;
+begin
   Result := inherited InitProject(AProject);
   if Result <> mrOk then
     Exit;
-  SetupFastPlazProject(AProject, ProjectName, projectTitle, targetExecutable);
+  SetupFastPlazProject(AProject, ProjectName, FTitle, FTargetExecutable);
 
   // web dir structure
-  if isCreateStructure then
+  if FCreateStructure then
   begin
     structure := TWebStructure.Create;
     try
-      if not structure.GenerateStructure(ExtractFilePath(targetExecutable),
+      if not structure.GenerateStructure(ExtractFilePath(FTargetExecutable),
         ProjectName + _APP_EXTENSION) then
         log(structure.ErrorMessage, '', mluError);
     finally
       structure.Free;
     end;
   end;
-  ApplyRunMode(ExtractFilePath(targetExecutable), runMode);
+  ApplyRunMode(ExtractFilePath(FTargetExecutable), FRunMode);
 
   Result := mrOk;
 end;
