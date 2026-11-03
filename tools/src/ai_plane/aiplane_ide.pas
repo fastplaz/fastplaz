@@ -23,7 +23,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, ExtCtrls,
-  LazIDEIntf, IDEWindowIntf, SrcEditorIntf, IDEMsgIntf, IDEExternToolIntf,
+  LazIDEIntf, ProjectIntf, IDEWindowIntf, SrcEditorIntf, IDEMsgIntf, IDEExternToolIntf,
   aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide;
 
 const
@@ -66,6 +66,7 @@ type
     function ReadEditorBuffer(Sender: TObject; const APath: string;
       out AContent: string): boolean;
     procedure FormActivate(Sender: TObject);
+    function ProjectOpened(Sender: TObject; AProject: TLazProject): TModalResult;
     procedure SyncProjectDirectory;
   public
     constructor Create(AOwner: TComponent); override;
@@ -226,6 +227,13 @@ begin
   FMcpTimer.Interval := 40;
   FMcpTimer.OnTimer := @McpTimer;
 
+  // The IDE restores its windows before it opens the start project: wait
+  // for the project, or the runtime starts in the user directory and
+  // restarts in the project directory right after.
+  FChat.HoldStart := not (Assigned(LazarusIDE) and LazarusIDE.IDEStarted);
+  if Assigned(LazarusIDE) then
+    LazarusIDE.AddHandlerOnProjectOpened(@ProjectOpened);
+
   ApplySettings;
   FChat.OnSettingsChanged := @ChatSettingsChanged;
   OnActivate := @FormActivate;
@@ -233,11 +241,15 @@ end;
 
 destructor TAIPlaneWindow.Destroy;
 begin
+  if Assigned(LazarusIDE) then
+    LazarusIDE.RemoveAllHandlersOfObject(Self);
   if Assigned(FMcpTimer) then
     FMcpTimer.Enabled := False;
   if Assigned(FChat) then
+  begin
     FChat.OnToolPermission := nil;
     FChat.OnNotice := nil;
+  end;
   FreeAndNil(FMcp);
   FreeAndNil(FTools);
   inherited Destroy;
@@ -347,11 +359,13 @@ begin
     UpdateMcpServer(settings);
     AIPlaneLoadRuntimeModels(FChat.RuntimeModels);
     FChat.RuntimeModels.Values[settings.Runtime] := settings.Model;
-    FChat.Model := settings.Model;
-    FChat.Effort := settings.Effort;
+    // Runtime first: the new model on the old, running runtime would be
+    // announced as an active pair for a moment.
     if not SameText(settings.Runtime, FChat.PresetId) or
       (settings.Command <> FChat.Command) or (settings.Arguments <> FChat.Arguments) then
       FChat.SetRuntime(settings.Runtime, settings.Command, settings.Arguments);
+    FChat.Model := settings.Model;
+    FChat.Effort := settings.Effort;
   finally
     FApplying := False;
   end;
@@ -403,14 +417,27 @@ begin
     Exit;
   FProjectDir := dir;
   FChat.WorkingDir := dir;
+  // Still held: nothing ran in the old directory, the start picks this one.
   // The runtime keeps its directory until it restarts.
-  FChat.SetRuntime(FChat.PresetId, FChat.Command, FChat.Arguments);
+  if not FChat.HoldStart then
+    FChat.SetRuntime(FChat.PresetId, FChat.Command, FChat.Arguments);
   FChat.View.Add(cikInfo, 'Project directory: ' + dir);
 end;
 
 procedure TAIPlaneWindow.FormActivate(Sender: TObject);
 begin
   SyncProjectDirectory;
+  // fallback when no project-opened call came
+  if FChat.HoldStart and Assigned(LazarusIDE) and LazarusIDE.IDEStarted then
+    FChat.HoldStart := False;
+end;
+
+function TAIPlaneWindow.ProjectOpened(Sender: TObject;
+  AProject: TLazProject): TModalResult;
+begin
+  Result := mrOk;
+  SyncProjectDirectory;
+  FChat.HoldStart := False;
 end;
 
 end.
