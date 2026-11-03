@@ -53,7 +53,12 @@ const
     'FastPlaz generators: create_simple_controller, create_api_controller and ' +
     'create_model write a new unit from the FastPlaz templates, add it to the ' +
     'project and open it. Prefer them over writing a controller or model unit ' +
-    'by hand, then edit the generated file.';
+    'by hand, then edit the generated file. In FastPlaz a module is a ' +
+    'controller: when the user asks to create a module, create a controller ' +
+    '(a web page module: create_simple_controller, a JSON/API module: ' +
+    'create_api_controller), not a package, folder or plain unit. The ' +
+    'generators never overwrite: an existing file is an error, so offer ' +
+    'another name or editing the existing unit instead.';
 
 implementation
 
@@ -62,6 +67,15 @@ uses
 
 const
   NEW_UNIT_FLAGS = [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc, nfSave];
+
+  // what the generators refuse, so the agent does not offer it
+  GENERATOR_NOTES =
+    ' Never overwrites: when the file already exists the call fails and ' +
+    'nothing changes (use another name, or edit the existing unit). The ' +
+    'directory must be inside the project directory; the result says ' +
+    'whether it is in the project unit search path (in_unit_path).';
+  CONTROLLER_NOTES =
+    ' "Create a module" in FastPlaz means create a controller.' + GENERATOR_NOTES;
 
   SCHEMA_CONTROLLER =
     '{"type":"object","properties":{' +
@@ -112,18 +126,18 @@ begin
     'with Get/Post, rendered through the theme, maincontent tag handler). Saves ' +
     '<permalink>_controller.pas, adds it to the project and opens it. The unit ' +
     'registers its route in its initialization section; move that line to ' +
-    'routes.pas when the project has one.', SCHEMA_CONTROLLER, mtpAskSession,
-    @ToolSimpleController);
+    'routes.pas when the project has one.' + CONTROLLER_NOTES, SCHEMA_CONTROLLER,
+    mtpAskSession, @ToolSimpleController);
   AServer.RegisterTool('create_api_controller', 'Create API Controller',
     'FastPlaz | Create API Controller (JSON): a REST controller answering JSON ' +
     '(Get/Post/Options). Saves <permalink>_controller.pas, adds it to the project ' +
     'and opens it. The unit registers its route in its initialization section; ' +
-    'move that line to routes.pas when the project has one.', SCHEMA_CONTROLLER,
-    mtpAskSession, @ToolApiController);
+    'move that line to routes.pas when the project has one.' + CONTROLLER_NOTES,
+    SCHEMA_CONTROLLER, mtpAskSession, @ToolApiController);
   AServer.RegisterTool('create_model', 'Database Model Generator',
     'FastPlaz | Database Model Generator: a TSimpleModel unit for a database ' +
-    'table. Saves <name>_model.pas, adds it to the project and opens it.',
-    SCHEMA_MODEL, mtpAskSession, @ToolModel);
+    'table. Saves <name>_model.pas, adds it to the project and opens it.' +
+    GENERATOR_NOTES, SCHEMA_MODEL, mtpAskSession, @ToolModel);
   AServer.SetToolDescriber('create_simple_controller', @DescribeController);
   AServer.SetToolDescriber('create_api_controller', @DescribeController);
   AServer.SetToolDescriber('create_model', @DescribeModel);
