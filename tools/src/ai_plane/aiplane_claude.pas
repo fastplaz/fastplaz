@@ -11,7 +11,9 @@ unit aiplane_claude;
   on stdin. Text arrives as partial "stream_event" deltas, tool calls as
   "assistant"/"user" messages, and each turn ends with a "result" message.
   Permission prompts arrive as control_request/can_use_tool and are answered
-  with control_response.
+  with control_response. AskUserQuestion comes the same way; its request
+  carries Questions and the answers go back as updatedInput.answers
+  (question text -> chosen label).
 
   Model and effort are command line flags, so changing them restarts the
   process and resumes the same session (--resume).
@@ -63,6 +65,7 @@ type
     procedure Cancel; override;
     function Poll: boolean; override;
     procedure RespondPermission(const AKey, AOptionId: string); override;
+    procedure RespondQuestion(const AKey: string; const AAnswers: array of string); override;
     procedure NewSession; override;
     procedure HandleLine(const ALine: string);
     class function AdapterName: string; override;
@@ -77,6 +80,7 @@ implementation
 const
   PERMISSION_ALLOW = 'allow';
   PERMISSION_DENY = 'deny';
+  QUESTION_TOOL = 'AskUserQuestion';
   MAX_TOOL_OUTPUT = 4000;
 
 function JStr(AObject: TJSONObject; const AName: string; const ADefault: string = ''): string;
@@ -415,6 +419,60 @@ begin
   WriteJSON(msg);
 end;
 
+procedure TClaudeStreamAdapter.RespondQuestion(const AKey: string;
+  const AAnswers: array of string);
+var
+  i: integer;
+  requestId, inputJSON: string;
+  questions: TAIQuestions;
+  input: TJSONData;
+  answers, msg, response, inner: TJSONObject;
+begin
+  if Length(AAnswers) = 0 then
+  begin
+    RespondPermission(AKey, PERMISSION_DENY);
+    Exit;
+  end;
+  i := FPermissions.IndexOfName(AKey);
+  if i < 0 then
+    Exit;
+  requestId := FPermissions.ValueFromIndex[i];
+  FPermissions.Delete(i);
+  i := FPermInputs.IndexOfName(AKey);
+  inputJSON := '{}';
+  if i >= 0 then
+  begin
+    inputJSON := FPermInputs.ValueFromIndex[i];
+    FPermInputs.Delete(i);
+  end;
+  AIParseQuestions(inputJSON, questions);
+
+  input := GetJSON(inputJSON);
+  if not Assigned(input) or (input.JSONType <> jtObject) then
+  begin
+    input.Free;
+    input := TJSONObject.Create;
+  end;
+  answers := TJSONObject.Create;
+  for i := 0 to High(questions) do
+    if (i <= High(AAnswers)) and (AAnswers[i] <> '') then
+      answers.Add(questions[i].Question, AAnswers[i]);
+  TJSONObject(input).Delete('answers');
+  TJSONObject(input).Add('answers', answers);
+
+  inner := TJSONObject.Create;
+  inner.Add('behavior', 'allow');
+  inner.Add('updatedInput', input);
+  response := TJSONObject.Create;
+  response.Add('subtype', 'success');
+  response.Add('request_id', requestId);
+  response.Add('response', inner);
+  msg := TJSONObject.Create;
+  msg.Add('type', 'control_response');
+  msg.Add('response', response);
+  WriteJSON(msg);
+end;
+
 procedure TClaudeStreamAdapter.NewSession;
 begin
   if FState = aasBusy then
@@ -676,6 +734,8 @@ begin
   perm.Options[1].Id := PERMISSION_DENY;
   perm.Options[1].Name := 'Deny';
   perm.Options[1].Kind := 'reject_once';
+  if perm.ToolTitle = QUESTION_TOOL then
+    AIParseQuestions(perm.Detail, perm.Questions);
   FPermissions.Values[perm.Key] := JStr(AMessage, 'request_id');
   FPermInputs.Values[perm.Key] := perm.Detail;
   DoPermission(perm);
