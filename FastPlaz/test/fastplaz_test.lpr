@@ -9,7 +9,7 @@ uses
   test_stemmingnazief_lib, test_html_lib, test_recaptcha_lib, test_rss_lib,
   test_solr_lib, test_serialize_lib, test_verbal_expressions_lib, test_nlp_lib,
   test_image_lib, test_language_lib, test_database_lib, test_session_controller,
-  test_theme_controller, test_fastplaz_handler, test_helpers,
+  test_theme_controller, test_fastplaz_handler, test_fastplaz_app, test_helpers,
   test_integration, test_cms;
 
 type

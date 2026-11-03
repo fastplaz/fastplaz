@@ -27,12 +27,15 @@ type
   { TPackageAppDescriptor }
 
   TPackageAppDescriptor = class(TProjectDescriptor)
-  private
+  protected
+    // runs the wizard, which opens the generated project itself, and always
+    // aborts the "new project" of the IDE: returning mrCancel later, from
+    // InitProject, would make the IDE create a default project
+    function DoInitDescriptor: TModalResult; override;
   public
     constructor Create; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
-    function InitProject(AProject: TLazProject): TModalResult; override;
   end;
 
 
@@ -62,7 +65,7 @@ begin
   Result := rs_PackageApp_Description;
 end;
 
-function TPackageAppDescriptor.InitProject(AProject: TLazProject): TModalResult;
+function TPackageAppDescriptor.DoInitDescriptor: TModalResult;
 begin
   CreatePackage_Proc(nil);
   Result := mrCancel;

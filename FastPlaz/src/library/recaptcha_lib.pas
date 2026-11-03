@@ -24,7 +24,7 @@ interface
 
 uses
   json_lib, fpjson,
-  fpcgi, fastplaz_handler, common,
+  fastplaz_app, fastplaz_handler, common,
   fphttpclient, opensslsockets,
   Classes, SysUtils;
 

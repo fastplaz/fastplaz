@@ -7,7 +7,7 @@ unit module_controller;
 interface
 
 uses
-  fpcgi, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
+  fastplaz_app, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
   dynlibs,
   Classes, SysUtils;
 

@@ -34,7 +34,7 @@ implementation
 
 uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
   themestructure_wzd, modsimple_lib, modsimple_wzd, modsimplejson_lib,
-  model_lib, model_wzd, packageapp_wzd, packageapp_lib,
+  model_lib, model_wzd, packageapp_wzd, packageapp_lib, project_lib,
   json_tools, regex_tester,
   //Database Explorer
   de_connector, de_dbbrowser, de_common, fastcode_configuration,
@@ -93,6 +93,7 @@ var
   wizard: TfPackageWizard;
   projectName, projectFileName, targetDir: string;
   packageLib: TPackageAppLib;
+  runMode: TAppRunMode;
 begin
   wizard := TfPackageWizard.Create(nil);
   try
@@ -100,6 +101,7 @@ begin
       Exit;
     projectName := SanitizeProjectName(wizard.edt_ProjectName.Text);
     targetDir := IncludeTrailingPathDelimiter(wizard.edt_TargetDir.Text);
+    runMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -115,6 +117,7 @@ begin
   finally
     packageLib.Free;
   end;
+  ApplyRunMode(targetDir + 'public_html', runMode);
 
   // the template project is always named fastplaz.lpr
   projectFileName := targetDir + 'source' + DirectorySeparator +

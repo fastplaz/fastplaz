@@ -12,7 +12,7 @@ unit tools_lib;
 interface
 
 uses
-  fpjson, jsonparser, Classes, SysUtils;
+  fpjson, jsonparser, jsonscanner, Classes, SysUtils;
 
 const
   DEFAULT_PROJECT_NAME = 'fastplaz';
@@ -72,6 +72,25 @@ function BuildHtaccess(const ATemplate, ABinaryFile: string;
 // Text of choices[0].message.content without markdown code fences.
 // Returns '' when the response does not carry a text answer.
 function FastCodeResponseText(const AResponseJSON: string): string;
+
+type
+  // How a generated application runs, written to config.json
+  // (systems/server/mode, read by fastplaz_app).
+  TAppRunMode = (armHTTP, armCGI);
+
+const
+  APP_RUN_MODE_NAMES: array[TAppRunMode] of string = ('http', 'cgi');
+  APP_HTTP_ADDRESS_DEFAULT = '127.0.0.1';
+  APP_HTTP_PORT_DEFAULT = 8080;
+
+// AConfigJSON with systems/server/mode set to AMode. In HTTP mode the
+// address and port are added when missing. Other values are kept.
+// Returns '' when AConfigJSON is not a JSON object.
+function ConfigWithRunMode(const AConfigJSON: string; AMode: TAppRunMode): string;
+
+// Applies ConfigWithRunMode to a config.json file. False when the file does
+// not exist, is not a JSON object or cannot be written.
+function SetConfigRunMode(const AConfigFile: string; AMode: TAppRunMode): boolean;
 
 implementation
 
@@ -344,6 +363,81 @@ begin
   finally
     lines.Free;
     data.Free;
+  end;
+end;
+
+function ConfigWithRunMode(const AConfigJSON: string; AMode: TAppRunMode): string;
+var
+  parser: TJSONParser;
+  root: TJSONData;
+  systems, server: TJSONObject;
+begin
+  Result := '';
+  root := nil;
+  try
+    parser := TJSONParser.Create(AConfigJSON, [joUTF8, joComments, joIgnoreTrailingComma]);
+    try
+      root := parser.Parse;
+    finally
+      parser.Free;
+    end;
+  except
+    on E: Exception do
+      Exit;
+  end;
+  try
+    if not (root is TJSONObject) then
+      Exit;
+    if not (TJSONObject(root).Find('systems') is TJSONObject) then
+    begin
+      TJSONObject(root).Delete('systems');
+      TJSONObject(root).Add('systems', TJSONObject.Create);
+    end;
+    systems := TJSONObject(root).Objects['systems'];
+    if not (systems.Find('server') is TJSONObject) then
+    begin
+      systems.Delete('server');
+      systems.Add('server', TJSONObject.Create);
+    end;
+    server := systems.Objects['server'];
+    server.Strings['mode'] := APP_RUN_MODE_NAMES[AMode];
+    if AMode = armHTTP then
+    begin
+      if server.Find('address') = nil then
+        server.Add('address', APP_HTTP_ADDRESS_DEFAULT);
+      if server.Find('port') = nil then
+        server.Add('port', APP_HTTP_PORT_DEFAULT);
+    end;
+    Result := root.FormatJSON + LineEnding;
+  finally
+    root.Free;
+  end;
+end;
+
+function SetConfigRunMode(const AConfigFile: string; AMode: TAppRunMode): boolean;
+var
+  lst: TStringList;
+  s: string;
+begin
+  Result := False;
+  if not FileExists(AConfigFile) then
+    Exit;
+  lst := TStringList.Create;
+  try
+    try
+      lst.LoadFromFile(AConfigFile);
+      s := ConfigWithRunMode(lst.Text, AMode);
+      if s = '' then
+        Exit;
+      lst.Text := s;
+      lst.SaveToFile(AConfigFile);
+      Result := True;
+    except
+      on E: Exception do
+        Result := False;
+    end;
+  finally
+    lst.Free;
   end;
 end;
 

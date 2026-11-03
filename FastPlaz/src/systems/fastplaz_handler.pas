@@ -13,7 +13,7 @@ uses
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
-  fpcgi, httpdefs, fpHTTP, fpWeb,
+  fastplaz_app, httpdefs, fpHTTP, fpWeb,
   //webutil,
   custweb, dateutils, variants,
   SysUtils, Classes;
@@ -459,13 +459,22 @@ begin
   AppData.logDir := AppData.tempDir + DirectorySeparator + 'logs' + DirectorySeparator;
   AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
   AppData.trustProxy := Config.GetValue(_SYSTEM_TRUST_PROXY, False);
+  // same setting for the CGI variables derived in standalone mode
+  SetTrustProxy(AppData.trustProxy);
+  // standalone mode: database connections kept between requests or not
+  DataBasePersistent := Config.GetValue('systems/server/db_persistent', False);
+  DataBaseIdleTimeout := Config.GetValue('systems/server/db_idle_timeout', 300);
 
   if AppData.baseUrl = '' then
   begin
-    _ := GetEnvironmentVariable('HTTPS');
+    _ := ServerVariable('HTTPS');
     if _ = 'on' then _ := 'https://' else _ := 'http://';
-    AppData.baseUrl := _ + GetEnvironmentVariable('SERVER_NAME') +
-      ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
+    if IsStandalone then
+      // no script path, and the Host header carries the port
+      AppData.baseUrl := _ + ServerVariable('HTTP_HOST') + '/'
+    else
+      AppData.baseUrl := _ + ServerVariable('SERVER_NAME') +
+        ExtractFilePath(ServerVariable('SCRIPT_NAME'));
   end;
 
   if AppData.themeEnable then
@@ -541,10 +550,11 @@ begin
     Application.Response.CodeText := HttpStatusText(AStatusCode);
   Application.Response.Location := SanitizeHeaderValue(URL);
   // send the (empty) response now so nothing written afterwards is appended,
-  // then let fpcgi free Application itself; destroying it here caused a
-  // double free in the unit finalization.
+  // then end the process in CGI mode (the application frees itself;
+  // destroying it here caused a double free in the unit finalization).
+  // A standalone server keeps running.
   Application.Response.SendContent;
-  Application.Terminate;
+  StopRequest;
 end;
 
 
@@ -573,7 +583,7 @@ begin
   end;
 
   Application.Response.SendContent;
-  Application.Terminate;
+  StopRequest;
 end;
 
 procedure Debug(const Message: integer; const Key: string);
@@ -766,9 +776,9 @@ end;
 // header name ("X-Requested-With")
 function TMyCustomWebModule.GetHeader(const KeyName: string): string;
 begin
-  Result := GetEnvironmentVariable( KeyName);
+  Result := ServerVariable( KeyName);
   if Result = '' then
-    Result := GetEnvironmentVariable( HeaderToEnvName( KeyName));
+    Result := ServerVariable( HeaderToEnvName( KeyName));
 end;
 
 function TMyCustomWebModule.GetIsActive: boolean;
@@ -927,6 +937,10 @@ begin
   FOnSearch := nil;
   FOnNotification := nil;
   VisibleModuleName := ClassName;
+  // a long-lived server would otherwise reuse the same module instance
+  // (and its fields) for every request; CGI gets a new one anyway
+  if IsStandalone then
+    Kind := wkOneShot;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
@@ -936,6 +950,12 @@ end;
 
 destructor TMyCustomWebModule.Destroy;
 begin
+  {$if FPC_FULLVERSION < 30300}
+  // FPC 3.2 TCustomHTTPModule creates its CORS support object but has no
+  // destructor to free it: 64 bytes lost per module, i.e. per request in
+  // standalone mode
+  CORS.Free;
+  {$endif}
   inherited Destroy;
 end;
 
@@ -1276,7 +1296,7 @@ end;
 
 function TSERVER.GetValue(const variable: string): string;
 begin
-  Result := GetEnvironmentVariable(variable);
+  Result := ServerVariable(variable);
 end;
 
 
@@ -1622,6 +1642,47 @@ begin
   Die('<div class="warning">' + Format(Fmt, Args) + '</div>', ACode);
 end;
 
+// Called by fastplaz_app around every request. In CGI mode every request
+// has a fresh process, so only the timer is restarted; a standalone server
+// must not carry the state of one request (session, theme, flags) into the
+// next one.
+procedure FastPlazBeginRequest(ARequest: TRequest; AResponse: TResponse);
+begin
+  StartTime := _GetTickCount;
+  if not IsStandalone then
+    Exit;
+  AppData.initialized := False;
+  AppData.isReady := False;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.isDisplayError := False;
+  if Assigned(_DebugInfo) then
+    _DebugInfo.Clear;
+  LANG := 'en';
+  // the session id comes from the cookie of this request
+  FreeAndNil(SessionController);
+  SessionController := TSessionController.Create();
+  DataBaseRequestStarted;
+end;
+
+procedure FastPlazEndRequest(ARequest: TRequest; AResponse: TResponse);
+var
+  i: integer;
+begin
+  if not IsStandalone then
+    Exit;
+  // the theme also owns HTMLUtil (CSRF state) and the tag callbacks, which
+  // point to the module of this request
+  FreeAndNil(ThemeUtil);
+  // modules loaded at start are created again for every request
+  if Assigned(ModuleLoaded) then
+    for i := 0 to ModuleLoaded.Count - 1 do
+      ModuleLoaded[i].ModuleStore := nil;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.DestroyComponents;
+  // uncommitted work is rolled back as at the end of a CGI process
+  DataBaseRequestFinished;
+end;
+
 initialization
   StartTime := _GetTickCount;
   Sanitize := True;
@@ -1642,6 +1703,8 @@ initialization
   ModUtil := TModUtil.Create;
   DisplayErrorHandler := @DoDisplayError;
   RedirectHandler := @DoRedirect;
+  OnBeginRequest := @FastPlazBeginRequest;
+  OnEndRequest := @FastPlazEndRequest;
   MethodMap := TStringList.Create;
   RouteRegexMap := TStringList.Create;
 

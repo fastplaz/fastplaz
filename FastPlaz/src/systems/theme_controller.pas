@@ -16,7 +16,7 @@ uses
   ghSQL, ghSQLdbLib,
   {$endif}
   fpWeb,
-  fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
+  fastplaz_app, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
   regexpr_lib, db, sqldb, StrUtils,
   common, fastplaz_handler, database_lib, datetime_lib, modvar_util, json_lib,
   Classes, SysUtils, Variants;
@@ -950,12 +950,12 @@ begin
   html := html + '<tr><td>REMOTE_PORT</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['REMOTE_PORT']) + '</td></tr>';
   html := html + '<tr><td>SCRIPT_NAME</td><td>:</td><td>' + HTMLEncode(Application.Request.ScriptName) + '</td></tr>';
   html := html + '<tr><td>SCRIPT_FILENAME</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SCRIPT_FILENAME']) + '</td></tr>';
-  html := html + '<tr><td>SCRIPT_URI</td><td>:</td><td>' + HTMLEncode(Application.Request.ScriptURI) + '</td></tr>';
+  html := html + '<tr><td>SCRIPT_URI</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SCRIPT_URI']) + '</td></tr>';
   html := html + '<tr><td>PATH INFO</td><td>:</td><td>' + HTMLEncode(Application.Request.PathInfo) + '</td></tr>';
   html := html + '<tr><td>PATH_TRANSLATED</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['PATH_TRANSLATED']) + '</td></tr>';
   html := html + '<tr><td>REQUEST_METHOD</td><td>:</td><td>' + HTMLEncode(Application.Request.Method) + '</td></tr>';
   html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + HTMLEncode(Application.Request.ContentType) + '</td></tr>';
-  html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + HTMLEncode(Application.Request.ServerProtocol) + '</td></tr>';
+  html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SERVER_PROTOCOL']) + '</td></tr>';
   html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + HTMLEncode(Application.Request.QueryString) + '</td></tr>';
   html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + HTMLEncode(Application.Request.AcceptEncoding) + '</td></tr>';
   html := html + '<tr><td>HTTP_ACCEPT_LANGUAGE</td><td>:</td><td>' + HTMLEncode(Application.Request.AcceptLanguage) + '</td></tr>';
@@ -2457,7 +2457,7 @@ begin
   if not DirectoryExists('themes') then
   begin
     Result := Format( __(__Err_App_Init), [
-      'http://' + GetEnvironmentVariable('SERVER_NAME') + (GetEnvironmentVariable('SCRIPT_NAME'))
+      'http://' + ServerVariable('SERVER_NAME') + (ServerVariable('SCRIPT_NAME'))
       + '/initialize/']);
     Exit;
   end;

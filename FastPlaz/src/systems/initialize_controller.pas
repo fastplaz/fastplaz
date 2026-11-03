@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson, jsonparser, jsonscanner, jsonConf,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler;
 
 type
 
@@ -153,7 +153,7 @@ begin
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
   Config.SetValue(_SYSTEM_BASEURL, '');
   Config.SetValue(UnicodeString(_SYSTEM_WEBMASTER_EMAIL), 'admin@' +
-    WideString(GetEnvironmentVariable('SERVER_NAME')));
+    WideString(ServerVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
   Config.SetValue(_SYSTEM_DEBUG, True);

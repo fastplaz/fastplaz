@@ -5,7 +5,7 @@ unit logutil_lib;
 interface
 
 uses
-  fpcgi,
+  fastplaz_app,
   common,
   Classes, SysUtils;
 

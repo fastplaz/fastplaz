@@ -6,7 +6,7 @@ unit mainapp;
 interface
 
 uses
-  fastplaz_handler, httpdefs, fpcgi, fpHTTP,
+  fastplaz_handler, httpdefs, fastplaz_app, fpHTTP,
   SysUtils, Classes;
 
 type

@@ -5,7 +5,7 @@ unit example_foreach_controller;
 interface
 
 uses
-  Classes, SysUtils, html_lib, fpcgi, fpjson, json_lib, HTTPDefs, Math,
+  Classes, SysUtils, html_lib, fastplaz_app, fpjson, json_lib, HTTPDefs, Math,
     fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers;
 
 type
