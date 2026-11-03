@@ -21,7 +21,8 @@ unit aiplane_chatview;
 
   Tool, thinking and plan items fold to their header; a click on the header
   toggles them. Permission items draw their options as buttons and raise
-  OnButtonClick. Links open in the browser. Text is copied through the
+  OnButtonClick; a question from the agent is a permission item with
+  IsQuestion set. Links open in the browser. Text is copied through the
   context menu.
 
   LCL only, no IDEIntf: the IDE window and the tester app both use it.
@@ -93,6 +94,7 @@ type
     Status: TAIToolStatus;
     Collapsed: boolean;
     Answer: string;       // permission: caption of the chosen option
+    IsQuestion: boolean;  // permission item that asks the user questions
     Buttons: array of TAIChatButton;
     // layout
     Top: integer;
@@ -881,7 +883,11 @@ begin
         Result := Result + '  ' + ExtractFileName(Path);
     end;
     cikPlan: Result := fold + 'Plan';
-    cikPermission: Result := 'Permission: ' + Title;
+    cikPermission:
+      if IsQuestion then
+        Result := 'The agent asks'
+      else
+        Result := 'Permission: ' + Title;
     cikError: Result := 'Error';
     else
       Result := '';

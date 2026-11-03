@@ -146,10 +146,22 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     Value = 17845
     OnChange = ValueChange
   end
+  object chkAutoReload: TCheckBox
+    Left = 98
+    Height = 19
+    Hint = 'Reload open files the agent changed on disk without asking; files with unsaved changes still ask'
+    Top = 166
+    Width = 220
+    Caption = 'Reload files changed by the agent'
+    Checked = True
+    State = cbChecked
+    TabOrder = 10
+    OnChange = ValueChange
+  end
   object lblNote: TLabel
     Left = 98
     Height = 15
-    Top = 168
+    Top = 192
     Width = 1
     Font.Color = clGrayText
     ParentColor = False
@@ -160,7 +172,7 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     Cursor = crHandPoint
     Left = 98
     Height = 28
-    Top = 192
+    Top = 216
     Width = 100
     Caption = 'Run Test'
     TabOrder = 6
@@ -169,15 +181,15 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
   object lblStatus: TLabel
     Left = 206
     Height = 15
-    Top = 198
+    Top = 222
     Width = 1
     ParentColor = False
     ShowAccelChar = False
   end
   object mem_Output: TMemo
     Left = 8
-    Height = 124
-    Top = 228
+    Height = 100
+    Top = 252
     Width = 564
     Anchors = [akTop, akLeft, akRight, akBottom]
     ReadOnly = True
