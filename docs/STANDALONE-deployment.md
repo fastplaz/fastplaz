@@ -67,6 +67,43 @@ The working directory is the directory of the binary when it contains
 
 Ctrl+C / SIGTERM stops the server after the request in progress.
 
+### Startup banner
+
+`ShowStandaloneBanner` (called from the `.lpr`, after `Application.Title` is
+set) prints the banner below in standalone mode and nothing in CGI mode:
+
+```
+ ╔═╗ ╔═╗ ╔═╗ ╔╦╗ ╔═╗ ╦   ╔═╗ ╔═╗
+ ╠╣  ╠═╣ ╚═╗  ║  ╠═╝ ║   ╠═╣ ╔═╝
+ ╚   ╩ ╩ ╚═╝  ╩  ╩   ╩═╝ ╩ ╩ ╚═╝
+
+   FastPlaz Standalone
+ ➜ Local:   http://127.0.0.1:8080/
+   Mode:    development
+   Root:    D:\project\public_html
+   FPC:     3.2.2 x86_64-Win64
+
+   Press Ctrl+C to stop
+```
+
+Colors are used when stdout is a console (Windows 10+, or a terminal on
+Linux/macOS) and `NO_COLOR` is not set. `Mode` follows `systems/development`.
+
+To change it, assign your own procedure before the call:
+
+```pascal
+procedure MyBanner(const AInfo: TStandaloneBannerInfo);
+begin
+  WriteConsoleUTF8('My App on ' + AInfo.URL + LineEnding);
+end;
+
+  OnStandaloneBanner := @MyBanner;
+  ShowStandaloneBanner;
+```
+
+`StandaloneBannerText()` returns the default text and `ConsoleColorEnabled`
+tells whether ANSI escape codes can be used.
+
 ## 3. Reverse proxy
 
 ### nginx

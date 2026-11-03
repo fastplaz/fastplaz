@@ -27,6 +27,9 @@ begin
   Application.LegacyRouting := True;
   {$endif}
 
+  // startup banner, standalone mode only; see OnStandaloneBanner to change it
+  ShowStandaloneBanner;
+
   Application.Initialize;
   Application.Run;
 end.

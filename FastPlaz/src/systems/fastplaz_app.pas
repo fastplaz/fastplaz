@@ -38,6 +38,18 @@ type
 
   TFastPlazRequestEvent = procedure(ARequest: TRequest; AResponse: TResponse);
 
+  // what the standalone banner shows, see ShowStandaloneBanner
+  TStandaloneBannerInfo = record
+    Title: string;        // Application.Title
+    URL: string;          // http://address:port/
+    Address: string;
+    Port: integer;
+    Development: boolean; // config.json systems/development
+    RootDir: string;      // working directory (config/, themes/, ...)
+  end;
+
+  TStandaloneBannerProc = procedure(const AInfo: TStandaloneBannerInfo);
+
   { TFastPlazApplicationHelper }
 
   TFastPlazApplicationHelper = class helper for TCustomWebApplication
@@ -132,10 +144,40 @@ function RequestCount: integer;
 // current request; safe to call from a signal handler (Ctrl+C, SIGTERM)
 procedure RequestShutdown;
 
+// Startup banner of the standalone server, written to the console: the
+// FASTPLAZ logo, the local URL, mode (development/production), working
+// directory and FPC version.
+//
+// Does nothing in CGI mode (the output would become the response). Call it
+// from the .lpr after Application.Title is set. To change the look, assign
+// OnStandaloneBanner (it receives StandaloneBannerInfo) or call your own
+// procedure instead; StandaloneBannerText and ConsoleColorEnabled help.
+procedure ShowStandaloneBanner;
+function StandaloneBannerInfo: TStandaloneBannerInfo;
+// banner text (UTF-8); AColor adds ANSI colors
+function StandaloneBannerText(const AInfo: TStandaloneBannerInfo;
+  AColor: boolean): UTF8String;
+// writes UTF-8 text to the console as is, whatever the console code page
+procedure WriteConsoleUTF8(const AText: UTF8String);
+// True when stdout is a console that understands ANSI colors (enabled on
+// Windows 10+) and NO_COLOR is not set
+function ConsoleColorEnabled: boolean;
+
+const
+  // UTF-8 box drawing characters as raw bytes; StandaloneBannerText keeps
+  // them intact (a plain string may convert them to the system code page)
+  FASTPLAZ_BANNER_LOGO: array[0..2] of string = (
+    '╔═╗ ╔═╗ ╔═╗ ╔╦╗ ╔═╗ ╦   ╔═╗ ╔═╗',
+    '╠╣  ╠═╣ ╚═╗  ║  ╠═╝ ║   ╠═╣ ╔═╝',
+    '╚   ╩ ╩ ╚═╝  ╩  ╩   ╩═╝ ╩ ╩ ╚═╝'
+  );
+
 var
   // called around every request, in every mode
   OnBeginRequest: TFastPlazRequestEvent = nil;
   OnEndRequest: TFastPlazRequestEvent = nil;
+  // replaces the default banner of ShowStandaloneBanner
+  OnStandaloneBanner: TStandaloneBannerProc = nil;
 
 implementation
 
@@ -191,6 +233,7 @@ var
   FShutdownRequested: boolean = False;
   FShutdownHandlersInstalled: boolean = False;
   FTrustProxy: boolean = False;
+  FDevelopment: boolean = False;
   FRequest: TRequest = nil;
   FResponse: TResponse = nil;
 
@@ -225,7 +268,7 @@ end;
 // an error here, common.pas reports it
 procedure ReadServerConfig(out AMode: string; out APort: integer;
   out AAddress: string; out AStatic: boolean; out AMaxRequests: integer;
-  out ATrustProxy: boolean);
+  out ATrustProxy, ADevelopment: boolean);
 var
   lst: TStringList;
   parser: TJSONParser;
@@ -238,6 +281,7 @@ begin
   AStatic := True;
   AMaxRequests := 0;
   ATrustProxy := False;
+  ADevelopment := False;
   if not FileExists(CONFIG_FILE) then
     Exit;
   root := nil;
@@ -256,6 +300,9 @@ begin
       server := TJSONObject(root).FindPath('systems.trust_proxy');
       if server is TJSONBoolean then
         ATrustProxy := server.AsBoolean;
+      server := TJSONObject(root).FindPath('systems.development');
+      if server is TJSONBoolean then
+        ADevelopment := server.AsBoolean;
       server := TJSONObject(root).FindPath('systems.server');
       if not (server is TJSONObject) then
         Exit;
@@ -295,7 +342,8 @@ begin
     Exit;
   FModeResolved := True;
 
-  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic, FMaxRequests, FTrustProxy);
+  ReadServerConfig(cfgMode, cfgPort, cfgAddress, FStatic, FMaxRequests,
+    FTrustProxy, FDevelopment);
   if cfgPort > 0 then
     FPort := cfgPort;
   if cfgAddress <> '' then
@@ -538,6 +586,162 @@ begin
   fpSignal(SIGTERM, signalhandler(@ShutdownSignalHandler));
   fpSignal(SIGINT, signalhandler(@ShutdownSignalHandler));
   {$ENDIF}
+end;
+
+{ standalone banner }
+
+const
+  ANSI_RESET = #27'[0m';
+  ANSI_BOLD = #27'[1m';
+  ANSI_DIM = #27'[2m';
+  ANSI_GREEN = #27'[32m';
+  ANSI_YELLOW = #27'[33m';
+  ANSI_CYAN = #27'[36m';
+  BANNER_ARROW = '➜';
+  {$IFDEF MSWINDOWS}
+  VIRTUAL_TERMINAL_PROCESSING = $0004;
+  {$ENDIF}
+
+var
+  FConsoleChecked: boolean = False;
+  FConsoleColor: boolean = False;
+
+function ConsoleColorEnabled: boolean;
+{$IFDEF MSWINDOWS}
+var
+  handle: THandle;
+  consoleMode: DWORD;
+{$ENDIF}
+begin
+  if FConsoleChecked then
+    Exit(FConsoleColor);
+  FConsoleChecked := True;
+  FConsoleColor := False;
+  if SysUtils.GetEnvironmentVariable('NO_COLOR') <> '' then
+    Exit(False);
+  {$IFDEF MSWINDOWS}
+  handle := GetStdHandle(STD_OUTPUT_HANDLE);
+  consoleMode := 0;
+  // fails when stdout is redirected to a file or a pipe
+  if (handle = INVALID_HANDLE_VALUE) or (not GetConsoleMode(handle, consoleMode)) then
+    Exit(False);
+  if (consoleMode and VIRTUAL_TERMINAL_PROCESSING) = 0 then
+    FConsoleColor := SetConsoleMode(handle, consoleMode or VIRTUAL_TERMINAL_PROCESSING)
+  else
+    FConsoleColor := True;
+  {$ENDIF}
+  {$IFDEF UNIX}
+  FConsoleColor := (fpIsATTY(StdOutputHandle) = 1) and
+    (SysUtils.GetEnvironmentVariable('TERM') <> 'dumb');
+  {$ENDIF}
+  Result := FConsoleColor;
+end;
+
+function StandaloneBannerInfo: TStandaloneBannerInfo;
+var
+  host: string;
+begin
+  ResolveMode;
+  Result.Title := '';
+  if FApp <> nil then
+    Result.Title := FApp.Title;
+  Result.Address := FAddress;
+  Result.Port := FPort;
+  // a server on all interfaces is reached locally through the loopback
+  host := FAddress;
+  if (host = '') or (host = '0.0.0.0') then
+    host := '127.0.0.1'
+  else if Pos(':', host) > 0 then
+    host := '[' + host + ']';
+  Result.URL := Format('http://%s:%d/', [host, FPort]);
+  Result.Development := FDevelopment;
+  Result.RootDir := GetCurrentDir;
+end;
+
+// a literal of this unit holds UTF-8 bytes but carries the system code
+// page: relabel it without converting
+function UTF8Literal(const AText: RawByteString): UTF8String;
+var
+  raw: RawByteString;
+begin
+  raw := AText;
+  UniqueString(raw);
+  SetCodePage(raw, CP_UTF8, False);
+  Result := raw;
+end;
+
+function StandaloneBannerText(const AInfo: TStandaloneBannerInfo;
+  AColor: boolean): UTF8String;
+
+  function C(const ACode: string; const AText: UTF8String): UTF8String;
+  begin
+    if AColor then
+      Result := ACode + AText + ANSI_RESET
+    else
+      Result := AText;
+  end;
+
+  function Line(const ALabel: string; const AValue: UTF8String): UTF8String;
+  begin
+    Result := '   ' + C(ANSI_DIM, Format('%-9s', [ALabel])) + AValue + LineEnding;
+  end;
+
+var
+  i: integer;
+  modeName, title, rootDir: UTF8String;
+begin
+  Result := '';
+  for i := Low(FASTPLAZ_BANNER_LOGO) to High(FASTPLAZ_BANNER_LOGO) do
+    Result := Result + ' ' + C(ANSI_CYAN + ANSI_BOLD,
+      UTF8Literal(FASTPLAZ_BANNER_LOGO[i])) + LineEnding;
+  Result := Result + LineEnding;
+  title := AInfo.Title;
+  if title <> '' then
+    Result := Result + '   ' + C(ANSI_BOLD, title) + LineEnding;
+  Result := Result + ' ' + C(ANSI_GREEN, UTF8Literal(BANNER_ARROW)) + ' ' +
+    C(ANSI_DIM, Format('%-9s', ['Local:'])) + C(ANSI_CYAN, AInfo.URL) + LineEnding;
+  if (AInfo.Address = '0.0.0.0') or (AInfo.Address = '::') then
+    Result := Result + Line('Network:', 'all interfaces, port ' + IntToStr(AInfo.Port));
+  if AInfo.Development then
+    modeName := C(ANSI_YELLOW, 'development')
+  else
+    modeName := 'production';
+  Result := Result + Line('Mode:', modeName);
+  rootDir := AInfo.RootDir;
+  Result := Result + Line('Root:', rootDir);
+  Result := Result + Line('FPC:', {$i %FPCVERSION%} + ' ' + {$i %FPCTARGETCPU%} +
+    '-' + {$i %FPCTARGETOS%});
+  Result := Result + LineEnding + '   ' + C(ANSI_DIM, 'Press Ctrl+C to stop') +
+    LineEnding;
+end;
+
+procedure WriteConsoleUTF8(const AText: UTF8String);
+begin
+  {$IFDEF MSWINDOWS}
+  // only a console has an output code page
+  if GetConsoleOutputCP <> 0 then
+    SetConsoleOutputCP(CP_UTF8);
+  {$ENDIF}
+  // no conversion on the way out; later output of the program is converted
+  // to UTF-8 too, which matches the console now
+  SetTextCodePage(Output, CP_UTF8);
+  Write(Output, AText);
+  Flush(Output);
+end;
+
+procedure ShowStandaloneBanner;
+var
+  info: TStandaloneBannerInfo;
+begin
+  if not IsStandalone then
+    Exit;
+  info := StandaloneBannerInfo;
+  if Assigned(OnStandaloneBanner) then
+  begin
+    OnStandaloneBanner(info);
+    Exit;
+  end;
+  WriteConsoleUTF8(StandaloneBannerText(info, ConsoleColorEnabled));
 end;
 
 function Application: TCustomWebApplication;

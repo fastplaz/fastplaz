@@ -30,9 +30,8 @@ begin
   Application.LegacyRouting := True;
   {$endif}
 
-  if IsStandalone then
-    WriteLn(Format('FastPlaz standalone server: http://%s:%d/  (Ctrl+C to stop)',
-      [HTTPAddress, HTTPPort]));
+  // startup banner, standalone mode only; see OnStandaloneBanner to change it
+  ShowStandaloneBanner;
 
   Application.Initialize;
   Application.Run;

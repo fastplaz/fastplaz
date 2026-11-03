@@ -84,9 +84,8 @@ begin
       Add('  Application.LegacyRouting := True;');
       Add('  {$endif}');
       Add('');
-      Add('  if IsStandalone then');
-      Add('    WriteLn(Format(''FastPlaz standalone server: http://%s:%d/  (Ctrl+C to stop)'',');
-      Add('      [HTTPAddress, HTTPPort]));');
+      Add('  // startup banner, standalone mode only; see OnStandaloneBanner to change it');
+      Add('  ShowStandaloneBanner;');
       Add('');
       Add('  Application.Initialize;');
       Add('  Application.Run;');

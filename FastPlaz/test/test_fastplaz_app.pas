@@ -36,6 +36,9 @@ type
     procedure TestForwardedHeadersIgnoredByDefault;
     procedure TestForwardedHeadersWhenTrusted;
     procedure TestModeSelection;
+    procedure TestBannerText;
+    procedure TestBannerTextColor;
+    procedure TestBannerAllInterfaces;
   end;
 
 implementation
@@ -282,6 +285,57 @@ begin
   AssertTrue('command line cgi', SelectAppMode('cgi', '', 'http') = amCGI);
   AssertTrue('invalid command line ignored', SelectAppMode('fastcgi', '', 'cgi') = amCGI);
   AssertTrue('invalid config ignored', SelectAppMode('', '', 'bogus') = amHTTP);
+end;
+
+function BannerInfo: TStandaloneBannerInfo;
+begin
+  Result.Title := 'My Site';
+  Result.Address := '127.0.0.1';
+  Result.Port := 8080;
+  Result.URL := 'http://127.0.0.1:8080/';
+  Result.Development := True;
+  Result.RootDir := 'public_html';
+end;
+
+procedure TFastPlazAppTest.TestBannerText;
+var
+  text: UTF8String;
+begin
+  text := StandaloneBannerText(BannerInfo, False);
+  AssertEquals('UTF-8', CP_UTF8, StringCodePage(text));
+  // logo kept as UTF-8: U+2554 (box top left) = E2 95 94
+  AssertTrue('logo', Pos(#$E2#$95#$94, text) > 0);
+  AssertTrue('title', Pos('My Site', text) > 0);
+  AssertTrue('url', Pos('Local:   http://127.0.0.1:8080/', text) > 0);
+  AssertTrue('mode', Pos('Mode:    development', text) > 0);
+  AssertTrue('root', Pos('Root:    public_html', text) > 0);
+  AssertTrue('stop', Pos('Ctrl+C', text) > 0);
+  AssertEquals('no colors', 0, Pos(#27, text));
+  AssertEquals('no network line', 0, Pos('Network:', text));
+end;
+
+procedure TFastPlazAppTest.TestBannerTextColor;
+var
+  info: TStandaloneBannerInfo;
+  text: UTF8String;
+begin
+  info := BannerInfo;
+  info.Development := False;
+  text := StandaloneBannerText(info, True);
+  AssertTrue('colors', Pos(#27'[36m', text) > 0);
+  AssertTrue('reset', Pos(#27'[0m', text) > 0);
+  AssertTrue('production', Pos('production', text) > 0);
+end;
+
+procedure TFastPlazAppTest.TestBannerAllInterfaces;
+var
+  info: TStandaloneBannerInfo;
+begin
+  info := BannerInfo;
+  info.Address := '0.0.0.0';
+  info.Title := '';
+  AssertTrue(Pos('Network: all interfaces, port 8080',
+    StandaloneBannerText(info, False)) > 0);
 end;
 
 initialization

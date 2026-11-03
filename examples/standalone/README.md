@@ -65,6 +65,10 @@ end, as the end of a CGI process does.
 Ctrl+C (or SIGTERM on Linux/macOS) stops the server after the request in
 progress; a second Ctrl+C ends it at once.
 
+On start the server prints a banner with the local URL (`ShowStandaloneBanner`
+in `standalone.lpr`); see *Startup banner* in
+[docs/STANDALONE-deployment.md](../../docs/STANDALONE-deployment.md) to change it.
+
 ## Behind nginx
 
 ```nginx
