@@ -202,7 +202,7 @@ destructor TIDEFDEWindow.Destroy;
 begin
   if Assigned(Config) then
   begin
-    Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+    Config.SetString('cache/checkout', FormatDateTime('yyyy-mm-dd HH:nn:ss', Now));
     Config.Flush;
   end;
 
@@ -297,7 +297,7 @@ begin
     FreeAndNil(databaseAsData);
   end;
 
-  Config['cache/checkin'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+  Config.SetString('cache/checkin', FormatDateTime('yyyy-mm-dd HH:nn:ss', Now));
   Config.Flush;
 
   log('Load configuration done.', 'FDE', mluNote);
@@ -377,7 +377,7 @@ var
 begin
   Result := False;
   FreeAndNil(databaseAsData);
-  s := Config['databases'];
+  s := Config.GetString('databases');
   if s.IsEmpty then
     Exit;
   try

@@ -304,11 +304,11 @@ begin
   try
     dialog.Title := 'Open SQL file';
     dialog.Filter := 'SQL files (*.sql)|*.sql';
-    dialog.InitialDir := Config['cache/last_dir'];
+    dialog.InitialDir := Config.GetString('cache/last_dir');
     dialog.Options := [ofReadOnly, ofEnableSizing];
     if dialog.Execute then
     begin
-      Config['cache/last_dir'] := ExtractFilePath(dialog.FileName);
+      Config.SetString('cache/last_dir', ExtractFilePath(dialog.FileName));
       Config.Flush;
       try
         sqlEditor.Lines.LoadFromFile(dialog.FileName);

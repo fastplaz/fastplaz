@@ -47,8 +47,8 @@ msgid "View DB Connector"
 msgstr "Lihat DB Connector"
 
 #: de_common.rs_database_explorer_menu
-msgid "Database Explorer"
-msgstr "Database Explorer"
+msgid "&Database Explorer"
+msgstr "&Database Explorer"
 
 # also used as the IDE command name, keep it so shortcuts survive a language switch
 #: de_common.rs_fast_code
@@ -56,8 +56,8 @@ msgid "Fast Code Suggestion"
 msgstr ""
 
 #: de_common.rs_fast_code_configuration
-msgid "Fast Code Configuration"
-msgstr "Konfigurasi Fast Code"
+msgid "Configuration"
+msgstr "Konfigurasi"
 
 # marker the Fast Code command looks for, must not be translated
 #: de_common.rs_fast_code_mark
@@ -65,12 +65,12 @@ msgid "//"
 msgstr ""
 
 #: de_common.rs_json_tools_menu
-msgid "JSON Validator && Formatter"
-msgstr "Validasi && Format JSON"
+msgid "&JSON Validator && Formatter"
+msgstr "Validasi && Format &JSON"
 
 #: de_common.rs_open_terminal_menu
-msgid "Open Console/Terminal"
-msgstr "Buka Console/Terminal"
+msgid "Open Console/&Terminal"
+msgstr "Buka Console/&Terminal"
 
 #: de_common.rs_open_terminal_not_found
 msgid "No terminal application found. Set the TERMINAL environment variable."
@@ -81,8 +81,8 @@ msgid "No saved project or file is open, nothing to open the terminal in."
 msgstr "Belum ada project atau file tersimpan yang terbuka, terminal tidak bisa dibuka."
 
 #: de_common.rs_regex_tester_menu
-msgid "Regex Tester"
-msgstr "Regex Tester"
+msgid "&Regex Tester"
+msgstr "&Regex Tester"
 
 #: de_common.rs_there_are_development_update
 msgid "There are development update: "
