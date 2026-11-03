@@ -299,7 +299,7 @@ for more information visit https://www.fastplaz.com
         <UnitName Value="aiplane_tools_ide"/>
       </Item67>
       <Item68>
-        <Filename Value="srci_planeiplane_tools_fastplaz.pas"/>
+        <Filename Value="src\ai_plane\aiplane_tools_fastplaz.pas"/>
         <UnitName Value="aiplane_tools_fastplaz"/>
       </Item68>
     </Files>
