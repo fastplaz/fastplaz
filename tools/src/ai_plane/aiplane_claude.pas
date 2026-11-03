@@ -44,6 +44,7 @@ type
     procedure ChannelStderr(Sender: TObject; const ALine: string);
     procedure ChannelExit(Sender: TObject; AExitCode: integer);
     procedure WriteJSON(AMessage: TJSONObject);
+    procedure WriteText(const AText: string);
     procedure HandleStreamEvent(AEvent: TJSONObject);
     procedure HandleAssistant(AMessage: TJSONObject);
     procedure HandleUser(AMessage: TJSONObject);
@@ -426,7 +427,13 @@ var
   requestId, inputJSON: string;
   questions: TAIQuestions;
   input: TJSONData;
-  answers, msg, response, inner: TJSONObject;
+  inputText, answersText: string;
+
+  function Quoted(const AText: string): string;
+  begin
+    Result := '"' + StringToJSONString(AText) + '"';
+  end;
+
 begin
   if Length(AAnswers) = 0 then
   begin
@@ -453,24 +460,35 @@ begin
     input.Free;
     input := TJSONObject.Create;
   end;
-  answers := TJSONObject.Create;
+  try
+    TJSONObject(input).Delete('answers');
+    inputText := Trim(input.AsJSON);
+  finally
+    input.Free;
+  end;
+
+  // Written by hand: TJSONObject keeps member names as ShortString and cuts
+  // them at 255 characters, while Claude Code matches every answer to the
+  // full question text (a long question then counts as not answered).
+  answersText := '';
   for i := 0 to High(questions) do
     if (i <= High(AAnswers)) and (AAnswers[i] <> '') then
-      answers.Add(questions[i].Question, AAnswers[i]);
-  TJSONObject(input).Delete('answers');
-  TJSONObject(input).Add('answers', answers);
+    begin
+      if answersText <> '' then
+        answersText := answersText + ', ';
+      answersText := answersText + Quoted(questions[i].Question) + ' : ' + Quoted(AAnswers[i]);
+    end;
+  answersText := '"answers" : { ' + answersText + ' }';
+  // insert it before the closing brace of the input object
+  Delete(inputText, Length(inputText), 1);
+  inputText := TrimRight(inputText);
+  if inputText <> '{' then
+    inputText := inputText + ',';
+  inputText := inputText + ' ' + answersText + ' }';
 
-  inner := TJSONObject.Create;
-  inner.Add('behavior', 'allow');
-  inner.Add('updatedInput', input);
-  response := TJSONObject.Create;
-  response.Add('subtype', 'success');
-  response.Add('request_id', requestId);
-  response.Add('response', inner);
-  msg := TJSONObject.Create;
-  msg.Add('type', 'control_response');
-  msg.Add('response', response);
-  WriteJSON(msg);
+  WriteText('{ "type" : "control_response", "response" : { "subtype" : "success", ' +
+    '"request_id" : ' + Quoted(requestId) + ', "response" : { "behavior" : "allow", ' +
+    '"updatedInput" : ' + inputText + ' } } }');
 end;
 
 procedure TClaudeStreamAdapter.NewSession;
@@ -501,9 +519,14 @@ begin
   finally
     AMessage.Free;
   end;
-  DoEvent(aekLog, '>> ' + s);
+  WriteText(s);
+end;
+
+procedure TClaudeStreamAdapter.WriteText(const AText: string);
+begin
+  DoEvent(aekLog, '>> ' + AText);
   if Assigned(FChannel) and FChannel.Running then
-    FChannel.WriteLine(s);
+    FChannel.WriteLine(AText);
 end;
 
 procedure TClaudeStreamAdapter.ChannelLine(Sender: TObject; const ALine: string);

@@ -15,7 +15,8 @@ interface
 
 uses
   Classes, SysUtils, fpcunit, testregistry,
-  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_pi, aiplane_presets;
+  aiplane_types, aiplane_process, aiplane_acp, aiplane_claude, aiplane_pi, aiplane_presets,
+  fpjson, jsonparser;
 
 type
 
@@ -134,6 +135,7 @@ type
     procedure TestQuestionRequest;
     procedure TestQuestionAnswerResponse;
     procedure TestQuestionDeclined;
+    procedure TestQuestionLongTextKept;
     procedure TestQuestionBaseAdapterDeclines;
     procedure TestIgnoresGarbage;
     procedure TestArguments;
@@ -1073,6 +1075,35 @@ begin
   // answered once only
   FAdapter.RespondQuestion(FRec.Permissions[0].Key, ['again']);
   AssertEquals(1, FRec.Sent.Count);
+end;
+
+procedure TClaudeStreamTest.TestQuestionLongTextKept;
+var
+  question, sent: string;
+  data: TJSONData;
+begin
+  // TJSONObject cuts member names at 255 characters; the answer key must be
+  // the whole question or Claude Code treats it as not answered
+  question := StringOfChar('q', 300) + ' "quoted" ' + StringOfChar('z', 10) + '?';
+  FRec.AnswerPermission := '';
+  FAdapter.HandleLine('{"type":"control_request","request_id":"req_l","request":{' +
+    '"subtype":"can_use_tool","tool_name":"AskUserQuestion","input":{"questions":[{' +
+    '"question":"' + StringReplace(question, '"', '\"', [rfReplaceAll]) + '","header":"Long",' +
+    '"options":[{"label":"Yes"}]}]}}}');
+  AssertEquals(1, Length(FRec.Permissions));
+  AssertEquals(question, FRec.Permissions[0].Questions[0].Question);
+  FAdapter.RespondQuestion(FRec.Permissions[0].Key, ['Yes']);
+  AssertEquals(1, FRec.Sent.Count);
+  sent := FRec.Sent[0];
+  AssertTrue(sent, Pos('"answers" : { "' + StringReplace(question, '"', '\"', [rfReplaceAll]) +
+    '" : "Yes" }', sent) > 0);
+  // still valid JSON
+  data := GetJSON(sent);
+  try
+    AssertEquals('control_response', TJSONObject(data).Get('type', ''));
+  finally
+    data.Free;
+  end;
 end;
 
 procedure TClaudeStreamTest.TestQuestionDeclined;
