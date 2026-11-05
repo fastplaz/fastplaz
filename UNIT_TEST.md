@@ -53,7 +53,7 @@ tools\src\test\run_tests.bat --format=xml --file=result.xml
 Notes:
 
 * The scripts set the unit search paths through the `INSTANTFPCOPTIONS` environment variable. `instantfpc` 1.3 does not handle `-Fu` with a path separator on its own command line (the option is passed to the test program and fails with `Invalid option ... "F"`).
-* `-B` is always used, because the `instantfpc` cache only checks the main program (`.lpr`); without it changes in other units would not be recompiled.
+* `-B` is always passed on the `instantfpc` command line, because the `instantfpc` cache only checks the main program (`.lpr`); without it changes in other units would not be recompiled. `-B` inside `INSTANTFPCOPTIONS` is not enough: it only reaches the compiler when `instantfpc` already decided to compile.
 * The compiled program is stored in the `instantfpc` cache (`instantfpc --get-cache`), not in the repository.
 * On Windows, if `instantfpc` is not in `PATH`, `run_tests.bat` uses `C:\lazarus\fpc\3.2.2\bin\x86_64-win64`.
 * `FastPlaz/test/run_tests.*` adds the unit paths of the `fastplaz_runtime` package, because `datetime_lib` depends on `language_lib` and `common`.
@@ -239,7 +239,7 @@ tools\src\test\run_tests.bat --format=xml --file=result.xml
 Catatan:
 
 * Script mengatur path pencarian unit lewat variabel lingkungan `INSTANTFPCOPTIONS`. `instantfpc` 1.3 tidak bisa menangani `-Fu` yang berisi pemisah path di command line-nya (opsi tersebut malah diteruskan ke program test dan gagal dengan `Invalid option ... "F"`).
-* `-B` selalu dipakai, karena cache `instantfpc` hanya memeriksa program utama (`.lpr`); tanpa `-B` perubahan di unit lain tidak akan di-compile ulang.
+* `-B` selalu diberikan di command line `instantfpc`, karena cache `instantfpc` hanya memeriksa program utama (`.lpr`); tanpa `-B` perubahan di unit lain tidak akan di-compile ulang. `-B` di dalam `INSTANTFPCOPTIONS` tidak cukup: opsi itu hanya sampai ke compiler jika `instantfpc` sudah memutuskan untuk compile.
 * Program hasil compile disimpan di cache `instantfpc` (`instantfpc --get-cache`), bukan di repositori.
 * Di Windows, jika `instantfpc` tidak ada di `PATH`, `run_tests.bat` memakai `C:\lazarus\fpc\3.2.2\bin\x86_64-win64`.
 * `FastPlaz/test/run_tests.*` menambahkan path unit dari package `fastplaz_runtime`, karena `datetime_lib` bergantung pada `language_lib` dan `common`.

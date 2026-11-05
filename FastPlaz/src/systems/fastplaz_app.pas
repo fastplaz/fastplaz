@@ -183,7 +183,7 @@ implementation
 
 uses
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  {$IFDEF UNIX}BaseUnix,{$ENDIF}
+  {$IFDEF UNIX}BaseUnix, termio,{$ENDIF}
   CustApp, DateUtils, fpjson, jsonparser, jsonscanner;
 
 const
@@ -631,7 +631,7 @@ begin
     FConsoleColor := True;
   {$ENDIF}
   {$IFDEF UNIX}
-  FConsoleColor := (fpIsATTY(StdOutputHandle) = 1) and
+  FConsoleColor := (IsATTY(StdOutputHandle) = 1) and
     (SysUtils.GetEnvironmentVariable('TERM') <> 'dumb');
   {$ENDIF}
   Result := FConsoleColor;

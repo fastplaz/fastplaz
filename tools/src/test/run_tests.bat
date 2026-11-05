@@ -10,7 +10,7 @@ if errorlevel 1 set "PATH=C:\lazarus\fpc\3.2.2\bin\x86_64-win64;%PATH%"
 
 rem instantfpc does not accept -Fu paths on its command line, pass them here.
 rem -B: always rebuild, the cache only tracks the main program source.
-set "INSTANTFPCOPTIONS=-B -Fu.. -Fu..\ai_plane -Fu..\..\..\FastPlaz\src\library -Fu..\..\..\FastPlaz\test"
+set "INSTANTFPCOPTIONS=-Fu.. -Fu..\ai_plane -Fu..\..\..\FastPlaz\src\library -Fu..\..\..\FastPlaz\test"
 
 rem The Agent Plane tests talk to this fake agent.
 echo Compiling mock_acp_agent...
@@ -23,8 +23,8 @@ if errorlevel 1 (
 
 echo Compiling (instantfpc)...
 if "%~1"=="" (
-  instantfpc tools_test.lpr -a
+  instantfpc -B tools_test.lpr -a
 ) else (
-  instantfpc tools_test.lpr %*
+  instantfpc -B tools_test.lpr %*
 )
 exit /b %errorlevel%
