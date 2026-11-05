@@ -2324,10 +2324,18 @@ begin
   lst.Free;
 end;
 
+{$IFDEF UNIX}
+var
+  environ: PPChar; cvar; external; // the libc environment table
+{$ENDIF}
+
 procedure _SetEnv(const Key, Value: string);
 begin
   {$IFDEF UNIX}
   setenv(PChar(Key), PChar(Value), 1);
+  // SysUtils.GetEnvironmentVariable reads System.envp, the block the
+  // program started with; point it at the libc table setenv just updated.
+  envp := environ;
   {$ENDIF}
 
   {$IFDEF MSWINDOWS}

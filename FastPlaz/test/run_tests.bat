@@ -22,13 +22,13 @@ if defined SQLITE3_LIBRARY echo SQLite library: %SQLITE3_LIBRARY%
 rem instantfpc does not accept -Fu paths on its command line, pass them here.
 rem -B: always rebuild, the cache only tracks the main program source.
 rem The unit paths mirror tools\fastplaz_runtime.lpk.
-set "INSTANTFPCOPTIONS=-B -Fi.. -Fu..\..\tools\src -Fu..\src\systems -Fu..\src\library -Fu..\src\vendor -Fu..\src\app\about -Fu..\src\model -Fu..\src\util -Fu..\src\helper -Fu..\src\integration -Fu..\src\vendor\dcrypt -Fu..\src\cms\util -Fu..\src\cms\model -Fu..\src\cms\controller -Fu..\src\app\example -Fu..\src\app\example\models"
+set "INSTANTFPCOPTIONS=-Fi.. -Fu..\..\tools\src -Fu..\src\systems -Fu..\src\library -Fu..\src\vendor -Fu..\src\app\about -Fu..\src\model -Fu..\src\util -Fu..\src\helper -Fu..\src\integration -Fu..\src\vendor\dcrypt -Fu..\src\cms\util -Fu..\src\cms\model -Fu..\src\cms\controller -Fu..\src\app\example -Fu..\src\app\example\models"
 
 echo Compiling (instantfpc)...
 if "%~1"=="" (
-  instantfpc fastplaz_test.lpr -a
+  instantfpc -B fastplaz_test.lpr -a
 ) else (
-  instantfpc fastplaz_test.lpr %*
+  instantfpc -B fastplaz_test.lpr %*
 )
 exit /b %errorlevel%
 
