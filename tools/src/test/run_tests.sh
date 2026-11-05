@@ -4,8 +4,9 @@
 
 cd "$(dirname "$0")" || exit 1
 
-# -B: always rebuild, the cache only tracks the main program source.
-export INSTANTFPCOPTIONS="-B -Fu.. -Fu../ai_plane -Fu../../../FastPlaz/src/library -Fu../../../FastPlaz/test"
+# -B on the instantfpc command line: always rebuild. The cache only tracks the
+# main program source, and -B inside INSTANTFPCOPTIONS does not force a build.
+export INSTANTFPCOPTIONS="-Fu.. -Fu../ai_plane -Fu../../../FastPlaz/src/library -Fu../../../FastPlaz/test"
 
 # The Agent Plane tests talk to this fake agent.
 echo "Compiling mock_acp_agent..."
@@ -17,4 +18,4 @@ echo "Compiling (instantfpc)..."
 if [ $# -eq 0 ]; then
   set -- -a
 fi
-exec instantfpc tools_test.lpr "$@"
+exec instantfpc -B tools_test.lpr "$@"

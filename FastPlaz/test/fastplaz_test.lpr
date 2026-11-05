@@ -3,6 +3,7 @@ program fastplaz_test;
 {$mode objfpc}{$H+}
 
 uses
+  {$IFDEF UNIX}cthreads,{$ENDIF} // the SMTP and HTTP tests run a server thread
   Classes, consoletestrunner, fastplaz_testrunner, test_datetime_lib, test_redis_lib,
   test_json_lib, test_config_lib, test_common, test_math_lib,
   test_http_lib, test_mailer_lib, test_logutil_lib, test_smtp_lib,

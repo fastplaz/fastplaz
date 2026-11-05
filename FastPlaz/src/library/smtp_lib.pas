@@ -146,6 +146,11 @@ uses
 
 const
   CRLF = #13#10;
+  {$if defined(linux) or defined(android) or defined(freebsd) or defined(openbsd) or defined(netbsd)}
+  SMTP_SEND_FLAGS = MSG_NOSIGNAL; // do not raise SIGPIPE when the server went away
+  {$else}
+  SMTP_SEND_FLAGS = 0;
+  {$endif}
 
 { ---------------------------------------------------------------------
   helpers
@@ -346,7 +351,7 @@ begin
   if SSLActive then
     Result := inherited Send(Buffer, Count)
   else
-    Result := fpsend(Socket.Handle, @Buffer, Count, 0);
+    Result := fpsend(Socket.Handle, @Buffer, Count, SMTP_SEND_FLAGS);
 end;
 
 function TSMTPSocketHandler.Recv(const Buffer; Count: integer): integer;
@@ -538,6 +543,9 @@ end;
 function TSMTPClient.Connect: boolean;
 var
   handler: TSocketHandler;
+  {$ifdef darwin}
+  one: integer;
+  {$endif}
 begin
   Disconnect;
   FErrorMessage := '';
@@ -557,7 +565,12 @@ begin
     AddLog(Format('** connecting to %s:%d', [FHost, FPort]));
     // with a handler given, TInetSocket.Create does not connect by itself
     FSocket := TInetSocket.Create(FHost, FPort, FTimeout, handler);
+    FSocket.WriteFlags := SMTP_SEND_FLAGS;
     FSocket.Connect;
+    {$ifdef darwin}
+    one := 1;
+    fpsetsockopt(FSocket.Handle, SOL_SOCKET, SO_NOSIGPIPE, @one, SizeOf(one));
+    {$endif}
     FSocket.IOTimeout := FTimeout;
   except
     on E: Exception do
