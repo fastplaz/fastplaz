@@ -100,10 +100,17 @@ end;
 // ShortDateFormat dropped the time part. Now when the string does not parse
 function TDateTimeSmartHelper.FromString(ADateTimeString: String;
   AFormat: String): TDateTime;
+var
+  fs: TFormatSettings;
 begin
+  // '/' and ':' in the pattern stand for the locale separators, which are
+  // not '/' everywhere (FPC on Unix defaults to '-'); read them literally
+  fs := DefaultFormatSettings;
+  fs.DateSeparator := '/';
+  fs.TimeSeparator := ':';
   Self := Now;
   try
-    Self := ScanDateTime( AFormat, Trim( ADateTimeString));
+    Self := ScanDateTime( AFormat, Trim( ADateTimeString), fs);
   except
   end;
   Result := Self;
