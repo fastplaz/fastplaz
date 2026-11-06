@@ -34,7 +34,7 @@ settings stay) and the `ai_plane` folder.
 | `aiplane_questiondlg.pas` | `AIAskQuestions` (LCL): dialog for the questions an agent asks: radio buttons, or check boxes for multi-select, option descriptions, and an *Other* choice with its own text |
 | `aiplane_httpserver.pas` | `TAIHttpServer`: minimal HTTP/1.1 server on `127.0.0.1`, non-blocking and polled (no threads); keep-alive, pipelining, chunked bodies, answers that come later; Windows/macOS/Linux socket differences (SIGPIPE, exclusive port) |
 | `aiplane_mcpserver.pas` | `TAIMcpServer`: MCP over Streamable HTTP (`POST /mcp`, JSON responses), Bearer token, `Origin` check, sessions, `tools/list`, `tools/call`, tools that ask the user first (once or for the session), result size limit, port fallback |
-| `aiplane_tools_ide.pas` | IDEIntf: the IDE tools offered over MCP (`open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`) |
+| `aiplane_tools_ide.pas` | IDEIntf: the IDE tools offered over MCP (`open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `build_project`, `clean_and_compile_project`, `get_messages`) |
 | `aiplane_tools_fastplaz.pas` | IDEIntf: the FastPlaz generators offered over MCP (`create_simple_controller`, `create_api_controller`, `create_model`), the same code as the FastPlaz menu items |
 
 ## How the UI uses it
@@ -105,8 +105,16 @@ the compiler messages with file, line and column. Design and later phases:
   | Pi | a temporary extension loaded with `pi --mode rpc -e <file>` calls `pi.registerMcpServer` for the session (Pi with built-in MCP, 1.4.0); tools appear as `mcp__fastplaz__<tool>` |
   | GitHub Copilot CLI | ACP `mcpServers`; the preset adds `--allow-tool=fastplaz` so Copilot does not ask a second time |
 
-* `compile_project` asks first (*Allow*, *Allow for this session*, *Deny*)
-  in the chat; the other phase 1 tools only read and run at once.
+* `compile_project` and `build_project` ask first (*Allow*, *Allow for this
+  session*, *Deny*) in the chat; `clean_and_compile_project` asks every time
+  because it deletes files. The other phase 1 tools only read and run at once.
+* `build_project` is *Run → Build*. `clean_and_compile_project` is *Run →
+  Clean up and Build* with the dialog's default choices: files matching the
+  project's output mask in the unit output directory and its sources mask
+  (`*.ppu;*.ppl;*.o;*.or`) in its source directories are deleted, then the
+  project is built. When there is no separate output directory only the
+  sources mask is used there. Source files (`.pas`, `.pp`, `.inc`, `.lpr`,
+  `.lpi`, `.lfm`, ...) are never deleted, and package output is left alone.
   `read_editor` is limited to the project, its search paths and open files.
 * Verified 2026-11-02 with `aiplane_cli --mcp`: OpenCode 2.2.5 (ACP) and
   Claude Code 2.1.316 call the tools; the permission card answers the IDE

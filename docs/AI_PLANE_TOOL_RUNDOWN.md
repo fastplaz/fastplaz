@@ -200,6 +200,8 @@ user allows it.
 | Tool | Arguments | Returns | Perm |
 | --- | --- | --- | --- |
 | `compile_project` | `build_mode?`, `rebuild?: bool` | `{success, duration_ms, messages: [{file, line, column, urgency, text}]}` | ask* |
+| `build_project` | `build_mode?` | same shape (Run → Build) | ask* |
+| `clean_and_compile_project` | `build_mode?` | same shape plus `cleanup: {output_directory, deleted_count, deleted, failed, skipped_sources}` (Run → Clean up and Build, source files never deleted) | ask |
 | `build_package` | `lpk` | same shape | ask* |
 | `get_messages` | `urgency_min?` | last Messages window content, structured | auto |
 | `run_project` / `stop_project` | — | `{started}` | ask (later) |

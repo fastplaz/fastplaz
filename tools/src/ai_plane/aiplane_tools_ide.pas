@@ -10,7 +10,11 @@ unit aiplane_tools_ide;
     read_editor         text of a file from its editor buffer (unsaved changes)
     project_info        active project: lpi, main unit, build modes, paths
     list_project_units  files that are part of the project
-    compile_project     compile/build the active project, structured messages
+    compile_project     compile the active project (Run > Compile), structured messages
+    build_project       build all of the active project (Run > Build)
+    clean_and_compile_project
+                        delete the compiled files, then build (Run > Clean up
+                        and Build); source files are never deleted
     get_messages        messages of the last compile
 
   Everything runs in the main thread (the server is polled from a timer), so
@@ -22,7 +26,8 @@ unit aiplane_tools_ide;
 interface
 
 uses
-  Classes, SysUtils, System.UITypes, fpjson, LazFileUtils, LazIDEIntf, SrcEditorIntf,
+  Classes, SysUtils, System.UITypes, fpjson, LazFileUtils, LazFileCache, Masks,
+  LazIDEIntf, SrcEditorIntf,
   ProjectIntf, CompOptsIntf, IDEMsgIntf, IDEExternToolIntf,
   aiplane_mcpserver;
 
@@ -44,7 +49,13 @@ type
     procedure ToolReadEditor(ACall: TAIMcpToolCall);
     procedure ToolProjectInfo(ACall: TAIMcpToolCall);
     procedure ToolProjectUnits(ACall: TAIMcpToolCall);
+    function CallProject(ACall: TAIMcpToolCall): TLazProject;
+    function CleanProject(AProject: TLazProject): TJSONObject;
+    function DescribeCleanBuild(ACall: TAIMcpToolCall): string;
+    procedure RunBuild(ACall: TAIMcpToolCall; AReason: TCompileReason; AClean: boolean);
     procedure ToolCompile(ACall: TAIMcpToolCall);
+    procedure ToolBuild(ACall: TAIMcpToolCall);
+    procedure ToolCleanBuild(ACall: TAIMcpToolCall);
     procedure ToolMessages(ACall: TAIMcpToolCall);
   public
     procedure Register(AServer: TAIMcpServer);
@@ -56,10 +67,11 @@ const
   AI_FASTPLAZ_MESSAGE_VIEW = 'FastPlaz';
   AI_IDE_TOOLS_INSTRUCTIONS =
     'Tools of the Lazarus IDE the user is working in (Free Pascal). Paths are ' +
-    'absolute or relative to the project directory. compile_project saves ' +
-    'modified editor files first, like the IDE does, and returns the compiler ' +
-    'messages with file, line and column; use open_file to show the user a ' +
-    'location. read_editor includes unsaved changes.';
+    'absolute or relative to the project directory. compile_project, ' +
+    'build_project and clean_and_compile_project save modified editor files ' +
+    'first, like the IDE does, and return the compiler messages with file, ' +
+    'line and column; use open_file to show the user a location. read_editor ' +
+    'includes unsaved changes.';
 
 function AIUrgencyName(AUrgency: TMessageLineUrgency): string;
 function AIUrgencyFromName(const AName: string; ADefault: TMessageLineUrgency): TMessageLineUrgency;
@@ -69,6 +81,11 @@ implementation
 const
   MAX_MESSAGES = 200;
   MAX_READ_LINES = 2000;
+  MAX_CLEAN_NAMES = 50;
+  { Never deleted by clean_and_compile_project, whatever the clean masks say
+    (the IDE dialog asks first; an agent cannot be asked). }
+  PROTECTED_FILE_MASK =
+    '*.pas;*.pp;*.p;*.inc;*.lpr;*.lpi;*.lps;*.lpk;*.lfm;*.lrs;*.rc;*.ico;*.manifest';
 
   SCHEMA_NONE = '{"type":"object","properties":{}}';
   SCHEMA_OPEN_FILE =
@@ -86,6 +103,10 @@ const
   SCHEMA_COMPILE =
     '{"type":"object","properties":{' +
     '"rebuild":{"type":"boolean","description":"Build all (clean build) instead of compiling changed units"},' +
+    '"build_mode":{"type":"string","description":"Build mode to make active first (see project_info)"},' +
+    '"min_urgency":{"type":"string","enum":["hint","note","warning","error"],"description":"Lowest message level to return, default warning"}}}';
+  SCHEMA_BUILD =
+    '{"type":"object","properties":{' +
     '"build_mode":{"type":"string","description":"Build mode to make active first (see project_info)"},' +
     '"min_urgency":{"type":"string","enum":["hint","note","warning","error"],"description":"Lowest message level to return, default warning"}}}';
   SCHEMA_MESSAGES =
@@ -169,6 +190,20 @@ begin
     'returns success plus the compiler messages with file, line and column. ' +
     'Modified editor files are saved first.', SCHEMA_COMPILE, mtpAskSession,
     @ToolCompile);
+  AServer.RegisterTool('build_project', 'Build the project',
+    'Builds all of the active project in the IDE, like Run > Build: every ' +
+    'project unit is compiled again, not only the changed ones. Returns success ' +
+    'plus the compiler messages with file, line and column. Modified editor ' +
+    'files are saved first.', SCHEMA_BUILD, mtpAskSession, @ToolBuild);
+  AServer.RegisterTool('clean_and_compile_project', 'Clean up and build the project',
+    'Like Run > Clean up and Build: deletes the compiled files of the active ' +
+    'project (its unit output directory, and *.ppu/*.o in its source ' +
+    'directories, using the project''s clean masks), then builds all of it. ' +
+    'Source files (.pas, .pp, .inc, .lpr, .lpi, .lfm, ...) are never deleted. ' +
+    'Use it when a normal build gives odd errors from stale units. Returns ' +
+    'what was deleted, success and the compiler messages.', SCHEMA_BUILD, mtpAsk,
+    @ToolCleanBuild);
+  AServer.SetToolDescriber('clean_and_compile_project', @DescribeCleanBuild);
   AServer.RegisterTool('get_messages', 'Compiler messages',
     'Messages of the last compile in the IDE Messages window, with file, line and column.',
     SCHEMA_MESSAGES, mtpAuto, @ToolMessages);
@@ -508,25 +543,174 @@ begin
   ACall.FinishJSON(list);
 end;
 
-procedure TAIIdeTools.ToolCompile(ACall: TAIMcpToolCall);
+function TAIIdeTools.CallProject(ACall: TAIMcpToolCall): TLazProject;
+begin
+  Result := nil;
+  if Assigned(LazarusIDE) then
+    Result := LazarusIDE.ActiveProject;
+  if not Assigned(Result) then
+    ACall.Fail('No project is open.');
+end;
+
+// What "Run > Clean up and Build" deletes with its default choices: files
+// matching the project's output mask in the unit output directory and files
+// matching its sources mask in the project's source directories. A directory
+// that is both (no separate output directory) only gets the sources mask, and
+// source files are skipped whatever the masks say.
+function TAIIdeTools.CleanProject(AProject: TLazProject): TJSONObject;
+var
+  dirs: TStringList;
+  deleted, failed, skipped: TJSONArray;
+  protectedMask: TMaskList;
+  outDir, outMask, srcMask: string;
+  deletedCount, i: integer;
+
+  procedure AddDir(ADir: string);
+  var
+    j: integer;
+  begin
+    ADir := Trim(ADir);
+    if (ADir = '') or not FilenameIsAbsolute(ADir) then
+      Exit;
+    ADir := AppendPathDelim(TrimFilename(ADir));
+    for j := 0 to dirs.Count - 1 do
+      if CompareFilenames(dirs[j], ADir) = 0 then
+        Exit;
+    dirs.Add(ADir);
+  end;
+
+  function IsSourceDir(const ADir: string): boolean;
+  var
+    j: integer;
+  begin
+    for j := 0 to dirs.Count - 1 do
+      if CompareFilenames(dirs[j], ADir) = 0 then
+        Exit(True);
+    Result := False;
+  end;
+
+  procedure AddName(AList: TJSONArray; const AFilename: string);
+  begin
+    if AList.Count < MAX_CLEAN_NAMES then
+      AList.Add(AProject.GetShortFilename(AFilename, True));
+  end;
+
+  procedure CleanDir(const ADir, AMask: string);
+  var
+    masks: TMaskList;
+    info: TSearchRec;
+    fileName: string;
+  begin
+    if (ADir = '') or (Trim(AMask) = '') or not DirectoryExistsUTF8(ADir) then
+      Exit;
+    masks := TMaskList.Create(AMask, ';');
+    try
+      if FindFirstUTF8(ADir + AllFilesMask, faAnyFile, info) = 0 then
+        try
+          repeat
+            if (info.Attr and faDirectory) <> 0 then
+              Continue;
+            if not masks.Matches(info.Name) then
+              Continue;
+            fileName := ADir + info.Name;
+            if protectedMask.Matches(info.Name) then
+              AddName(skipped, fileName)
+            else if DeleteFileUTF8(fileName) then
+            begin
+              Inc(deletedCount);
+              AddName(deleted, fileName);
+            end
+            else
+              AddName(failed, fileName);
+          until FindNextUTF8(info) <> 0;
+        finally
+          FindCloseUTF8(info);
+        end;
+    finally
+      masks.Free;
+    end;
+  end;
+
+begin
+  Result := TJSONObject.Create;
+  dirs := TStringList.Create;
+  deleted := TJSONArray.Create;
+  failed := TJSONArray.Create;
+  skipped := TJSONArray.Create;
+  protectedMask := TMaskList.Create(PROTECTED_FILE_MASK, ';');
+  deletedCount := 0;
+  outDir := '';
+  try
+    outMask := AProject.CleanOutputFileMask;
+    if Trim(outMask) = '' then
+      outMask := DefaultProjectCleanOutputFileMask;
+    srcMask := AProject.CleanSourcesFileMask;
+    if Trim(srcMask) = '' then
+      srcMask := DefaultProjectCleanSourcesFileMask;
+
+    AddDir(ProjectDir);
+    for i := 0 to AProject.FileCount - 1 do
+      if AProject.Files[i].IsPartOfProject then
+        AddDir(ExtractFilePath(AProject.Files[i].Filename));
+
+    outDir := Trim(AProject.LazCompilerOptions.GetUnitOutputDirectory(False));
+    if (outDir <> '') and FilenameIsAbsolute(outDir) then
+      outDir := AppendPathDelim(TrimFilename(outDir))
+    else
+      outDir := '';
+    if (outDir <> '') and not IsSourceDir(outDir) then
+      CleanDir(outDir, outMask);
+    for i := 0 to dirs.Count - 1 do
+      CleanDir(dirs[i], srcMask);
+  finally
+    protectedMask.Free;
+    dirs.Free;
+    // the IDE caches file ages and existence
+    InvalidateFileStateCache;
+  end;
+  Result.Add('output_directory', outDir);
+  Result.Add('output_mask', outMask);
+  Result.Add('sources_mask', srcMask);
+  Result.Add('deleted_count', deletedCount);
+  Result.Add('deleted', deleted);
+  Result.Add('failed', failed);
+  Result.Add('skipped_sources', skipped);
+end;
+
+function TAIIdeTools.DescribeCleanBuild(ACall: TAIMcpToolCall): string;
 var
   proj: TLazProject;
-  mode: string;
-  reason: TCompileReason;
-  started: QWord;
-  r: TModalResult;
-  res: TJSONObject;
-  msgs: TJSONArray;
-  total: integer;
+  srcMask: string;
 begin
+  Result := '';
   proj := nil;
   if Assigned(LazarusIDE) then
     proj := LazarusIDE.ActiveProject;
   if not Assigned(proj) then
-  begin
-    ACall.Fail('No project is open.');
     Exit;
-  end;
+  srcMask := proj.CleanSourcesFileMask;
+  if Trim(srcMask) = '' then
+    srcMask := DefaultProjectCleanSourcesFileMask;
+  Result := 'Deletes the compiled files of ' + ExtractFileName(proj.ProjectInfoFile) +
+    ' (output directory ' + proj.LazCompilerOptions.GetUnitOutputDirectory(False) +
+    ', and ' + srcMask + ' in its source directories), then builds it. ' +
+    'Source files are kept.';
+end;
+
+procedure TAIIdeTools.RunBuild(ACall: TAIMcpToolCall; AReason: TCompileReason;
+  AClean: boolean);
+var
+  proj: TLazProject;
+  mode: string;
+  started: QWord;
+  r: TModalResult;
+  res, cleanup: TJSONObject;
+  msgs: TJSONArray;
+  total: integer;
+begin
+  proj := CallProject(ACall);
+  if not Assigned(proj) then
+    Exit;
   if FBuilding then
   begin
     ACall.Fail('A compile started by Agent Plane is still running.');
@@ -540,17 +724,17 @@ begin
       ACall.Fail('Unknown build mode: ' + mode + '. See project_info.');
       Exit;
     end;
+    // before cleaning: the output directory depends on the build mode
     proj.ActiveBuildModeID := mode;
   end;
-  if ACall.Bool('rebuild') then
-    reason := crBuild
-  else
-    reason := crCompile;
   started := GetTickCount64;
+  cleanup := nil;
   FBuilding := True;
   try
+    if AClean then
+      cleanup := CleanProject(proj);
     // Runs the compiler and processes messages until it finished.
-    r := LazarusIDE.DoBuildProject(reason, []);
+    r := LazarusIDE.DoBuildProject(AReason, []);
   finally
     FBuilding := False;
   end;
@@ -559,11 +743,31 @@ begin
   res.Add('success', r = mrOk);
   res.Add('build_mode', proj.ActiveBuildModeID);
   res.Add('duration_ms', GetTickCount64 - started);
+  if Assigned(cleanup) then
+    res.Add('cleanup', cleanup);
   res.Add('message_count', total);
   res.Add('messages', msgs);
   if r = mrAbort then
     res.Add('note', 'The compile was aborted.');
   ACall.FinishJSON(res);
+end;
+
+procedure TAIIdeTools.ToolCompile(ACall: TAIMcpToolCall);
+begin
+  if ACall.Bool('rebuild') then
+    RunBuild(ACall, crBuild, False)
+  else
+    RunBuild(ACall, crCompile, False);
+end;
+
+procedure TAIIdeTools.ToolBuild(ACall: TAIMcpToolCall);
+begin
+  RunBuild(ACall, crBuild, False);
+end;
+
+procedure TAIIdeTools.ToolCleanBuild(ACall: TAIMcpToolCall);
+begin
+  RunBuild(ACall, crBuild, True);
 end;
 
 procedure TAIIdeTools.ToolMessages(ACall: TAIMcpToolCall);
