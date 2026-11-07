@@ -5,18 +5,18 @@ Branch: `feature/standalone`. Example project: `examples/standalone`.
 
 Goal: let a FastPlaz application run as a **long-lived standalone HTTP
 server** in addition to the current CGI mode. The app can be opened directly
-in a browser (e.g. `http://127.0.0.1:8080`) during development, and put behind
+in a browser (e.g. `http://127.0.0.1:17845`) during development, and put behind
 nginx/Apache as a reverse proxy in production:
 
 ```
-development:  Browser --HTTP--> app (127.0.0.1:8080)
-production:   Browser --HTTP(S)--> nginx/Apache --HTTP--> app (127.0.0.1:8080)
+development:  Browser --HTTP--> app (127.0.0.1:17845)
+production:   Browser --HTTP(S)--> nginx/Apache --HTTP--> app (127.0.0.1:17845)
 ```
 
 | Mode | FPC unit | nginx | Apache |
 |---|---|---|---|
 | CGI (current) | `custcgi` / `fpcgi` | `fastcgi` + fcgiwrap | `mod_cgi` |
-| HTTP (new) | `custhttpapp` / `fphttpserver` | `proxy_pass http://127.0.0.1:8080` | `mod_proxy_http` |
+| HTTP (new) | `custhttpapp` / `fphttpserver` | `proxy_pass http://127.0.0.1:17845` | `mod_proxy_http` |
 
 FastCGI was considered and **dropped**: it cannot be opened directly in a
 browser, and HTTP covers the reverse proxy use case equally well.
@@ -56,17 +56,17 @@ Priority:
 
 | # | Source | Example |
 |---|---|---|
-| 1 | Command line | `app --mode=http --port=8080 --address=127.0.0.1` |
+| 1 | Command line | `app --mode=http --port=17845 --address=127.0.0.1` |
 | 2 | Auto-detect | `GATEWAY_INTERFACE` set → **CGI** (started by a web server) |
 | 3 | `config.json` | `systems/server/*`, see below |
-| 4 | Default | **HTTP** on `127.0.0.1:8080` (decided 2026-11-02) |
+| 4 | Default | **HTTP** on `127.0.0.1:17845` (decided 2026-11-02) |
 
 ```json
 "systems": {
   "server": {
     "mode": "http",
     "address": "127.0.0.1",
-    "port": 8080,
+    "port": 17845,
     "static": true
   }
 }
@@ -145,7 +145,7 @@ Single-threaded only (`Threaded := False`). As implemented:
 6. **Example project** in `examples/standalone` with README (nginx, Apache,
    CGI).
 
-Verified: example at `http://127.0.0.1:8080` (theme assets, 304, redirect
+Verified: example at `http://127.0.0.1:17845` (theme assets, 304, redirect
 keeps the server running, a second client gets its own session and no
 flash message of the first), the same binary as CGI, Dashboard `test.bin`
 under Apache unchanged, test suite (`test_fastplaz_app` added).

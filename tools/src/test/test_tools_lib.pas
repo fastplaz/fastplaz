@@ -315,7 +315,7 @@ begin
   try
     AssertEquals('http', data.FindPath('systems.server.mode').AsString);
     AssertEquals('127.0.0.1', data.FindPath('systems.server.address').AsString);
-    AssertEquals(8080, data.FindPath('systems.server.port').AsInteger);
+    AssertEquals(17845, data.FindPath('systems.server.port').AsInteger);
     AssertEquals('FastPlaz', data.FindPath('systems.sitename').AsString);
     AssertNotNull(data.FindPath('database'));
   finally

@@ -1,15 +1,23 @@
-# Agent Plane IDE Tools — Rundown
+# AI Agent Plane IDE Tools — Rundown
 
-Status (2026-11-02): **phase 1 implemented** (`aiplane_httpserver`,
-`aiplane_mcpserver`, `aiplane_tools_ide`, settings, ACP and Claude Code
-registration). Phases 2-4 are still proposals. Decisions taken on the open
-questions: plain tool names (Claude Code namespaces them as
-`mcp__fastplaz__*` anyway), `compile_project` saves modified buffers first
-(that is what `DoBuildProject` does, like F9), port in use → next free port up
-to `+9`.
+Design document. What is implemented today, with the full tool list, is in
+[MCP.md](MCP.md); the feature itself is described in
+[AI_AGENT_by_FASTPLAZ.md](AI_AGENT_by_FASTPLAZ.md).
 
-Goal: let the coding agent running in Agent Plane (OpenCode, Claude Code, Pi, other
-ACP agents) act on the Lazarus IDE itself — open a unit at a line, read the
+Status (2026-11-07):
+
+* **Phase 1 done**: `aiplane_httpserver`, `aiplane_mcpserver`,
+  `aiplane_tools_ide`, settings, registration for ACP agents, Claude Code,
+  Pi and GitHub Copilot CLI. `build_project` and
+  `clean_and_compile_project` were added on top of the phase 1 tools.
+* **Phase 3 started**: the FastPlaz generators `create_simple_controller`,
+  `create_api_controller` and `create_model` (`aiplane_tools_fastplaz`).
+* Phase 2, the rest of phase 3, and phase 4 are still proposals.
+
+Decisions taken on the open questions are listed in section 10.
+
+Goal: let the coding agent running in AI Agent Plane (OpenCode, Claude Code,
+Pi, GitHub Copilot CLI, other ACP agents) act on the Lazarus IDE itself — open a unit at a line, read the
 active editor, compile the project and read the errors, ask CodeTools where an
 identifier is declared, inspect a database through the Database Explorer, and so
 on — instead of only reading and writing files on disk and running shell
@@ -20,14 +28,19 @@ cocoa, gtk2/gtk3/qt5/qt6), like the rest of FastPlaz. See section 7.
 
 ---
 
-## 1. Current state
+## 1. Starting point
 
-| Area | Today |
+State before the IDE tools were built (kept for context):
+
+| Area | Before |
 | --- | --- |
 | Agent tools | Only the runtime's built-in tools (file read/write, shell, search). |
 | IDE → agent | `fs/read_text_file` (ACP) and `OnReadFile`: unsaved editor buffers are served to the agent. |
-| MCP | `session/new` sends `mcpServers: []` (`aiplane_acp.pas`). Claude Code and Pi get no MCP config. |
-| Permissions | Permission cards already exist in the chat view (`OnPermission` / `RespondPermission`) for ACP, Claude (`can_use_tool`) and Pi (extension dialogs). |
+| MCP | `session/new` sent `mcpServers: []` (`aiplane_acp.pas`). Claude Code and Pi got no MCP config. |
+| Permissions | Permission cards already existed in the chat view (`OnPermission` / `RespondPermission`) for ACP, Claude (`can_use_tool`) and Pi (extension dialogs). |
+
+Today the IDE serves its own tools over MCP to every runtime; see
+[MCP.md](MCP.md).
 
 ---
 
@@ -39,12 +52,12 @@ cocoa, gtk2/gtk3/qt5/qt6), like the rest of FastPlaz. See section 7.
  │ AIPlaneWindow                    │   spawns     │ opencode / claude /│
  │  └ TAIChatFrame ── adapter ──────┼─────────────▶│ pi                 │
  │                                  │              │                    │
- │ TAIToolServer                    │  POST /mcp   │  MCP client        │
- │  http://127.0.0.1:17845/mcp      │◀─────────────┤                    │
- │  └ TAIToolDispatcher (main thr.) │  JSON-RPC    │                    │
- │     └ tool providers             │              └────────────────────┘
- │        editor / project / build /│
- │        codetools / fastplaz      │
+ │ TAIMcpServer                     │  POST /mcp   │  MCP client        │
+ │  http://127.0.0.1:17826/mcp      │◀─────────────┤                    │
+ │  └ tool handlers (main thread)   │  JSON-RPC    │                    │
+ │     TAIIdeTools: editor /        │              └────────────────────┘
+ │       project / build            │
+ │     TAIFastPlazTools: generators │
  └──────────────────────────────────┘
 ```
 
@@ -72,7 +85,7 @@ Why HTTP only:
 
 ### 2.1 HTTP server inside the IDE
 
-`TFPHttpServer` is blocking/threaded, so `TAIToolServer` is a minimal
+`TFPHttpServer` is blocking/threaded, so `TAIHttpServer` is a minimal
 HTTP/1.1 handler on a non-blocking socket, **polled from the chat timer**
 (the same no-thread pattern as `TAIProcessChannel`). Tool calls therefore run
 in the main thread, where IDEIntf and CodeTools are safe to use.
@@ -89,7 +102,7 @@ in the main thread, where IDEIntf and CodeTools are safe to use.
 * Handled MCP methods: `initialize`, `notifications/initialized`, `ping`,
   `tools/list`, `tools/call`.
 * `Mcp-Session-Id` is issued at `initialize` and checked afterwards.
-* Request size limit (for example 1 MB); keep-alive supported; several
+* Request body limit 4 MB (`AI_HTTP_MAX_BODY`); keep-alive supported; several
   connections at once (the agent may open more than one).
 * Long tools (compile): the response is held open until the build finishes,
   the timer keeps the IDE responsive. If a runtime's MCP tool timeout turns
@@ -102,7 +115,7 @@ The token is random per IDE session; the URL uses the actual port (section 3).
 
 | Runtime | How |
 | --- | --- |
-| ACP (OpenCode, GitHub Copilot CLI, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "fastplaz", "url": "http://127.0.0.1:17845/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
+| ACP (OpenCode, GitHub Copilot CLI, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "fastplaz", "url": "http://127.0.0.1:17826/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
 | Claude Code (stream-json) | `--mcp-config <temp json>`: `{"mcpServers": {"fastplaz": {"type": "http", "url": "...", "headers": {"Authorization": "Bearer <token>"}}}}`; tools appear as `mcp__fastplaz__<tool>`; `--allowedTools mcp__fastplaz` so Claude Code does not ask a second time (the IDE asks for its risky tools itself) |
 | Pi | a temporary extension (`aiplane_mcp_<pid>.ts`, loaded with `pi --mode rpc -e <file>`) calls `pi.registerMcpServer("fastplaz", {url, headers, exposure: "direct"})` for that session only; tools appear as `mcp__fastplaz__<tool>` |
 | GitHub Copilot CLI | ACP as above; the preset adds `--allow-tool=fastplaz` so Copilot does not ask a second time |
@@ -114,20 +127,17 @@ capabilities it already partly has:
   (undoable), otherwise to disk.
 * `terminal/*` (later) → run commands with output shown in the IDE.
 
-### 2.3 Code layout (proposal)
+### 2.3 Code layout
 
 | Unit | Purpose | LCL / IDEIntf |
 | --- | --- | --- |
-| `aiplane_mcpproto.pas` | JSON-RPC/MCP message helpers, tool schema records | no |
-| `aiplane_httpserver.pas` | Minimal non-blocking HTTP/1.1 server, polled | no |
-| `aiplane_toolserver.pas` | `TAIToolServer`: `/mcp` routing, token, `Origin`, sessions | no |
-| `aiplane_tooldispatch.pas` | `TAIToolDispatcher`: tool registry, argument validation, permission hook, async replies, result shaping | no |
-| `aiplane_tools_ide.pas` | Tool providers backed by IDEIntf / CodeTools | yes (IDE package only) |
-| `aiplane_tools_fastplaz.pas` | Providers for generators, Database Explorer, regex, JSON | yes |
+| `aiplane_httpserver.pas` | `TAIHttpServer`: minimal non-blocking HTTP/1.1 server on 127.0.0.1, polled | no |
+| `aiplane_mcpserver.pas` | `TAIMcpServer`: `/mcp` routing, token, `Origin`, sessions, JSON-RPC/MCP messages, tool registry (`RegisterTool`), permission hook (`OnPermission` / `RespondPermission`), async replies (`TAIMcpToolCall.Finish` / `Fail`), result truncation | no |
+| `aiplane_tools_ide.pas` | `TAIIdeTools`: editor, project and build tools backed by IDEIntf (CodeTools later) | yes (IDE package only) |
+| `aiplane_tools_fastplaz.pas` | `TAIFastPlazTools`: FastPlaz generators (later: Database Explorer, regex, JSON) | yes |
 
-The core stays free of LCL/IDEIntf like the rest of `ai_plane`, so the server
-and dispatcher are unit tested with a fake provider, and the LCL tester can
-serve a mock IDE.
+The server stays free of LCL/IDEIntf like the rest of `ai_plane`, so it is
+unit tested with fake tools, and the LCL tester can serve a mock IDE.
 
 ---
 
@@ -139,11 +149,11 @@ Stored in the FastPlaz `config.json` under `aiplane`, edited in
 | Setting | Key | Default | UI |
 | --- | --- | --- | --- |
 | MCP Tools enabled | `aiplane/mcp_enabled` | `true` | check box "Enable IDE tools (MCP)" |
-| MCP port | `aiplane/mcp_port` | `17845` | spin edit (1024–65535) |
+| MCP port | `aiplane/mcp_port` | `17826` | spin edit (1024–65535) |
 
 Behaviour:
 
-* **Enabled**: the server starts with the first runtime the Agent Plane window
+* **Enabled**: the server starts with the first runtime the AI Agent Plane window
   starts, and is registered with every runtime that supports it.
 * **Disabled**: no server, no socket; runtimes get no MCP entry
   (`mcpServers: []`, no `--mcp-config`, Pi without the extension). The chat
@@ -151,7 +161,7 @@ Behaviour:
 * **Port in use** (another Lazarus instance, another program): the server
   tries the next ports up to `mcp_port + 9`, uses the first free one and
   passes that URL to the runtime. The protocol log shows the address
-  (`MCP server on http://127.0.0.1:17846/mcp`). When none is free, IDE
+  (`MCP server on http://127.0.0.1:17827/mcp`). When none is free, IDE
   tools are off for this session and the chat shows why.
 * Changing either setting restarts the server and the runtime (like a runtime
   change today), keeping the conversation where the runtime can resume.
@@ -199,11 +209,11 @@ user allows it.
 
 | Tool | Arguments | Returns | Perm |
 | --- | --- | --- | --- |
-| `compile_project` | `build_mode?`, `rebuild?: bool` | `{success, duration_ms, messages: [{file, line, column, urgency, text}]}` | ask* |
-| `build_project` | `build_mode?` | same shape (Run → Build) | ask* |
-| `clean_and_compile_project` | `build_mode?` | same shape plus `cleanup: {output_directory, deleted_count, deleted, failed, skipped_sources}` (Run → Clean up and Build, source files never deleted) | ask |
+| `compile_project` | `build_mode?`, `rebuild?: bool`, `min_urgency?` | `{success, duration_ms, messages: [{file, line, column, urgency, text}]}` | ask* |
+| `build_project` | `build_mode?`, `min_urgency?` | same shape (Run → Build) | ask* |
+| `clean_and_compile_project` | `build_mode?`, `min_urgency?` | same shape plus `cleanup: {output_directory, deleted_count, deleted, failed, skipped_sources}` (Run → Clean up and Build, source files never deleted) | ask |
 | `build_package` | `lpk` | same shape | ask* |
-| `get_messages` | `urgency_min?` | last Messages window content, structured | auto |
+| `get_messages` | `min_urgency?` | last Messages window content, structured | auto |
 | `run_project` / `stop_project` | — | `{started}` | ask (later) |
 
 `compile_project` returns the **structured** Messages window, so the agent does
@@ -271,12 +281,11 @@ debugger is paused; every call except reads is `ask`.
 * Path guard: project directory, required packages and unit search paths only;
   anything else asks.
 * Server: binds to `127.0.0.1` only, requires the per-session Bearer token,
-  rejects non-loopback `Origin` headers, stops when Agent Plane stops its last
+  rejects non-loopback `Origin` headers, stops when AI Agent Plane stops its last
   runtime or MCP Tools is disabled.
-* Output limits: tool results are truncated (for example 32 KB or 500 lines)
-  with a note, like Pi tool output today (`MAX_TOOL_OUTPUT`).
-* Timeouts: 10 s default, compile and build without a timeout but cancellable
-  with the chat's Stop button.
+* Output limits: text results are cut at 32 KB (`AI_MCP_MAX_RESULT`).
+* Timeouts (proposal, not implemented): 10 s default, compile and build
+  without a timeout but cancellable with the chat's Stop button.
 
 ---
 
@@ -359,7 +368,7 @@ stderr and starts without the tools.
   bodies refused or handled, keep-alive, limits), token and `Origin` checks,
   port fallback, dispatcher with a fake provider (argument validation,
   permission flow, async replies, truncation), settings load/save defaults
-  (`mcp_enabled = true`, `mcp_port = 17845`).
+  (`mcp_enabled = true`, `mcp_port = 17826`).
 * **Mock agent**: extend `mock_acp_agent` to read `mcpServers` from
   `session/new` and call a tool over HTTP (`tool open_file ...`), so the ACP
   adapter's wiring is tested without a real agent.
@@ -375,23 +384,27 @@ stderr and starts without the tools.
 
 | Phase | Deliverables |
 | --- | --- |
-| 1 | Settings (`mcp_enabled`, `mcp_port`) and UI; HTTP server, `TAIToolServer`, dispatcher; registration for ACP and Claude Code; tools: `open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`; status line; tests. |
+| 1 (done) | Settings (`mcp_enabled`, `mcp_port`) and UI; `TAIHttpServer`, `TAIMcpServer`; registration for ACP and Claude Code; tools: `open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`; status line; tests. Added later: `build_project`, `clean_and_compile_project`. |
 | 2 | `apply_edit` and `save_file`, ACP `fs/write_text_file` into editor buffers; CodeTools tools. (Pi support was done early, see the runtime table.) |
-| 3 | FastPlaz generators, Database Explorer tools, regex and JSON tools. |
+| 3 (started) | FastPlaz generators (done: `create_simple_controller`, `create_api_controller`, `create_model`), Database Explorer tools, regex and JSON tools. |
 | 4 | Debugger tools, `run_project`, ACP `terminal/*`; optional stdio bridge for runtimes without HTTP MCP. |
 
 ---
 
-## 10. Open questions
+## 10. Questions and decisions
 
-1. Tool name prefix: plain names (`open_file`) or `fastplaz_open_file` to avoid
-   clashing with the runtime's own tools in ACP agents that do not namespace
-   MCP tools?
-2. Should `compile_project` save modified editor buffers first (the IDE does
-   when you press F9), or compile only what is on disk?
-3. Database tools: allow only connections already saved in the Database
+Decided:
+
+1. Tool names: plain names (`open_file`). Claude Code and Pi namespace them
+   as `mcp__fastplaz__*` anyway.
+2. `compile_project` saves modified editor buffers first, like the IDE does
+   on F9 (`DoBuildProject`). So do `build_project` and
+   `clean_and_compile_project`.
+3. Pi: a temporary extension written at start-up registers the IDE's server
+   with Pi's built-in MCP client (Pi 1.4.0 or later).
+4. Port in use: try the next ports up to `+9`.
+
+Open:
+
+5. Database tools: allow only connections already saved in the Database
    Explorer, or also ad-hoc connection strings?
-4. Pi: extension in TypeScript inside the repo, or keep Pi without IDE tools
-   until it has an MCP client?
-5. Port in use: try the next ports (proposed, up to `+9`) or fail with a
-   message so the user picks another port?

@@ -143,7 +143,7 @@ object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
     MaxValue = 65535
     MinValue = 1024
     TabOrder = 9
-    Value = 17845
+    Value = 17826
     OnChange = ValueChange
   end
   object chkAutoReload: TCheckBox

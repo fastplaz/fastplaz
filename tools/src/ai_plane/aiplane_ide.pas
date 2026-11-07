@@ -11,7 +11,7 @@ unit aiplane_ide;
     agent reads unsaved changes too.
   - The window runs the IDE's MCP server (aiplane_mcpserver, tools in
     aiplane_tools_ide) on 127.0.0.1 when "aiplane/mcp_enabled" is on (default),
-    port "aiplane/mcp_port" (default 17845, next free port when taken).
+    port "aiplane/mcp_port" (default 17826, next free port when taken).
   - Open files the agent changed on disk are reloaded after each of its
     tool calls ("aiplane/auto_reload", default on), so the IDE does not ask.
     A file with unsaved changes in the editor is left alone: the IDE asks as
