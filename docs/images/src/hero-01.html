@@ -5,6 +5,8 @@
   Render with headless Chrome:
     desktop: --window-size=1200,510 --force-device-scale-factor=2  hero.html?lang=id|en
     mobile : --window-size=480,950  --force-device-scale-factor=2  hero.html?lang=id|en&layout=mobile
+    cards  : --window-size=480,H    --force-device-scale-factor=2  hero.html?lang=id|en&layout=cards&theme=site&h=H
+             (feature cards only, for the fastplaz.com hero column)
   Add &theme=site for the light fastplaz.com palette (hero-02*.png); default is the dark theme (hero-01*.png).
 -->
 <style>
@@ -65,6 +67,22 @@ h1 span{background:linear-gradient(90deg,#7f9bff,#b8c6ff);-webkit-background-cli
 .m .card p{font-size:13.5px}
 .m .badge{top:16px;right:16px}
 
+/* cards layout: feature cards only, for the fastplaz.com hero column */
+.c,.c body{width:480px;height:var(--h,600px)}
+.c .wrap{padding:24px 24px 0}
+.c h1,.c .sub{display:none}
+.c .pill{font-size:11px;padding:6px 12px}
+.c.site .brand img{height:48px}
+.c .cards{grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.c .card{padding:16px 15px 15px}
+.c .ic{width:38px;height:38px;margin-bottom:10px}
+.c .ic svg{width:21px;height:21px}
+.c .card h3{font-size:16.5px;margin-bottom:4px}
+.c .card p{font-size:13px}
+.c .hot{order:-1;grid-column:1/-1;display:flex;gap:14px;align-items:flex-start}
+.c .hot .ic{margin-bottom:0}
+.c .badge{top:14px;right:14px}
+
 /* site theme: fastplaz.com palette (primary #184E8E, accent #C8102E, navy #14213D) */
 .site body{color:#14213D;background:
     radial-gradient(700px 380px at 8% 0%,rgba(24,78,142,.10),transparent 70%),
@@ -101,6 +119,8 @@ h1 span{background:linear-gradient(90deg,#7f9bff,#b8c6ff);-webkit-background-cli
 const q = new URLSearchParams(location.search);
 const lang = q.get('lang') === 'en' ? 'en' : 'id';
 if (q.get('layout') === 'mobile') document.documentElement.classList.add('m');
+if (q.get('layout') === 'cards') document.documentElement.classList.add('c');
+if (q.get('h')) document.documentElement.style.setProperty('--h', q.get('h') + 'px');
 const site = q.get('theme') === 'site';
 if (site) document.documentElement.classList.add('site');
 
