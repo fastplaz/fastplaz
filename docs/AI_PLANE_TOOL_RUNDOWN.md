@@ -185,6 +185,10 @@ All paths are absolute or relative to the project directory. Tools refuse paths
 outside the project directory, its packages and the unit search path unless the
 user allows it.
 
+Every tool is listed with MCP annotations (`readOnlyHint`, `destructiveHint`,
+`idempotentHint`, `openWorldHint: false`), so clients can tell reads from
+changes without asking.
+
 ### 4.1 Editor and navigation (phase 1–2)
 
 | Tool | Arguments | Returns | Perm | IDE API |
@@ -250,6 +254,7 @@ against the Lazarus sources during phase 2.
 | `create_simple_controller` (done) | `name`, `permalink?`, `directory?` | `{file, class, permalink, route, saved, in_unit_path}` | ask* |
 | `create_api_controller` (done) | `name`, `permalink?`, `directory?` | as above | ask* |
 | `create_model` (done) | `name?`, `table?`, `directory?` | `{file, class, table, custom_table_name, saved, in_unit_path}` | ask* |
+| `get_fastplaz_reference` (done) | `section?` | the FastPlaz reference for agents (`tools/templates/agent/fastplaz-reference.md`), whole or one `## ` section; also served as the MCP resource `fastplaz://reference` | auto |
 | `fastplaz_create_structure` | `kind: web\|theme` | created dirs | ask |
 | `db_list_connections` | — | names and types from the Database Explorer config (no passwords) | auto |
 | `db_list_tables` | `connection` | table names | ask* |
@@ -386,7 +391,7 @@ stderr and starts without the tools.
 | --- | --- |
 | 1 (done) | Settings (`mcp_enabled`, `mcp_port`) and UI; `TAIHttpServer`, `TAIMcpServer`; registration for ACP and Claude Code; tools: `open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`; status line; tests. Added later: `build_project`, `clean_and_compile_project`. |
 | 2 | `apply_edit` and `save_file`, ACP `fs/write_text_file` into editor buffers; CodeTools tools. (Pi support was done early, see the runtime table.) |
-| 3 (started) | FastPlaz generators (done: `create_simple_controller`, `create_api_controller`, `create_model`), Database Explorer tools, regex and JSON tools. |
+| 3 (started) | FastPlaz generators (done: `create_simple_controller`, `create_api_controller`, `create_model`), FastPlaz reference for agents (done: resource `fastplaz://reference`, tool `get_fastplaz_reference`, server instructions, tool annotations), Database Explorer tools, regex and JSON tools. |
 | 4 | Debugger tools, `run_project`, ACP `terminal/*`; optional stdio bridge for runtimes without HTTP MCP. |
 
 ---
