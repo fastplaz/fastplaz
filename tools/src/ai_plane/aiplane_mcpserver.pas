@@ -14,6 +14,10 @@ unit aiplane_mcpserver;
     shows a card and calls RespondPermission. Until then the HTTP request
     waits. The card text is the tool title, the tool's own summary
     (SetToolDescriber) and the arguments as "name: value" lines.
+  - Every tool carries MCP annotations (readOnlyHint, destructiveHint,
+    idempotentHint, openWorldHint = false) from its TAIMcpToolHints.
+  - Resources (RegisterResource) are text documents the agent reads with
+    resources/read; their text comes from a reader at every read.
   - Poll from a timer; everything runs in the caller's thread.
 
   Design: docs/AI_PLANE_TOOL_RUNDOWN.md. No LCL or IDEIntf here.
@@ -46,6 +50,16 @@ type
     mtpAsk,         // asks every time
     mtpAskSession   // asks once, "allow for this session" is remembered
     );
+
+  { MCP tool annotations. A tool without mthReadOnly changes files or the
+    project; mthDestructive marks changes that cannot be taken back (files
+    deleted). }
+  TAIMcpToolHint = (
+    mthReadOnly,    // changes no file or project (opening a tab counts as read-only)
+    mthDestructive, // deletes or overwrites what cannot be restored
+    mthIdempotent   // calling again with the same arguments changes nothing more
+    );
+  TAIMcpToolHints = set of TAIMcpToolHint;
 
   { TAIMcpToolCall }
 
@@ -87,6 +101,20 @@ type
     Permission: TAIMcpToolPermission;
     Handler: TAIMcpToolHandler;
     Describe: TAIMcpToolDescriber;
+    Hints: TAIMcpToolHints;
+  end;
+
+  { Gives the text of resource AUri. False: AText is the reason it cannot be
+    read (sent to the agent as an error). }
+  TAIMcpResourceReader = function(const AUri: string; out AText: string): boolean of object;
+
+  TAIMcpResource = record
+    Uri: string;
+    Name: string;
+    Title: string;
+    Description: string;
+    MimeType: string;
+    Reader: TAIMcpResourceReader;
   end;
 
   TAIMcpLogEvent = procedure(Sender: TObject; const AText: string) of object;
@@ -97,6 +125,7 @@ type
   private
     FHttp: TAIHttpServer;
     FTools: array of TAIMcpTool;
+    FResources: array of TAIMcpResource;
     FToken: string;
     FSessions: TStringList;
     FCalls: TList;               // running or waiting TAIMcpToolCall
@@ -111,6 +140,9 @@ type
     procedure HandleInitialize(ARequest: TAIHttpRequest; const AIdJSON: string;
       AParams: TJSONObject);
     procedure HandleToolsList(ARequest: TAIHttpRequest; const AIdJSON: string);
+    procedure HandleResourcesList(ARequest: TAIHttpRequest; const AIdJSON: string);
+    procedure HandleResourcesRead(ARequest: TAIHttpRequest; const AIdJSON: string;
+      AParams: TJSONObject);
     procedure HandleToolsCall(ARequest: TAIHttpRequest; const AIdJSON: string;
       AParams: TJSONObject);
     procedure RunCall(ACall: TAIMcpToolCall);
@@ -128,9 +160,15 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure RegisterTool(const AName, ATitle, ADescription, AInputSchema: string;
-      APermission: TAIMcpToolPermission; AHandler: TAIMcpToolHandler);
+      APermission: TAIMcpToolPermission; AHandler: TAIMcpToolHandler;
+      AHints: TAIMcpToolHints = []);
     { Adds a summary to the permission card of a registered tool. }
     procedure SetToolDescriber(const AName: string; ADescribe: TAIMcpToolDescriber);
+    { A text resource for resources/list and resources/read. AReader is asked
+      for the text at every read. }
+    procedure RegisterResource(const AUri, AName, ATitle, ADescription,
+      AMimeType: string; AReader: TAIMcpResourceReader);
+    function ResourceCount: integer;
     { Starts on APort, or the next free port (AI_MCP_PORT_TRIES). A new token
       is made at every start. }
     function Start(APort: word = AI_MCP_DEFAULT_PORT): boolean;
@@ -169,6 +207,8 @@ const
   JSONRPC_INVALID_REQUEST = -32600;
   JSONRPC_METHOD_NOT_FOUND = -32601;
   JSONRPC_INVALID_PARAMS = -32602;
+  JSONRPC_INTERNAL_ERROR = -32603;
+  MCP_RESOURCE_NOT_FOUND = -32002;
 
 function AIMcpNewToken: string;
 
@@ -362,7 +402,8 @@ begin
 end;
 
 procedure TAIMcpServer.RegisterTool(const AName, ATitle, ADescription,
-  AInputSchema: string; APermission: TAIMcpToolPermission; AHandler: TAIMcpToolHandler);
+  AInputSchema: string; APermission: TAIMcpToolPermission; AHandler: TAIMcpToolHandler;
+  AHints: TAIMcpToolHints);
 var
   n: integer;
 begin
@@ -375,6 +416,27 @@ begin
   FTools[n].Permission := APermission;
   FTools[n].Handler := AHandler;
   FTools[n].Describe := nil;
+  FTools[n].Hints := AHints;
+end;
+
+procedure TAIMcpServer.RegisterResource(const AUri, AName, ATitle,
+  ADescription, AMimeType: string; AReader: TAIMcpResourceReader);
+var
+  n: integer;
+begin
+  n := Length(FResources);
+  SetLength(FResources, n + 1);
+  FResources[n].Uri := AUri;
+  FResources[n].Name := AName;
+  FResources[n].Title := ATitle;
+  FResources[n].Description := ADescription;
+  FResources[n].MimeType := AMimeType;
+  FResources[n].Reader := AReader;
+end;
+
+function TAIMcpServer.ResourceCount: integer;
+begin
+  Result := Length(FResources);
 end;
 
 procedure TAIMcpServer.SetToolDescriber(const AName: string; ADescribe: TAIMcpToolDescriber);
@@ -606,6 +668,12 @@ begin
       HandleToolsList(ARequest, idJSON);
     'tools/call':
       HandleToolsCall(ARequest, idJSON, params);
+    'resources/list':
+      HandleResourcesList(ARequest, idJSON);
+    'resources/read':
+      HandleResourcesRead(ARequest, idJSON, params);
+    'resources/templates/list':
+      SendResult(ARequest, idJSON, TJSONObject.Create(['resourceTemplates', TJSONArray.Create]));
     else
       SendError(ARequest, idJSON, JSONRPC_METHOD_NOT_FOUND, 'Method not found: ' + method);
   end;
@@ -634,6 +702,8 @@ begin
   tools.Add('listChanged', False);
   caps := TJSONObject.Create;
   caps.Add('tools', tools);
+  if Length(FResources) > 0 then
+    caps.Add('resources', TJSONObject.Create(['subscribe', False, 'listChanged', False]));
   info := TJSONObject.Create;
   info.Add('name', 'fastplaz');
   info.Add('title', 'Lazarus IDE (FastPlaz Agent Plane)');
@@ -681,11 +751,82 @@ begin
       schema := TJSONObject.Create(['type', 'object']);
     end;
     item.Add('inputSchema', schema);
+    // explicit values: the MCP defaults (destructive, open world) do not
+    // fit IDE tools
+    item.Add('annotations', TJSONObject.Create([
+      'readOnlyHint', mthReadOnly in FTools[i].Hints,
+      'destructiveHint', mthDestructive in FTools[i].Hints,
+      'idempotentHint', mthIdempotent in FTools[i].Hints,
+      'openWorldHint', False]));
     list.Add(item);
   end;
   result := TJSONObject.Create;
   result.Add('tools', list);
   SendResult(ARequest, AIdJSON, result);
+end;
+
+procedure TAIMcpServer.HandleResourcesList(ARequest: TAIHttpRequest;
+  const AIdJSON: string);
+var
+  list: TJSONArray;
+  item: TJSONObject;
+  i: integer;
+begin
+  list := TJSONArray.Create;
+  for i := 0 to High(FResources) do
+  begin
+    item := TJSONObject.Create;
+    item.Add('uri', FResources[i].Uri);
+    item.Add('name', FResources[i].Name);
+    if FResources[i].Title <> '' then
+      item.Add('title', FResources[i].Title);
+    if FResources[i].Description <> '' then
+      item.Add('description', FResources[i].Description);
+    if FResources[i].MimeType <> '' then
+      item.Add('mimeType', FResources[i].MimeType);
+    list.Add(item);
+  end;
+  SendResult(ARequest, AIdJSON, TJSONObject.Create(['resources', list]));
+end;
+
+procedure TAIMcpServer.HandleResourcesRead(ARequest: TAIHttpRequest;
+  const AIdJSON: string; AParams: TJSONObject);
+var
+  uri, text: string;
+  i: integer;
+  ok: boolean;
+  content: TJSONObject;
+begin
+  uri := JStr(AParams, 'uri');
+  for i := 0 to High(FResources) do
+    if FResources[i].Uri = uri then
+    begin
+      Log('resource ' + uri);
+      try
+        ok := Assigned(FResources[i].Reader) and FResources[i].Reader(uri, text);
+      except
+        on E: Exception do
+        begin
+          ok := False;
+          text := E.Message;
+        end;
+      end;
+      if not ok then
+      begin
+        SendError(ARequest, AIdJSON, JSONRPC_INTERNAL_ERROR,
+          'Resource cannot be read: ' + uri + ': ' + text);
+        Exit;
+      end;
+      content := TJSONObject.Create;
+      content.Add('uri', uri);
+      if FResources[i].MimeType <> '' then
+        content.Add('mimeType', FResources[i].MimeType);
+      content.Add('text', text);
+      SendResult(ARequest, AIdJSON,
+        TJSONObject.Create(['contents', TJSONArray.Create([content])]));
+      Exit;
+    end;
+  SendError(ARequest, AIdJSON, MCP_RESOURCE_NOT_FOUND, 'Resource not found: ' + uri);
 end;
 
 procedure TAIMcpServer.HandleToolsCall(ARequest: TAIHttpRequest;

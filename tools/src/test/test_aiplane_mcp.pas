@@ -2,8 +2,10 @@ unit test_aiplane_mcp;
 
 {
   Tests for the Agent Plane MCP server (aiplane_httpserver, aiplane_mcpserver):
-  HTTP handling, token and Origin checks, sessions, tools/list, tools/call,
-  permissions answered at once or later, port fallback.
+  HTTP handling, token and Origin checks, sessions, tools/list (with
+  annotations), tools/call, permissions answered at once or later, port
+  fallback, resources/list and resources/read. TAIReferenceTest covers
+  aiplane_reference (the FastPlaz reference served to agents).
 
   The server is polled by a background thread (in the IDE a timer does it);
   the test talks to it with a blocking HTTP client or a raw socket.
@@ -15,7 +17,7 @@ interface
 
 uses
   Classes, SysUtils, fpcunit, testregistry, fpjson, jsonparser, fphttpclient,
-  ssockets, aiplane_types, aiplane_mcpserver;
+  ssockets, aiplane_types, aiplane_mcpserver, aiplane_reference;
 
 type
 
@@ -34,6 +36,8 @@ type
     procedure Risky(ACall: TAIMcpToolCall);
     function Describe(ACall: TAIMcpToolCall): string;
     function DescribeBoom(ACall: TAIMcpToolCall): string;
+    function ReadDoc(const AUri: string; out AText: string): boolean;
+    function ReadBroken(const AUri: string; out AText: string): boolean;
     procedure OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
   end;
 
@@ -90,6 +94,28 @@ type
     procedure TestArgsText;
     procedure TestPermissionCardText;
     procedure TestPermissionCardDescriberRaises;
+    procedure TestToolAnnotations;
+    procedure TestInitializeAnnouncesResources;
+    procedure TestResourcesList;
+    procedure TestResourcesRead;
+    procedure TestResourceNotFound;
+    procedure TestResourceReaderFails;
+    procedure TestResourceTemplatesEmpty;
+  end;
+
+  { TAIReferenceTest }
+
+  TAIReferenceTest = class(TTestCase)
+  published
+    procedure TestWholeTextWithoutSection;
+    procedure TestSectionUpToNextHeading;
+    procedure TestSectionIgnoresCase;
+    procedure TestSectionNotFound;
+    procedure TestHeadings;
+    procedure TestFileName;
+    procedure TestLoadStripsBOM;
+    procedure TestLoadMissingFile;
+    procedure TestShippedReference;
   end;
 
 implementation
@@ -130,6 +156,18 @@ begin
   raise Exception.Create('describe failed');
 end;
 
+function TMcpTestTools.ReadDoc(const AUri: string; out AText: string): boolean;
+begin
+  AText := '# Doc' + LineEnding + 'for ' + AUri + ' ' + #$E2#$9C#$93;
+  Result := True;
+end;
+
+function TMcpTestTools.ReadBroken(const AUri: string; out AText: string): boolean;
+begin
+  AText := 'file not found';
+  Result := False;
+end;
+
 procedure TMcpTestTools.OnPermission(Sender: TObject; const ARequest: TAIPermissionRequest);
 begin
   Inc(Permissions);
@@ -164,12 +202,15 @@ begin
   FServer.OnPermission := @FTools.OnPermission;
   FServer.RegisterTool('echo', 'Echo', 'Returns the text',
     '{"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}',
-    mtpAuto, @FTools.Echo);
+    mtpAuto, @FTools.Echo, [mthReadOnly, mthIdempotent]);
   FServer.RegisterTool('big', 'Big', 'Returns 40000 bytes', '', mtpAuto, @FTools.Big);
   FServer.RegisterTool('boom', 'Boom', 'Raises', '', mtpAuto, @FTools.Boom);
   FServer.RegisterTool('risky', 'Risky', 'Asks first', '', mtpAskSession, @FTools.Risky);
   FServer.RegisterTool('always', 'Always ask', 'Asks every time', '', mtpAsk,
-    @FTools.Risky);
+    @FTools.Risky, [mthDestructive]);
+  FServer.RegisterResource('test://doc', 'doc', 'Test document',
+    'A document for the tests', 'text/markdown', @FTools.ReadDoc);
+  FServer.RegisterResource('test://broken', 'broken', '', '', '', @FTools.ReadBroken);
   AssertTrue('server started: ' + FServer.LastError, FServer.Start(TEST_PORT));
   FThread := TMcpPollThread.Create(True);
   FThread.Server := FServer;
@@ -648,7 +689,251 @@ begin
   AssertEquals('Always ask' + LineEnding + LineEnding + 'name: x', FTools.LastDetail);
 end;
 
+procedure TAIMcpServerTest.TestToolAnnotations;
+var
+  res: TJSONObject;
+  tools: TJSONArray;
+  ann: TJSONObject;
+begin
+  res := Rpc('tools/list');
+  try
+    tools := res.Objects['result'].Arrays['tools'];
+    ann := tools.Objects[0].Objects['annotations'];
+    AssertTrue('echo read-only', ann.Get('readOnlyHint', False));
+    AssertFalse(ann.Get('destructiveHint', True));
+    AssertTrue(ann.Get('idempotentHint', False));
+    AssertFalse('never open world', ann.Get('openWorldHint', True));
+    // no hints: explicit false, not the MCP defaults
+    AssertEquals('risky', tools.Objects[3].Get('name', ''));
+    ann := tools.Objects[3].Objects['annotations'];
+    AssertFalse(ann.Get('readOnlyHint', True));
+    AssertFalse(ann.Get('destructiveHint', True));
+    AssertFalse(ann.Get('idempotentHint', True));
+    ann := tools.Objects[4].Objects['annotations'];
+    AssertTrue('always destructive', ann.Get('destructiveHint', False));
+    AssertFalse(ann.Get('readOnlyHint', True));
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestInitializeAnnouncesResources;
+var
+  res, caps: TJSONObject;
+begin
+  res := Rpc('initialize', TJSONObject.Create(['protocolVersion', '2025-06-18']));
+  try
+    caps := res.Objects['result'].Objects['capabilities'];
+    AssertTrue('resources capability', Assigned(caps.Find('resources')));
+    AssertFalse(caps.Objects['resources'].Get('subscribe', True));
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestResourcesList;
+var
+  res: TJSONObject;
+  list: TJSONArray;
+begin
+  AssertEquals(2, FServer.ResourceCount);
+  res := Rpc('resources/list');
+  try
+    list := res.Objects['result'].Arrays['resources'];
+    AssertEquals(2, list.Count);
+    AssertEquals('test://doc', list.Objects[0].Get('uri', ''));
+    AssertEquals('doc', list.Objects[0].Get('name', ''));
+    AssertEquals('Test document', list.Objects[0].Get('title', ''));
+    AssertEquals('A document for the tests', list.Objects[0].Get('description', ''));
+    AssertEquals('text/markdown', list.Objects[0].Get('mimeType', ''));
+    AssertNull('empty title left out', list.Objects[1].Find('title'));
+    AssertNull('empty mime type left out', list.Objects[1].Find('mimeType'));
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestResourcesRead;
+var
+  res: TJSONObject;
+  contents: TJSONArray;
+begin
+  res := Rpc('resources/read', TJSONObject.Create(['uri', 'test://doc']));
+  try
+    contents := res.Objects['result'].Arrays['contents'];
+    AssertEquals(1, contents.Count);
+    AssertEquals('test://doc', contents.Objects[0].Get('uri', ''));
+    AssertEquals('text/markdown', contents.Objects[0].Get('mimeType', ''));
+    AssertEquals('# Doc' + LineEnding + 'for test://doc ' + #$E2#$9C#$93,
+      contents.Objects[0].Get('text', ''));
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestResourceNotFound;
+var
+  res: TJSONObject;
+begin
+  res := Rpc('resources/read', TJSONObject.Create(['uri', 'test://nothing']));
+  try
+    AssertNull('no result', res.Find('result'));
+    AssertEquals(-32002, res.Objects['error'].Get('code', 0));
+    AssertTrue(Pos('test://nothing', res.Objects['error'].Get('message', '')) > 0);
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestResourceReaderFails;
+var
+  res: TJSONObject;
+begin
+  res := Rpc('resources/read', TJSONObject.Create(['uri', 'test://broken']));
+  try
+    AssertEquals(-32603, res.Objects['error'].Get('code', 0));
+    AssertTrue('reason passed on',
+      Pos('file not found', res.Objects['error'].Get('message', '')) > 0);
+  finally
+    res.Free;
+  end;
+end;
+
+procedure TAIMcpServerTest.TestResourceTemplatesEmpty;
+var
+  res: TJSONObject;
+begin
+  res := Rpc('resources/templates/list');
+  try
+    AssertEquals(0, res.Objects['result'].Arrays['resourceTemplates'].Count);
+  finally
+    res.Free;
+  end;
+end;
+
+{ TAIReferenceTest }
+
+const
+  REF_SAMPLE =
+    '# Title' + LineEnding +
+    'intro' + LineEnding +
+    '## Routes' + LineEnding +
+    'route text' + LineEnding +
+    '```' + LineEnding +
+    '## not a heading' + LineEnding +
+    '```' + LineEnding +
+    '### Sub part' + LineEnding +
+    'sub text' + LineEnding +
+    '## Database models (TSimpleModel)' + LineEnding +
+    'model text' + LineEnding;
+
+procedure TAIReferenceTest.TestWholeTextWithoutSection;
+var
+  found: boolean;
+begin
+  AssertEquals(REF_SAMPLE, AIReferenceSection(REF_SAMPLE, '  ', found));
+  AssertTrue(found);
+end;
+
+procedure TAIReferenceTest.TestSectionUpToNextHeading;
+var
+  found: boolean;
+begin
+  AssertEquals('## Routes' + LineEnding + 'route text' + LineEnding + '```' +
+    LineEnding + '## not a heading' + LineEnding + '```' + LineEnding +
+    '### Sub part' + LineEnding + 'sub text' + LineEnding,
+    AIReferenceSection(REF_SAMPLE, 'routes', found));
+  AssertTrue(found);
+end;
+
+procedure TAIReferenceTest.TestSectionIgnoresCase;
+var
+  found: boolean;
+begin
+  AssertEquals('## Database models (TSimpleModel)' + LineEnding + 'model text' +
+    LineEnding, AIReferenceSection(REF_SAMPLE, 'SIMPLEMODEL', found));
+  AssertTrue(found);
+end;
+
+procedure TAIReferenceTest.TestSectionNotFound;
+var
+  found: boolean;
+begin
+  AssertEquals('', AIReferenceSection(REF_SAMPLE, 'heading', found));
+  AssertFalse('a heading inside a code block does not count', found);
+  AIReferenceSection(REF_SAMPLE, 'title', found);
+  AssertFalse('a level 1 heading is not a section', found);
+end;
+
+procedure TAIReferenceTest.TestHeadings;
+begin
+  AssertEquals('Routes, Database models (TSimpleModel)', AIReferenceHeadings(REF_SAMPLE));
+  AssertEquals('', AIReferenceHeadings('no headings'));
+end;
+
+procedure TAIReferenceTest.TestFileName;
+begin
+  AssertEquals('', AIReferenceFileName(''));
+  AssertEquals('pkg' + DirectorySeparator + 'templates' + DirectorySeparator +
+    'agent' + DirectorySeparator + 'fastplaz-reference.md',
+    AIReferenceFileName('pkg'));
+end;
+
+procedure TAIReferenceTest.TestLoadStripsBOM;
+var
+  fileName, text: string;
+  list: TStringList;
+begin
+  fileName := GetTempFileName('', 'fpzref');
+  list := TStringList.Create;
+  try
+    list.Text := #$EF#$BB#$BF + '## Routes';
+    list.SaveToFile(fileName);
+  finally
+    list.Free;
+  end;
+  try
+    AssertTrue(AILoadReference(fileName, text));
+    AssertEquals('## Routes', TrimRight(text));
+  finally
+    DeleteFile(fileName);
+  end;
+end;
+
+procedure TAIReferenceTest.TestLoadMissingFile;
+var
+  text: string;
+begin
+  AssertFalse(AILoadReference('', text));
+  AssertTrue(Pos('package directory', text) > 0);
+  AssertFalse(AILoadReference('no-such-dir' + DirectorySeparator + 'x.md', text));
+  AssertTrue(Pos('file not found', text) > 0);
+end;
+
+procedure TAIReferenceTest.TestShippedReference;
+var
+  fileName, text, part: string;
+  found: boolean;
+begin
+  // the file shipped in the package (tools/templates/agent); the tests run
+  // in tools/src/test
+  fileName := AIReferenceFileName(ExpandFileName('..' + DirectorySeparator + '..'));
+  AssertTrue('shipped reference: ' + fileName, AILoadReference(fileName, text));
+  AssertTrue('fits in one tool result', Length(text) < AI_MCP_MAX_RESULT);
+  part := AIReferenceSection(text, 'routes', found);
+  AssertTrue('routes section', found);
+  AssertTrue(Pos('Route.Add', part) > 0);
+  AIReferenceSection(text, 'TSimpleModel', found);
+  AssertTrue('model section', found);
+  AIReferenceSection(text, 'theme', found);
+  AssertTrue('theme section', found);
+  AIReferenceSection(text, 'config', found);
+  AssertTrue('config section', found);
+  AssertTrue('foreach closing syntax', Pos('[/foreach from=', text) > 0);
+end;
+
 initialization
   RegisterTest(TAIMcpServerTest);
+  RegisterTest(TAIReferenceTest);
 
 end.

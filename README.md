@@ -36,7 +36,7 @@ Coding agents inside the Lazarus IDE. Claude Code, OpenCode, Pi and GitHub Copil
 
 ![AI Agent Plane](docs/images/agent-plane.png)
 
-[More about AI Agent Plane](#more-on-ai-agent-plane)
+[More about AI Agent Plane](#ai-agent-plane-1)
 
 ## Why FastPlaz
 
@@ -109,12 +109,12 @@ Requirements: [Free Pascal](https://www.freepascal.org/) 3.2.2 and [Lazarus](htt
 
 4. **Run it** and open http://127.0.0.1:17845. The same binary also runs as CGI when Apache starts it.
 
-## More on AI Agent Plane
+## AI Agent Plane
 
 - **Runtimes**: Claude Code, OpenCode, Pi, GitHub Copilot CLI and other ACP agents. Switch runtime, model and thinking effort from the chat window.
 - **IDE tools over MCP**: the IDE runs a local MCP server (127.0.0.1 only, token protected) and hands it to the agent: `open_file`, `read_editor`, `project_info`, `compile_project`, `get_messages`, `create_api_controller`, `create_model` and more.
 - **You stay in control**: tools that compile, delete or create files show a permission card first.
-- **Live editor**: files the agent changes are reloaded in the open editors.
+- **Live Editor**: files the agent changes are reloaded in the open editors.
 
 Read more: [docs/AI_AGENT_by_FASTPLAZ.md](docs/AI_AGENT_by_FASTPLAZ.md) and the MCP tool list in [docs/MCP.md](docs/MCP.md).
 
@@ -124,12 +124,12 @@ Everything is in the FastPlaz menu.
 
 | Tool | What it does |
 | --- | --- |
-| Project wizards | Simple Application, API Application, Full Package Application, with the directory and theme structure |
-| Controller and model wizards | Simple controller, API (JSON) controller, `TSimpleModel` for a table |
-| Database Explorer | Browse connections and tables, copy field lists into your code |
+| Project wizards | Create a Simple Application, API Application, Full Package Application, with the directory and theme structure |
+| Controller and model wizards | Simple controller, API (JSON) controller, `TSimpleModel` to work with a table |
+| Database Explorer | Access your databases straight from the Lazarus IDE, run queries and copy field lists into your code |
 | JSON Validator & Formatter | Check and pretty-print JSON |
 | Regex Tester | Try regular expressions against sample text |
-| Fast Code Suggestion | Ask an AI model for code from the source editor's popup menu (OpenAI-compatible servers) |
+| Fast Code Suggestion | Generate code with an AI model from the source editor's popup menu (OpenAI-compatible servers) |
 | AI Agent Plane | Coding agents inside the IDE (see above) |
 
 ![Database Explorer](https://fastplaz.github.io/img/tools/field-copy-2.png)
@@ -142,12 +142,12 @@ Everything is in the FastPlaz menu.
   - Design: [docs/STANDALONE-roadmap.md](docs/STANDALONE-roadmap.md)
   - Example: [examples/standalone](examples/standalone)
 
-## Built with FastPlaz
+## Projects built with FastPlaz
 
-- [Carik](https://carik.id): conversational bot engine for Telegram, WhatsApp and other channels
-- [SimpleAI](https://github.com/luridarmawan/SimpleAI): AI platform
-- Dashboard Intelligence: analytics dashboard
-- [fastplaz.com](https://fastplaz.com): FastPlaz serves the front end, WordPress manages the content
+- [Carik Bot](https://carik.id): conversational bot engine for Telegram, WhatsApp and other channels
+- [SimpleAI](https://github.com/luridarmawan/SimpleAI): Simple AI / NLP platform
+- [Dashboard Intelligence](https://carik.id): analytics dashboard from CARIK.id
+- [fastplaz.com](https://fastplaz.com): front end served by FastPlaz
 - [Silat Indonesia](https://www.silatindonesia.com)
 - [IHASA](https://ihasa.id): Indonesian Horseback & Traditional Archery Association (KPBI)
 - [default.fastplaz.com](http://default.fastplaz.com): a plain FastPlaz site
@@ -164,11 +164,11 @@ Everything is in the FastPlaz menu.
   - [Packages](README-package.md)
   - [CMS](README-CMS.md)
   - [Unit tests](UNIT_TEST.md)
-  - [Changes](docs/Changes.md)
+  - [Changes](docs/CHANGES.md)
 
 ## Upgrading from an older version
 
-The November 2026 release contains fixes that change how existing applications behave: session timeout is in minutes, `Redirect`/`die` do not leave the current method, a failed `Save`/`Delete` returns False, flash messages are HTML encoded. Read [docs/UPGRADE.md](docs/UPGRADE.md) and [docs/Changes.md](docs/Changes.md) first.
+The November 2026 release contains fixes that change how existing applications behave: session timeout is in minutes, `Redirect`/`die` do not leave the current method, a failed `Save`/`Delete` returns False, flash messages are HTML encoded. Read [docs/UPGRADE.md](docs/UPGRADE.md) and [docs/CHANGES.md](docs/CHANGES.md) first.
 
 To update a clone, pull and recompile the packages:
 
@@ -179,7 +179,7 @@ git pull
 ## Community
 
 - [FastPlaz](https://fastplaz.com)
-- [Pascal Indonesia Community](https://pascal-id.org)
+- [Pascal Indonesia Community](https://pascal-dev.org)
 - [FastPlaz initiator on GitHub](https://github.com/luridarmawan/)
 - [Contributors](README-contributor.md)
 

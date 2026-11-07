@@ -4,15 +4,17 @@ FastPlaz AI Agent Plane runs a small **MCP (Model Context Protocol) server
 inside the Lazarus IDE**. The coding agent started from AI Agent Plane (Claude
 Code, Pi, OpenCode, GitHub Copilot CLI or another ACP agent) uses it to work
 on the IDE itself: open a unit at a line, read the editor including unsaved
-changes, compile the project and read the compiler messages, and generate
-FastPlaz controllers and models.
+changes, compile the project and read the compiler messages, generate
+FastPlaz controllers and models, and read a FastPlaz reference so it does not
+guess the framework API.
 
 This page describes what is implemented. Design notes and the roadmap:
 [AI_PLANE_TOOL_RUNDOWN.md](AI_PLANE_TOOL_RUNDOWN.md). The feature itself:
 [AI_AGENT_by_FASTPLAZ.md](AI_AGENT_by_FASTPLAZ.md).
 
 Source: `tools/src/ai_plane/` (`aiplane_httpserver.pas`,
-`aiplane_mcpserver.pas`, `aiplane_tools_ide.pas`, `aiplane_tools_fastplaz.pas`).
+`aiplane_mcpserver.pas`, `aiplane_tools_ide.pas`, `aiplane_tools_fastplaz.pas`,
+`aiplane_reference.pas`).
 
 ## Server
 
@@ -23,7 +25,7 @@ Source: `tools/src/ai_plane/` (`aiplane_httpserver.pas`,
 | URL | `http://127.0.0.1:<port>/mcp` |
 | Default port | `17826`; when it is taken, the next free port up to `17835` |
 | Protocol versions | `2025-11-25`, `2025-06-18` (default), `2025-03-26`, `2024-11-05` |
-| Methods | `initialize`, `ping`, `tools/list`, `tools/call`; notifications (`notifications/initialized`, `notifications/cancelled`) are accepted |
+| Methods | `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list` (empty); notifications (`notifications/initialized`, `notifications/cancelled`) are accepted |
 | Session | `Mcp-Session-Id` is issued at `initialize` and checked on later requests |
 | Request body limit | 4 MB |
 | Result size | Text results are cut at 32 KB |
@@ -92,10 +94,33 @@ the AI Agent Plane chat, and the call waits until the user answers.
 The card shows the tool title, a short summary of what will happen and the
 arguments.
 
+## Instructions
+
+The `initialize` result carries `instructions`, which clients add to the
+model's context. They say how the IDE tools work, tell the agent to read the
+FastPlaz reference before writing FastPlaz code instead of guessing the API,
+and to prefer the generators over writing controllers and models by hand.
+
+## Resources
+
+| URI | Content |
+| --- | --- |
+| `fastplaz://reference` | FastPlaz reference for agents (`text/markdown`): project layout, controllers, routes, request and session data, themes and template tags, `TSimpleModel`, `TJSONUtil`, `config.json`, helpers, workflow in the IDE and pitfalls |
+
+The text is the file `tools/templates/agent/fastplaz-reference.md` of the
+`fastplaz_tools` package. It is read at every request, so it can be edited
+without rebuilding the IDE. Clients that do not read MCP resources get the
+same text from the tool `get_fastplaz_reference`.
+
 ## Tools
 
-13 tools in two groups. Paths are absolute or relative to the project
+14 tools in two groups. Paths are absolute or relative to the project
 directory.
+
+Every tool carries MCP `annotations` with explicit values: `readOnlyHint`
+(changes no file or project; opening a tab counts as read-only),
+`destructiveHint` (deletes what cannot be restored; only
+`clean_and_compile_project`), `idempotentHint`, and `openWorldHint: false`.
 
 ### IDE tools
 
@@ -131,7 +156,7 @@ Build results (`compile_project`, `build_project`,
 `clean_and_compile_project` adds `cleanup` with `output_directory`,
 `deleted_count`, `deleted`, `failed` and `skipped_sources`.
 
-### FastPlaz generators
+### FastPlaz generators and reference
 
 Source: `tools/src/ai_plane/aiplane_tools_fastplaz.pas`
 
@@ -145,6 +170,7 @@ controller or model by hand. In FastPlaz a *module* is a controller, so
 | `create_simple_controller` | Web page controller (`TMyCustomController` with Get/Post, rendered through the theme, `maincontent` tag handler). Saves `<permalink>_controller.pas` | `name` (required), `permalink`, `directory` | ask once per session |
 | `create_api_controller` | REST controller that answers JSON (Get/Post/Options). Saves `<permalink>_controller.pas` | `name` (required), `permalink`, `directory` | ask once per session |
 | `create_model` | `TSimpleModel` unit for a database table. Saves `<name>_model.pas` | `name`, `table`, `directory` | ask once per session |
+| `get_fastplaz_reference` | The FastPlaz reference (same text as `fastplaz://reference`). With `section`, only the `## ` section whose heading contains it (`routes`, `model`, `theme`, ...); an unknown section fails with the list of headings | `section` | auto |
 
 Arguments:
 
@@ -194,9 +220,14 @@ Content-Type: application/json
    `ACall.Fail(message)`. It can finish later, for example after a compile.
 2. Register it in the `Register` method of `TAIIdeTools` or
    `TAIFastPlazTools` with `AServer.RegisterTool(name, title, description,
-   inputSchema, permission, handler)`.
+   inputSchema, permission, handler, hints)`. `hints` is a set of
+   `mthReadOnly`, `mthDestructive`, `mthIdempotent`, sent as the tool's MCP
+   annotations.
 3. Optional: `AServer.SetToolDescriber(name, describer)` adds a summary to the
    permission card.
-4. Add tests in `tools/src/test/` (see [UNIT_TEST.md](../UNIT_TEST.md)).
-5. List the tool in this page and in the catalog of
+4. A document for the agent is a resource:
+   `AServer.RegisterResource(uri, name, title, description, mimeType, reader)`;
+   the reader gives the text at every `resources/read`.
+5. Add tests in `tools/src/test/` (see [UNIT_TEST.md](../UNIT_TEST.md)).
+6. List the tool in this page and in the catalog of
    [AI_PLANE_TOOL_RUNDOWN.md](AI_PLANE_TOOL_RUNDOWN.md).
