@@ -1,5 +1,50 @@
 # Development Changes
 
+## 20261107
+
+New Feature/Library:
+- docs: [MCP.md](MCP.md) describes the MCP server of AI Agent Plane and its 13 IDE tools; [AI_PLANE_TOOL_RUNDOWN.md](AI_PLANE_TOOL_RUNDOWN.md) and [AI_AGENT_by_FASTPLAZ.md](AI_AGENT_by_FASTPLAZ.md) brought in line with the code
+
+## 20261106
+
+New Feature/Library:
+- tools: AI Agent Plane MCP tool `build_project` builds all of the active project, like Run > Build
+- tools: AI Agent Plane MCP tool `clean_and_compile_project` works like Run > Clean up and Build: deletes compiled files (never source files), then builds; asks every time
+
+## 20261105
+
+Bug Fix (Linux/macOS, found by running the test suites on Linux):
+- smtp_lib: writing to a socket the server already closed raised SIGPIPE and killed the process
+- common: values set by `_SetEnv` (and so `LoadDotEnv`) were not visible to `GetEnvironmentVariable`
+- datetime_helpers: `FromString('01/11/2026', 'dd/mm/yyyy')` returned `Now`, `/` and `:` in the pattern are now read literally
+- fastplaz_app: `fpIsATTY` does not exist in `BaseUnix`, use `termio.IsATTY` (build failed on Linux)
+- test: the library test program links `cthreads` on Unix; the test scripts pass `-B` to `instantfpc` so a changed unit is not run from a stale cached binary
+
+## 20261103
+
+New Feature/Library:
+- standalone HTTP mode: one binary runs as CGI or as a long-lived HTTP server (`http://127.0.0.1:8080` by default). See [STANDALONE-roadmap.md](STANDALONE-roadmap.md) and [STANDALONE-deployment.md](STANDALONE-deployment.md)
+  - mode from `--mode=cgi|http`, `GATEWAY_INTERFACE`, `systems/server/mode` in `config.json`, default HTTP
+  - `fastplaz_app` replaces `fpcgi`; old `.lpr` files with `uses fpcgi` keep working as CGI
+  - per-request state reset, `Redirect`/`Die` stop the request and not the process, static theme assets from an allow-list of extensions
+  - graceful shutdown (Ctrl+C / SIGTERM), `max_requests`, database connections closed per request by default (`db_persistent`, `db_idle_timeout`)
+  - startup banner `ShowStandaloneBanner`, replaceable through `OnStandaloneBanner`
+  - wizards: Run Mode choice (HTTP / CGI) for Simple, API and Full Package Application; Cancel no longer creates a project
+  - example: `examples/standalone`
+- tools: AI Agent Plane, coding agents inside the Lazarus IDE (FastPlaz > Agent Plane)
+  - runtimes: OpenCode, Claude Code, Pi, GitHub Copilot CLI and other ACP agents
+  - dockable chat window: markdown answers, highlighted code blocks, images, permission cards, runtime/model/effort switch, model remembered per runtime
+  - configuration tab "AI Harness" in FastPlaz > Configuration, with Run Test
+  - Claude Code questions (`AskUserQuestion`) shown as a question card
+  - open editors the agent changed are reloaded (`aiplane/auto_reload`, default on)
+- tools: IDE tools for the agents over MCP (HTTP on 127.0.0.1, default port 17845): open a file, read the editor, project info, compile, compiler messages, and the FastPlaz generators `create_simple_controller`, `create_api_controller`, `create_model`. See [MCP.md](MCP.md)
+- tools: scripts that rebuild the IDE, strip debug info and start it again (Windows `.bat`, Linux/macOS `.sh`)
+- config_lib: `TMyConfig.GetString` / `SetString` (no "not inlined" notes from the Variant default property)
+
+Bug Fix:
+- standalone: a request was freed twice; the CORS object FPC 3.2 leaks per web module is freed
+- tools: model generator gave `TUsergroupModel` for "user group"
+
 ## 20261102
 
 New Feature/Library:
@@ -10,6 +55,8 @@ New Feature/Library:
 Bug Fix:
 - model: `Find(string)` quotes the key value
 - regexpr: include file renamed `regexpr_compilers_lib.inc` (duplicate file warning with LazEdit when rebuilding the IDE)
+- packages: `fastplaz_runtime_register.pas` moved to `tools/runtime` (unit path warning "belongs to package fastplaz_tools")
+- project_lib: the generated `.lpr` no longer gives an implicit string conversion warning
 
 ## 20261101
 
