@@ -197,8 +197,14 @@ changes without asking.
 | `get_active_editor` | — | `{path, line, column, selection, modified}` | auto | `SourceEditorManagerIntf.ActiveEditor` |
 | `list_open_files` | — | `[{path, modified}]` | auto | `SourceEditorManagerIntf` |
 | `read_editor` | `path`, `start_line?`, `end_line?` | text from the buffer (unsaved changes included) | auto | `TSourceEditorInterface.GetText` |
-| `apply_edit` | `path`, `edits: [{start_line, start_col, end_line, end_col, text}]` | `{applied, new_text_hash}` | ask | editor buffer, single undo block |
-| `save_file` | `path` | `{saved}` | ask* | `LazarusIDE.DoSaveEditorFile` |
+| `edit_text` (done) | `path`, `old_string`, `new_string`, `replace_all?`, `save?` | `{path, replaced, lines, saved, modified}` | ask* | `TSourceEditorInterface.ReplaceText` in one undo block |
+| `save_file` (done) | `path` | `{path, saved, had_changes}` | ask* | `LazarusIDE.DoSaveEditorFile` |
+| `revert_file` (done) | `path` | `{path, reverted}` | ask | `LazarusIDE.DoRevertEditorFile` |
+| `search_project` (done) | `query`, `case_sensitive?`, `directory?`, `mask?`, `max_results?` | `{match_count, matches: [{file, line, text}]}` | auto | editor buffers, `FindAllFiles` |
+
+`edit_text` replaces the line/column based `apply_edit` of the first draft:
+agents already use exact-string replacement in their own Edit tools, and a
+text that occurs more than once is refused instead of guessed.
 
 ### 4.2 Project and packages (phase 1)
 
@@ -236,7 +242,7 @@ units, search paths, overloads and includes the way the compiler does.
 | `find_declaration` | `path`, `line`, `column` | `{path, line, column, snippet}` | auto |
 | `find_references` | `path`, `line`, `column`, `scope?: unit\|project` | `[{path, line, column}]` | auto |
 | `find_unit_for` | `identifier` | units that declare it (FPC, LCL, packages, project) | auto |
-| `resolve_unit_path` | `unit` | file the compiler would use | auto |
+| `find_unit` (done, was `resolve_unit_path`) | `unit` | `{resolved_file, in_project, packages: [{package, unit_file, installed, project_requires}], hint}` | auto |
 | `unit_outline` | `path` | classes, methods, properties, types (Code Explorer view) | auto |
 | `identifier_hint` | `path`, `line`, `column` | declaration and fpdoc summary (like the editor hint) | auto |
 | `add_to_uses` | `path`, `unit`, `section?: interface\|implementation` | `{changed}` | ask |
@@ -390,7 +396,7 @@ stderr and starts without the tools.
 | Phase | Deliverables |
 | --- | --- |
 | 1 (done) | Settings (`mcp_enabled`, `mcp_port`) and UI; `TAIHttpServer`, `TAIMcpServer`; registration for ACP and Claude Code; tools: `open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`, `compile_project`, `get_messages`; status line; tests. Added later: `build_project`, `clean_and_compile_project`. |
-| 2 | `apply_edit` and `save_file`, ACP `fs/write_text_file` into editor buffers; CodeTools tools. (Pi support was done early, see the runtime table.) |
+| 2 (started) | Done: `edit_text`, `save_file`, `revert_file`, `search_project`, `find_unit`. Open: ACP `fs/write_text_file` into editor buffers; CodeTools tools. (Pi support was done early, see the runtime table.) |
 | 3 (started) | FastPlaz generators (done: `create_simple_controller`, `create_api_controller`, `create_model`), FastPlaz reference for agents (done: resource `fastplaz://reference`, tool `get_fastplaz_reference`, server instructions, tool annotations), Database Explorer tools, regex and JSON tools. |
 | 4 | Debugger tools, `run_project`, ACP `terminal/*`; optional stdio bridge for runtimes without HTTP MCP. |
 

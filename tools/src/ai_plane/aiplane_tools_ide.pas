@@ -38,9 +38,6 @@ type
   TAIIdeTools = class
   private
     FBuilding: boolean;
-    function ProjectDir: string;
-    function ResolvePath(const APath: string): string;
-    function PathAllowed(const AFilename: string): boolean;
     function CollectMessages(AMinUrgency: TMessageLineUrgency;
       out ACount: integer): TJSONArray;
     procedure ToolOpenFile(ACall: TAIMcpToolCall);
@@ -58,6 +55,14 @@ type
     procedure ToolCleanBuild(ACall: TAIMcpToolCall);
     procedure ToolMessages(ACall: TAIMcpToolCall);
   public
+    { Directory of the active project (with a trailing delimiter), else the
+      current directory. }
+    function ProjectDir: string;
+    { Absolute file name; a relative path is relative to ProjectDir. }
+    function ResolvePath(const APath: string): string;
+    { Inside the project directory, a project file, a search path, or a file
+      open in the editor: what the IDE tools may read. }
+    function PathAllowed(const AFilename: string): boolean;
     procedure Register(AServer: TAIMcpServer);
     property Building: boolean read FBuilding;
   end;
