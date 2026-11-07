@@ -45,7 +45,7 @@ Coding agents inside the Lazarus IDE. Claude Code, OpenCode, Pi and GitHub Copil
 - **MVC that stays simple.** Controllers, routes, themes with template tags, and `TSimpleModel` with a query builder.
 - **APIs out of the box.** JSON controllers, CORS, sessions, CSRF tokens, reCAPTCHA, mailer with a built-in SMTP client, Redis.
 - **Databases.** MySQL, PostgreSQL, SQLite and Firebird through SQLdb.
-- **Batteries for real projects.** Ready-made integrations (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch, RajaOngkir, and more), Indonesian NLP helpers (stemmer, dictionaries).
+- **Batteries for real projects.** Ready-made integrations (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch, and more), Indonesian NLP helpers (stemmer, dictionaries).
 - **A real IDE experience.** Lazarus wizards for projects, controllers and models, Database Explorer, JSON and Regex tools, and AI Agent Plane.
 - **Tested.** More than 700 FPCUnit tests, run on Windows and Linux.
 

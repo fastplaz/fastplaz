@@ -45,7 +45,7 @@ Coding agent di dalam Lazarus IDE. Claude Code, OpenCode, Pi dan GitHub Copilot 
 - **MVC yang tetap sederhana.** Controller, route, theme dengan template tag, dan `TSimpleModel` dengan query builder.
 - **Siap untuk API.** Controller JSON, CORS, session, token CSRF, reCAPTCHA, mailer dengan SMTP client bawaan, Redis.
 - **Database.** MySQL, PostgreSQL, SQLite dan Firebird lewat SQLdb.
-- **Lengkap untuk project nyata.** Integrasi siap pakai (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch, RajaOngkir, dan lainnya), helper NLP bahasa Indonesia (stemmer, kamus).
+- **Lengkap untuk project nyata.** Integrasi siap pakai (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch dan lainnya), helper NLP bahasa Indonesia (stemmer, kamus).
 - **Pengalaman IDE yang lengkap.** Wizard Lazarus untuk project, controller dan model, Database Explorer, tool JSON dan Regex, dan AI Agent Plane.
 - **Teruji.** Lebih dari 700 unit test FPCUnit, dijalankan di Windows dan Linux.
 
