@@ -4,7 +4,8 @@
   FastPlaz hero banner source.
   Render with headless Chrome:
     desktop: --window-size=1200,510 --force-device-scale-factor=2  hero.html?lang=id|en
-    mobile : --window-size=480,H   --force-device-scale-factor=2  hero.html?lang=id|en&layout=mobile
+    mobile : --window-size=480,950  --force-device-scale-factor=2  hero.html?lang=id|en&layout=mobile
+  Add &theme=site for the light fastplaz.com palette (hero-02*.png); default is the dark theme (hero-01*.png).
 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -63,13 +64,45 @@ h1 span{background:linear-gradient(90deg,#7f9bff,#b8c6ff);-webkit-background-cli
 .m .card h3{font-size:17px;margin-bottom:3px}
 .m .card p{font-size:13.5px}
 .m .badge{top:16px;right:16px}
+
+/* site theme: fastplaz.com palette (primary #184E8E, accent #C8102E, navy #14213D) */
+.site body{color:#14213D;background:
+    radial-gradient(700px 380px at 8% 0%,rgba(24,78,142,.10),transparent 70%),
+    radial-gradient(600px 360px at 98% 100%,rgba(200,16,46,.07),transparent 70%),
+    linear-gradient(160deg,#F7F9FC 0%,#F3F6FA 60%,#EEF2F8 100%)}
+.site .grid{background-image:
+  linear-gradient(rgba(24,78,142,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(24,78,142,.05) 1px,transparent 1px)}
+.site .speed{display:block}
+.speed{display:none;position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,#184E8E 0 70%,#C8102E 70% 100%)}
+.site .brand img{height:64px;width:auto;display:block}
+.m.site .brand img{height:56px}
+.site .pill{color:#184E8E;background:#fff;border:1px solid #DCE3EC;letter-spacing:1.6px}
+.site h1{color:#14213D;letter-spacing:-.5px}
+.site h1 span{background:none;color:#184E8E}
+.site .sub{color:#51607A}
+.site .sub b{color:#14213D}
+.site .sub em{color:#184E8E;font-weight:600}
+.site .card{background:#fff;border:1px solid #DCE3EC;box-shadow:0 6px 20px rgba(20,33,61,.06)}
+.site .ic{background:#EAF1FA;border-color:#C9D9EE}
+.site .ic svg{stroke:#184E8E}
+.site .card h3{color:#14213D}
+.site .card p{color:#51607A}
+.site .card p i{color:#14213D}
+.site .hot{background:#fff;border:1.5px solid #C8102E;box-shadow:0 10px 30px rgba(200,16,46,.14)}
+.site .hot .ic{background:#FCEBEE;border-color:#F1BAC4}
+.site .hot .ic svg{stroke:#C8102E}
+.site .badge{color:#fff;background:#C8102E}
 </style></head>
-<body><div class="grid"></div>
+<body><div class="grid"></div><div class="speed"></div>
 <div class="wrap" id="app"></div>
 <script>
 const q = new URLSearchParams(location.search);
 const lang = q.get('lang') === 'en' ? 'en' : 'id';
 if (q.get('layout') === 'mobile') document.documentElement.classList.add('m');
+const site = q.get('theme') === 'site';
+if (site) document.documentElement.classList.add('site');
 
 const T = {
   id: {
@@ -118,8 +151,9 @@ const cards = T.cards.map(([h, p], i) => {
 document.getElementById('app').innerHTML = `
   <div class="top">
     <div class="brand">
+      ${site ? '<img src="fastplaz-logo-black.png" alt="FastPlaz">' : `
       <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
-      <b>FastPlaz</b>
+      <b>FastPlaz</b>`}
     </div>
     <div class="pill">${T.pill}</div>
   </div>

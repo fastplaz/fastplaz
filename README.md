@@ -4,8 +4,8 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 <picture>
-  <source media="(max-width: 600px)" srcset="docs/images/hero-01-en-mobile.png">
-  <img src="docs/images/hero-01-en.png" alt="FastPlaz Hero Banner">
+  <source media="(max-width: 600px)" srcset="docs/images/hero-02-en-mobile.png">
+  <img src="docs/images/hero-02-en.png" alt="FastPlaz Hero Banner">
 </picture>
 
 ![Free Pascal 3.2.2](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue)
