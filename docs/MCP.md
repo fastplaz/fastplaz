@@ -3,8 +3,8 @@
 FastPlaz AI Agent Plane runs a small **MCP (Model Context Protocol) server
 inside the Lazarus IDE**. The coding agent started from AI Agent Plane (Claude
 Code, Pi, OpenCode, GitHub Copilot CLI or another ACP agent) uses it to work
-on the IDE itself: open a unit at a line, read the editor including unsaved
-changes, compile the project and read the compiler messages, generate
+on the IDE itself: open a unit at a line, read and edit the editor including
+unsaved changes, search the project, find where a unit comes from, compile the project and read the compiler messages, generate
 FastPlaz controllers and models, and read a FastPlaz reference so it does not
 guess the framework API.
 
@@ -14,7 +14,7 @@ This page describes what is implemented. Design notes and the roadmap:
 
 Source: `tools/src/ai_plane/` (`aiplane_httpserver.pas`,
 `aiplane_mcpserver.pas`, `aiplane_tools_ide.pas`, `aiplane_tools_fastplaz.pas`,
-`aiplane_reference.pas`).
+`aiplane_reference.pas`, `aiplane_tools_editor.pas`, `aiplane_textedit.pas`).
 
 ## Server
 
@@ -52,8 +52,11 @@ open until it finishes.
   made each time the server starts.
 - Requests with a non-loopback `Origin` header are refused (DNS rebinding
   protection).
-- `read_editor` only reads files in the project and its search paths. The
-  generators only write inside the project directory.
+- `read_editor` and `search_project` only read files in the project and its
+  search paths. `edit_text`, `save_file` and `revert_file` only change files
+  in the project directory, project files and files the user has open, never
+  other search paths (libraries such as FastPlaz itself). The generators only
+  write inside the project directory.
 
 ### Settings
 
@@ -114,7 +117,7 @@ same text from the tool `get_fastplaz_reference`.
 
 ## Tools
 
-14 tools in two groups. Paths are absolute or relative to the project
+19 tools in three groups. Paths are absolute or relative to the project
 directory.
 
 Every tool carries MCP `annotations` with explicit values: `readOnlyHint`
@@ -155,6 +158,24 @@ Build results (`compile_project`, `build_project`,
 
 `clean_and_compile_project` adds `cleanup` with `output_directory`,
 `deleted_count`, `deleted`, `failed` and `skipped_sources`.
+
+### Editor, search and units
+
+Source: `tools/src/ai_plane/aiplane_tools_editor.pas` (text logic in
+`aiplane_textedit.pas`)
+
+| Tool | Description | Arguments | Permission |
+| --- | --- | --- | --- |
+| `edit_text` | Replaces `old_string` with `new_string` in the editor buffer, as one undo step (Ctrl+Z takes it back); opens the file when needed. Fails when `old_string` is missing or occurs more than once without `replace_all`. Unsaved editor changes are kept. Writes to disk only with `save` | `path`, `old_string`, `new_string` (required), `replace_all`, `save` | ask once per session |
+| `save_file` | Saves the editor buffer of a file (a form unit saves its `.lfm` too). A file that is not open is reported as already on disk | `path` (required) | ask once per session |
+| `revert_file` | Discards the unsaved changes of a file and reloads it from disk | `path` (required) | always ask |
+| `search_project` | Plain text search in the project files (open files in their editor buffer, unsaved changes included), or in a `directory` with a `mask` (default: Pascal sources, `.lfm`, `.html`, `.json`, `.js`, `.css`; `backup`, `lib`, `.git` and `ztemp` folders skipped). Returns file, line and line text | `query` (required), `case_sensitive`, `directory`, `mask`, `max_results` (default 200, at most 1000) | auto |
+| `find_unit` | For "Can't find unit X": the file the compiler would use from the project directory (`resolved_file`), whether it is a project file, the loaded packages that contain it (installed, required by the project) and a `hint` | `unit` (required) | auto |
+
+`edit_text` matches line breaks as `\n` whatever the file uses, and checks the
+editor text afterwards: if an editor option changed the result, the call fails
+and says so (Ctrl+Z still takes the edit back). The result lists `replaced`,
+the `lines` of the changes, `saved` and `modified`.
 
 ### FastPlaz generators and reference
 
@@ -218,8 +239,8 @@ Content-Type: application/json
 1. Write a handler method `procedure(ACall: TAIMcpToolCall) of object` that
    ends with `ACall.Finish(text)`, `ACall.FinishJSON(data)` or
    `ACall.Fail(message)`. It can finish later, for example after a compile.
-2. Register it in the `Register` method of `TAIIdeTools` or
-   `TAIFastPlazTools` with `AServer.RegisterTool(name, title, description,
+2. Register it in the `Register` method of `TAIIdeTools`, `TAIEditorTools`
+   or `TAIFastPlazTools` with `AServer.RegisterTool(name, title, description,
    inputSchema, permission, handler, hints)`. `hints` is a set of
    `mthReadOnly`, `mthDestructive`, `mthIdempotent`, sent as the tool's MCP
    annotations.
