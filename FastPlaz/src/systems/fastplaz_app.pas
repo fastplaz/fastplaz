@@ -5,12 +5,12 @@ unit fastplaz_app;
   server, chosen at runtime.
 
   Mode, in order of priority:
-    1. command line   --mode=cgi|http  --port=8080  --address=127.0.0.1
+    1. command line   --mode=cgi|http  --port=17845  --address=127.0.0.1
                       --root=<dir>  (working directory, default: the
                       executable's directory in standalone mode)
     2. GATEWAY_INTERFACE set by the web server -> CGI
     3. config/config.json  systems/server/mode, port, address
-    4. default: HTTP on 127.0.0.1:8080
+    4. default: HTTP on 127.0.0.1:17845
 
   Use this unit instead of fpcgi. "Application" keeps the CGI style
   Request / Response / EnvironmentVariable members (class helper below), so
@@ -30,7 +30,7 @@ uses
   Classes, SysUtils, httpdefs, custweb, custcgi, custhttpapp;
 
 const
-  FASTPLAZ_HTTP_PORT_DEFAULT = 8080;
+  FASTPLAZ_HTTP_PORT_DEFAULT = 17845;
   FASTPLAZ_HTTP_ADDRESS_DEFAULT = '127.0.0.1';
 
 type
@@ -818,7 +818,7 @@ begin
   Result := AHost;
   if (Result <> '') and (Result[1] = '[') then
   begin
-    // [::1]:8080
+    // [::1]:17845
     i := Pos(']', Result);
     if i > 0 then
       Result := Copy(Result, 1, i);

@@ -95,7 +95,7 @@ type
 implementation
 
 const
-  // away from the IDE default (17845) so tests run next to a live IDE
+  // away from the IDE default (17826) so tests run next to a live IDE
   TEST_PORT = 47845;
 
 { TMcpTestTools }
@@ -345,7 +345,7 @@ begin
   AssertEquals(403, PostStatus(PING, True, 'http://evil.example'));
   AssertEquals(403, PostStatus(PING, True, 'http://127.0.0.1.evil.example'));
   AssertEquals(200, PostStatus(PING, True, 'http://localhost:3000'));
-  AssertEquals(200, PostStatus(PING, True, 'http://127.0.0.1:17845'));
+  AssertEquals(200, PostStatus(PING, True, 'http://127.0.0.1:17826'));
 end;
 
 procedure TAIMcpServerTest.TestInitializeGivesSession;

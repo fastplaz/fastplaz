@@ -72,7 +72,7 @@ begin
       Add('uses');
       Add('  {$IFNDEF Windows}cthreads,{$ENDIF}');
       // fastplaz_app: the same binary runs as CGI under a web server and as
-      // a standalone HTTP server (http://127.0.0.1:8080) when started directly
+      // a standalone HTTP server (http://127.0.0.1:17845) when started directly
       Add('  fastplaz_app, sysutils, fastplaz_handler, common, ' + LowerCase(AProjectName) + '_controller;');
       Add('');
       Add('{$R *.res}');

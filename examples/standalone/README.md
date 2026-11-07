@@ -35,7 +35,7 @@ The binary is written to `public_html/standalone.bin`.
 public_html/standalone.bin
 ```
 
-Open http://127.0.0.1:8080. The working directory is switched to the
+Open http://127.0.0.1:17845. The working directory is switched to the
 binary's directory when `config/config.json` is found there, so it can be
 started from anywhere.
 
@@ -44,7 +44,7 @@ Options (command line wins over `config/config.json` → `systems/server`):
 | Option | Config key | Default |
 |---|---|---|
 | `--mode=http\|cgi` | `mode` | `http` (`cgi` when started by a web server) |
-| `--port=8080` | `port` | `8080` |
+| `--port=17845` | `port` | `17845` |
 | `--address=127.0.0.1` | `address` | `127.0.0.1` |
 | `--static=on\|off` | `static` | `on` |
 | `--max-requests=N` | `max_requests` | `0` (never); stop after N requests so a service manager starts a fresh process |
@@ -83,7 +83,7 @@ server {
     location /config/ { deny all; }
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:17845;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -113,8 +113,8 @@ these headers themselves.
 <VirtualHost *:80>
     ServerName example.com
     ProxyPreserveHost On
-    ProxyPass        / http://127.0.0.1:8080/
-    ProxyPassReverse / http://127.0.0.1:8080/
+    ProxyPass        / http://127.0.0.1:17845/
+    ProxyPassReverse / http://127.0.0.1:17845/
     RequestHeader set X-Forwarded-Proto "http"
 </VirtualHost>
 ```
