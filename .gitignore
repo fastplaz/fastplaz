@@ -71,6 +71,8 @@ config/config.php
 # lazarus
 *.compiled
 *.lps
+# lazbuild writes local package links into the working directory
+packagefiles.xml
 *.bak
 *.ppu
 *.o
