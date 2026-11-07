@@ -3,7 +3,10 @@
 
 **English** | [Bahasa Indonesia](README.id.md)
 
-![FastPlaz Hero Banner](docs/images/hero-01.png)
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/images/hero-01-en-mobile.png">
+  <img src="docs/images/hero-01-en.png" alt="FastPlaz Hero Banner">
+</picture>
 
 ![Free Pascal 3.2.2](https://img.shields.io/badge/Free%20Pascal-3.2.2-blue)
 ![Lazarus](https://img.shields.io/badge/Lazarus-IDE%20plugin-orange)
