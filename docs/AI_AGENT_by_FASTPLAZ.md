@@ -20,7 +20,7 @@ terdapat form konfigurasi (FastPlaz > Configuration, tab "AI Harness") yang meng
   adapter akan mungkin bertambah di masa depan
 - default model yang digunakan (auto detect daftar model ketika memilih harness)
 - default thinking effort (auto/off/minimal/low/medium/high/xhigh)
-- IDE tools (MCP): aktif/tidak (`aiplane/mcp_enabled`) dan port (`aiplane/mcp_port`, default 17845)
+- IDE tools (MCP): aktif/tidak (`aiplane/mcp_enabled`) dan port (`aiplane/mcp_port`, default 17826)
 
 terdapat tombol untuk "Run Test"
 
@@ -40,7 +40,7 @@ user bisa chat yang akan berinteraksi dengan runtime yang aktif saat itu.
 
 ## Tools
 
-IDE menjalankan MCP server sendiri (http://127.0.0.1:17845/mcp) yang otomatis didaftarkan ke agent yang dijalankan dari AI Agent Plane. Lewat server ini agent bisa berinteraksi dengan Lazarus IDE.
+IDE menjalankan MCP server sendiri (http://127.0.0.1:17826/mcp) yang otomatis didaftarkan ke agent yang dijalankan dari AI Agent Plane. Lewat server ini agent bisa berinteraksi dengan Lazarus IDE.
 
 Tool yang sudah ada (13):
 - editor dan project: `open_file`, `get_active_editor`, `list_open_files`, `read_editor`, `project_info`, `list_project_units`

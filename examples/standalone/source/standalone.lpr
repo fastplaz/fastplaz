@@ -3,7 +3,7 @@ program standalone;
 {
   FastPlaz standalone example.
 
-  Run public_html/standalone.bin and open http://127.0.0.1:8080
+  Run public_html/standalone.bin and open http://127.0.0.1:17845
   The same binary runs as CGI when started by a web server.
   See ../README.md
 }

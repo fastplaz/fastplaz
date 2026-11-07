@@ -53,7 +53,7 @@ Today the IDE serves its own tools over MCP to every runtime; see
  │  └ TAIChatFrame ── adapter ──────┼─────────────▶│ pi                 │
  │                                  │              │                    │
  │ TAIMcpServer                     │  POST /mcp   │  MCP client        │
- │  http://127.0.0.1:17845/mcp      │◀─────────────┤                    │
+ │  http://127.0.0.1:17826/mcp      │◀─────────────┤                    │
  │  └ tool handlers (main thread)   │  JSON-RPC    │                    │
  │     TAIIdeTools: editor /        │              └────────────────────┘
  │       project / build            │
@@ -115,7 +115,7 @@ The token is random per IDE session; the URL uses the actual port (section 3).
 
 | Runtime | How |
 | --- | --- |
-| ACP (OpenCode, GitHub Copilot CLI, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "fastplaz", "url": "http://127.0.0.1:17845/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
+| ACP (OpenCode, GitHub Copilot CLI, `claude-acp`, ...) | `session/new` → `mcpServers: [{"type": "http", "name": "fastplaz", "url": "http://127.0.0.1:17826/mcp", "headers": [{"name": "Authorization", "value": "Bearer <token>"}]}]`, only when the agent advertised `mcpCapabilities.http` |
 | Claude Code (stream-json) | `--mcp-config <temp json>`: `{"mcpServers": {"fastplaz": {"type": "http", "url": "...", "headers": {"Authorization": "Bearer <token>"}}}}`; tools appear as `mcp__fastplaz__<tool>`; `--allowedTools mcp__fastplaz` so Claude Code does not ask a second time (the IDE asks for its risky tools itself) |
 | Pi | a temporary extension (`aiplane_mcp_<pid>.ts`, loaded with `pi --mode rpc -e <file>`) calls `pi.registerMcpServer("fastplaz", {url, headers, exposure: "direct"})` for that session only; tools appear as `mcp__fastplaz__<tool>` |
 | GitHub Copilot CLI | ACP as above; the preset adds `--allow-tool=fastplaz` so Copilot does not ask a second time |
@@ -149,7 +149,7 @@ Stored in the FastPlaz `config.json` under `aiplane`, edited in
 | Setting | Key | Default | UI |
 | --- | --- | --- | --- |
 | MCP Tools enabled | `aiplane/mcp_enabled` | `true` | check box "Enable IDE tools (MCP)" |
-| MCP port | `aiplane/mcp_port` | `17845` | spin edit (1024–65535) |
+| MCP port | `aiplane/mcp_port` | `17826` | spin edit (1024–65535) |
 
 Behaviour:
 
@@ -161,7 +161,7 @@ Behaviour:
 * **Port in use** (another Lazarus instance, another program): the server
   tries the next ports up to `mcp_port + 9`, uses the first free one and
   passes that URL to the runtime. The protocol log shows the address
-  (`MCP server on http://127.0.0.1:17846/mcp`). When none is free, IDE
+  (`MCP server on http://127.0.0.1:17827/mcp`). When none is free, IDE
   tools are off for this session and the chat shows why.
 * Changing either setting restarts the server and the runtime (like a runtime
   change today), keeping the conversation where the runtime can resume.
@@ -368,7 +368,7 @@ stderr and starts without the tools.
   bodies refused or handled, keep-alive, limits), token and `Origin` checks,
   port fallback, dispatcher with a fake provider (argument validation,
   permission flow, async replies, truncation), settings load/save defaults
-  (`mcp_enabled = true`, `mcp_port = 17845`).
+  (`mcp_enabled = true`, `mcp_port = 17826`).
 * **Mock agent**: extend `mock_acp_agent` to read `mcpServers` from
   `session/new` and call a tool over HTTP (`tool open_file ...`), so the ACP
   adapter's wiring is tested without a real agent.

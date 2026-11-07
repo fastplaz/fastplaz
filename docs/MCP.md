@@ -21,7 +21,7 @@ Source: `tools/src/ai_plane/` (`aiplane_httpserver.pas`,
 | Server name | `fastplaz` (title "Lazarus IDE (FastPlaz Agent Plane)", version 0.1) |
 | Transport | MCP Streamable HTTP, simplest form: `POST /mcp` with one JSON-RPC message, JSON response, no SSE stream |
 | URL | `http://127.0.0.1:<port>/mcp` |
-| Default port | `17845`; when it is taken, the next free port up to `17854` |
+| Default port | `17826`; when it is taken, the next free port up to `17835` |
 | Protocol versions | `2025-11-25`, `2025-06-18` (default), `2025-03-26`, `2024-11-05` |
 | Methods | `initialize`, `ping`, `tools/list`, `tools/call`; notifications (`notifications/initialized`, `notifications/cancelled`) are accepted |
 | Session | `Mcp-Session-Id` is issued at `initialize` and checked on later requests |
@@ -61,7 +61,7 @@ configuration:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `aiplane/mcp_enabled` | `true` | Run the MCP server ("Enable IDE tools (MCP)") |
-| `aiplane/mcp_port` | `17845` | First port to try (1024-65535) |
+| `aiplane/mcp_port` | `17826` | First port to try (1024-65535) |
 
 When the server is disabled, runtimes get no MCP entry and the chat works
 without IDE tools.
@@ -178,7 +178,7 @@ Rules:
 
 ```http
 POST /mcp HTTP/1.1
-Host: 127.0.0.1:17845
+Host: 127.0.0.1:17826
 Authorization: Bearer <token>
 Mcp-Session-Id: <session id from initialize>
 Content-Type: application/json

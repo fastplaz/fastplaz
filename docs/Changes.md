@@ -23,7 +23,7 @@ Bug Fix (Linux/macOS, found by running the test suites on Linux):
 ## 20261103
 
 New Feature/Library:
-- standalone HTTP mode: one binary runs as CGI or as a long-lived HTTP server (`http://127.0.0.1:8080` by default). See [STANDALONE-roadmap.md](STANDALONE-roadmap.md) and [STANDALONE-deployment.md](STANDALONE-deployment.md)
+- standalone HTTP mode: one binary runs as CGI or as a long-lived HTTP server (`http://127.0.0.1:17845` by default). See [STANDALONE-roadmap.md](STANDALONE-roadmap.md) and [STANDALONE-deployment.md](STANDALONE-deployment.md)
   - mode from `--mode=cgi|http`, `GATEWAY_INTERFACE`, `systems/server/mode` in `config.json`, default HTTP
   - `fastplaz_app` replaces `fpcgi`; old `.lpr` files with `uses fpcgi` keep working as CGI
   - per-request state reset, `Redirect`/`Die` stop the request and not the process, static theme assets from an allow-list of extensions
@@ -37,7 +37,7 @@ New Feature/Library:
   - configuration tab "AI Harness" in FastPlaz > Configuration, with Run Test
   - Claude Code questions (`AskUserQuestion`) shown as a question card
   - open editors the agent changed are reloaded (`aiplane/auto_reload`, default on)
-- tools: IDE tools for the agents over MCP (HTTP on 127.0.0.1, default port 17845): open a file, read the editor, project info, compile, compiler messages, and the FastPlaz generators `create_simple_controller`, `create_api_controller`, `create_model`. See [MCP.md](MCP.md)
+- tools: IDE tools for the agents over MCP (HTTP on 127.0.0.1, default port 17826): open a file, read the editor, project info, compile, compiler messages, and the FastPlaz generators `create_simple_controller`, `create_api_controller`, `create_model`. See [MCP.md](MCP.md)
 - tools: scripts that rebuild the IDE, strip debug info and start it again (Windows `.bat`, Linux/macOS `.sh`)
 - config_lib: `TMyConfig.GetString` / `SetString` (no "not inlined" notes from the Variant default property)
 

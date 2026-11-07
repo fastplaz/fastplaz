@@ -81,7 +81,7 @@ type
 const
   APP_RUN_MODE_NAMES: array[TAppRunMode] of string = ('http', 'cgi');
   APP_HTTP_ADDRESS_DEFAULT = '127.0.0.1';
-  APP_HTTP_PORT_DEFAULT = 8080;
+  APP_HTTP_PORT_DEFAULT = 17845;
 
 // AConfigJSON with systems/server/mode set to AMode. In HTTP mode the
 // address and port are added when missing. Other values are kept.
