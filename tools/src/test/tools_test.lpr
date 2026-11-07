@@ -5,7 +5,7 @@ program tools_test;
 uses
   {$IFDEF UNIX}cthreads,{$ENDIF} // the MCP tests poll the server from a thread
   Classes, consoletestrunner, fastplaz_testrunner, test_regex_tester_lib, test_tools_lib,
-  test_aiplane, test_aiplane_markdown, test_aiplane_mcp;
+  test_aiplane, test_aiplane_markdown, test_aiplane_mcp, test_aiplane_textedit;
 
 type
 

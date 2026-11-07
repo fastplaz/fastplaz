@@ -3,7 +3,15 @@
 ## 20261107
 
 New Feature/Library:
-- docs: [MCP.md](MCP.md) describes the MCP server of AI Agent Plane and its 13 IDE tools; [AI_PLANE_TOOL_RUNDOWN.md](AI_PLANE_TOOL_RUNDOWN.md) and [AI_AGENT_by_FASTPLAZ.md](AI_AGENT_by_FASTPLAZ.md) brought in line with the code
+- tools: AI Agent Plane MCP server serves a FastPlaz reference for agents (controllers, routes, themes and template tags, `TSimpleModel`, `TJSONUtil`, `config.json`, pitfalls) as the resource `fastplaz://reference` and the tool `get_fastplaz_reference` (one section with `section`); the server instructions tell agents to read it instead of guessing the API. The text is `tools/templates/agent/fastplaz-reference.md`, editable without rebuilding the IDE
+- tools: AI Agent Plane MCP tools `edit_text` (replace a text in the editor buffer, one undo step, optional save), `save_file`, `revert_file`, `search_project` (project files or a directory, unsaved changes included) and `find_unit` (where the compiler finds a unit, which packages contain it, whether the project requires them)
+- tools: MCP tools carry annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`); the server answers `resources/list`, `resources/read` and `resources/templates/list`
+- docs: [MCP.md](MCP.md) describes the MCP server of AI Agent Plane and its tools (19 now, in three groups: IDE, editor/search/units, FastPlaz generators and reference); [AI_PLANE_TOOL_RUNDOWN.md](AI_PLANE_TOOL_RUNDOWN.md) and [AI_AGENT_by_FASTPLAZ.md](AI_AGENT_by_FASTPLAZ.md) brought in line with the code
+- docs: README rewritten in English, Indonesian version in [README.id.md](../README.id.md); RajaOngkir dropped from the integration examples
+
+Behaviour changes:
+- standalone HTTP mode listens on `127.0.0.1:17845` by default (was `8080`); `--port=` and `systems/server/port` in `config.json` still override it
+- AI Agent Plane MCP server default port is `17826` (fallback `17826`-`17835`), so it no longer collides with an app started from the IDE in standalone mode
 
 ## 20261106
 

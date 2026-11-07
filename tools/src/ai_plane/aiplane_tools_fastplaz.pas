@@ -14,6 +14,10 @@ unit aiplane_tools_fastplaz;
 
   The permission card says which file would be created (DisplayFile) and
   with which class, before anything happens.
+
+  The FastPlaz reference for agents (aiplane_reference) is served twice:
+  as the MCP resource fastplaz://reference and as the tool
+  get_fastplaz_reference, for clients that do not read resources.
 }
 
 {$mode objfpc}{$H+}
@@ -22,7 +26,7 @@ interface
 
 uses
   Classes, SysUtils, System.UITypes, fpjson, LazFileUtils, LazIDEIntf,
-  ProjectIntf, aiplane_mcpserver;
+  ProjectIntf, aiplane_mcpserver, aiplane_reference;
 
 type
 
@@ -44,12 +48,20 @@ type
     function DisplayFile(ACall: TAIMcpToolCall; const AFileName: string): string;
     function DescribeController(ACall: TAIMcpToolCall): string;
     function DescribeModel(ACall: TAIMcpToolCall): string;
+    function ReferenceFile: string;
+    function ReadReference(const AUri: string; out AText: string): boolean;
+    procedure ToolReference(ACall: TAIMcpToolCall);
   public
     procedure Register(AServer: TAIMcpServer);
   end;
 
 const
   AI_FASTPLAZ_TOOLS_INSTRUCTIONS =
+    'The project uses FastPlaz, a web framework for Free Pascal. Before ' +
+    'writing or changing FastPlaz code (controllers, routes, themes, ' +
+    'TSimpleModel, TJSONUtil, config.json), read the FastPlaz reference: ' +
+    'the resource fastplaz://reference, or the tool get_fastplaz_reference ' +
+    '(its section argument returns one part). Do not guess FastPlaz APIs. ' +
     'FastPlaz generators: create_simple_controller, create_api_controller and ' +
     'create_model write a new unit from the FastPlaz templates, add it to the ' +
     'project and open it. Prefer them over writing a controller or model unit ' +
@@ -86,6 +98,10 @@ const
     '"directory":{"type":"string","description":"Directory for the unit, relative to the ' +
     'project directory or absolute inside it. Default: the project directory"}},' +
     '"required":["name"]}';
+  SCHEMA_REFERENCE =
+    '{"type":"object","properties":{' +
+    '"section":{"type":"string","description":"Part of a heading, e.g. \"routes\", ' +
+    '\"model\" or \"theme\": only that section is returned. Empty: the whole reference"}}}';
   SCHEMA_MODEL =
     '{"type":"object","properties":{' +
     '"name":{"type":"string","description":"Model name in words, e.g. \"user group\" ' +
@@ -141,6 +157,47 @@ begin
   AServer.SetToolDescriber('create_simple_controller', @DescribeController);
   AServer.SetToolDescriber('create_api_controller', @DescribeController);
   AServer.SetToolDescriber('create_model', @DescribeModel);
+  AServer.RegisterTool('get_fastplaz_reference', 'FastPlaz reference',
+    'How to write FastPlaz code: project layout, controllers, routes, request ' +
+    'and session data, themes and template tags, TSimpleModel, TJSONUtil, ' +
+    'config.json, helpers and pitfalls. The same text as the resource ' +
+    AI_REFERENCE_URI + '. Read it before writing FastPlaz code.',
+    SCHEMA_REFERENCE, mtpAuto, @ToolReference, [mthReadOnly, mthIdempotent]);
+  AServer.RegisterResource(AI_REFERENCE_URI, 'fastplaz-reference',
+    'FastPlaz reference',
+    'How to write FastPlaz code: controllers, routes, themes, TSimpleModel, ' +
+    'TJSONUtil, config.json and pitfalls.', 'text/markdown', @ReadReference);
+end;
+
+function TAIFastPlazTools.ReferenceFile: string;
+begin
+  Result := AIReferenceFileName(PackageDirectory(FASTPLAZ_TOOLS_PACKAGE));
+end;
+
+function TAIFastPlazTools.ReadReference(const AUri: string; out AText: string): boolean;
+begin
+  Result := AILoadReference(ReferenceFile, AText);
+end;
+
+procedure TAIFastPlazTools.ToolReference(ACall: TAIMcpToolCall);
+var
+  text, section, part: string;
+  found: boolean;
+begin
+  if not AILoadReference(ReferenceFile, text) then
+  begin
+    ACall.Fail('The FastPlaz reference cannot be read: ' + text);
+    Exit;
+  end;
+  section := Trim(ACall.Str('section'));
+  part := AIReferenceSection(text, section, found);
+  if not found then
+  begin
+    ACall.Fail('No section matches "' + section + '". Sections: ' +
+      AIReferenceHeadings(text));
+    Exit;
+  end;
+  ACall.Finish(part);
 end;
 
 // The file as the user would look for it: relative to the project directory
