@@ -23,7 +23,7 @@ Aplikasi yang sama bisa berjalan sebagai **HTTP server standalone** atau sebagai
 - **Standalone**: jalankan di komputer sendiri tanpa web server, atau sebagai service di belakang nginx.
 
 ```bash
-./myapp.bin                 # standalone: http://127.0.0.1:8080
+./myapp.bin                 # standalone: http://127.0.0.1:17845
 ./myapp.bin --mode=http --port=8081
 # dijalankan Apache sebagai CGI: terdeteksi otomatis
 ```
@@ -46,7 +46,7 @@ Coding agent di dalam Lazarus IDE. Claude Code, OpenCode, Pi dan GitHub Copilot 
 - **Siap untuk API.** Controller JSON, CORS, session, token CSRF, reCAPTCHA, mailer dengan SMTP client bawaan, Redis.
 - **Database.** MySQL, PostgreSQL, SQLite dan Firebird lewat SQLdb.
 - **Lengkap untuk project nyata.** Integrasi siap pakai (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch dan lainnya), helper NLP bahasa Indonesia (stemmer, kamus).
-- **Pengalaman IDE yang lengkap.** Wizard Lazarus untuk project, controller dan model, Database Explorer, tool JSON dan Regex, dan AI Agent Plane.
+- **Pengalaman IDE yang lengkap.** Wizard Lazarus untuk project, controller dan model, Database Explorer, tool JSON dan Regex, dan **AI Agent Plane**.
 - **Teruji.** Lebih dari 700 unit test FPCUnit, dijalankan di Windows dan Linux.
 
 ## Lihat kodenya
@@ -107,7 +107,7 @@ Kebutuhan: [Free Pascal](https://www.freepascal.org/) 3.2.2 dan [Lazarus](https:
 
    ![Project baru](docs/images/menu-new-project.png)
 
-4. **Jalankan** dan buka http://127.0.0.1:8080. Binary yang sama juga berjalan sebagai CGI jika dijalankan oleh Apache.
+4. **Jalankan** dan buka http://127.0.0.1:17845. Binary yang sama juga berjalan sebagai CGI jika dijalankan oleh Apache.
 
 ## Lebih jauh tentang AI Agent Plane
 
@@ -137,7 +137,7 @@ Semuanya ada di menu FastPlaz.
 ## Deployment
 
 - **CGI**: salin binary dan isi `public_html` ke Apache, seperti di shared hosting pada umumnya.
-- **Standalone HTTP**: binary yang sama berjalan sebagai server (`--mode=http`, default `http://127.0.0.1:8080`), biasanya di belakang nginx atau Apache. Graceful shutdown, `max_requests` dan koneksi database per request sudah tersedia.
+- **Standalone HTTP**: binary yang sama berjalan sebagai server (`--mode=http`, default `http://127.0.0.1:17845`), biasanya di belakang nginx atau Apache. Graceful shutdown, `max_requests` dan koneksi database per request sudah tersedia.
   - Panduan: [docs/STANDALONE-deployment.md](docs/STANDALONE-deployment.md)
   - Desain: [docs/STANDALONE-roadmap.md](docs/STANDALONE-roadmap.md)
   - Contoh: [examples/standalone](examples/standalone)

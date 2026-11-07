@@ -84,7 +84,7 @@ the compiler messages with file, line and column. Design and later phases:
   responses, no extra binary. A new Bearer token at every server start.
 * Settings (*Configuration → AI Harness*): **IDE tools (MCP)** on/off
   (`aiplane/mcp_enabled`, default on) and **Port** (`aiplane/mcp_port`,
-  default `17845`; when taken the next free port up to `+9` is used). The
+  default `17826`; when taken the next free port up to `+9` is used). The
   status line shows `MCP` when the server runs, the error when it could
   not start, nothing when off.
 * **Reload files changed by the agent** (`aiplane/auto_reload`, default on):
@@ -143,7 +143,7 @@ In the IDE:
 
 1. Install `fastplaz_tools.lpk`, open a project, then *FastPlaz → Agent Plane*.
 2. The status line shows `MCP`. The *Messages* window shows
-   `Agent Plane: MCP server active on http://127.0.0.1:17845/mcp` and, once
+   `Agent Plane: MCP server active on http://127.0.0.1:17826/mcp` and, once
    the runtime answers, `Agent Plane: runtime ... active, model ...`. No `MCP`
    in the status line: check *Configuration → AI Harness → IDE tools
    (MCP)*. An error line in *Messages* says why the server did not start.

@@ -23,7 +23,7 @@ The same compiled application runs as a **standalone HTTP server** or as **CGI**
 - **Standalone**: run it locally with no web server at all, or as a long-lived service behind nginx.
 
 ```bash
-./myapp.bin                 # standalone: http://127.0.0.1:8080
+./myapp.bin                 # standalone: http://127.0.0.1:17845
 ./myapp.bin --mode=http --port=8081
 # started by Apache as CGI: detected automatically
 ```
@@ -46,7 +46,7 @@ Coding agents inside the Lazarus IDE. Claude Code, OpenCode, Pi and GitHub Copil
 - **APIs out of the box.** JSON controllers, CORS, sessions, CSRF tokens, reCAPTCHA, mailer with a built-in SMTP client, Redis.
 - **Databases.** MySQL, PostgreSQL, SQLite and Firebird through SQLdb.
 - **Batteries for real projects.** Ready-made integrations (OpenAI, Telegram, LINE, Facebook Messenger, Slack, Firebase, Elasticsearch, and more), Indonesian NLP helpers (stemmer, dictionaries).
-- **A real IDE experience.** Lazarus wizards for projects, controllers and models, Database Explorer, JSON and Regex tools, and AI Agent Plane.
+- **A real IDE experience.** Lazarus wizards for projects, controllers and models, Database Explorer, JSON and Regex tools, and **AI Agent Plane**.
 - **Tested.** More than 700 FPCUnit tests, run on Windows and Linux.
 
 ## See the code
@@ -107,7 +107,7 @@ Requirements: [Free Pascal](https://www.freepascal.org/) 3.2.2 and [Lazarus](htt
 
    ![New project](docs/images/menu-new-project.png)
 
-4. **Run it** and open http://127.0.0.1:8080. The same binary also runs as CGI when Apache starts it.
+4. **Run it** and open http://127.0.0.1:17845. The same binary also runs as CGI when Apache starts it.
 
 ## More on AI Agent Plane
 
@@ -137,7 +137,7 @@ Everything is in the FastPlaz menu.
 ## Deployment
 
 - **CGI**: copy the binary and the `public_html` content to Apache, as on any shared hosting.
-- **Standalone HTTP**: the same binary runs as a long-lived server (`--mode=http`, default `http://127.0.0.1:8080`), usually behind nginx or Apache. Graceful shutdown, `max_requests` and per-request database connections are built in.
+- **Standalone HTTP**: the same binary runs as a long-lived server (`--mode=http`, default `http://127.0.0.1:17845`), usually behind nginx or Apache. Graceful shutdown, `max_requests` and per-request database connections are built in.
   - Guide: [docs/STANDALONE-deployment.md](docs/STANDALONE-deployment.md)
   - Design: [docs/STANDALONE-roadmap.md](docs/STANDALONE-roadmap.md)
   - Example: [examples/standalone](examples/standalone)

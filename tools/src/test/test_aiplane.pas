@@ -903,19 +903,19 @@ end;
 procedure TACPAdapterTest.TestMcpServerSentWhenAgentTakesHttp;
 begin
   FAdapter.Arguments.Add('--mcp-http');
-  FAdapter.McpUrl := 'http://127.0.0.1:17845/mcp';
+  FAdapter.McpUrl := 'http://127.0.0.1:17826/mcp';
   FAdapter.McpToken := 'tok123';
   PromptAndWait('mcp?');
   AssertTrue('agent capability read', FAdapter.McpHttp);
   AssertTrue(FRec.Text, Pos('"type" : "http"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"name" : "fastplaz"', FRec.Text) > 0);
-  AssertTrue(FRec.Text, Pos('"url" : "http://127.0.0.1:17845/mcp"', FRec.Text) > 0);
+  AssertTrue(FRec.Text, Pos('"url" : "http://127.0.0.1:17826/mcp"', FRec.Text) > 0);
   AssertTrue(FRec.Text, Pos('"value" : "Bearer tok123"', FRec.Text) > 0);
 end;
 
 procedure TACPAdapterTest.TestMcpServerSkippedWithoutHttp;
 begin
-  FAdapter.McpUrl := 'http://127.0.0.1:17845/mcp';
+  FAdapter.McpUrl := 'http://127.0.0.1:17826/mcp';
   FAdapter.McpToken := 'tok123';
   PromptAndWait('mcp?');
   AssertFalse(FAdapter.McpHttp);
@@ -1179,7 +1179,7 @@ begin
     probe.Probe(args);
     AssertTrue('no server, no --mcp-config', args.IndexOf('--mcp-config') < 0);
     args.Clear;
-    probe.McpUrl := 'http://127.0.0.1:17845/mcp';
+    probe.McpUrl := 'http://127.0.0.1:17826/mcp';
     probe.McpToken := 'tok123';
     probe.Probe(args);
     AssertTrue(args.IndexOf('--mcp-config') >= 0);
@@ -1188,7 +1188,7 @@ begin
     config.LoadFromFile(fileName);
     AssertTrue(Pos('"fastplaz"', config.Text) > 0);
     AssertTrue(Pos('"type" : "http"', config.Text) > 0);
-    AssertTrue(Pos('http://127.0.0.1:17845/mcp', config.Text) > 0);
+    AssertTrue(Pos('http://127.0.0.1:17826/mcp', config.Text) > 0);
     AssertTrue(Pos('Bearer tok123', config.Text) > 0);
     AssertEquals('mcp__fastplaz', args[args.IndexOf('--allowedTools') + 1]);
   finally
@@ -1265,7 +1265,7 @@ begin
     probe.Probe(args);
     AssertTrue('no server, no extension', args.IndexOf('-e') < 0);
     args.Clear;
-    probe.McpUrl := 'http://127.0.0.1:17845/mcp';
+    probe.McpUrl := 'http://127.0.0.1:17826/mcp';
     probe.McpToken := 'tok123';
     probe.Probe(args);
     AssertTrue(args.IndexOf('-e') >= 0);
@@ -1273,8 +1273,8 @@ begin
     AssertTrue('extension written', FileExists(fileName));
     ext.LoadFromFile(fileName);
     AssertTrue(Pos('pi.registerMcpServer("fastplaz"', ext.Text) > 0);
-    AssertTrue(Pos('http:\/\/127.0.0.1:17845\/mcp', ext.Text) +
-      Pos('http://127.0.0.1:17845/mcp', ext.Text) > 0);
+    AssertTrue(Pos('http:\/\/127.0.0.1:17826\/mcp', ext.Text) +
+      Pos('http://127.0.0.1:17826/mcp', ext.Text) > 0);
     AssertTrue(Pos('Bearer tok123', ext.Text) > 0);
     AssertTrue(Pos('"direct"', ext.Text) > 0);
   finally

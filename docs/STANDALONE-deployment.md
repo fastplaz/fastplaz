@@ -40,7 +40,7 @@ The same binary still runs as CGI when a web server starts it
   "server": {
     "mode": "http",
     "address": "127.0.0.1",
-    "port": 8080,
+    "port": 17845,
     "static": false,
     "max_requests": 10000,
     "db_persistent": false,
@@ -78,7 +78,7 @@ set) prints the banner below in standalone mode and nothing in CGI mode:
  ╚   ╩ ╩ ╚═╝  ╩  ╩   ╩═╝ ╩ ╩ ╚═╝
 
    FastPlaz Standalone
- ➜ Local:   http://127.0.0.1:8080/
+ ➜ Local:   http://127.0.0.1:17845/
    Mode:    development
    Root:    D:\project\public_html
    FPC:     3.2.2 x86_64-Win64
@@ -140,8 +140,8 @@ server {
     ProxyPreserveHost On
     RequestHeader set X-Forwarded-Proto "https"
     ProxyPass        /themes/ !
-    ProxyPass        / http://127.0.0.1:8080/
-    ProxyPassReverse / http://127.0.0.1:8080/
+    ProxyPass        / http://127.0.0.1:17845/
+    ProxyPassReverse / http://127.0.0.1:17845/
     Alias /themes/ /var/www/example/public_html/themes/
 </VirtualHost>
 ```

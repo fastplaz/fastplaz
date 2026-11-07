@@ -15,7 +15,7 @@ program aiplane_cli;
 
   --runtime mock uses mock_acp_agent from the current directory.
   --yes answers every permission request with the first "allow" option.
-  --mcp [port] runs the Agent Plane MCP server (default port 17845) with two
+  --mcp [port] runs the Agent Plane MCP server (default port 17826) with two
     demo tools and passes it to the runtime, to check that a real agent
     reaches the IDE tools:
       secret_word      returns a random word (auto)

@@ -27,7 +27,7 @@ uses
   Classes, SysUtils, fpjson, jsonparser, aiplane_types, aiplane_httpserver;
 
 const
-  AI_MCP_DEFAULT_PORT = 17845;
+  AI_MCP_DEFAULT_PORT = 17826;
   AI_MCP_PORT_TRIES = 10;
   AI_MCP_PATH = '/mcp';
   AI_MCP_LATEST_PROTOCOL = '2025-06-18';
