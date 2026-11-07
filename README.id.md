@@ -36,7 +36,7 @@ Coding agent di dalam Lazarus IDE. Claude Code, OpenCode, Pi dan GitHub Copilot 
 
 ![AI Agent Plane](docs/images/agent-plane.png)
 
-[Selengkapnya tentang AI Agent Plane](#lebih-jauh-tentang-ai-agent-plane)
+[Selengkapnya tentang AI Agent Plane](#ai-agent-plane-1)
 
 ## Kenapa FastPlaz
 
@@ -109,12 +109,12 @@ Kebutuhan: [Free Pascal](https://www.freepascal.org/) 3.2.2 dan [Lazarus](https:
 
 4. **Jalankan** dan buka http://127.0.0.1:17845. Binary yang sama juga berjalan sebagai CGI jika dijalankan oleh Apache.
 
-## Lebih jauh tentang AI Agent Plane
+## AI Agent Plane
 
 - **Runtime**: Claude Code, OpenCode, Pi, GitHub Copilot CLI dan agent ACP lainnya. Runtime, model dan thinking effort bisa diganti dari window chat.
 - **Tool IDE lewat MCP**: IDE menjalankan MCP server lokal (hanya 127.0.0.1, dilindungi token) dan memberikannya ke agent: `open_file`, `read_editor`, `project_info`, `compile_project`, `get_messages`, `create_api_controller`, `create_model` dan lainnya.
 - **Anda tetap memegang kendali**: tool yang meng-_compile_, menghapus atau membuat file meminta izin dulu lewat permission card.
-- **Editor selalu terbaru**: file yang diubah agent otomatis dimuat ulang di editor yang terbuka.
+- **Editor refresh**: file yang diubah agent otomatis dimuat ulang di editor yang terbuka.
 
 Baca selengkapnya: [docs/AI_AGENT_by_FASTPLAZ.md](docs/AI_AGENT_by_FASTPLAZ.md) dan daftar tool MCP di [docs/MCP.md](docs/MCP.md).
 
@@ -124,12 +124,12 @@ Semuanya ada di menu FastPlaz.
 
 | Tool | Fungsi |
 | --- | --- |
-| Wizard project | Simple Application, API Application, Full Package Application, lengkap dengan struktur direktori dan theme |
-| Wizard controller dan model | Simple controller, API (JSON) controller, `TSimpleModel` untuk sebuah tabel |
-| Database Explorer | Menjelajah koneksi dan tabel, menyalin daftar field ke kode |
+| Wizard project | Membuat Simple Application, API Application, Full Package Application, lengkap dengan struktur direktori dan theme |
+| Wizard controller dan model | Simple controller, API (JSON) controller, `TSimpleModel` untuk implementasi tabel |
+| Database Explorer | Akses ke database kamu langsung dari IDE Lazarus. termasuk menjalankan query dan juga menyalin daftar field ke kode |
 | JSON Validator & Formatter | Memeriksa dan merapikan JSON |
 | Regex Tester | Mencoba regular expression pada contoh teks |
-| Fast Code Suggestion | Meminta kode ke model AI dari menu popup editor (server yang kompatibel dengan OpenAI) |
+| Fast Code Suggestion | Generate kode ke model AI dari menu popup editor (server yang kompatibel dengan OpenAI) |
 | AI Agent Plane | Coding agent di dalam IDE (lihat di atas) |
 
 ![Database Explorer](https://fastplaz.github.io/img/tools/field-copy-2.png)
@@ -142,12 +142,12 @@ Semuanya ada di menu FastPlaz.
   - Desain: [docs/STANDALONE-roadmap.md](docs/STANDALONE-roadmap.md)
   - Contoh: [examples/standalone](examples/standalone)
 
-## Dibangun dengan FastPlaz
+## Project-project dengan FastPlaz
 
-- [Carik](https://carik.id): bot engine percakapan untuk Telegram, WhatsApp dan kanal lainnya
-- [SimpleAI](https://github.com/luridarmawan/SimpleAI): platform AI
-- Dashboard Intelligence: dashboard analitik
-- [fastplaz.com](https://fastplaz.com): front end disajikan FastPlaz, konten dikelola WordPress
+- [Carik Bot](https://carik.id): bot engine percakapan untuk Telegram, WhatsApp dan kanal lainnya
+- [SimpleAI](https://github.com/luridarmawan/SimpleAI): platform Simple AI / NLP
+- [Dashboard Intelligence](https://carik.id): dashboard analitik dari CARIK.id
+- [fastplaz.com](https://fastplaz.com): front end dari FastPlaz
 - [Silat Indonesia](https://www.silatindonesia.com)
 - [IHASA](https://ihasa.id): Perkumpulan Panahan Berkuda Indonesia (KPBI)
 - [default.fastplaz.com](http://default.fastplaz.com): contoh situs FastPlaz sederhana
@@ -164,11 +164,11 @@ Semuanya ada di menu FastPlaz.
   - [Package](README-package.md)
   - [CMS](README-CMS.md)
   - [Unit test](UNIT_TEST.md)
-  - [Daftar perubahan](docs/Changes.md)
+  - [Daftar perubahan](docs/CHANGES.md)
 
 ## Upgrade dari versi lama
 
-Rilis November 2026 memuat perbaikan yang dapat mengubah perilaku aplikasi yang sudah ada: session timeout dalam menit, `Redirect`/`die` tidak keluar dari method, `Save`/`Delete` yang gagal mengembalikan False, flash message di-_encode_. Baca [docs/UPGRADE.md](docs/UPGRADE.md) dan [docs/Changes.md](docs/Changes.md) terlebih dahulu.
+Rilis November 2026 memuat perbaikan yang dapat mengubah perilaku aplikasi yang sudah ada: session timeout dalam menit, `Redirect`/`die` tidak keluar dari method, `Save`/`Delete` yang gagal mengembalikan False, flash message di-_encode_. Baca [docs/UPGRADE.md](docs/UPGRADE.md) dan [docs/CHANGES.md](docs/CHANGES.md) terlebih dahulu.
 
 Untuk memperbarui hasil clone, lakukan `pull` lalu _compile_ ulang package-nya:
 
@@ -179,7 +179,7 @@ git pull
 ## Komunitas
 
 - [FastPlaz](https://fastplaz.com)
-- [Komunitas Pascal Indonesia](https://pascal-id.org)
+- [Komunitas Pascal Indonesia](https://pascal-dev.org)
 - [Inisiator FastPlaz di GitHub](https://github.com/luridarmawan/)
 - [Kontributor](README-contributor.md)
 

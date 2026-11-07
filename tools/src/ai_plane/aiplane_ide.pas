@@ -29,7 +29,7 @@ uses
   Classes, SysUtils, Forms, Controls, ExtCtrls,
   LazIDEIntf, ProjectIntf, IDEWindowIntf, SrcEditorIntf, IDEMsgIntf, IDEExternToolIntf,
   aiplane_types, aiplane_chatframe, aiplane_mcpserver, aiplane_tools_ide,
-  aiplane_tools_fastplaz;
+  aiplane_tools_fastplaz, aiplane_tools_editor;
 
 const
   AIPLANE_WINDOW_NAME = 'AIPlaneWindow';
@@ -58,6 +58,7 @@ type
     FMcp: TAIMcpServer;
     FTools: TAIIdeTools;
     FFastPlazTools: TAIFastPlazTools;
+    FEditorTools: TAIEditorTools;
     FMcpTimer: TTimer;
     FMcpPort: integer;
     FMcpNotice: string;
@@ -235,6 +236,8 @@ begin
   FMcp.OnLog := @McpLog;
   FTools := TAIIdeTools.Create;
   FTools.Register(FMcp);
+  FEditorTools := TAIEditorTools.Create(FTools);
+  FEditorTools.Register(FMcp);
   FFastPlazTools := TAIFastPlazTools.Create;
   FFastPlazTools.Register(FMcp);
   FMcpTimer := TTimer.Create(Self);
@@ -267,6 +270,7 @@ begin
     FChat.OnToolFinished := nil;
   end;
   FreeAndNil(FMcp);
+  FreeAndNil(FEditorTools);
   FreeAndNil(FTools);
   FreeAndNil(FFastPlazTools);
   inherited Destroy;
