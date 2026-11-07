@@ -20,7 +20,7 @@ uses
   aiplane_presets, aiplane_chatview, aiplane_chatframe, aiplane_settingsframe, 
   aiplane_ide, aiplane_markdown, aiplane_codehighlight, aiplane_pi, 
   aiplane_httpserver, aiplane_mcpserver, aiplane_tools_ide, 
-  aiplane_tools_fastplaz, aiplane_questiondlg, LazarusPackageIntf;
+  aiplane_tools_fastplaz, aiplane_questiondlg, aiplane_reference, LazarusPackageIntf;
 
 implementation
 

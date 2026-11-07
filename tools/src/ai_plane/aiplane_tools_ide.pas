@@ -166,35 +166,35 @@ begin
   AServer.Instructions := AI_IDE_TOOLS_INSTRUCTIONS;
   AServer.RegisterTool('open_file', 'Open a file in the IDE',
     'Opens a file in the Lazarus source editor and shows it to the user, ' +
-    'optionally at a line and column.', SCHEMA_OPEN_FILE, mtpAuto, @ToolOpenFile);
+    'optionally at a line and column.', SCHEMA_OPEN_FILE, mtpAuto, @ToolOpenFile, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('get_active_editor', 'Active editor',
     'File, caret position (1-based line and column), selected text and modified ' +
     'state of the editor the user is looking at.', SCHEMA_NONE, mtpAuto,
-    @ToolActiveEditor);
+    @ToolActiveEditor, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('list_open_files', 'Open files',
     'Files open in the Lazarus source editor and whether they have unsaved changes.',
-    SCHEMA_NONE, mtpAuto, @ToolOpenFiles);
+    SCHEMA_NONE, mtpAuto, @ToolOpenFiles, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('read_editor', 'Read from the editor',
     'Text of a project file as the user sees it in the editor, unsaved changes ' +
     'included, with line numbers. Falls back to the file on disk when it is not open.',
-    SCHEMA_READ_EDITOR, mtpAuto, @ToolReadEditor);
+    SCHEMA_READ_EDITOR, mtpAuto, @ToolReadEditor, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('project_info', 'Project information',
     'The active Lazarus project: .lpi file, main unit, build modes, target ' +
     'OS/CPU, unit and include search paths, custom compiler options, output file.',
-    SCHEMA_NONE, mtpAuto, @ToolProjectInfo);
+    SCHEMA_NONE, mtpAuto, @ToolProjectInfo, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('list_project_units', 'Project files',
     'Files that are part of the active project.', SCHEMA_NONE, mtpAuto,
-    @ToolProjectUnits);
+    @ToolProjectUnits, [mthReadOnly, mthIdempotent]);
   AServer.RegisterTool('compile_project', 'Compile the project',
     'Compiles (or with rebuild, builds all of) the active project in the IDE and ' +
     'returns success plus the compiler messages with file, line and column. ' +
     'Modified editor files are saved first.', SCHEMA_COMPILE, mtpAskSession,
-    @ToolCompile);
+    @ToolCompile, [mthIdempotent]);
   AServer.RegisterTool('build_project', 'Build the project',
     'Builds all of the active project in the IDE, like Run > Build: every ' +
     'project unit is compiled again, not only the changed ones. Returns success ' +
     'plus the compiler messages with file, line and column. Modified editor ' +
-    'files are saved first.', SCHEMA_BUILD, mtpAskSession, @ToolBuild);
+    'files are saved first.', SCHEMA_BUILD, mtpAskSession, @ToolBuild, [mthIdempotent]);
   AServer.RegisterTool('clean_and_compile_project', 'Clean up and build the project',
     'Like Run > Clean up and Build: deletes the compiled files of the active ' +
     'project (its unit output directory, and *.ppu/*.o in its source ' +
@@ -202,11 +202,11 @@ begin
     'Source files (.pas, .pp, .inc, .lpr, .lpi, .lfm, ...) are never deleted. ' +
     'Use it when a normal build gives odd errors from stale units. Returns ' +
     'what was deleted, success and the compiler messages.', SCHEMA_BUILD, mtpAsk,
-    @ToolCleanBuild);
+    @ToolCleanBuild, [mthDestructive, mthIdempotent]);
   AServer.SetToolDescriber('clean_and_compile_project', @DescribeCleanBuild);
   AServer.RegisterTool('get_messages', 'Compiler messages',
     'Messages of the last compile in the IDE Messages window, with file, line and column.',
-    SCHEMA_MESSAGES, mtpAuto, @ToolMessages);
+    SCHEMA_MESSAGES, mtpAuto, @ToolMessages, [mthReadOnly, mthIdempotent]);
 end;
 
 function TAIIdeTools.ProjectDir: string;
