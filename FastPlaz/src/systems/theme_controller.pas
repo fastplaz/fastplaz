@@ -227,6 +227,25 @@ implementation
 uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5,
   initialize_controller;
 
+// Template file content, read in shared mode.
+// TFPTemplate.FileName opens the file with plain fmOpenRead, which on Windows
+// is an exclusive open: two requests rendering the same layout at the same
+// moment fail with "Unable to open file ... being used by another process".
+function ReadTemplateFile(const FileName: string): string;
+var
+  fs: TFileStream;
+begin
+  Result := '';
+  fs := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(Result, fs.Size);
+    if fs.Size > 0 then
+      fs.ReadBuffer(Result[1], fs.Size);
+  finally
+    fs.Free;
+  end;
+end;
+
 { THTMLHead }
 
 constructor THTMLHead.Create;
@@ -2539,7 +2558,7 @@ begin
   try
     templateEngine := TFPTemplate.Create;
     try
-      templateEngine.FileName := templateFilename;
+      templateEngine.Template := ReadTemplateFile(templateFilename);
       templateEngine.AllowTagParams := True;
       templateEngine.StartDelimiter := FStartDelimiter;
       templateEngine.EndDelimiter := FEndDelimiter;
