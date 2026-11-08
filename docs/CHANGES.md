@@ -1,5 +1,15 @@
 # Development Changes
 
+## 20261108
+
+Behaviour changes:
+- database_lib: `database/<name>/charset` has a default, so an app no longer needs `QueryExec('SET CHARACTER SET utf8mb4')` after `DataBaseInit`
+  - not set or `""`: `utf8mb4` for MySQL 5.5 and later, `utf8` for MySQL 4.x - 5.1 (`utf8mb4` needs MySQL server 5.5.3), the library default for the other drivers
+  - `"none"`: no charset is set, the server/library default is kept (the old behaviour)
+  - any other value is used as is, for both the read and the write connection
+  - `DataBaseCharSet(ConnectionName, ConnectorType)` returns the charset that is used
+- with a charset set, string fields are converted to `DefaultSystemCodePage`. On Windows that is the ANSI code page (cp1252), so non-ASCII text such as `–` arrives as `$96`; an app that outputs UTF-8 sets `DefaultSystemCodePage := CP_UTF8` at the start of the program (Linux/macOS already default to UTF-8)
+
 ## 20261107
 
 New Feature/Library:

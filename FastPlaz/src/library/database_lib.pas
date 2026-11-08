@@ -180,6 +180,13 @@ type
 
 function DataBaseInit( const RedirecURL:string = ''; const DBConfigName: string = ''):boolean;
 
+// Connection character set of database/<ConnectionName>/charset.
+// Not set (or ""): the default of the driver, "utf8mb4" for MySQL 5.5 and
+// later, "utf8" for MySQL 4.x - 5.1 (utf8mb4 needs MySQL server 5.5.3),
+// '' (the library default) for the other drivers.
+// "none": '' as well, the charset of the server/library is kept.
+function DataBaseCharSet( const ConnectionName: string; const ConnectorType: string): string;
+
 // Standalone mode, called by fastplaz_handler around every request.
 // Finished: rolls back what the request left uncommitted (as the end of a
 // CGI process does) and closes the connections, so a dropped connection
@@ -252,6 +259,26 @@ procedure TFPSQLConnector.CreateProxy;
 begin
   inherited CreateProxy;
   ApplySkipLibraryVersionCheck;
+end;
+
+function DataBaseCharSet(const ConnectionName: string;
+  const ConnectorType: string): string;
+var
+  driver: string;
+begin
+  Result := Trim(string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [ConnectionName])), UnicodeString(''))));
+  if SameText(Result, 'none') then
+    Exit('');
+  if Result <> '' then
+    Exit;
+
+  driver := LowerCase(Trim(ConnectorType));
+  if Pos('mysql', driver) <> 1 then
+    Exit('');  // PostgreSQL, SQLite, ...: the library default
+  if (Pos('mysql 4.', driver) = 1) or (driver = 'mysql 5.0') or (driver = 'mysql 5.1') then
+    Result := 'utf8'
+  else
+    Result := 'utf8mb4';
 end;
 
 function DataBaseInit(const RedirecURL: string; const DBConfigName: string
@@ -327,9 +354,8 @@ begin
     if Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), UnicodeString('')) <> '' then
       DB_Connector.Params.Values['port'] := string( Config.GetValue( UnicodeString( format( _DATABASE_PORT, [AppData.databaseRead])), UnicodeString('')));
     //tabletype := Config.GetValue( _DATABASE_TABLETYPE, '');
-    s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [AppData.databaseRead])), UnicodeString('')));
-    if s <> '' then
-      DB_Connector.CharSet := s;
+    // default utf8mb4 on MySQL: no "SET CHARACTER SET" needed in the app
+    DB_Connector.CharSet := DataBaseCharSet(AppData.databaseRead, DB_Connector.ConnectorType);
 
     // Skip Library Version Check from MySQL.
     // The proxy connection does not exist before Open, so the flag is kept on
@@ -583,9 +609,7 @@ begin
   DB_Connector_Write.UserName:= string( Config.GetValue( UnicodeString( format( _DATABASE_USERNAME, [ConnectionName])), UnicodeString('')));
   DB_Connector_Write.Password:= string( Config.GetValue( UnicodeString( format( _DATABASE_PASSWORD, [ConnectionName])), UnicodeString('')));
   DB_Connector_Write.DatabaseName:= string( Config.GetValue( UnicodeString( format( _DATABASE_DATABASENAME, [ConnectionName])), UnicodeString('test')));
-  s := string( Config.GetValue( UnicodeString( format( _DATABASE_CHARSET, [ConnectionName])), UnicodeString('')));
-  if s <> '' then
-    DB_Connector_Write.CharSet := s;
+  DB_Connector_Write.CharSet := DataBaseCharSet(ConnectionName, DB_Connector_Write.ConnectorType);
   if DB_Connector_Write is TFPSQLConnector then
     TFPSQLConnector(DB_Connector_Write).SkipLibraryVersionCheck :=
       not Config.GetValue( UnicodeString( format( _DATABASE_VERSION_CHECK, [ConnectionName])), True);
