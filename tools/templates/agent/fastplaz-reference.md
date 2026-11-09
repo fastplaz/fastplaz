@@ -346,11 +346,16 @@ end;
       "username": "root",
       "password": "",
       "database_name": "mydb",
-      "prefix": ""
+      "prefix": "",
+      "charset": ""
     }
   }
 }
 ```
+
+`charset` empty means `utf8mb4` on MySQL 5.5+ (`utf8` on MySQL 4.x - 5.1,
+the library default on other drivers); `"none"` keeps the server default.
+No `SET NAMES` / `SET CHARACTER SET` query is needed after `DataBaseInit`.
 
 Read values with `Config.GetValue('systems/sitename', 'default')` or
 `Config['your/key']` (global `Config`, unit `common`). Constants such as
