@@ -126,12 +126,6 @@ Skala perubahan: sekitar 170 commit, 365 file, +51.000 / −11.900 baris. Rincia
 - Line ending dinormalisasi (`.gitattributes`).
 - **Unit test**: suite FPCUnit untuk setiap library (sekitar 28 suite, termasuk fake SMTP server in-process dan tes SQLite), plus suite untuk IDE tools dan AI Agent Plane (termasuk mock agent ACP). Script `run_tests.bat` / `run_tests.sh`, dites di Windows dan Linux.
 
-## 5. Dokumentasi
-
-- README ditulis ulang dalam Bahasa Inggris, versi Indonesia di `README.id.md`.
-- Dokumen baru: UPGRADE.md, STANDALONE-roadmap.md, STANDALONE-deployment.md, MCP.md, AI_AGENT_by_FASTPLAZ.md, AI_PLANE_TOOL_RUNDOWN.md.
-- Dokumentasi CMS, SimpleModel, template, REST, integrasi, dan unit test diperbarui.
-
 ---
 
 ## Perubahan Perilaku (perlu dicek saat upgrade)

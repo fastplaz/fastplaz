@@ -1,24 +1,26 @@
 object fAboutFastplaz: TfAboutFastplaz
   Left = 406
-  Height = 340
+  Height = 425
   Top = 160
-  Width = 378
+  Width = 472
   BorderStyle = bsToolWindow
   Caption = 'About'
-  ClientHeight = 340
-  ClientWidth = 378
+  ClientHeight = 425
+  ClientWidth = 472
+  DesignTimePPI = 120
   KeyPreview = True
+  Position = poScreenCenter
+  UseDockManager = True
+  LCLVersion = '4.8.0.0'
   OnClose = FormClose
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
-  Position = poScreenCenter
-  UseDockManager = True
-  LCLVersion = '2.0.10.0'
   object pnl_Button: TButtonPanel
-    Left = 6
-    Height = 36
-    Top = 298
-    Width = 366
+    Left = 8
+    Height = 38
+    Top = 379
+    Width = 456
+    BorderSpacing.Around = 8
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
     OKButton.OnClick = OKButtonClick
@@ -32,25 +34,25 @@ object fAboutFastplaz: TfAboutFastplaz
     ShowButtons = [pbOK]
   end
   object page: TPageControl
-    Left = 4
-    Height = 277
+    Left = 5
+    Height = 346
     Top = 2
-    Width = 370
-    ActivePage = TabSheet2
-    TabIndex = 1
+    Width = 462
+    ActivePage = TabSheet1
+    TabIndex = 0
     TabOrder = 1
     TabPosition = tpBottom
     object TabSheet1: TTabSheet
       Caption = 'About'
-      ClientHeight = 255
-      ClientWidth = 364
+      ClientHeight = 313
+      ClientWidth = 454
       object mem: TMemo
-        Left = 8
-        Height = 82
-        Top = 36
-        Width = 342
+        Left = 10
+        Height = 102
+        Top = 45
+        Width = 428
         BorderStyle = bsNone
-        Font.Height = -15
+        Font.Height = -19
         Lines.Strings = (
           'FastPlaz Plugin for Lazarus'
           'create webbased app with Easy, Simple and Fast'
@@ -61,14 +63,14 @@ object fAboutFastplaz: TfAboutFastplaz
         TabOrder = 0
       end
       object lbl_App: TLabel
-        Left = 10
-        Height = 29
-        Top = 4
-        Width = 136
+        Left = 12
+        Height = 36
+        Top = 5
+        Width = 170
         AutoSize = False
         Caption = 'FastPlaz'
         Font.CharSet = ANSI_CHARSET
-        Font.Height = -20
+        Font.Height = -25
         Font.Name = 'Lucida Console'
         Font.Pitch = fpFixed
         Font.Quality = fqDraft
@@ -78,13 +80,13 @@ object fAboutFastplaz: TfAboutFastplaz
       end
       object lbl_URL: TLabel
         Cursor = crHandPoint
-        Left = 10
-        Height = 18
-        Top = 122
-        Width = 198
+        Left = 12
+        Height = 22
+        Top = 152
+        Width = 248
         AutoSize = False
         Caption = 'http://www.fastplaz.com'
-        Font.Height = -15
+        Font.Height = -19
         ParentColor = False
         ParentFont = False
         OnClick = lbl_URLClick
@@ -92,50 +94,50 @@ object fAboutFastplaz: TfAboutFastplaz
         OnMouseLeave = lbl_URLMouseLeave
       end
       object lbl_Version: TLabel
-        Left = 10
-        Height = 14
-        Top = 142
-        Width = 342
+        Left = 12
+        Height = 18
+        Top = 178
+        Width = 428
         AutoSize = False
         Caption = 'Version : 0.0.0 (build 000)'
-        Font.Height = -13
+        Font.Height = -16
         ParentColor = False
         ParentFont = False
       end
       object lbl_URL1: TLabel
         Cursor = crHandPoint
-        Left = 8
-        Height = 18
-        Top = 188
-        Width = 348
+        Left = 10
+        Height = 22
+        Top = 235
+        Width = 435
         AutoSize = False
         Caption = 'Expert with Your Finger'
-        Font.Height = -13
+        Font.Height = -16
         Font.Style = [fsBold]
         ParentColor = False
         ParentFont = False
       end
       object lbl_CodeName: TLabel
-        Left = 26
-        Height = 22
-        Top = 156
-        Width = 326
+        Left = 32
+        Height = 28
+        Top = 195
+        Width = 408
         AutoSize = False
         Caption = 'codename : Young Pledge'
-        Font.Height = -13
+        Font.Height = -16
         ParentColor = False
         ParentFont = False
       end
     end
     object TabSheet2: TTabSheet
       Caption = 'Credit'
-      ClientHeight = 255
-      ClientWidth = 364
+      ClientHeight = 313
+      ClientWidth = 454
       object mem1: TMemo
         Left = 0
-        Height = 255
+        Height = 313
         Top = 0
-        Width = 364
+        Width = 454
         Align = alClient
         BorderStyle = bsNone
         Lines.Strings = (
@@ -160,13 +162,13 @@ object fAboutFastplaz: TfAboutFastplaz
     end
     object TabSheet3: TTabSheet
       Caption = 'Build'
-      ClientHeight = 249
-      ClientWidth = 362
+      ClientHeight = 313
+      ClientWidth = 454
       object mem_build: TMemo
         Left = 0
-        Height = 249
+        Height = 313
         Top = 0
-        Width = 362
+        Width = 454
         Align = alClient
         BorderStyle = bsNone
         Lines.Strings = (
