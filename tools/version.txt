@@ -1,1 +1,1 @@
-Hero v0.12.06
+Hero v1.0.1 (build 145)
