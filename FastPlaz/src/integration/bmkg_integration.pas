@@ -1,4 +1,7 @@
 unit bmkg_integration;
+
+{ DEPRECATED: old BMKG data endpoints no longer exist. The unit stays for existing callers; every request to the
+  old endpoint fails. }
 {
 
   DEPRECATED:
@@ -39,14 +42,14 @@ type
     FResultText: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
 
     function SimpleInfo: string;
     function InfoGempaXML: string;
-  end;
+  end deprecated 'old BMKG data endpoints no longer exist';
 
 
 implementation
@@ -55,8 +58,6 @@ const
   _BMKG_DATA_URL = 'https://data.bmkg.go.id/data.txt';
   _BMKG_INFOGEMPA_URL = 'https://data.bmkg.go.id/autogempa.xml';
 
-var
-  Response: IHTTPResponse;
 
 { TBMKGIntegration }
 
@@ -67,14 +68,16 @@ end;
 
 destructor TBMKGIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TBMKGIntegration.SimpleInfo: string;
+var
+  Response: IHTTPResponse;
 begin
   Result := '';
   with THTTPLib.Create(_BMKG_DATA_URL) do
-  begin
+  try
     //AddHeader('Cache-Control', 'no-cache');
     Response := Get;
     FResultCode := Response.ResultCode;
@@ -83,15 +86,18 @@ begin
     begin
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;
 
 function TBMKGIntegration.InfoGempaXML: string;
+var
+  Response: IHTTPResponse;
 begin
   Result := '';
   with THTTPLib.Create(_BMKG_INFOGEMPA_URL) do
-  begin
+  try
     //AddHeader('Cache-Control', 'no-cache');
     Response := Get;
     FResultCode := Response.ResultCode;
@@ -100,6 +106,7 @@ begin
     begin
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;

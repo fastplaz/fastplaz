@@ -3,50 +3,36 @@
   <Package Version="4">
     <Name Value="fastplaz_components"/>
     <Type Value="RunAndDesignTime"/>
+    <Author Value="Luri Darmawan"/>
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <OtherUnitFiles Value="../FastPlaz/src/components;../FastPlaz/src/library"/>
+        <OtherUnitFiles Value="../FastPlaz/src/components"/>
         <UnitOutputDirectory Value="lib/components/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Description Value="Remote Dataset for FastPlaz"/>
-    <Files Count="4">
+    <Description Value="FastPlaz Components (TRemoteDataset)"/>
+    <Version Major="1"/>
+    <Files Count="1">
       <Item1>
         <Filename Value="../FastPlaz/src/components/remotedataset_component.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="remotedataset_component"/>
       </Item1>
-      <Item2>
-        <Filename Value="../FastPlaz/src/library/http_lib.pas"/>
-        <UnitName Value="http_lib"/>
-      </Item2>
-      <Item3>
-        <Filename Value="../FastPlaz/src/library/json_lib.pas"/>
-        <UnitName Value="json_lib"/>
-      </Item3>
-      <Item4>
-        <Filename Value="../FastPlaz/src/library/commonbase_lib.pas"/>
-        <UnitName Value="commonbase_lib"/>
-      </Item4>
     </Files>
-    <i18n>
-      <EnableI18N Value="True"/>
-    </i18n>
-    <RequiredPkgs Count="1">
+    <RequiredPkgs Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="fastplaz_runtime"/>
       </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
-      <UseFileFilters Value="True"/>
     </PublishOptions>
-    <CustomOptions Items="ExternHelp" Version="2">
-      <_ExternHelp Items="Count"/>
-    </CustomOptions>
   </Package>
 </CONFIG>

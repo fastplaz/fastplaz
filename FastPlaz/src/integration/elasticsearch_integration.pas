@@ -155,14 +155,17 @@ end;
 function TElasticSearchIntegration.CustomCommand(AFunction: string): boolean;
 var
   httpResponse: IHTTPResponse;
+  urlTarget: string;
 begin
+  Result := False;
   FIsSuccessfull := False;
   if FEndpoint.IsEmpty then
     Exit;
 
-  URL := URL + AFunction;
-  with THTTPLib.Create(URL) do
-  begin
+  // URL itself stays untouched, so a second call does not get "/_search/_search"
+  urlTarget := URL + AFunction;
+  with THTTPLib.Create(urlTarget) do
+  try
     ContentType := 'application/json';
     AddHeader('Cache-Control', 'no-cache');
     RequestBody := TStringStream.Create(FData.Text);
@@ -172,6 +175,7 @@ begin
     FResultText := httpResponse.ResultText;
     if httpResponse.ResultCode = 200 then
       FIsSuccessfull := True;
+  finally
     Free;
   end;
 

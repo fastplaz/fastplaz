@@ -6,7 +6,7 @@ unit de_dbbrowser;
 interface
 
 uses
-  de_common, de_dbmemoedit, db_controller,thread_custom,
+  de_common, de_dbmemoedit, db_controller, tools_lib,
   config_lib,
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, ExtCtrls,
   Buttons, DBGrids,
@@ -83,10 +83,13 @@ type
       var Handled: boolean);
     procedure tabContentEnter(Sender: TObject);
   private
-    messageData: TMessageData;
     fEndOfLine: boolean;
     iLastPosX, iLastPosY: integer;
     pastSQL: string;
+    // editor, query and grid of the active table tab; False on other tabs
+    function activeTabControls(out AEditor: TSynEdit; out AQuery: TSQLQuery;
+      out AGrid: TDBGrid): boolean;
+    function quoteIdentifier(const AName: string): string;
     procedure setupScheme(AControl: TSynEdit);
     procedure updateCursorPosition(AControl: TSynEdit; ACurrentPostX: integer);
     procedure getTableStructure(ATableName: string);
@@ -96,9 +99,6 @@ type
     function getTabControl(ATableName: string): TTabSheet;
     function generateTab(ATableName: string): TTabSheet;
     procedure destroyAllTab;
-    procedure onQueryAsync(Data: PtrInt);
-    procedure onQueryCallback(const AStatus: integer; const AMessage: string;
-      var AQuery: TSQLQuery);
 
     procedure saveFormState;
     procedure restoreFormState;
@@ -181,27 +181,57 @@ begin
   Enabled := True;
 end;
 
+function TIDEFDEBrowserWindow.activeTabControls(out AEditor: TSynEdit;
+  out AQuery: TSQLQuery; out AGrid: TDBGrid): boolean;
+var
+  page: TTabSheet;
+begin
+  Result := False;
+  AEditor := nil;
+  AQuery := nil;
+  AGrid := nil;
+  page := pgMain.ActivePage;
+  if (page = nil) or (page.ComponentCount <= TAB_GRID_INDEX) then
+    Exit;
+  if not (page.Components[TAB_EDITOR_INDEX] is TSynEdit) then
+    Exit;
+  if not (page.Components[TAB_QUERY_INDEX] is TSQLQuery) then
+    Exit;
+  if not (page.Components[TAB_GRID_INDEX] is TDBGrid) then
+    Exit;
+  AEditor := TSynEdit(page.Components[TAB_EDITOR_INDEX]);
+  AQuery := TSQLQuery(page.Components[TAB_QUERY_INDEX]);
+  AGrid := TDBGrid(page.Components[TAB_GRID_INDEX]);
+  Result := True;
+end;
+
+function TIDEFDEBrowserWindow.quoteIdentifier(const AName: string): string;
+begin
+  if DatabaseType = 'mysql' then
+    Result := '`' + StringReplace(AName, '`', '``', [rfReplaceAll]) + '`'
+  else
+    Result := '"' + StringReplace(AName, '"', '""', [rfReplaceAll]) + '"';
+end;
+
 procedure TIDEFDEBrowserWindow.actExecQueryExecute(Sender: TObject);
 var
   s, sql: string;
   sqlEditor: TSynEdit;
   dq: TSQLQuery;
-  tabSheet: TTabSheet;
+  tabGrid: TDBGrid;
 begin
-  //tabSheet := generateTab('contacts');
   barBottom.Panels[1].Text := '';
 
-  // get active editor
-  if not (pgMain.ActivePage.Components[TAB_EDITOR_INDEX] is TSynEdit) then
+  if not activeTabControls(sqlEditor, dq, tabGrid) then
     Exit;
-
-  sqlEditor := TSynEdit(pgMain.ActivePage.Components[TAB_EDITOR_INDEX]);
-  dq := TSQLQuery(pgMain.ActivePage.Components[TAB_QUERY_INDEX]);
   if dq.Active then
     dq.Close;
 
-  if sqlEditor.Text.IsEmpty then
-    Exit;//TODO: warning
+  if Trim(sqlEditor.Text) = '' then
+  begin
+    barBottom.Panels[1].Text := 'Nothing to run';
+    Exit;
+  end;
 
   sql := sqlEditor.Text;
 
@@ -220,24 +250,18 @@ begin
 
   if preg_match(QUERY_DELETE_REGEX, sql.Trim) then
   begin
+    // Yes (the default) cancels, see rsAskCancelDangerOperation
     if MessageDlg(rsConfirmation, rsAskCancelDangerOperation,
       mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-    begin
       Exit;
-    end;
   end;
 
-  // thread mode
-  //DatabaseController.OpenThread(dq, sql, @onQueryCallback);
-
-
-  // direct mode
   dq.SQL.Text := sql;
   try
     if preg_match(QUERY_SELECT_REGEX, sql.Trim) then
     begin
       dq.Open;
-      autoSizeColumns(TDBGrid(pgMain.ActivePage.Components[TAB_GRID_INDEX]));
+      autoSizeColumns(tabGrid);
     end
     else
       dq.ExecSQL;
@@ -255,37 +279,51 @@ end;
 
 procedure TIDEFDEBrowserWindow.actFieldCopyExecute(Sender: TObject);
 var
-  s: string;
+  sqlEditor: TSynEdit;
+  dq: TSQLQuery;
+  tabGrid: TDBGrid;
 begin
-  if not (pgMain.ActivePage.Components[TAB_EDITOR_INDEX] is TSynEdit) then
+  if not activeTabControls(sqlEditor, dq, tabGrid) then
     Exit;
-
-  s := TDBGrid(pgMain.ActivePage.Components[TAB_GRID_INDEX]).SelectedField.AsString;
-  Clipboard.AsText := s;
+  if tabGrid.SelectedField = nil then
+    Exit;
+  Clipboard.AsText := tabGrid.SelectedField.AsString;
 end;
 
 procedure TIDEFDEBrowserWindow.actOpenFileExecute(Sender: TObject);
+var
+  sqlEditor: TSynEdit;
+  dq: TSQLQuery;
+  tabGrid: TDBGrid;
+  dialog: TOpenDialog;
 begin
-  // get active editor
-  if not (pgMain.ActivePage.Components[TAB_EDITOR_INDEX] is TSynEdit) then
+  if not activeTabControls(sqlEditor, dq, tabGrid) then
     Exit;
 
-  with TOpenDialog.Create(Application) do
-  begin
-    Title := 'Open SQL file';
-    Filter := 'SQL files (*.sql)|*.sql';
-    InitialDir := Config['cache/last_dir'];
-    Options := [ofReadOnly, ofEnableSizing];
-    if Execute then
+  dialog := TOpenDialog.Create(Application);
+  try
+    dialog.Title := 'Open SQL file';
+    dialog.Filter := 'SQL files (*.sql)|*.sql';
+    dialog.InitialDir := Config.GetString('cache/last_dir');
+    dialog.Options := [ofReadOnly, ofEnableSizing];
+    if dialog.Execute then
     begin
-      Config['cache/last_dir'] := ExtractFilePath(FileName);
+      Config.SetString('cache/last_dir', ExtractFilePath(dialog.FileName));
       Config.Flush;
-      TSynEdit(pgMain.ActivePage.Components[TAB_EDITOR_INDEX]).Lines.LoadFromFile(
-        FileName);
-      btnFileName.Caption := FileName;
-      barBottom.Panels[1].Text := 'Open file: ' + FileName;
+      try
+        sqlEditor.Lines.LoadFromFile(dialog.FileName);
+        btnFileName.Caption := dialog.FileName;
+        barBottom.Panels[1].Text := 'Open file: ' + dialog.FileName;
+      except
+        on E: Exception do
+        begin
+          Log(E.Message, 'ERROR', mluError);
+          barBottom.Panels[1].Text := E.Message;
+        end;
+      end;
     end;
-    Free;
+  finally
+    dialog.Free;
   end;
 end;
 
@@ -470,7 +508,6 @@ var
   //determine if we're going to override normal Lazarus draw routines
   OurDisplayString: string;
   CurrentField: TField;
-  DataRow: integer;
 begin
   OverrideDraw := False;
 
@@ -538,7 +575,7 @@ end;
 procedure TIDEFDEBrowserWindow.GridKeyDown(Sender: TObject; var Key: word;
   Shift: TShiftState);
 begin
-  if Key = 13 then
+  if (Key = 13) and ((Sender as TDBGrid).SelectedField <> nil) then
   begin
     if (Sender as TDBGrid).SelectedField.DataType = ftMemo then
     begin
@@ -582,15 +619,23 @@ begin
 
 
   {$ifdef FDE_DESKTOP}
-  schemeDir := '.';
+  schemeDir := '.' + DirectorySeparator;
   {$else}
+  schemeDir := '';
   Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
   if Pkg <> nil then
-    schemeDir := Pkg.DirectoryExpanded;
+    schemeDir := IncludeTrailingPathDelimiter(Pkg.DirectoryExpanded);
   {$endif}
 
-  //if FileExists(schemeDir) then
-  SynSQL.LoadFromFile(schemeDir + DirectorySeparator + 'scheme/sql/black.scheme');
+  schemeDir := schemeDir + 'scheme' + DirectorySeparator + 'sql' +
+    DirectorySeparator + 'black.scheme';
+  if FileExists(schemeDir) then
+  try
+    SynSQL.LoadFromFile(schemeDir);
+  except
+    on E: Exception do
+      Log('Colour scheme not loaded: ' + E.Message, 'ERROR', mluError);
+  end;
 end;
 
 procedure TIDEFDEBrowserWindow.updateCursorPosition(AControl: TSynEdit;
@@ -613,49 +658,51 @@ begin
 end;
 
 procedure TIDEFDEBrowserWindow.getTableStructure(ATableName: string);
+const
+  COLUMNS: array[0..5] of string = ('Field', 'Type', 'Null', 'Key', 'Default', 'Extra');
 var
-  i: integer;
-  s, sql: string;
-
-  function getFieldValue(AFieldName: string): string;
-  begin
-    Result := '';
-    try
-      Result := DatabaseController.Query.FieldValues[AFieldName];
-    except
-    end;
-  end;
-
+  i, row: integer;
+  sql: string;
+  field: TField;
 begin
-  sql := 'describe ' + ATableName;
+  sql := 'describe ' + quoteIdentifier(ATableName);
   if DatabaseType = 'postgres' then
-  begin
-    sql := Format(SQL_STRUCTURE_TABLE_POSTGRES, [ATableName]);
-  end;
+    sql := Format(SQL_STRUCTURE_TABLE_POSTGRES,
+      [StringReplace(ATableName, '''', '''''', [rfReplaceAll])]);
 
-  DatabaseController.SQL.Text := sql;
-  if DatabaseController.Open then
-  begin
+  // header only until the structure is known
+  StringGrid.BeginUpdate;
+  try
+    StringGrid.Clear;
     StringGrid.FixedCols := 0;
-    StringGrid.ColCount := 6;
+    StringGrid.ColCount := Length(COLUMNS);
     StringGrid.RowCount := 1;
-    StringGrid.Rows[0].CommaText := 'Field,Type,Null,Key,Default,Extra';
-    i := 1;
-    repeat
-      s := getFieldValue('Field') + ',' + getFieldValue('Type') +
-        ',' + getFieldValue('Null') + ',' + getFieldValue('Key') +
-        ',' + getFieldValue('Default') + ',' + getFieldValue('Extra');
+    for i := Low(COLUMNS) to High(COLUMNS) do
+      StringGrid.Cells[i, 0] := COLUMNS[i];
 
-      StringGrid.RowCount := StringGrid.RowCount + 1;
-      StringGrid.Rows[i].CommaText := s;
-
-      i := i + 1;
-      DatabaseController.Query.Next;
-    until DatabaseController.Query.EOF;
-
+    DatabaseController.SQL.Text := sql;
+    if DatabaseController.Open then
+    begin
+      row := 1;
+      while not DatabaseController.Query.EOF do
+      begin
+        StringGrid.RowCount := row + 1;
+        for i := Low(COLUMNS) to High(COLUMNS) do
+        begin
+          field := DatabaseController.Query.FindField(COLUMNS[i]);
+          if field <> nil then
+            StringGrid.Cells[i, row] := field.AsString;
+        end;
+        Inc(row);
+        DatabaseController.Query.Next;
+      end;
+    end
+    else
+      Log(DatabaseController.Message, 'ERROR', mluError);
+  finally
+    StringGrid.EndUpdate;
   end;
   lblStructureTableName.Caption := 'Structure: ' + ATableName;
-
 end;
 
 procedure TIDEFDEBrowserWindow.autoSizeColumns(AGrid: TDBGrid);
@@ -728,24 +775,18 @@ end;
 function TIDEFDEBrowserWindow.getTabControl(ATableName: string): TTabSheet;
 var
   i: integer;
-  tabName: string;
 begin
   Result := nil;
-  tabName := TAB_PREFIX + ATableName;
-  for i := 0 to pgMain.ControlCount - 1 do
+  // table tabs carry the table name in Hint, the designer tabs have none
+  for i := 0 to pgMain.PageCount - 1 do
   begin
-    if pgMain.Controls[i].Name = tabName then
-    begin
-      Result := TTabSheet(pgMain.Controls[i]);
-      Exit;
-    end;
+    if (pgMain.Pages[i].Hint = ATableName) and (pgMain.Pages[i].Hint <> '') then
+      Exit(pgMain.Pages[i]);
   end;
 end;
 
 function TIDEFDEBrowserWindow.generateTab(ATableName: string): TTabSheet;
 var
-  i: integer;
-  s: string;
   tableTab: TTabSheet;
   tmpEditor: TSynEdit;
   dq: TSQLQuery;
@@ -756,10 +797,9 @@ begin
   if tableTab = nil then
   begin
 
-    // generate Tab
+    // generate Tab, no Name: a table name is not always a valid component name
     tableTab := TTabSheet.Create(pgMain);
     tableTab.Parent := pgMain;
-    tableTab.Name := TAB_PREFIX + ATableName;
     tableTab.Caption := ATableName;
     tableTab.Hint := ATableName;
     tableTab.PageIndex := 0;
@@ -824,31 +864,14 @@ procedure TIDEFDEBrowserWindow.destroyAllTab;
 var
   i: integer;
 begin
-  for i := (pgMain.ControlCount - 1) downto 0 do
+  for i := pgMain.PageCount - 1 downto 0 do
   begin
-    if pgMain.Controls[i].Hint = '' then
+    if pgMain.Pages[i].Hint = '' then
       Continue;
-    pgMain.Controls[i].Free;
+    pgMain.Pages[i].Free;
   end;
   StringGrid.Clear;
-end;
-
-procedure TIDEFDEBrowserWindow.onQueryAsync(Data: PtrInt);
-begin
-
-end;
-
-procedure TIDEFDEBrowserWindow.onQueryCallback(const AStatus: integer;
-  const AMessage: string; var AQuery: TSQLQuery);
-begin
-  exit; //ulil
-  if AStatus <> 0 then
-  begin
-    Log(AMessage, 'Error', mluError);
-    barBottom.Panels[1].Text := 'Error: ' + AMessage;
-    ShowMessage('Error: ' + AMessage);
-  end;
-
+  lblStructureTableName.Caption := '';
 end;
 
 procedure TIDEFDEBrowserWindow.saveFormState;
@@ -893,7 +916,7 @@ begin
   getTableStructure(ATableName);
   tabSheet := generateTab(ATableName);
 
-  s := 'SELECT * '#10'FROM ' + ATableName + #10'LIMIT 100';
+  s := 'SELECT * '#10'FROM ' + quoteIdentifier(ATableName) + #10'LIMIT 100';
 
   if tabSheet.Components[TAB_EDITOR_INDEX] is TSynEdit then
   begin

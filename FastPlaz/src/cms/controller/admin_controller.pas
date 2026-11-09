@@ -6,7 +6,7 @@ interface
 
 uses
   fphttp, fpjson, jsonparser, httpprotocol,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, modvar_util,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib, modvar_util,
   user_util, user_controller,
   json_lib,
   database_lib, security_util;
@@ -47,6 +47,7 @@ type
   private
     action: string;
     NotifCount: integer;
+    FAllowed: boolean;
     function Tag_MainContent_Handler(const TagName: string;
       Params: TStringList): string;
     procedure BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
@@ -61,7 +62,7 @@ type
 
 implementation
 
-uses theme_controller, logutil_lib, common;
+uses theme_controller, logutil_lib, common, Variants;
 
 constructor TAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -93,8 +94,9 @@ end;
 function TAdminModule.Tag_ModVar_Handler(const TagName: string;
   Params: TStringList): string;
 begin
+  Result := '';
   try
-    Result := ModVar[Params.Values['key']];
+    Result := VarToStr(ModVar[Params.Values['key']]);
     if Result = '' then
       Result := Params.Values['default'];
     if Params.Values['type'] = 'checkbox' then
@@ -166,8 +168,7 @@ end;
 
 function TAdminModule.GenerateMenu(const JsonString: string): string;
 var
-  d: TJSONData;
-  i: integer;
+  d, items: TJSONData;
   s, icon, right_label, divclass: string;
   html: TStringList;
 begin
@@ -175,41 +176,48 @@ begin
   if JsonString = '' then
     Exit;
   html := TStringList.Create;
+  d := nil;
   try
-    d := GetJSON(JsonString);
-    icon := jsonGetString(d, 'icon');
-    right_label := jsonGetString(d, 'right-label');
-    if right_label = '' then
-      right_label := '<i class="fa fa-angle-left pull-right"></i>';
-    if jsonGetString(d, 'active') = '1' then
-      divclass := 'active';
-    s := Format(ADMINMENU_FORMAT_TITLE, [icon, jsonGetString(
-      d, 'title'), right_label]);
-    //right-label <span class="label pull-right bg-yellow">...</span>
-    html.Add('<li class="treeview ' + divclass + '">');
-    html.Add(s);
+    try
+      d := GetJSON(JsonString);
+      if not (d is TJSONObject) then
+        Exit;
+      icon := jsonGetString(d, 'icon');
+      right_label := jsonGetString(d, 'right-label');
+      if right_label = '' then
+        right_label := '<i class="fa fa-angle-left pull-right"></i>';
+      divclass := '';
+      if jsonGetString(d, 'active') = '1' then
+        divclass := 'active';
+      s := Format(ADMINMENU_FORMAT_TITLE, [icon, jsonGetString(
+        d, 'title'), right_label]);
+      //right-label <span class="label pull-right bg-yellow">...</span>
+      html.Add('<li class="treeview ' + divclass + '">');
+      html.Add(s);
 
-    i := TJSONObject(d).IndexOfName('items');
-    html.Add(GenerateMenuItem(d.Items[i]));
+      items := d.FindPath('items');
+      if Assigned(items) then
+        html.Add(GenerateMenuItem(items));
 
-    html.Add('</li>');
-    d.Free;
-  except
-    on E: Exception do
-    begin
-      //      if AppData.debug then
-      //        LogUtil.Add( e.Message, 'AdminMenu');
+      html.Add('</li>');
+      Result := html.Text;
+    except
+      on E: Exception do
+      begin
+        if AppData.debug then
+          LogUtil.Add(e.Message, 'AdminMenu');
+      end;
     end;
+  finally
+    d.Free;
+    html.Free;
   end;
-
-  Result := html.Text;
-  html.Free;
 end;
 
 function TAdminModule.GenerateMenuItem(J: TJSonData): string;
 var
   html: TStringList;
-  i, n: integer;
+  i: integer;
   d: TJSONData;
   s, title, url, icon, right_label, rel, class_menu: string;
   tmp: TStrings;
@@ -251,14 +259,11 @@ begin
       right_label := ADMINMENU_FORMAT_SUBMENU_RIGHTLABEL;
       url := '#';
 
-      n := TJSONObject(d).IndexOfName('items');
-      if n <> -1 then
+      if d.FindPath('items') <> nil then
       begin
         s := s + #13#10#13#10;
-        s := s + GenerateMenuItem(d.Items[n]);
+        s := s + GenerateMenuItem(d.FindPath('items'));
         s := s + #13#10#13#10;
-
-        //s:='';
       end;
 
       s := Format(ADMINMENU_FORMAT_SUBMENU_ITEM, [url, class_menu,
@@ -289,41 +294,47 @@ var
   tmp: TStrings;
 begin
   Result := '';
+  if JsonString = '' then
+    Exit;
   html := TStringList.Create;
+  d := nil;
   try
-    d := GetJSON(JsonString);
-    items := d.Items[0];
-    NotifCount := NotifCount + items.Count;
-    for i := 0 to items.Count - 1 do
-    begin
-      item := items.Items[i];
-      title := jsonGetString(item, 'title');
-      icon := jsonGetString(item, 'icon');
-      url := jsonGetString(item, 'url');
-
-      tmp := Explode(icon, ':');
-      if tmp.Count > 1 then
+    try
+      d := GetJSON(JsonString);
+      items := d.FindPath('items');
+      if (not Assigned(items)) or (items.JSONType <> jtArray) then
+        Exit;
+      NotifCount := NotifCount + items.Count;
+      for i := 0 to items.Count - 1 do
       begin
-        if tmp[0] = 'fa' then
-          icon := tmp[1];
+        item := items.Items[i];
+        title := jsonGetString(item, 'title');
+        icon := jsonGetString(item, 'icon');
+        url := jsonGetString(item, 'url');
+
+        tmp := Explode(icon, ':');
+        if tmp.Count > 1 then
+        begin
+          if tmp[0] = 'fa' then
+            icon := tmp[1];
+        end;
+        tmp.Free;
+
+        s := Format(ADMINNOTIF_FORMAT_GENERAL, [url, icon, title]);
+        html.Add(s);
       end;
-      tmp.Free;
-
-      s := Format(ADMINNOTIF_FORMAT_GENERAL, [url, icon, title]);
-      html.Add(s);
+      Result := html.Text;
+    except
+      on E: Exception do
+      begin
+        if AppData.debug then
+          LogUtil.Add(e.Message, 'AdminMenu');
+      end;
     end;
-
+  finally
     d.Free;
-  except
-    on E: Exception do
-    begin
-      //      if AppData.debug then
-      //        LogUtil.Add( e.Message, 'AdminMenu');
-    end;
+    html.Free;
   end;
-
-  Result := html.Text;
-  html.Free;
 end;
 
 function TAdminModule.DashboardAction: string;
@@ -401,36 +412,41 @@ end;
 
 function TAdminModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
+var
+  templateName: string;
 begin
-
+  Result := '';
   case action of
     '': Result := DashboardAction;
     'generalsettings':
     begin
       if not User.checkPermission('admin', 'generalsettings', ACCESS_ADMIN) then
       begin
-        FreeAndNil(User);
         Redirect(BaseURL + 'admin');
-
+        Exit;
       end;
       Result := GeneralSettingAction;
     end
     else
-      Result := 'No Handler for "' + _GET['act'] + '" action.';
+      Result := 'No Handler for "' + HTMLEncode(_GET['act']) + '" action.';
   end;
 
+  // the action names a template file: no path separators from the request
+  templateName := TThemeUtil.SafeTemplateName(_REQUEST['act']);
   Result := ThemeUtil.RenderFromContent(@TagController, Result,
-    'modules/admin/view/' + _REQUEST['act'] + '.html');
+    'modules/admin/view/' + templateName + '.html');
   if isAjax then
     die(Result);
-
 end;
 
 procedure TAdminModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
-  if not User.isLoggedIn then
+  // Redirect does not stop the request: Get/Post check FAllowed
+  FAllowed := User.isLoggedIn;
+  if not FAllowed then
   begin
     Redirect(BaseURL + USER_URL_LOGIN + '?url=admin');
+    Exit;
   end;
   action := _GET['act'];
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
@@ -441,6 +457,8 @@ end;
 
 procedure TAdminModule.Get;
 begin
+  if not FAllowed then
+    Exit;
   Response.Content := ThemeUtil.Render();
 end;
 
@@ -449,6 +467,8 @@ var
   o: TJSONUtil;
   csrf: string;
 begin
+  if not FAllowed then
+    Exit;
   o := TJSONUtil.Create;
   o['code'] := 500;
 

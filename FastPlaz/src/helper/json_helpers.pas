@@ -7,7 +7,7 @@ file that was distributed with this source code.
 }
 unit json_helpers;
 
-{$mode objfpc}
+{$mode objfpc}{$H+}
 {$modeswitch typehelpers}
 
 interface
@@ -77,16 +77,16 @@ var
   s: string;
 begin
   s := StringReplace(APath, '/', '.', [rfReplaceAll]);
-  Result := Nil;
-  try
-    Result := Self.GetPath(s);
-  except
-  end;
+  Result := Self.FindPath(s);
 end;
 
+// the name based helpers only apply to an object; on an array or a value
+// the unchecked cast read foreign memory
 function TJsonSmartHelper.IndexOfName(const AIndexName: string): Integer;
 begin
-  Result := TJSONObject(Self).IndexOfName(AIndexName);
+  Result := -1;
+  if Self.JSONType = jtObject then
+    Result := TJSONObject(Self).IndexOfName(AIndexName);
 end;
 
 function TJsonSmartHelper.ValueOfName(const AIndexName: string): TJSONData;
@@ -94,7 +94,7 @@ var
   i: Integer;
 begin
   Result := Nil;
-  i := TJSONObject(Self).IndexOfName(AIndexName);
+  i := IndexOfName(AIndexName);
   if i <> -1 then
     Result := TJSONObject(Self).Items[i];
 end;
@@ -113,7 +113,7 @@ var
   indexOfField: integer;
 begin
   Result := False;
-  indexOfField := TJSONObject(Self).IndexOfName(AIndexName);
+  indexOfField := IndexOfName(AIndexName);
   if indexOfField = -1 then
     Exit;
   TJSONObject(Self).Delete(indexOfField);

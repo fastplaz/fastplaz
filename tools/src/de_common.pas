@@ -71,6 +71,7 @@ const
   {$endif}
   rsCopyFilePath = 'Copy File Path';
   rsCopyDirectoryPath = 'Copy Directory Path';
+  rsOpenTerminalFromHere = 'Open Terminal from Here';
 
   FASTCODE_PROMPT = 'You are an expert Pascal programmer. Please answer with specific code. Start description with //. Dont use markdown, and a maximum length of 80 characters per line in description. Only give responses in the %language% language.';
   FASTCODE_OPENING_CHAR = '{';
@@ -81,28 +82,29 @@ const
 
 resourcestring
   //rsDBConnector = 'DB Connector';
-  RS_FAST_CODE_CONFIGURATION = 'Fast Code Configuration';
+  RS_FAST_CODE_CONFIGURATION = 'Configuration';
   RS_FAST_CODE = 'Fast Code Suggestion';
   RS_FAST_CODE_MARK = '//';
-  RS_DATABASE_EXPLORER_MENU = 'Database Explorer';
-  RS_JSON_TOOLS_MENU = 'JSON Validator && Formatter';
-  RS_REGEX_TESTER_MENU = 'Regex Tester';
+  RS_DATABASE_EXPLORER_MENU = '&Database Explorer';
+  RS_JSON_TOOLS_MENU = '&JSON Validator && Formatter';
+  RS_REGEX_TESTER_MENU = '&Regex Tester';
+  RS_OPEN_TERMINAL_MENU = 'Open Console/&Terminal';
+  RS_OPEN_TERMINAL_NO_DIRECTORY = 'No saved project or file is open, nothing to open the terminal in.';
+  RS_OPEN_TERMINAL_NOT_FOUND = 'No terminal application found. Set the TERMINAL environment variable.';
   RS_THERE_ARE_DEVELOPMENT_UPDATE = 'There are development update: ';
   rsDBExplorer = 'DB Explorer';
   rsViewDBConnector = 'View DB Connector';
   rsConfirmation = 'Confirmation';
+  // deliberately inverted: the default button (Yes/Enter) cancels, so an
+  // accidental Enter never drops data or removes a connection
   rsAskCancelDangerOperation = 'I will cancel this danger operation (drop/delete)?';
-  rsAskCancelOperation = 'I will cancel this operation (drop/delete)?';
+  rsAskCancelOperation = 'I will cancel this operation (delete connection "%s")?';
 
   // json tools
   rsJsonSEmpty   = 'Empty document';
   rsJsonSArray   = 'Array (%d elements)';
   rsJsonSObject  = 'Object (%d members)';
   rsJsonSNull    = 'null';
-
-type
-  TOnSQLCallback = procedure(const AStatus: integer; const AMessage: string;
-    var AQuery: TSQLQuery) of object;
 
 var
   GlobalConfig,
@@ -117,18 +119,22 @@ procedure LoadConfiguration;
 implementation
 
 function preg_match(const ARegexExpression: string; AText: string): boolean;
+var
+  re: TRegExpr;
 begin
   Result := False;
+  re := TRegExpr.Create;
   try
-    with TRegExpr.Create do
-    begin
-      Expression := ARegexExpression;
-      Result := Exec(AText);
-      Free;
+    try
+      re.Expression := ARegexExpression;
+      Result := re.Exec(AText);
+    except
+      on E: Exception do
+        Result := False;
     end;
-  except
+  finally
+    re.Free;
   end;
-
 end;
 
 procedure InserTextToEditor(const AText: string);
@@ -169,13 +175,8 @@ begin
 end;
 
 procedure ViewDBConnector(Sender: TObject);
-var
-  Pkg: TIDEPackage;
 begin
   IDEWindowCreators.ShowForm(FDE_WINDOW_NAME, True);
-  //if IDEFDEWindow <> nil then
-  //begin
-  //end;
 end;
 
 procedure LoadConfiguration;

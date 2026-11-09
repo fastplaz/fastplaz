@@ -29,8 +29,9 @@ type
   { TArraySmartHelper }
 
   TArraySmartHelper = type helper for TStringArray
-    class function CreateFromDelimitedString(DelimString: String): TStringArray static;
-    class function IndexOf(AString: String): integer static; overload; inline;
+    // "a, b,c" -> ['a', 'b', 'c'] (trimmed, empty items dropped)
+    class function CreateFromDelimitedString(DelimString: String; ADelimiter: Char = ','): TStringArray; static;
+    function IndexOf(AString: String): integer; overload;
   public
     function Length: integer; overload; inline;
     function Count: integer; overload; inline;
@@ -47,17 +48,24 @@ end;
 
 { TArraySmartHelper }
 
-class function TArraySmartHelper.CreateFromDelimitedString(DelimString: String
-  ): TStringArray;
+class function TArraySmartHelper.CreateFromDelimitedString(DelimString: String;
+  ADelimiter: Char): TStringArray;
+var
+  parts: TStringArray;
+  i: integer;
 begin
-  //todo:
   Result := nil;
+  parts := DelimString.Split([ADelimiter]);
+  for i := 0 to system.Length(parts) - 1 do
+    if Trim(parts[i]) <> '' then
+      Result.Add(Trim(parts[i]));
 end;
 
-class function TArraySmartHelper.IndexOf(AString: String): integer;
+function TArraySmartHelper.IndexOf(AString: String): integer;
 begin
-  //todo:
-  Result := -1;
+  Result := system.Length(Self) - 1;
+  while (Result >= 0) and (Self[Result] <> AString) do
+    Dec(Result);
 end;
 
 function TArraySmartHelper.Length: integer;

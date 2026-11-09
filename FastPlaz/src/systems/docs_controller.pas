@@ -5,7 +5,7 @@ unit docs_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler;
 
 type
 
@@ -51,7 +51,8 @@ var
   s: string;
 begin
   //s := Copy(Application.Request.PathInfo, 7, Length(Application.Request.PathInfo) - 7);
-  s := Application.Request.GetNextPathInfo;
+  // fpweb splits the path on "/" only; a "\" or ".." must not leave view/
+  s := TThemeUtil.SafeTemplateName(Application.Request.GetNextPathInfo);
   if s = '' then
     s := 'main';
   s := 'modules/docs/view/' + s + '.html';

@@ -1,0 +1,90 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: de_common.rsaskcanceldangeroperation
+msgid "I will cancel this danger operation (drop/delete)?"
+msgstr "Saya batalkan operasi berbahaya ini (drop/delete)?"
+
+#: de_common.rsaskcanceloperation
+#, object-pascal-format
+msgid "I will cancel this operation (delete connection \"%s\")?"
+msgstr "Saya batalkan operasi ini (hapus koneksi \"%s\")?"
+
+#: de_common.rsconfirmation
+msgid "Confirmation"
+msgstr "Konfirmasi"
+
+#: de_common.rsdbexplorer
+msgid "DB Explorer"
+msgstr "DB Explorer"
+
+#: de_common.rsjsonsarray
+#, object-pascal-format
+msgid "Array (%d elements)"
+msgstr "Array (%d elemen)"
+
+#: de_common.rsjsonsempty
+msgid "Empty document"
+msgstr "Dokumen kosong"
+
+# JSON literal, keep as is
+#: de_common.rsjsonsnull
+msgid "null"
+msgstr ""
+
+#: de_common.rsjsonsobject
+#, object-pascal-format
+msgid "Object (%d members)"
+msgstr "Objek (%d anggota)"
+
+#: de_common.rsviewdbconnector
+msgid "View DB Connector"
+msgstr "Lihat DB Connector"
+
+#: de_common.rs_database_explorer_menu
+msgid "&Database Explorer"
+msgstr "&Database Explorer"
+
+# also used as the IDE command name, keep it so shortcuts survive a language switch
+#: de_common.rs_fast_code
+msgid "Fast Code Suggestion"
+msgstr ""
+
+#: de_common.rs_fast_code_configuration
+msgid "Configuration"
+msgstr "Konfigurasi"
+
+# marker the Fast Code command looks for, must not be translated
+#: de_common.rs_fast_code_mark
+msgid "//"
+msgstr ""
+
+#: de_common.rs_json_tools_menu
+msgid "&JSON Validator && Formatter"
+msgstr "Validasi && Format &JSON"
+
+#: de_common.rs_open_terminal_menu
+msgid "Open Console/&Terminal"
+msgstr "Buka Console/&Terminal"
+
+#: de_common.rs_open_terminal_not_found
+msgid "No terminal application found. Set the TERMINAL environment variable."
+msgstr "Aplikasi terminal tidak ditemukan. Atur variabel environment TERMINAL."
+
+#: de_common.rs_open_terminal_no_directory
+msgid "No saved project or file is open, nothing to open the terminal in."
+msgstr "Belum ada project atau file tersimpan yang terbuka, terminal tidak bisa dibuka."
+
+#: de_common.rs_regex_tester_menu
+msgid "&Regex Tester"
+msgstr "&Regex Tester"
+
+#: de_common.rs_there_are_development_update
+msgid "There are development update: "
+msgstr "Ada pembaruan development: "
+

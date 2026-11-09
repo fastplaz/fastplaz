@@ -5,7 +5,7 @@ unit permissionadmin_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib, user_util,
   database_lib, security_util, permission_util;
 
 const
@@ -20,6 +20,7 @@ type
 
   TPermissionAdminModule = class(TMyCustomWebModule)
   private
+    FAllowed: boolean;
     function UpdateSequence(const Order: string): string;
     function Tag_LevelInfo_Handler(const TagName: string;
       Params: TStringList): string;
@@ -62,34 +63,56 @@ end;
 
 procedure TPermissionAdminModule.Get;
 begin
+  if not FAllowed then
+    Exit;
   Response.Content := ThemeUtil.Render();
 end;
 
 procedure TPermissionAdminModule.Post;
 begin
-  die(UpdateSequence(_POST['order']));
+  // die() does not stop the request: an anonymous POST used to reach
+  // UpdateSequence
+  if not FAllowed then
+    Exit;
+  if not isValidCSRF then
+  begin
+    Response.Content := MSG_TOKEN_INVALID;
+    Exit;
+  end;
+  Response.Content := UpdateSequence(_POST['order']);
 end;
 
+// "1-12,2-7,..." -> sequence 2.. for pid 12, 7, ...
 function TPermissionAdminModule.UpdateSequence(const Order: string): string;
 const
-  SQL_ORDER_UPDATE = 'UPDATE group_perms SET sequence=%d WHERE pid=%s';
+  SQL_ORDER_UPDATE = 'UPDATE group_perms SET sequence=%d WHERE pid=%d';
 var
   lst1, lst2: TStrings;
-  sql: string;
-  i: integer;
+  i, pid: integer;
 begin
+  Result := '';
   if Order = '' then
     Exit;
   Result := 'OK';
   lst1 := Explode(Order, ',');
-  for i := 0 to lst1.Count - 1 do
-  begin
-    lst2 := Explode(lst1[i], '-');
-    sql := Format(SQL_ORDER_UPDATE, [i + 2, lst2[1]]);
-    QueryExec(sql);
-    lst2.Free;
+  try
+    for i := 0 to lst1.Count - 1 do
+    begin
+      lst2 := Explode(lst1[i], '-');
+      try
+        if lst2.Count < 2 then
+          Continue;
+        pid := s2i(lst2[1]);
+        if pid <= 0 then
+          Continue;
+        QueryExec(Format(SQL_ORDER_UPDATE, [i + 2, pid]));
+      finally
+        lst2.Free;
+      end;
+    end;
+  finally
+    lst1.Free;
   end;
-  lst1.Free;
 end;
 
 function TPermissionAdminModule.Tag_LevelInfo_Handler(const TagName: string;
@@ -109,7 +132,7 @@ begin
     ACCESS_EDIT: Result := 'Edit';
     ACCESS_DELETE: Result := 'Delete';
     ACCESS_COMMENT: Result := 'Comment';
-    ACCESS_ADMIN: Result := 'Adnin';
+    ACCESS_ADMIN: Result := 'Admin';
   end;
 end;
 
@@ -125,8 +148,6 @@ end;
 
 function TPermissionAdminModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
-var
-  action: string;
 begin
   Result := '';
 
@@ -145,12 +166,14 @@ begin
   LanguageInit;
   QueryExec('SET CHARACTER SET utf8;');
 
+  FAllowed := False;
   if not User.isLoggedIn then
   begin
     if isPost then
       die('failed')
     else
       Redirect(BaseURL + USER_URL_LOGIN + '?url=admin-permission-list');
+    Exit;
   end;
 
   if not User.checkPermission('permission', 'permission', ACCESS_EDIT) then
@@ -159,7 +182,9 @@ begin
       die('no access')
     else
       Redirect(BaseURL);
+    Exit;
   end;
+  FAllowed := True;
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['modinfo'] := @Tag_ModInfo_Handler;

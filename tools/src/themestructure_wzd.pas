@@ -25,6 +25,7 @@ type
     procedure CancelButtonClick(Sender: TObject);
     procedure edt_ThemeNameKeyDown(Sender: TObject; var Key: word;
       Shift: TShiftState);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure OKButtonClick(Sender: TObject);
   private
@@ -39,7 +40,7 @@ implementation
 
 {$R *.lfm}
 
-uses webstructure_lib, fastplaz_tools_register;
+uses webstructure_lib, fastplaz_tools_register, IDEExternToolIntf;
 
 { TfThemeStructure }
 
@@ -50,16 +51,23 @@ end;
 
 function TfThemeStructure.CreateTheme(
   const ThemeName, TargetDirectory: string): boolean;
+var
+  structure: TWebStructure;
 begin
-  Result := False;
-  with TWebStructure.Create do
-  begin
-    Result := GenerateThemeStructure(ThemeName, TargetDirectory);
-    Free;
+  structure := TWebStructure.Create;
+  try
+    Result := structure.GenerateThemeStructure(ThemeName, TargetDirectory);
+    if Result then
+      ShowMessage('Create Theme Done.')
+    else
+    begin
+      log(structure.ErrorMessage, '', mluError);
+      MessageDlg('Create Theme failed.' + LineEnding + LineEnding +
+        structure.ErrorMessage, mtError, [mbOK], 0);
+    end;
+  finally
+    structure.Free;
   end;
-  ShowMessage('Create Theme Done.');
-  log('Theme structure: ' + TargetDirectory + DirectorySeparator + ThemeName);
-  Result := True;
 end;
 
 procedure TfThemeStructure.CancelButtonClick(Sender: TObject);
@@ -74,12 +82,23 @@ begin
     key := 0;
 end;
 
+procedure TfThemeStructure.FormCloseQuery(Sender: TObject; var CanClose: boolean);
+begin
+  if (ModalResult = mrOk) and (Trim(edt_ThemeName.Text) = '') then
+  begin
+    edt_ThemeName.Color := clYellow;
+    edt_ThemeName.SetFocus;
+    CanClose := False;
+  end;
+end;
+
 procedure TfThemeStructure.FormCreate(Sender: TObject);
 begin
   edt_ThemeName.Clear;
-  edt_TargetDir.Directory := ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename);
+  if (LazarusIDE.ActiveProject <> nil) and (LazarusIDE.ActiveProject.MainFile <> nil) then
+    edt_TargetDir.Directory := ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename)
+  else
+    edt_TargetDir.Directory := GetUserDir;
 end;
 
-
 end.
-

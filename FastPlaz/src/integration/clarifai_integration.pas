@@ -7,6 +7,9 @@ file that was distributed with this source code.
 }
 unit clarifai_integration;
 
+{ DEPRECATED: Clarifai v1 API discontinued. The unit stays for existing callers; every request to the
+  old endpoint fails. }
+
 {
   [x] USAGE
 
@@ -48,7 +51,7 @@ type
     procedure SetImageURL(AValue: string);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -64,15 +67,13 @@ type
   published
     property ClientID: string read FClientID write FClientID;
     property ClientSecret: string read FClientSecret write FClientSecret;
-  end;
+  end deprecated 'Clarifai v1 API discontinued';
 
 implementation
 
 const
   _CLARIFAI_URL = 'https://api.clarifai.com/v2/';
 
-var
-  Response: IHTTPResponse;
 
 { TClarifai }
 
@@ -92,11 +93,12 @@ end;
 
 destructor TClarifai.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TClarifai.GetTags(ADownloadFile: boolean): string;
 var
+  Response: IHTTPResponse;
   _url, tmpFile: string;
 begin
   Result := '';
@@ -114,7 +116,7 @@ begin
 
   _url := _CLARIFAI_URL + 'tag/';
   with THTTPLib.Create(_url) do
-  begin
+  try
     try
       //ContentType := 'application/x-www-form-urlencoded';
       //AddHeader('Cache-Control', 'no-cache');
@@ -136,6 +138,7 @@ begin
       end;
     end;
 
+  finally
     Free;
   end;
 
@@ -165,8 +168,9 @@ begin
   _json.Free;
   }
 
-  _jsonData := GetJSON(s);
+  _jsonData := nil;
   try
+    _jsonData := GetJSON(s);
     s := _jsonData.GetPath('status_code').AsString;
     if s = 'OK' then
     begin
@@ -194,6 +198,7 @@ curl -X POST "https://api.clarifai.com/v1/token/" \
 }
 function TClarifai.RequestTokenAsJson: string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := '';
@@ -202,7 +207,7 @@ begin
 
   urlTarget := _CLARIFAI_URL + 'token/';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       //AddHeader('Authorization', 'Bearer ' + FToken);
       FormData['client_id'] := FClientID;
@@ -220,6 +225,7 @@ begin
       end;
     end;
 
+  finally
     Free;
   end;
 end;
@@ -233,11 +239,13 @@ begin
   s := RequestTokenAsJson;
   if s = '' then
     Exit;
+  _jsonData := nil;
   try
     _jsonData := GetJSON(s);
     Result := _jsonData.GetPath('access_token').AsString;
-  finally
+  except
   end;
+  _jsonData.Free;
 end;
 
 end.

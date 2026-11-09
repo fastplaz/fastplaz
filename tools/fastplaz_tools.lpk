@@ -9,7 +9,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
+        <OtherUnitFiles Value="src;src\ai_plane;..\FastPlaz\src\library;..\FastPlaz\src\integration"/>
         <UnitOutputDirectory Value="lib\tools\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Linking>
@@ -28,7 +28,7 @@
 for more information visit https://www.fastplaz.com
 "/>
     <Version Major="1" Release="1" Build="145"/>
-    <Files Count="51">
+    <Files Count="72">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -119,121 +119,205 @@ for more information visit https://www.fastplaz.com
         <UnitName Value="projectapi_wzd"/>
       </Item22>
       <Item23>
-        <Filename Value="src\projectgenerator_lib.pas"/>
-        <UnitName Value="projectgenerator_lib"/>
-      </Item23>
-      <Item24>
         <Filename Value="src\regex_tester.pas"/>
         <UnitName Value="regex_tester"/>
-      </Item24>
-      <Item25>
+      </Item23>
+      <Item24>
         <Filename Value="src\themestructure_wzd.pas"/>
         <UnitName Value="themestructure_wzd"/>
-      </Item25>
-      <Item26>
+      </Item24>
+      <Item25>
         <Filename Value="src\webstructure_lib.pas"/>
         <UnitName Value="webstructure_lib"/>
-      </Item26>
-      <Item27>
+      </Item25>
+      <Item26>
         <Filename Value="src\webstructure_wzd.pas"/>
         <UnitName Value="webstructure_wzd"/>
-      </Item27>
-      <Item28>
+      </Item26>
+      <Item27>
         <Filename Value="src\webstructure_wzd.lfm"/>
         <Type Value="LFM"/>
-      </Item28>
-      <Item29>
+      </Item27>
+      <Item28>
         <Filename Value="src\fastcode_configuration.pas"/>
         <UnitName Value="fastcode_configuration"/>
-      </Item29>
-      <Item30>
-        <Filename Value="..\FastPlaz\src\integration\openai_integration.pas"/>
-        <UnitName Value="openai_integration"/>
-      </Item30>
-      <Item31>
+      </Item28>
+      <Item29>
         <Filename Value="src\de_dbmemoedit.pas"/>
         <UnitName Value="de_dbmemoedit"/>
+      </Item29>
+      <Item30>
+        <Filename Value="src\de_dbmemoedit.lfm"/>
+        <Type Value="LFM"/>
+      </Item30>
+      <Item31>
+        <Filename Value="src\de_connection_editor.lfm"/>
+        <Type Value="LFM"/>
       </Item31>
       <Item32>
-        <Filename Value="src\de_dbmemoedit.lfm"/>
+        <Filename Value="src\de_connector.lfm"/>
         <Type Value="LFM"/>
       </Item32>
       <Item33>
-        <Filename Value="src\swagger_lib.pas"/>
-        <UnitName Value="swagger_lib"/>
+        <Filename Value="src\de_dbbrowser.lfm"/>
+        <Type Value="LFM"/>
       </Item33>
       <Item34>
-        <Filename Value="src\de_connection_editor.lfm"/>
+        <Filename Value="src\fastcode_configuration.lfm"/>
         <Type Value="LFM"/>
       </Item34>
       <Item35>
-        <Filename Value="src\de_connector.lfm"/>
+        <Filename Value="src\json_tools.lfm"/>
         <Type Value="LFM"/>
       </Item35>
       <Item36>
-        <Filename Value="src\de_dbbrowser.lfm"/>
+        <Filename Value="src\model_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item36>
       <Item37>
-        <Filename Value="src\fastcode_configuration.lfm"/>
+        <Filename Value="src\modsimple_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item37>
       <Item38>
-        <Filename Value="src\json_tools.lfm"/>
+        <Filename Value="src\packageapp_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item38>
       <Item39>
-        <Filename Value="src\model_wzd.lfm"/>
+        <Filename Value="src\project_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item39>
       <Item40>
-        <Filename Value="src\modsimple_wzd.lfm"/>
+        <Filename Value="src\projectapi_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item40>
       <Item41>
-        <Filename Value="src\packageapp_wzd.lfm"/>
+        <Filename Value="src\regex_tester.lfm"/>
         <Type Value="LFM"/>
       </Item41>
       <Item42>
-        <Filename Value="src\project_wzd.lfm"/>
+        <Filename Value="src\themestructure_wzd.lfm"/>
         <Type Value="LFM"/>
       </Item42>
       <Item43>
-        <Filename Value="src\projectapi_wzd.lfm"/>
-        <Type Value="LFM"/>
-      </Item43>
-      <Item44>
-        <Filename Value="src\regex_tester.lfm"/>
-        <Type Value="LFM"/>
-      </Item44>
-      <Item45>
-        <Filename Value="src\themestructure_wzd.lfm"/>
-        <Type Value="LFM"/>
-      </Item45>
-      <Item46>
         <Filename Value="src\de.inc"/>
         <Type Value="Include"/>
-      </Item46>
-      <Item47>
+      </Item43>
+      <Item44>
         <Filename Value="..\FastPlaz\src\library\config_lib.pas"/>
         <UnitName Value="config_lib"/>
-      </Item47>
-      <Item48>
-        <Filename Value="..\FastPlaz\src\library\http_lib.pas"/>
-        <UnitName Value="http_lib"/>
-      </Item48>
-      <Item49>
+      </Item44>
+      <Item45>
         <Filename Value="..\FastPlaz\src\library\regexpr_lib.pas"/>
         <UnitName Value="regexpr_lib"/>
-      </Item49>
-      <Item50>
+      </Item45>
+      <Item46>
         <Filename Value="..\FastPlaz\src\library\regexpr_unicodedata_lib.pas"/>
         <UnitName Value="regexpr_unicodedata_lib"/>
-      </Item50>
-      <Item51>
+      </Item46>
+      <Item47>
         <Filename Value="src\regex_tester_lib.pas"/>
         <UnitName Value="regex_tester_lib"/>
+      </Item47>
+      <Item48>
+        <Filename Value="..\FastPlaz\src\integration\openai_integration.pas"/>
+        <UnitName Value="openai_integration"/>
+      </Item48>
+      <Item49>
+        <Filename Value="src\tools_lib.pas"/>
+        <UnitName Value="tools_lib"/>
+      </Item49>
+      <Item50>
+        <Filename Value="src\ai_plane\aiplane_types.pas"/>
+        <UnitName Value="aiplane_types"/>
+      </Item50>
+      <Item51>
+        <Filename Value="src\ai_plane\aiplane_process.pas"/>
+        <UnitName Value="aiplane_process"/>
       </Item51>
+      <Item52>
+        <Filename Value="src\ai_plane\aiplane_acp.pas"/>
+        <UnitName Value="aiplane_acp"/>
+      </Item52>
+      <Item53>
+        <Filename Value="src\ai_plane\aiplane_claude.pas"/>
+        <UnitName Value="aiplane_claude"/>
+      </Item53>
+      <Item54>
+        <Filename Value="src\ai_plane\aiplane_presets.pas"/>
+        <UnitName Value="aiplane_presets"/>
+      </Item54>
+      <Item55>
+        <Filename Value="src\ai_plane\aiplane_chatview.pas"/>
+        <UnitName Value="aiplane_chatview"/>
+      </Item55>
+      <Item56>
+        <Filename Value="src\ai_plane\aiplane_chatframe.pas"/>
+        <UnitName Value="aiplane_chatframe"/>
+      </Item56>
+      <Item57>
+        <Filename Value="src\ai_plane\aiplane_settingsframe.pas"/>
+        <UnitName Value="aiplane_settingsframe"/>
+      </Item57>
+      <Item58>
+        <Filename Value="src\ai_plane\aiplane_ide.pas"/>
+        <UnitName Value="aiplane_ide"/>
+      </Item58>
+      <Item59>
+        <Filename Value="src\ai_plane\aiplane_chatframe.lfm"/>
+        <Type Value="LFM"/>
+      </Item59>
+      <Item60>
+        <Filename Value="src\ai_plane\aiplane_settingsframe.lfm"/>
+        <Type Value="LFM"/>
+      </Item60>
+      <Item61>
+        <Filename Value="src\ai_plane\aiplane_ide.lfm"/>
+        <Type Value="LFM"/>
+      </Item61>
+      <Item62>
+        <Filename Value="src\ai_plane\aiplane_markdown.pas"/>
+        <UnitName Value="aiplane_markdown"/>
+      </Item62>
+      <Item63>
+        <Filename Value="src\ai_plane\aiplane_codehighlight.pas"/>
+        <UnitName Value="aiplane_codehighlight"/>
+      </Item63>
+      <Item64>
+        <Filename Value="src\ai_plane\aiplane_pi.pas"/>
+        <UnitName Value="aiplane_pi"/>
+      </Item64>
+      <Item65>
+        <Filename Value="src\ai_plane\aiplane_httpserver.pas"/>
+        <UnitName Value="aiplane_httpserver"/>
+      </Item65>
+      <Item66>
+        <Filename Value="src\ai_plane\aiplane_mcpserver.pas"/>
+        <UnitName Value="aiplane_mcpserver"/>
+      </Item66>
+      <Item67>
+        <Filename Value="src\ai_plane\aiplane_tools_ide.pas"/>
+        <UnitName Value="aiplane_tools_ide"/>
+      </Item67>
+      <Item68>
+        <Filename Value="src\ai_plane\aiplane_tools_fastplaz.pas"/>
+        <UnitName Value="aiplane_tools_fastplaz"/>
+      </Item68>
+      <Item69>
+        <Filename Value="src\ai_plane\aiplane_questiondlg.pas"/>
+        <UnitName Value="aiplane_questiondlg"/>
+      </Item69>
+      <Item70>
+        <Filename Value="src\ai_plane\aiplane_reference.pas"/>
+        <UnitName Value="aiplane_reference"/>
+      </Item70>
+      <Item71>
+        <Filename Value="src\ai_plane\aiplane_textedit.pas"/>
+        <UnitName Value="aiplane_textedit"/>
+      </Item71>
+      <Item72>
+        <Filename Value="src\ai_plane\aiplane_tools_editor.pas"/>
+        <UnitName Value="aiplane_tools_editor"/>
+      </Item72>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

@@ -75,17 +75,19 @@ function TCloudinaryIntegration.UploadFile(FileName: string;
 begin
   FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
-  begin
+  try
     ContentType := 'application/x-www-form-urlencoded';
     if Public_Id = '' then
        FormData[ 'public_id'] := ChangeFileExt( ExtractFileName( FileName), '');
     FormData[ 'api_key'] := ( FApiKey);
-    FormData[ 'api_secret'] := ( FApiSecret);
+    // the secret is never sent: unsigned uploads use the preset, signed
+    // uploads need a signature
     FormData[ 'upload_preset'] := ( FUploadPreset);
     AddFile( FileName, 'file');
 
     Result := Post;
     FIsSuccessfull := IsSuccessfull;
+  finally
     Free;
   end;
 end;

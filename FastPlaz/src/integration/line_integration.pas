@@ -82,7 +82,7 @@ type
     procedure setTitle(AValue: string);
   public
     constructor Create(ATemplateType: string);
-    destructor Destroy;
+    destructor Destroy; override;
 
     function AsJSON: string;
     function AsJSONFormated: string;
@@ -131,7 +131,7 @@ type
     procedure setRequestContent(AValue: string);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property BotName: string read FBotName write FBotName;
     property Token: string read FToken write FToken;
@@ -192,8 +192,17 @@ const
   _LINE_GETPROFILE_URL = 'https://api.line.me/v2/bot/profile/%s';
   _LINE_PATH_TEMP_DEFAULT = 'ztemp/cache/';
 
+
+// JSON numbers always use a dot
+function floatToJson(AValue: double): string;
 var
-  Response: IHTTPResponse;
+  fs: TFormatSettings;
+begin
+  fs := DefaultFormatSettings;
+  fs.DecimalSeparator := '.';
+  fs.ThousandSeparator := #0;
+  Result := FormatFloat('0.######', AValue, fs);
+end;
 
 { TLineTemplateMessage }
 
@@ -267,17 +276,27 @@ begin
   jsonActions.Free;
   jsonTemplate.Free;
   jsonObject.Free;
+  inherited Destroy;
 end;
 
+// built from copies: the parts stay owned by this object, so AsJSON can be
+// called more than once and Destroy frees each part exactly once
 function TLineTemplateMessage.AsJSON: string;
+var
+  o, t: TJSONObject;
 begin
-  jsonObject.Objects['template'] := jsonTemplate;
-  if FTemplateType = 'buttons' then
-    jsonTemplate.Arrays['actions'] := jsonActions;
-  if FTemplateType = 'carousel' then
-    jsonTemplate.Arrays['columns'] := jsonColumns;
-
-  Result := jsonObject.AsJSON;
+  o := TJSONObject(jsonObject.Clone);
+  try
+    t := TJSONObject(jsonTemplate.Clone);
+    if FTemplateType = 'buttons' then
+      t.Arrays['actions'] := TJSONArray(jsonActions.Clone);
+    if FTemplateType = 'carousel' then
+      t.Arrays['columns'] := TJSONArray(jsonColumns.Clone);
+    o.Objects['template'] := t;
+    Result := o.AsJSON;
+  finally
+    o.Free;
+  end;
 end;
 
 function TLineTemplateMessage.AsJSONFormated: string;
@@ -287,10 +306,18 @@ begin
 end;
 
 function TLineTemplateMessage.GetTemplateAsJsonString: string;
+var
+  t: TJSONObject;
 begin
-  jsonTemplate.Delete('type');
-  jsonTemplate.Arrays['actions'] := jsonActions;
-  Result := jsonTemplate.AsJSON;
+  t := TJSONObject(jsonTemplate.Clone);
+  try
+    if t.IndexOfName('type') <> -1 then
+      t.Delete('type');
+    t.Arrays['actions'] := TJSONArray(jsonActions.Clone);
+    Result := t.AsJSON;
+  finally
+    t.Free;
+  end;
 end;
 
 procedure TLineTemplateMessage.AddActionPostBack(ALabel, AData: string);
@@ -327,10 +354,17 @@ end;
 
 procedure TLineTemplateMessage.AddColumnAsJson(AJsonString: string);
 var
-  json: TJSONObject;
+  json: TJSONData;
 begin
-  json := TJSONObject(GetJSON(AJsonString, False));
-  jsonColumns.Add(json);
+  try
+    json := GetJSON(AJsonString, False);
+  except
+    json := nil;
+  end;
+  if json is TJSONObject then
+    jsonColumns.Add(json)
+  else
+    json.Free;
 end;
 
 
@@ -341,7 +375,11 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue, False);
+  FreeAndNil(jsonData);
+  try
+    jsonData := GetJSON(AValue, False);
+  except
+  end;
 end;
 
 function TLineIntegration.getReplyToken: string;
@@ -409,12 +447,13 @@ begin
     FPostbackData.Free;
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 procedure TLineIntegration.Reply(AReplyToken: string; AMessages: string);
 var
+  Response: IHTTPResponse;
   _jsonString: TStringList;
-  lst: TStringList;
 begin
   if not isCanSend then
     Exit;
@@ -422,41 +461,22 @@ begin
     Exit;
 
   _jsonString := TStringList.Create;
-  lst := TStringList.Create;
-  lst.Text := AMessages;
   with THTTPLib.Create(_LINE_REPLY_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
       AddHeader('Authorization', 'Bearer ' + FToken);
 
-
       _jsonString.Add('{');
-      _jsonString.Add('"replyToken":"' + AReplyToken + '",');
+      _jsonString.Add('"replyToken":"' + StringToJSONString(AReplyToken, False) + '",');
       _jsonString.Add('"messages":[');
-
-      {
-      for i := 0 to lst.Count - 1 do
-      begin
-        _jsonString.add('{');
-        _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst[i], False) + '"');
-        _jsonString.add('}');
-        if i <> lst.Count - 1 then
-          _jsonString.Add(',');
-      end;
-      }
       _jsonString.add('{');
       _jsonString.add('"type":"text",');
-      _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
+      _jsonString.add('"text":"' + StringToJSONString(AMessages, False) + '"');
       _jsonString.add('}');
-
-      //--
       _jsonString.Add(']');
       _jsonString.Add('}');
-
 
       RequestBody := TStringStream.Create(_jsonString.Text);
 
@@ -470,17 +490,17 @@ begin
         LogUtil.Add('reply: ' + E.Message, 'LINE');
       end;
     end;
+  finally
     Free;
   end;
 
   _jsonString.Free;
-  lst.Free;
 end;
 
 procedure TLineIntegration.Push(ATo: string; AMessages: string; AISJSON: boolean);
 var
+  Response: IHTTPResponse;
   _jsonString: TStringList;
-  lst: TStringList;
 begin
   if not isCanSend then
     Exit;
@@ -488,19 +508,15 @@ begin
     Exit;
 
   _jsonString := TStringList.Create;
-  lst := TStringList.Create;
-  lst.Text := AMessages;
   with THTTPLib.Create(_LINE_PUSH_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
       AddHeader('Authorization', 'Bearer ' + FToken);
 
-
       _jsonString.Add('{');
-      _jsonString.Add('"to":"' + ATo + '",');
+      _jsonString.Add('"to":"' + StringToJSONString(ATo, False) + '",');
       if AISJSON then
       begin
         _jsonString.Add('"messages":[' + AMessages);
@@ -510,11 +526,9 @@ begin
         _jsonString.Add('"messages":[');
         _jsonString.add('{');
         _jsonString.add('"type":"text",');
-        _jsonString.add('"text":"' + StringToJSONString(lst.Text, False) + '"');
+        _jsonString.add('"text":"' + StringToJSONString(AMessages, False) + '"');
         _jsonString.add('}');
       end;
-
-      //--
       _jsonString.Add(']');
       _jsonString.Add('}');
 
@@ -525,12 +539,17 @@ begin
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add('push: ' + E.Message, 'LINE');
+      end;
     end;
+  finally
     Free;
   end;
 
   _jsonString.Free;
-  lst.Free;
 end;
 
 procedure TLineIntegration.Send(ATo: string; AMessages: string);
@@ -540,6 +559,7 @@ end;
 
 procedure TLineIntegration.SendAudio(AUserID: string; AAudioURL: string);
 var
+  Response: IHTTPResponse;
   urlAudio: string;
   _jsonString: TStringList;
 begin
@@ -554,7 +574,7 @@ begin
   _jsonString := TStringList.Create;
   _jsonString.Text := '';
   with THTTPLib.Create(_LINE_PUSH_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -575,7 +595,7 @@ begin
         LogUtil.Add( urlAudio, 'LINE_AUDIO');
 
       _jsonString.Add('{');
-      _jsonString.Add('"to":"' + AUserID + '",');
+      _jsonString.Add('"to":"' + StringToJSONString(AUserID, False) + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "audio", "originalContentUrl": "' +
         urlAudio + '", "duration": ' + i2s(Length(urlAudio) * 120) + '}');
@@ -590,6 +610,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
 
   end;
@@ -599,6 +620,7 @@ end;
 
 procedure TLineIntegration.SendImage(AUserID: string; AImageURL: string);
 var
+  Response: IHTTPResponse;
   urlImage: string;
   _jsonString: TStringList;
 begin
@@ -613,7 +635,7 @@ begin
   _jsonString := TStringList.Create;
   _jsonString.Text := '';
   with THTTPLib.Create(_LINE_PUSH_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -634,7 +656,7 @@ begin
         LogUtil.Add( urlImage, 'LINE_IMAGE');
 
       _jsonString.Add('{');
-      _jsonString.Add('"to":"' + AUserID + '",');
+      _jsonString.Add('"to":"' + StringToJSONString(AUserID, False) + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "image", "originalContentUrl": "' +
         urlImage + '", "previewImageUrl": "' + urlImage + '"}');
@@ -654,6 +676,7 @@ begin
           LogUtil.Add( E.Message, 'LINE_IMAGE');
       end;
     end;
+  finally
     Free;
   end;
 
@@ -665,6 +688,7 @@ end;
 procedure TLineIntegration.SendSticker(ATo: string; APackageID: string;
   AStickerID: string);
 var
+  Response: IHTTPResponse;
   _jsonString: TStringList;
 begin
   if not isCanSend then
@@ -674,7 +698,7 @@ begin
 
   _jsonString := TStringList.Create;
   with THTTPLib.Create(_LINE_PUSH_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -683,12 +707,13 @@ begin
 
 
       _jsonString.Add('{');
-      _jsonString.Add('"to":"' + UserID + '",');
+      // the recipient is the parameter, not the sender of the incoming event
+      _jsonString.Add('"to":"' + StringToJSONString(ATo, False) + '",');
       _jsonString.Add('"messages":[');
       _jsonString.add('{');
       _jsonString.add('"type":"sticker",');
-      _jsonString.add('"packageId":"' + APackageID + '",');
-      _jsonString.add('"stickerId":"' + AStickerID + '"');
+      _jsonString.add('"packageId":"' + StringToJSONString(APackageID, False) + '",');
+      _jsonString.add('"stickerId":"' + StringToJSONString(AStickerID, False) + '"');
       _jsonString.add('}');
 
       //--
@@ -703,6 +728,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
@@ -712,6 +738,7 @@ end;
 procedure TLineIntegration.SendLocation(AUserID: string; AName: string;
   AAddress: string; ALatitude: double; ALongitude: double);
 var
+  Response: IHTTPResponse;
   _jsonString: TStringList;
 begin
   if not isCanSend then
@@ -722,7 +749,7 @@ begin
   _jsonString := TStringList.Create;
   _jsonString.Text := '';
   with THTTPLib.Create(_LINE_PUSH_URL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -730,13 +757,13 @@ begin
       AddHeader('Authorization', 'Bearer ' + FToken);
 
       _jsonString.Add('{');
-      _jsonString.Add('"to":"' + AUserID + '",');
+      _jsonString.Add('"to":"' + StringToJSONString(AUserID, False) + '",');
       _jsonString.Add('"messages":[');
       _jsonString.Add('{"type": "location",');
-      _jsonString.Add(' "title": "' + AName + '",');
-      _jsonString.Add(' "address": "' + AAddress + '",');
-      _jsonString.Add(' "latitude": ' + f2s(ALatitude) + ',');
-      _jsonString.Add(' "longitude": ' + f2s(ALongitude) + ',');
+      _jsonString.Add(' "title": "' + StringToJSONString(AName, False) + '",');
+      _jsonString.Add(' "address": "' + StringToJSONString(AAddress, False) + '",');
+      _jsonString.Add(' "latitude": ' + floatToJson(ALatitude) + ',');
+      _jsonString.Add(' "longitude": ' + floatToJson(ALongitude) + ',');
       _jsonString.Add(' "z": 0}');
       _jsonString.Add(']');
       _jsonString.Add('}');
@@ -749,6 +776,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
 
   end;
@@ -758,6 +786,7 @@ end;
 
 function TLineIntegration.GetContent(AMessageID: string; ATargetFile: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
@@ -766,7 +795,7 @@ begin
 
   urlTarget := Format(_LINE_GETCONTENT_URL, [AMessageID]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Authorization', 'Bearer ' + FToken);
@@ -788,6 +817,7 @@ begin
         LogUtil.Add('download: ' + E.Message, 'LINE');
       end;
     end;
+  finally
     Free;
   end;
 end;
@@ -799,6 +829,7 @@ end;
 
 function TLineIntegration.GetProfile(AUserId: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
@@ -806,7 +837,7 @@ begin
 
   urlTarget := Format(_LINE_GETPROFILE_URL, [AUserId]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Authorization', 'Bearer ' + FToken);
@@ -827,6 +858,7 @@ begin
         LogUtil.Add('get profile: ' + E.Message, 'LINE');
       end;
     end;
+  finally
     Free;
   end;
 end;
@@ -903,6 +935,7 @@ begin
     if jsonData.GetPath('events[0].type').AsString = 'postback' then
       Result := True;
     s := jsonData.GetPath('events[0].postback.data').AsString;
+    FreeAndNil(FPostbackData);
     FPostbackData := Explode(s, '&');
   except
   end;

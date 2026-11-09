@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: packageapp_lib.rs_packageapp_description
+msgid "Create Full Package web application based on FastPlaz"
+msgstr "Buat aplikasi web paket lengkap berbasis FastPlaz"
+
+#: packageapp_lib.rs_packageapp_name
+msgid "Full Package Application"
+msgstr "Aplikasi Paket Lengkap"

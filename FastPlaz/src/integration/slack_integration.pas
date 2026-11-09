@@ -31,10 +31,8 @@ unit slack_integration;
 interface
 
 uses
-  http_lib,
+  http_lib, fpjson,
   Classes, SysUtils;
-
-{$ifdef SLACK_INTEGRATION}
 
 type
 
@@ -58,10 +56,11 @@ type
     procedure setText(AValue: string);
     procedure setURL(AValue: string);
     procedure setUsername(AValue: string);
-    procedure generatePayload;
   public
     constructor Create(URL: string);
     constructor Create;
+    // fills Payload from Channel, Username, Text and Icon
+    procedure GeneratePayload;
     function Send: IHTTPResponse;
   published
     property URL: string read getURL write setURL;
@@ -73,11 +72,7 @@ type
     property IsSuccessfull: boolean read getIsSuccessfull;
   end;
 
-{$endif}
-
 implementation
-
-{$ifdef SLACK_INTEGRATION}
 
 { TSlackWebhookIntegration }
 
@@ -146,21 +141,24 @@ begin
   FUsername := AValue;
 end;
 
-procedure TSlackWebhookIntegration.generatePayload;
+procedure TSlackWebhookIntegration.GeneratePayload;
 var
-  s: string;
+  o: TJSONObject;
 begin
-  s := '{';
-  if FChannel <> '' then
-    s := s + '"channel":' + '"' + FChannel + '"';
-  if FUsername <> '' then
-    s := s + ',"username":' + '"' + FUsername + '"';
-  if FText <> '' then
-    s := s + ',"text":' + '"' + FText + '"';
-  if FIcon <> '' then
-    s := s + ',"icon_emoji":' + '"' + FIcon + '"';
-  s := s + '}';
-  Payload := s;
+  o := TJSONObject.Create;
+  try
+    if FChannel <> '' then
+      o.Add('channel', FChannel);
+    if FUsername <> '' then
+      o.Add('username', FUsername);
+    if FText <> '' then
+      o.Add('text', FText);
+    if FIcon <> '' then
+      o.Add('icon_emoji', FIcon);
+    Payload := o.AsJSON;
+  finally
+    o.Free;
+  end;
 end;
 
 constructor TSlackWebhookIntegration.Create(URL: string);
@@ -179,18 +177,17 @@ begin
   if URL = '' then
     Exit;
 
-  generatePayload;
+  GeneratePayload;
   FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
-  begin
+  try
     FormData['payload'] := FPayload;
     Result := Post;
     FIsSuccessfull := IsSuccessfull;
+  finally
     Free;
   end;
 end;
-
-{$endif}
 
 end.
 

@@ -6,7 +6,7 @@ interface
 
 uses
   stemmingnazief_lib, redis_controller, common,
-  Classes, SysUtils;
+  SysUtils;
 
 const
   _STEMMINGNAZIEF_DICTIONARY_REDISKEY = 'STEMMING_DICTIONARY';
@@ -72,9 +72,16 @@ begin
 end;
 
 procedure TStemmingNaziefRedis.LoadDictionaryFromRedis(AKeyName: string);
+var
+  s: string;
 begin
   FKeyName := AKeyName;
-  Dictionary.Text := UrlDecode(FRedis[AKeyName]);
+  s := UrlDecode(FRedis[AKeyName]);
+  // a missing key or an unreachable server yields ''; an empty dictionary
+  // must not be flagged as loaded or every word would fail to stem
+  if Trim(s) = '' then
+    Exit;
+  Dictionary.Text := s;
   IsDictionaryLoaded := True;
 end;
 

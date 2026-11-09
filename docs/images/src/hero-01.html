@@ -1,0 +1,184 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!--
+  FastPlaz hero banner source.
+  Render with headless Chrome:
+    desktop: --window-size=1200,510 --force-device-scale-factor=2  hero.html?lang=id|en
+    mobile : --window-size=480,950  --force-device-scale-factor=2  hero.html?lang=id|en&layout=mobile
+    cards  : --window-size=480,H    --force-device-scale-factor=2  hero.html?lang=id|en&layout=cards&theme=site&h=H
+             (feature cards only, for the fastplaz.com hero column)
+  Add &theme=site for the light fastplaz.com palette (hero-02*.png); default is the dark theme (hero-01*.png).
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1200px;height:510px;overflow:hidden}
+body{font-family:"Segoe UI","Nunito Sans",Arial,sans-serif;color:#e6ebff;
+  background:
+    radial-gradient(700px 380px at 12% 0%,rgba(84,120,255,.35),transparent 70%),
+    radial-gradient(600px 360px at 95% 100%,rgba(255,122,48,.22),transparent 70%),
+    linear-gradient(160deg,#0d1330 0%,#121a44 55%,#0b1029 100%);
+  position:relative}
+.grid{position:absolute;inset:0;background-image:
+  linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:40px 40px;mask-image:linear-gradient(#000,transparent 85%)}
+.wrap{position:relative;padding:44px 52px 0}
+.top{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#5b7cff,#3a4fe0);box-shadow:0 8px 24px rgba(70,100,255,.45)}
+.brand b{font-size:26px;letter-spacing:.5px;color:#fff}
+.pill{font-size:13px;font-weight:600;letter-spacing:.6px;padding:7px 14px;border-radius:99px;
+  color:#ffd2b8;background:rgba(255,122,48,.14);border:1px solid rgba(255,140,80,.45)}
+h1{margin-top:28px;font-size:50px;font-weight:800;letter-spacing:1px;color:#fff;line-height:1.05}
+h1 span{background:linear-gradient(90deg,#7f9bff,#b8c6ff);-webkit-background-clip:text;color:transparent}
+.sub{margin-top:14px;max-width:1000px;font-size:17px;line-height:1.55;color:#aeb8dc}
+.sub b{color:#fff;font-weight:600}
+.sub em{font-style:normal;color:#9db0ff}
+.cards{margin-top:34px;display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.card{position:relative;padding:20px 18px 18px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.09)}
+.ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none;
+  background:rgba(91,124,255,.18);border:1px solid rgba(120,150,255,.35);margin-bottom:14px}
+.ic svg{width:24px;height:24px;stroke:#a9bbff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
+.card p{font-size:13.5px;line-height:1.45;color:#9aa5cc}
+.card p i{color:#c3cdf0}
+.hot{background:linear-gradient(180deg,rgba(255,122,48,.20),rgba(255,122,48,.06));
+  border:1px solid rgba(255,140,80,.55);box-shadow:0 10px 34px rgba(255,110,40,.22)}
+.hot .ic{background:rgba(255,122,48,.22);border-color:rgba(255,150,90,.6)}
+.hot .ic svg{stroke:#ffb48a}
+.badge{position:absolute;top:14px;right:14px;font-size:10.5px;font-weight:800;letter-spacing:1px;
+  padding:4px 8px;border-radius:6px;color:#2a1205;background:linear-gradient(90deg,#ffb07a,#ff7a30)}
+
+/* mobile layout */
+.m,.m body{width:480px;height:950px}
+.m .wrap{padding:32px 24px 28px}
+.m .top{flex-direction:column;align-items:flex-start;gap:16px}
+.m .pill{font-size:11px}
+.m h1{font-size:40px;margin-top:24px}
+.m h1 span{display:block}
+.m .sub{font-size:15.5px}
+.m .cards{grid-template-columns:1fr;gap:12px;margin-top:26px}
+.m .card{display:flex;gap:16px;align-items:flex-start;padding:16px}
+.m .ic{margin-bottom:0}
+.m .card h3{font-size:17px;margin-bottom:3px}
+.m .card p{font-size:13.5px}
+.m .badge{top:16px;right:16px}
+
+/* cards layout: feature cards only, for the fastplaz.com hero column */
+.c,.c body{width:480px;height:var(--h,600px)}
+.c .wrap{padding:24px 24px 0}
+.c h1,.c .sub{display:none}
+.c .pill{font-size:11px;padding:6px 12px}
+.c.site .brand img{height:48px}
+.c .cards{grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.c .card{padding:16px 15px 15px}
+.c .ic{width:38px;height:38px;margin-bottom:10px}
+.c .ic svg{width:21px;height:21px}
+.c .card h3{font-size:16.5px;margin-bottom:4px}
+.c .card p{font-size:13px}
+.c .hot{order:-1;grid-column:1/-1;display:flex;gap:14px;align-items:flex-start}
+.c .hot .ic{margin-bottom:0}
+.c .badge{top:14px;right:14px}
+
+/* site theme: fastplaz.com palette (primary #184E8E, accent #C8102E, navy #14213D) */
+.site body{color:#14213D;background:
+    radial-gradient(700px 380px at 8% 0%,rgba(24,78,142,.10),transparent 70%),
+    radial-gradient(600px 360px at 98% 100%,rgba(200,16,46,.07),transparent 70%),
+    linear-gradient(160deg,#F7F9FC 0%,#F3F6FA 60%,#EEF2F8 100%)}
+.site .grid{background-image:
+  linear-gradient(rgba(24,78,142,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(24,78,142,.05) 1px,transparent 1px)}
+.site .speed{display:block}
+.speed{display:none;position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,#184E8E 0 70%,#C8102E 70% 100%)}
+.site .brand img{height:64px;width:auto;display:block}
+.m.site .brand img{height:56px}
+.site .pill{color:#184E8E;background:#fff;border:1px solid #DCE3EC;letter-spacing:1.6px}
+.site h1{color:#14213D;letter-spacing:-.5px}
+.site h1 span{background:none;color:#184E8E}
+.site .sub{color:#51607A}
+.site .sub b{color:#14213D}
+.site .sub em{color:#184E8E;font-weight:600}
+.site .card{background:#fff;border:1px solid #DCE3EC;box-shadow:0 6px 20px rgba(20,33,61,.06)}
+.site .ic{background:#EAF1FA;border-color:#C9D9EE}
+.site .ic svg{stroke:#184E8E}
+.site .card h3{color:#14213D}
+.site .card p{color:#51607A}
+.site .card p i{color:#14213D}
+.site .hot{background:#fff;border:1.5px solid #C8102E;box-shadow:0 10px 30px rgba(200,16,46,.14)}
+.site .hot .ic{background:#FCEBEE;border-color:#F1BAC4}
+.site .hot .ic svg{stroke:#C8102E}
+.site .badge{color:#fff;background:#C8102E}
+</style></head>
+<body><div class="grid"></div><div class="speed"></div>
+<div class="wrap" id="app"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const lang = q.get('lang') === 'en' ? 'en' : 'id';
+if (q.get('layout') === 'mobile') document.documentElement.classList.add('m');
+if (q.get('layout') === 'cards') document.documentElement.classList.add('c');
+if (q.get('h')) document.documentElement.style.setProperty('--h', q.get('h') + 'px');
+const site = q.get('theme') === 'site';
+if (site) document.documentElement.classList.add('site');
+
+const T = {
+  id: {
+    pill: 'FREE PASCAL WEB FRAMEWORK',
+    h1: 'Ringan <span>Tanpa Beban</span>',
+    sub: '<b>FastPlaz</b> adalah web framework untuk <em>Free Pascal</em>. Satu binary native yang ringan, jalan di server minimal, bisa dikompilasi langsung dari terminal atau dibangun di <em>Lazarus IDE</em> bersama coding agent AI.',
+    badge: 'BARU',
+    cards: [
+      ['MVC', 'Pola <i>model-view-controller</i> yang memudahkan pengembangan aplikasi.'],
+      ['ORM', 'Akses database mudah lewat Model <i>Object Relational Mapping</i>.'],
+      ['Multi Platform', 'Standalone HTTP atau CGI di <i>shared hosting</i> cPanel; Windows, Linux, macOS.'],
+      ['FTE Engine', '<i>Template engine</i> sederhana yang membuat tampilan makin menarik.'],
+      ['AI Agent Plane', 'Coding agent AI di dalam Lazarus IDE: buka file, compile, perbaiki error.'],
+    ],
+  },
+  en: {
+    pill: 'FREE PASCAL WEB FRAMEWORK',
+    h1: 'Lightweight, <span>Super Fast</span>',
+    sub: '<b>FastPlaz</b> is a web framework for <em>Free Pascal</em>. One lightweight native binary that runs on minimal servers, compiles straight from the terminal or builds in the <em>Lazarus IDE</em> alongside an AI coding agent.',
+    badge: 'NEW',
+    cards: [
+      ['MVC', 'The <i>model-view-controller</i> pattern keeps applications easy to build.'],
+      ['ORM', 'Simple database access through <i>Object Relational Mapping</i> models.'],
+      ['Multi Platform', 'Standalone HTTP or CGI on cPanel <i>shared hosting</i>; Windows, Linux, macOS.'],
+      ['FTE Engine', 'A simple <i>template engine</i> for clean, attractive views.'],
+      ['AI Agent Plane', 'AI coding agents inside the Lazarus IDE: open files, compile, fix errors.'],
+    ],
+  },
+}[lang];
+
+const ICONS = [
+  '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+  '<path d="M7 3v16"/><path d="m3 15 4 4 4-4"/><path d="M14 5h7M14 10h5M14 15h3"/>',
+  '<rect x="2" y="4" width="20" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  '<path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/>',
+  '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12v1M15 12v1M9.5 16h5M2 12v3M22 12v3"/>',
+];
+
+const cards = T.cards.map(([h, p], i) => {
+  const hot = i === 4;
+  return `<div class="card${hot ? ' hot' : ''}">${hot ? `<span class="badge">${T.badge}</span>` : ''}
+    <div class="ic"><svg viewBox="0 0 24 24">${ICONS[i]}</svg></div>
+    <div><h3>${h}</h3><p>${p}</p></div></div>`;
+}).join('');
+
+document.getElementById('app').innerHTML = `
+  <div class="top">
+    <div class="brand">
+      ${site ? '<img src="fastplaz-logo-black.png" alt="FastPlaz">' : `
+      <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <b>FastPlaz</b>`}
+    </div>
+    <div class="pill">${T.pill}</div>
+  </div>
+  <h1>${T.h1}</h1>
+  <p class="sub">${T.sub}</p>
+  <div class="cards">${cards}</div>`;
+</script>
+</body></html>

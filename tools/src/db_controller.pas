@@ -15,56 +15,25 @@ uses
 
 type
 
-//supported drvier:
-//  mysql5.7,
-
-  { TQueryThread }
-
-  TQueryThread = class(TThread)
-  private
-    FCallBack: TOnSQLCallback;
-    FStatusCode: integer;
-    FStatusText: string;
-    FQuery: TSQLQuery;
-    procedure synchronizeStatus;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create(CreateSuspended: boolean);
-    property Query: TSQLQuery read FQuery write FQuery;
-    property CallBack: TOnSQLCallback read FCallBack write FCallBack;
-  end;
-
   { TDatabaseController }
 
   TDatabaseController = class
   private
-    FQueryThread: TQueryThread;
-    FLibraryPath: string;
     FMessage: string;
-    FOnAfterConnect: TNotifyEvent;
-    FOnAfterDisconnect: TNotifyEvent;
-    FOutput: string;
-    FProcessing: boolean;
     function getConnected: boolean;
     function getSQL: TStringList;
     procedure setSQL(AValue: TStringList);
-    procedure ShowStatus;
-    procedure SetLibraryPath(AValue: string);
-  protected
   public
     Transaction: TSQLTransaction;
     SQLConnector: TSQLConnector;
     LibraryLoader: TSQLDBLibraryLoader;
     Query: TSQLQuery;
-    constructor Create(CreateSuspended: boolean);
+    constructor Create;
     destructor Destroy; override;
-    procedure Init;
-    //procedure Execute; override;
 
+    // runs Query.SQL: Open for a SELECT, ExecSQL otherwise.
+    // False and Message set when the statement fails.
     function Open: boolean;
-    function OpenThread(ASQLQuery: TSQLQuery; ASQL: string = '';
-      ACallBack: TOnSQLCallback = nil): boolean;
     procedure Close(ForceClose: boolean = False);
 
     function LoadLibrary(ALibraryFileName: string): boolean;
@@ -72,15 +41,7 @@ type
   published
     property Connected: boolean read getConnected;
     property SQL: TStringList read getSQL write setSQL;
-    property Output: string read FOutput;
-    property LibraryPath: string read FLibraryPath write SetLibraryPath;
     property Message: string read FMessage;
-    property Processing: boolean read FProcessing;
-
-    // callback
-    property OnAfterConnect: TNotifyEvent read FOnAfterConnect write FOnAfterConnect;
-    property OnAfterDisconnect: TNotifyEvent
-      read FOnAfterDisconnect write FOnAfterDisconnect;
   end;
 
 var
@@ -212,73 +173,12 @@ begin
   Result := False;
 
   if not Assigned(DatabaseController) then
-  begin
-    DatabaseController := TDatabaseController.Create(True);
-    //DatabaseController.FreeOnTerminate := False;
-  end;
+    DatabaseController := TDatabaseController.Create;
 
   Result := True;
 end;
 
-{ TQueryThread }
-
-procedure TQueryThread.synchronizeStatus;
-begin
-  if (FCallBack <> nil) then
-  begin
-    FCallBack(FStatusCode, FStatusText, FQuery);
-  end;
-end;
-
-procedure TQueryThread.Execute;
-begin
-  FStatusCode := -1;
-  FStatusText := '';
-  if FQuery <> nil then
-  begin
-    try
-      if preg_match(QUERY_SELECT_REGEX, FQuery.SQL.Text.Trim) then
-      begin
-        FQuery.Prepare;
-        FQuery.Open
-      end
-      else
-      begin
-        FQuery.ExecSQL;
-      end;
-      FStatusText := 'OK';
-      FStatusCode := 0;
-    except
-      on E: Exception do
-      begin
-        FStatusText := E.Message;
-      end;
-    end;
-  end;
-
-  Synchronize(@synchronizeStatus);
-end;
-
-constructor TQueryThread.Create(CreateSuspended: boolean);
-begin
-  inherited Create(CreateSuspended);
-  FreeOnTerminate := True;
-  FCallBack := nil;
-  FQuery := nil;
-end;
-
 { TDatabaseController }
-
-procedure TDatabaseController.ShowStatus;
-begin
-  {
-  if OnUpdate <> nil then
-  begin
-    OnUpdate(nil);
-    FOutput := '';
-  end;
-  }
-end;
 
 function TDatabaseController.getSQL: TStringList;
 begin
@@ -306,18 +206,8 @@ begin
   Query.SQL.Text := AValue.Text;
 end;
 
-procedure TDatabaseController.SetLibraryPath(AValue: string);
+constructor TDatabaseController.Create;
 begin
-  if FLibraryPath = AValue then
-    Exit;
-  FLibraryPath := AValue;
-end;
-
-constructor TDatabaseController.Create(CreateSuspended: boolean);
-begin
-  //inherited Create(CreateSuspended);
-
-  FProcessing := False;
   Transaction := TSQLTransaction.Create(nil);
   SQLConnector := TSQLConnector.Create(nil);
   SQLConnector.Transaction := Transaction;
@@ -327,32 +217,20 @@ end;
 
 destructor TDatabaseController.Destroy;
 begin
-  if SQLConnector.Connected then
-    SQLConnector.Close(True);
-  if Assigned(LibraryLoader) then
-    LibraryLoader.Free;
+  // runs from the unit finalization, the client library may be gone already
+  try
+    if SQLConnector.Connected then
+      SQLConnector.Close(True);
+  except
+    on E: Exception do
+      FMessage := E.Message;
+  end;
   Query.Free;
   SQLConnector.Free;
   Transaction.Free;
+  LibraryLoader.Free;
 
   inherited Destroy;
-end;
-
-{
-procedure TDatabaseController.Execute;
-begin
-  //inherited Execute;
-
-
-  //-- end
-  //if OnSuccess <> nil then
-  //  OnSuccess(nil);
-end;
-}
-
-procedure TDatabaseController.Init;
-begin
-  //  DB_LibLoader
 end;
 
 function TDatabaseController.Open: boolean;
@@ -373,24 +251,6 @@ begin
       FMessage := E.Message;
     end;
   end;
-end;
-
-function TDatabaseController.OpenThread(ASQLQuery: TSQLQuery; ASQL: string;
-  ACallBack: TOnSQLCallback): boolean;
-begin
-  Result := False;
-
-  if ASQLQuery = nil then
-    Exit;
-  if not ASQL.IsEmpty then
-    ASQLQuery.SQL.Text := ASQL;
-
-  ASQLQuery.DataBase := DatabaseController.SQLConnector;
-  FQueryThread := TQueryThread.Create(True);
-  FQueryThread.CallBack := ACallBack;
-  FQueryThread.Query := ASQLQuery;
-  FQueryThread.Start;
-  Result := True;
 end;
 
 procedure TDatabaseController.Close(ForceClose: boolean);

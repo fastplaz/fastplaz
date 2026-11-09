@@ -5,7 +5,7 @@ unit error_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler;
 
 type
 
@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses theme_controller, common;
+uses theme_controller, common, html_lib;
 
 constructor TErrorinfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -50,7 +50,8 @@ var
   s: string;
 begin
   //s := Copy(Application.Request.PathInfo, 8, Length(Application.Request.PathInfo) - 8);
-  s := Application.Request.GetNextPathInfo;
+  // the path segment and the referer come from the request: escape them
+  s := HTMLEncode(Application.Request.GetNextPathInfo);
   if _SESSION['f_err'] <> '' then
   begin
     s := _SESSION['f_err'];
@@ -59,7 +60,7 @@ begin
   if s <> '' then
   begin
     if Environment['HTTP_REFERER'] <> '' then
-      s := s + '<br>referer: ' + Environment['HTTP_REFERER'];
+      s := s + '<br>referer: ' + HTMLEncode(Environment['HTTP_REFERER']);
     Result := '<hr>' +
       '<div class="bs-example-bg-classes"><p class="bg-danger text-danger">' +
       s + '</p></div>';

@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: modsimple_lib.rs_mod_default_description
+msgctxt "modsimple_lib.rs_mod_default_description"
+msgid "Create Simple Controller"
+msgstr "Buat Controller Sederhana"
+
+#: modsimple_lib.rs_mod_default_name
+msgctxt "modsimple_lib.rs_mod_default_name"
+msgid "Create Simple Controller"
+msgstr "Buat Controller Sederhana"

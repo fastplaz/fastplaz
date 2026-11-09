@@ -49,8 +49,6 @@ const
 
   _OMDB_MSG_NOTFOUND = 'Film "%s" tidak ditemukan';
 
-var
-  Response: IHTTPResponse;
 
 { TOmdbIntegration }
 
@@ -62,11 +60,12 @@ end;
 
 destructor TOmdbIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TOmdbIntegration.Find(MovieTitle: string): string;
 var
+  Response: IHTTPResponse;
   s: string;
   _http: THTTPLib;
   _json: TJSONUtil;
@@ -75,32 +74,39 @@ begin
   s := Format( _OMDB_URL, [FKey, UrlEncode(MovieTitle)]);
 
   _http := THTTPLib.Create;
-  _http.URL := Trim( s);
-  Response := _http.Get;
-  FResponseText := Response.ResultText;
-  _http.Free;
+  try
+    _http.URL := Trim( s);
+    Response := _http.Get;
+    FResponseText := Response.ResultText;
+  finally
+    _http.Free;
+  end;
   if Response.ResultCode <> 200 then
     Exit;
 
   _json := TJSONUtil.Create;
   try
-    _json.LoadFromJsonString(Response.ResultText);
-    if _json['Response'] <> 'True' then
-    begin
-      Exit;
-    end;
+    try
+      _json.LoadFromJsonString(Response.ResultText);
+      if _json['Response'] <> 'True' then
+      begin
+        Exit;
+      end;
 
-    Result := '*Info Film "' + MovieTitle + '"*';
-    Result := Result + '\nRilis: ' + _json['Released'];
-    Result := Result + '\nGenre: ' + _json['Genre'];
-    Result := Result + '\nAktor: ' + _json['Actors'];
-    Result := Result + '\nIMDB Rating: ' + _json['imdbRating'];
-    Result := Result + '\nDirector: ' + _json['Director'];
-    Result := Result + '\n_Plot: ' + _json['Plot'] + '_';
-  except
-    on E:Exception do
-    begin
+      Result := '*Info Film "' + MovieTitle + '"*';
+      Result := Result + '\nRilis: ' + _json['Released'];
+      Result := Result + '\nGenre: ' + _json['Genre'];
+      Result := Result + '\nAktor: ' + _json['Actors'];
+      Result := Result + '\nIMDB Rating: ' + _json['imdbRating'];
+      Result := Result + '\nDirector: ' + _json['Director'];
+      Result := Result + '\n_Plot: ' + _json['Plot'] + '_';
+    except
+      on E:Exception do
+      begin
+      end;
     end;
+  finally
+    _json.Free;
   end;
 
 end;

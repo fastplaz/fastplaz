@@ -6,7 +6,7 @@ interface
 
 uses
   common, database_lib, serialize_lib,
-  Math, Classes, SysUtils;
+  Math, Variants, Classes, SysUtils;
 
 const
   MODVAR_TABLE_NAME = 'module_vars';
@@ -30,14 +30,23 @@ type
       DefaultValue: string = ''): variant;
     function SetCustom(const ModuleName: string; const VariableName: string;
       const ValueOfVariable: string): boolean;
+  private
+    function WhereModuleVariable(const ModuleName, VariableName: string): TStringArray;
   end;
 
 implementation
 
 constructor TModvarModel.Create(const DefaultTableName: string = '');
 begin
-  inherited Create(MODVAR_TABLE_NAME); // table name = users
+  inherited Create(MODVAR_TABLE_NAME); // table name = module_vars
   primaryKey := MODVAR_PRIMARY_KEY;
+end;
+
+function TModvarModel.WhereModuleVariable(const ModuleName, VariableName: string): TStringArray;
+begin
+  Result := TStringArray.Create(
+    MODVAR_FIELD_MODULENAME + '=' + QuoteValue(ModuleName),
+    MODVAR_FIELD_VARIABLE + '=' + QuoteValue(VariableName));
 end;
 
 destructor TModvarModel.Destroy;
@@ -49,18 +58,20 @@ function TModvarModel.GetCustom(const ModuleName: string;
   const VariableName: string; DefaultValue: string): variant;
 begin
   Result := DefaultValue;
-  if FindFirst([MODVAR_FIELD_MODULENAME + '="' + ModuleName + '"',
-    MODVAR_FIELD_VARIABLE + '="' + VariableName + '"']) then
+  // the names were pasted into the WHERE clause with double quotes:
+  // a quote in a name broke the statement, and "..." is MySQL only
+  if FindFirst(WhereModuleVariable(ModuleName, VariableName)) then
   begin
     Result := Data.FieldValues[MODVAR_FIELD_VALUE];
+    if VarIsNull(Result) then
+      Result := DefaultValue;
   end;
 end;
 
 function TModvarModel.SetCustom(const ModuleName: string;
   const VariableName: string; const ValueOfVariable: string): boolean;
 begin
-  if FindFirst([MODVAR_FIELD_MODULENAME + '="' + ModuleName + '"',
-    MODVAR_FIELD_VARIABLE + '="' + VariableName + '"']) then
+  if FindFirst(WhereModuleVariable(ModuleName, VariableName)) then
   begin
     SetFieldValue( MODVAR_FIELD_VALUE, ValueOfVariable);
     Result := Save( MODVAR_PRIMARY_KEY + '=' + string( Value[MODVAR_PRIMARY_KEY]));

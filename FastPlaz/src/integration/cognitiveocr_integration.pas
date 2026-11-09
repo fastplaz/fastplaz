@@ -48,7 +48,7 @@ type
     function getAllWords: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property Token: string read FToken write FToken;
     property Language: string read FLanguage write FLanguage;
@@ -69,8 +69,6 @@ const
   _COGNITIVE_OCR_URL =
     'https://%s.api.cognitive.microsoft.com/vision/v1.0/ocr?language=%s&detectOrientation=%s';
 
-var
-  Response: IHTTPResponse;
 
 { TCognitiveOCR }
 
@@ -164,12 +162,15 @@ begin
   if Result = '' then
     Exit;
 
+  FreeAndNil(jsonData);
+
   jsonData := GetJSON(Result);
   Result := getAllWords;
 end;
 
 function TCognitiveOCR.ScanAsJSON(AImageURL: string): string;
 var
+  Response: IHTTPResponse;
   _body: string;
 begin
   Result := '';
@@ -180,11 +181,11 @@ begin
     Exit;
 
   with THTTPLib.Create(generateURL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Ocp-Apim-Subscription-Key', FToken);
-      _body := '{"url":"' + AImageURL + '"}';
+      _body := '{"url":"' + StringToJSONString(AImageURL, False) + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
       FResultText := Response.ResultText;
@@ -196,6 +197,7 @@ begin
       on E: Exception do
         LogUtil.Add(E.Message, 'OCR');
     end;
+  finally
     Free;
   end;
 

@@ -76,9 +76,14 @@ begin
   if (UserName = '') or (Email = '') then
     Exit;
 
+  if not TSecurityUtil.IsValidEmail(Email) then
+    Exit;
+  if (Password <> '') and not TSecurityUtil.IsPasswordAcceptable(Password) then
+    Exit;
+
   //if user exists
-  if FindFirst([USER_FIELDNAME_USERNAME + '="' + UserName + '" OR ' +
-    USER_FIELDNAME_EMAIL + '="' + Email + '"'], USER_FIELDNAME_ID + ' desc') then
+  if FindFirst([USER_FIELDNAME_USERNAME + '=' + QuoteValue(UserName) + ' OR ' +
+    USER_FIELDNAME_EMAIL + '=' + QuoteValue(Email)], USER_FIELDNAME_ID + ' desc') then
   begin
     Exit;
   end;
@@ -124,7 +129,9 @@ var
   email, saltedHash: string;
 begin
   Result := False;
-  if FindFirst([USER_FIELDNAME_ID + '="' + i2s(UserID) + '"'],
+  if not TSecurityUtil.IsPasswordAcceptable(NewPassword) then
+    Exit;
+  if FindFirst([USER_FIELDNAME_ID + '=' + i2s(UserID)],
     USER_FIELDNAME_ID + ' desc') then
   begin
     email := Value[USER_FIELDNAME_EMAIL];
@@ -203,11 +210,11 @@ end;
 
 function TUserModel.SafeDelete(const UserID: integer; DeleteBy: integer): boolean;
 var
-  sql: string;
+  sqlText: string;
 begin
-  sql := 'UPDATE users SET deleted_date=now(), deleted_by=' + i2s(
+  sqlText := 'UPDATE users SET deleted_date=CURRENT_TIMESTAMP, deleted_by=' + i2s(
     DeleteBy) + ' WHERE uid = ' + i2s(UserID);
-  Result := QueryExec(sql);
+  Result := QueryExec(sqlText);
 end;
 
 function TUserModel.isActive(const UserID: integer): boolean;
@@ -226,7 +233,7 @@ begin
   if UserName = '' then
     Exit;
   Clear;
-  if Find([USER_FIELDNAME_USERNAME + '=''' + UserName + '''']) then
+  if Find([USER_FIELDNAME_USERNAME + '=' + QuoteValue(UserName)]) then
     Result := True;
 end;
 
@@ -236,7 +243,7 @@ begin
   if EmailAddress = '' then
     Exit;
   Clear;
-  if Find([USER_FIELDNAME_EMAIL + '=''' + EmailAddress + '''']) then
+  if Find([USER_FIELDNAME_EMAIL + '=' + QuoteValue(EmailAddress)]) then
     Result := True;
 end;
 
@@ -248,7 +255,9 @@ begin
   if EmailAddress = '' then
     Exit;
   uname := Copy(EmailAddress, 1, Pos('@', EmailAddress) - 1);
-  if Find([USER_FIELDNAME_USERNAME + ' LIKE ''' + uname + '%''']) then
+  if uname = '' then
+    Exit;
+  if Find([USER_FIELDNAME_USERNAME + ' LIKE ' + QuoteValue(uname + '%')]) then
   begin
     uname := uname + i2s(RecordCount + 1);
   end;
@@ -258,11 +267,7 @@ end;
 
 function TUserModel.GenerateHashedPassword(const UnhashedPassword: string): string;
 begin
-  with TSecurityUtil.Create do
-  begin
-    Result := GenerateSaltedHash(UnhashedPassword);
-    Free;
-  end;
+  Result := FSecUtil.GenerateSaltedHash(UnhashedPassword);
 end;
 
 end.

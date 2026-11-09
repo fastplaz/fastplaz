@@ -7,7 +7,7 @@ interface
 
 uses
   //SynExportHTML,
-  fpcgi, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
+  fastplaz_app, gettext, process, Math, fpjson, jsonparser, jsonscanner, custweb, jsonConf,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
   regexpr_lib,
   //netdb,
@@ -44,6 +44,7 @@ const
   _SYSTEM_SESSION_AUTOSTART = 'systems/session_autostart';
   _SYSTEM_HIT_STORAGE = 'systems/hit_storage';
   _SYSTEM_COOKIE_PATH = 'systems/cookie_path';
+  _SYSTEM_TRUST_PROXY = 'systems/trust_proxy';
 
   _DATABASE_OPTIONS_READ = 'database/options/read';
   _DATABASE_OPTIONS_WRITE = 'database/options/write';
@@ -87,15 +88,6 @@ type
   CharSet=Set of Char;
   //TStringArray = array of string;
 
-  { TLocalJSONParser }
-
-  TLocalJSONParser = class(TJSONParser)
-  private
-    FScanner: TJSONScanner;
-  public
-    property Scanner: TJSONScanner read FScanner;
-  end;
-
   { TMainData }
 
   TMainData = record
@@ -128,6 +120,7 @@ type
     debugLevel: integer;
     isReady: boolean;
     cookiePath: string;
+    trustProxy: boolean; // honour X-Forwarded-For / Client-IP headers
   end;
 
 
@@ -196,6 +189,9 @@ function HexToInt(HexStr: string): int64;
 
 function WordNumber( s:string): integer;
 function isWord( s:string): boolean;
+// cryptographically secure random bytes (RtlGenRandom / /dev/urandom)
+function RandomBytes(ACount: integer): TBytes;
+// PrefixString followed by PLen random alphanumeric characters
 function RandomString(PLen: integer; PrefixString: string = ''): string;
 function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean = True;
   UseUpper: boolean = True; UseLower: boolean = True; UseSpace: boolean = False;
@@ -252,9 +248,7 @@ var
   RedirectHandler: procedure(const URL: string; const FlashMessage: string;
     AStatusCode: Integer);
 
-  _fgcContent: RawByteString;
-  _fgcURL: String;
-  _fgcTimeout: integer;
+  _fgcContent: RawByteString; // last result of file_get_contents_and_wait
 
 function file_get_contents(TargetURL: string; AShowErrorMessageAsResult: boolean = true; ATimeout: integer = 3000): string;
 function file_get_contents_and_wait(TargetURL: string; ATimeout: integer = 3000): string;
@@ -553,7 +547,6 @@ end;
 function RemoveCharactersBefore(AText, AChar: string): string;
 var
   commaPos: integer;
-  s, newText: string;
 begin
   Result := AText;
   commaPos := Pos(AChar, AText);
@@ -614,7 +607,6 @@ end;
 
 function UCStoString(AText: string; BIsPair: boolean): string;
 var
-  i: integer;
   s, itemString, pattern: string;
   vUCS4Str: UCS4String;
   re: TRegExpr;
@@ -624,33 +616,36 @@ begin
   pattern := '\\u[0-9a-fA-F]{4}';
   if BIsPair then
     pattern := '\\u[0-9a-fA-F]{4}\\u[0-9a-fA-F]{4}';
-  SetLength(vUCS4Str, 2);
+  // UCS4String is zero terminated: the last element is never converted
+  vUCS4Str := nil;
+  if BIsPair then
+    SetLength(vUCS4Str, 3)
+  else
+    SetLength(vUCS4Str, 2);
 
   re := TRegExpr.Create;
   re.Expression := RegExprString(pattern);
   if re.Exec(RegExprString(AText)) then
   begin
-    itemString := string(re.Match[0]);
-    lst := Explode(string(re.Match[0]), '\u');
-    vUCS4Str[0] := Hex2Dec(lst[1]);
-    if BIsPair then
-      vUCS4Str[1] := Hex2Dec(lst[2]);
-    s := string(UCS4StringToWideString(vUCS4Str));
-    lst.Free;
-    Result := Result.Replace(itemString, s, [rfReplaceAll]);
-
-    while re.ExecNext do
-    begin
+    repeat
       itemString := string(re.Match[0]);
-      lst := Explode(string(re.Match[0]), '\u');
+      lst := Explode(itemString, '\u');
       vUCS4Str[0] := Hex2Dec(lst[1]);
       if BIsPair then
+      begin
         vUCS4Str[1] := Hex2Dec(lst[2]);
+        // combine a surrogate pair into one code point
+        if (vUCS4Str[0] >= $D800) and (vUCS4Str[0] <= $DBFF) and
+          (vUCS4Str[1] >= $DC00) and (vUCS4Str[1] <= $DFFF) then
+        begin
+          vUCS4Str[0] := $10000 + ((vUCS4Str[0] - $D800) shl 10) + (vUCS4Str[1] - $DC00);
+          vUCS4Str[1] := 0;
+        end;
+      end;
       s := string(UCS4StringToWideString(vUCS4Str));
       lst.Free;
       Result := Result.Replace(itemString, s, [rfReplaceAll]);
-    end;
-
+    until not re.ExecNext;
   end;
 
   re.Free;
@@ -659,16 +654,14 @@ end;
 function Implode(lst: TStringList; sep: string; prefix: string; suffix: string): string;
 var
   i: integer;
-  s: string;
 begin
-  i := 0;
-  s := '';
+  Result := '';
   for i := 0 to lst.Count - 1 do
   begin
-    s := s + sep + prefix + lst[i] + suffix;
+    if i > 0 then
+      Result := Result + sep;
+    Result := Result + prefix + lst[i] + suffix;
   end;
-  s := Copy(s, 2, Length(s) - 1);
-  Result := s;
 end;
 
 function Explode(Str, Delimiter: string): TStrings;
@@ -913,17 +906,77 @@ begin
     Result := True;
 end;
 
-function RandomString(PLen: integer; PrefixString: string): string;
+{$IFDEF MSWINDOWS}
+// RtlGenRandom: the system CSPRNG, available since Windows XP.
+function RtlGenRandom(Buffer: Pointer; Len: DWord): ByteBool; stdcall;
+  external 'advapi32.dll' name 'SystemFunction036';
+{$ENDIF}
+
+function RandomBytes(ACount: integer): TBytes;
 var
-  str: string;
+  ok: boolean;
+  i: integer;
+  {$IFDEF UNIX}
+  fs: TFileStream;
+  {$ENDIF}
 begin
-  Randomize;
-  //string with all possible chars
-  str := PrefixString + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-  Result := '';
+  Result := nil;
+  if ACount <= 0 then
+    Exit;
+  SetLength(Result, ACount);
+  ok := False;
+  {$IFDEF MSWINDOWS}
+  ok := RtlGenRandom(@Result[0], ACount);
+  {$ENDIF}
+  {$IFDEF UNIX}
+  try
+    fs := TFileStream.Create('/dev/urandom', fmOpenRead or fmShareDenyNone);
+    try
+      ok := fs.Read(Result[0], ACount) = ACount;
+    finally
+      fs.Free;
+    end;
+  except
+    ok := False;
+  end;
+  {$ENDIF}
+  if not ok then
+  begin
+    // last resort only; not suitable for secrets
+    Randomize;
+    for i := 0 to ACount - 1 do
+      Result[i] := Random(256);
+  end;
+end;
+
+// unbiased index in 0..ACount-1 for ACount <= 256
+function RandomIndex(ACount: integer): integer;
+var
+  b: TBytes;
+  limit: integer;
+begin
+  if ACount <= 1 then
+    Exit(0);
+  limit := 256 - (256 mod ACount);
   repeat
-    Result := Result + str[Random(Length(str)) + 1];
-  until (Length(Result) = PLen);
+    b := RandomBytes(1);
+  until b[0] < limit;
+  Result := b[0] mod ACount;
+end;
+
+function RandomString(PLen: integer; PrefixString: string): string;
+const
+  CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+var
+  i, offset: integer;
+begin
+  Result := PrefixString;
+  if PLen <= 0 then
+    Exit;
+  offset := Length(PrefixString);
+  SetLength(Result, offset + PLen);
+  for i := 1 to PLen do
+    Result[offset + i] := CHARS[RandomIndex(Length(CHARS)) + 1];
 end;
 
 function RandomString(MinLength, MaxLength: integer; LeadingCapital: boolean;
@@ -935,9 +988,10 @@ const
   c_number = '0123456789';
   c_special = '~@#$%^*()_+-={}|][';
 var
-  rnd, chars: string;
+  chars: string;
   i, len, clen: integer;
 begin
+  Result := '';
   chars := '';
   if UseLower then
     chars := chars + c_lower;
@@ -954,24 +1008,32 @@ begin
   end;
   if DontUse <> '' then
   begin
-    // .. next ...
+    for i := 1 to Length(DontUse) do
+      chars := StringReplace(chars, DontUse[i], '', [rfReplaceAll]);
   end;
+  clen := Length(chars);
+  if clen = 0 then
+    Exit;
 
-  Randomize;
-  len := RandomRange(MinLength, MaxLength);
-  clen := length(chars);
-  rnd := '';
-  try
-    for i := 1 to len do
-    begin
-      rnd := rnd + chars[RandomRange(1, clen)];
-    end;
-  except
+  if MaxLength < MinLength then
+  begin
+    len := MinLength;
+    MinLength := MaxLength;
+    MaxLength := len;
   end;
+  if MinLength < 0 then
+    MinLength := 0;
+  // inclusive range
+  len := MinLength + RandomIndex(MaxLength - MinLength + 1);
+  if len <= 0 then
+    Exit;
+
+  SetLength(Result, len);
+  for i := 1 to len do
+    Result[i] := chars[RandomIndex(clen) + 1];
 
   if LeadingCapital then
-    rnd[1] := upCase(rnd[1]);
-  Result := rnd;
+    Result[1] := upCase(Result[1]);
 end;
 
 function EncodeQueryString(Data: array of string): string;
@@ -1009,7 +1071,9 @@ begin
 
   while (TagBegin > 0) do
   begin  // while there is a < in S
-    TagEnd := Pos('>', AHTML);              // find the matching >
+    TagEnd := Pos('>', AHTML, TagBegin + 1); // find the matching >
+    if TagEnd = 0 then
+      Break;                                 // unterminated '<' is kept as text
     TagLength := TagEnd - TagBegin + 1;
     Delete(AHTML, TagBegin, TagLength);     // delete the tag
     TagBegin := Pos('<', AHTML);            // search for next <
@@ -1109,7 +1173,8 @@ begin
   Application.Response.Contents.Add(Message);
   Application.Response.Code := ACode;
   Application.Response.SendContent;
-  Application.Terminate;
+  // ends the process in CGI mode only; a standalone server keeps running
+  StopRequest;
 end;
 
 function StripNumber(const AString: string): string;
@@ -1119,7 +1184,7 @@ var
   i : integer;
 begin
   Result:='';
-  for i:=0 to length(AString) do
+  for i:=1 to length(AString) do
     if not (AString[i] in CHARS) then
   Result := Result + AString[i];
 end;
@@ -1131,7 +1196,7 @@ var
   i : integer;
 begin
   Result:='';
-  for i:=0 to length(AString) do
+  for i:=1 to length(AString) do
     if (AString[i] in CHARS) then
   Result := Result + AString[i];
 end;
@@ -1193,9 +1258,10 @@ begin
         if (rec.Name <> '.') and (rec.Name <> '..') then
         begin
           tmpLst := ScanFolder(sPath + rec.Name);
-          if tmpLst.Count > 0 then
-          begin
+          try
             Result.AddStrings( tmpLst);
+          finally
+            tmpLst.Free;
           end;
         end;
       end
@@ -1297,10 +1363,12 @@ begin
     Exit;
 
   lst := TStringList.Create;
-  lst.LoadFromFile( AFileName);
-  Result := lst.Text;
-
-  lst.Free;
+  try
+    lst.LoadFromFile( AFileName);
+    Result := lst.Text;
+  finally
+    lst.Free;
+  end;
 end;
 
 function SaveToFile(const AFileName: string; const AContent: string): boolean;
@@ -1312,10 +1380,18 @@ begin
     Exit;
 
   lst := TStringList.Create;
-  lst.Text := AContent;
-  lst.SaveToFile( AFileName);
-  lst.Free;
-  Result := True;
+  try
+    lst.Text := AContent;
+    try
+      lst.SaveToFile( AFileName);
+      Result := True;
+    except
+      on E: Exception do
+        LogUtil.Add(E.Message + ': ' + AFileName, 'file');
+    end;
+  finally
+    lst.Free;
+  end;
 end;
 
 function IsNullish(const S: string): Boolean;
@@ -1437,6 +1513,9 @@ var
   RetVar: int64;
   i: byte;
 begin
+  Result := 0;
+  if HexStr = '' then
+    Exit;
   HexStr := UpperCase(HexStr);
   if HexStr[length(HexStr)] = 'H' then
     Delete(HexStr, length(HexStr), 1);
@@ -1547,7 +1626,7 @@ begin
     I := 1;
     while I <= Length(EncodedStr) do
     begin
-      if EncodedStr[I] = '%' then
+      if (EncodedStr[I] = '%') and (I + 2 <= Length(EncodedStr)) then
       begin
         Result := Result + Chr(HexToInt(EncodedStr[I + 1] + EncodedStr[I + 2]));
         I := Succ(Succ(I));
@@ -1571,11 +1650,16 @@ begin
   LDecodedStream := TStringStream.Create(AStr);
   LEncodedStream := TStringStream.Create('');
   LEncoder       := TBase64EncodingStream.Create(LEncodedStream);
-  LEncoder.CopyFrom(LDecodedStream, LDecodedStream.Size);
-  Result := LEncodedStream.DataString;
-  LEncoder.Free;
-  LDecodedStream.Free;
-  LEncodedStream.Free;
+  try
+    LEncoder.CopyFrom(LDecodedStream, LDecodedStream.Size);
+    // the encoder only writes the trailing (padded) block on Flush/Free
+    LEncoder.Flush;
+    Result := LEncodedStream.DataString;
+  finally
+    LEncoder.Free;
+    LDecodedStream.Free;
+    LEncodedStream.Free;
+  end;
 end;
 
 function base64_decode(const AStr: string): string;
@@ -1609,72 +1693,89 @@ begin
 end;
 
 function HTMLDecode(const AStr: String): String;
-var
-  Sp, Rp, Cp, Tp: PChar;
-  S: String;
-  I, Code: Integer;
-begin
-  SetLength(Result, Length(AStr));
-  Sp := PChar(AStr);
-  Rp := PChar(Result);
-  Cp := Sp;
-  try
-    while Sp^ <> #0 do
-    begin
-      case Sp^ of
-        '&': begin
-               Cp := Sp;
-               Inc(Sp);
-               case Sp^ of
-                 'a': if AnsiStrPos(Sp, 'amp;') = Sp then  { do not localize }
-                      begin
-                        Inc(Sp, 3);
-                        Rp^ := '&';
-                      end;
-                 'l',
-                 'g': if (AnsiStrPos(Sp, 'lt;') = Sp) or (AnsiStrPos(Sp, 'gt;') = Sp) then { do not localize }
-                      begin
-                        Cp := Sp;
-                        Inc(Sp, 2);
-                        while (Sp^ <> ';') and (Sp^ <> #0) do
-                          Inc(Sp);
-                        if Cp^ = 'l' then
-                          Rp^ := '<'
-                        else
-                          Rp^ := '>';
-                      end;
-                 'n': if AnsiStrPos(Sp, 'nbsp;') = Sp then  { do not localize }
-                      begin
-                        Inc(Sp, 4);
-                        Rp^ := ' ';
-                      end;
-                 'q': if AnsiStrPos(Sp, 'quot;') = Sp then  { do not localize }
-                      begin
-                        Inc(Sp,4);
-                        Rp^ := '"';
-                      end;
-                 '#': begin
-                        Tp := Sp;
-                        Inc(Tp);
-                        while (Sp^ <> ';') and (Sp^ <> #0) do
-                          Inc(Sp);
-                        SetString(S, Tp, Sp - Tp);
-                        Val(S, I, Code);
-                        Rp^ := Chr((I));
-                      end;
-                 else
-                   Exit;
-               end;
-           end
-      else
-        Rp^ := Sp^;
-      end;
-      Inc(Rp);
-      Inc(Sp);
-    end;
-  except
+
+  function CodePointToUTF8(ACodePoint: cardinal): string;
+  begin
+    if ACodePoint < $80 then
+      Result := Chr(ACodePoint)
+    else if ACodePoint < $800 then
+      Result := Chr($C0 or (ACodePoint shr 6)) +
+        Chr($80 or (ACodePoint and $3F))
+    else if ACodePoint < $10000 then
+      Result := Chr($E0 or (ACodePoint shr 12)) +
+        Chr($80 or ((ACodePoint shr 6) and $3F)) +
+        Chr($80 or (ACodePoint and $3F))
+    else
+      Result := Chr($F0 or (ACodePoint shr 18)) +
+        Chr($80 or ((ACodePoint shr 12) and $3F)) +
+        Chr($80 or ((ACodePoint shr 6) and $3F)) +
+        Chr($80 or (ACodePoint and $3F));
   end;
-  SetLength(Result, Rp - PChar(Result));
+
+var
+  i, len, semi, code: integer;
+  entity: string;
+  cp: longint;
+begin
+  Result := '';
+  len := Length(AStr);
+  i := 1;
+  while i <= len do
+  begin
+    if AStr[i] <> '&' then
+    begin
+      Result := Result + AStr[i];
+      Inc(i);
+      Continue;
+    end;
+
+    // an entity is "&name;" or "&#NNN;" / "&#xHH;", at most a few chars long
+    semi := Pos(';', AStr, i + 1);
+    if (semi = 0) or (semi - i > 10) then
+    begin
+      Result := Result + '&';
+      Inc(i);
+      Continue;
+    end;
+    entity := Copy(AStr, i + 1, semi - i - 1);
+
+    if entity = 'amp' then
+      Result := Result + '&'
+    else if entity = 'lt' then
+      Result := Result + '<'
+    else if entity = 'gt' then
+      Result := Result + '>'
+    else if entity = 'quot' then
+      Result := Result + '"'
+    else if entity = 'apos' then
+      Result := Result + ''''
+    else if entity = 'nbsp' then
+      Result := Result + ' '
+    else if (entity <> '') and (entity[1] = '#') then
+    begin
+      if (Length(entity) > 1) and (entity[2] in ['x', 'X']) then
+        Val('$' + Copy(entity, 3), cp, code)
+      else
+        Val(Copy(entity, 2), cp, code);
+      if (code = 0) and (cp >= 0) and (cp <= $10FFFF) then
+        Result := Result + CodePointToUTF8(cp)
+      else
+      begin
+        // malformed numeric entity: keep verbatim
+        Result := Result + '&';
+        Inc(i);
+        Continue;
+      end;
+    end
+    else
+    begin
+      // unknown entity: keep verbatim
+      Result := Result + '&';
+      Inc(i);
+      Continue;
+    end;
+    i := semi + 1;
+  end;
 end;
 
 function FormatTextLikeForum(const AContent: String): String;
@@ -1844,7 +1945,6 @@ begin
       AddHeader('User-Agent','Mozilla/5.0 (compatible; fastplaz)');
       AllowRedirect := True;
       s := Get(TargetURL);
-      _fgcContent := s;
       Result := s;
     except
       on e: Exception do
@@ -1858,23 +1958,69 @@ begin
   end;
 end;
 
-procedure _fgc();
+type
+
+  { TFetchThread }
+
+  TFetchThread = class(TThread)
+  private
+    FURL: string;
+    FTimeout: integer;
+    FContent: string;
+    FDone: PRTLEvent;
+    FDetached: longint;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const AURL: string; ATimeout: integer);
+    destructor Destroy; override;
+  end;
+
+constructor TFetchThread.Create(const AURL: string; ATimeout: integer);
 begin
-  _fgcContent:= file_get_contents(_fgcURL, true, _fgcTimeout);
+  FURL := AURL;
+  FTimeout := ATimeout;
+  FContent := '';
+  FDone := RTLEventCreate;
+  FDetached := 0;
+  inherited Create(False);
 end;
 
+destructor TFetchThread.Destroy;
+begin
+  RTLEventDestroy(FDone);
+  inherited Destroy;
+end;
 
+procedure TFetchThread.Execute;
+begin
+  FContent := file_get_contents(FURL, True, FTimeout);
+  RTLEventSetEvent(FDone);
+  // Whoever detaches last owns the object. If the caller already gave up
+  // waiting, free ourselves once Execute returns.
+  if InterlockedExchange(FDetached, 1) = 1 then
+    FreeOnTerminate := True;
+end;
+
+// Fetch TargetURL in a worker thread and wait at most ATimeout ms for it.
+// On timeout the result is '~~~' and the worker cleans itself up when the
+// HTTP call eventually returns. On Unix the program must use cthreads.
 function file_get_contents_and_wait(TargetURL: string; ATimeout: integer
   ): string;
 var
-  threadNumber: TThreadID;
+  worker: TFetchThread;
 begin
-  _fgcContent :='~~~';
-  _fgcURL := TargetURL;
-  _fgcTimeout := ATimeout;
-  threadNumber:= BeginThread(TThreadFunc(@_fgc));
-  WaitForThreadTerminate(threadNumber,ATimeout);
-  Result := _fgcContent;
+  Result := '~~~';
+  worker := TFetchThread.Create(TargetURL, ATimeout);
+  RTLEventWaitFor(worker.FDone, ATimeout);
+  if InterlockedExchange(worker.FDetached, 1) = 1 then
+  begin
+    // the fetch finished first: join and collect
+    worker.WaitFor;
+    Result := worker.FContent;
+    worker.Free;
+  end;
+  _fgcContent := Result;
 end;
 
 function FileCopy(ASource, ATarget: string): boolean;
@@ -1897,7 +2043,7 @@ procedure HttpClientGetSocketHandler(Sender: TObject; const UseSSL: Boolean;
 begin
   If UseSSL then begin
     AHandler := TSSLSocketHandler.Create;
-    TSSLSocketHandler(AHandler).SSLType := stTLSv1_1;
+    TSSLSocketHandler(AHandler).SSLType := stTLSv1_2;
   end else begin
   end;
 end;
@@ -1934,8 +2080,48 @@ begin
 end;
 
 function isIPAddress(const IPAddress: string): boolean;
+var
+  parts: TStringArray;
+  i, n, colons: integer;
+  c: char;
 begin
-  Result := execregexpr(RegExprString('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'), RegExprString(IPAddress));
+  Result := False;
+  if IPAddress = '' then
+    Exit;
+
+  // IPv6: hex digits and colons only, 2..7 colons (an IPv4 tail may follow)
+  if Pos(':', IPAddress) > 0 then
+  begin
+    if Length(IPAddress) > 45 then
+      Exit;
+    colons := 0;
+    for c in IPAddress do
+    begin
+      if not (c in ['0'..'9', 'a'..'f', 'A'..'F', ':', '.']) then
+        Exit;
+      if c = ':' then
+        Inc(colons);
+    end;
+    Result := (colons >= 2) and (colons <= 7);
+    Exit;
+  end;
+
+  // IPv4: exactly four decimal octets in 0..255
+  parts := IPAddress.Split(['.']);
+  if Length(parts) <> 4 then
+    Exit;
+  for i := 0 to 3 do
+  begin
+    if (parts[i] = '') or (Length(parts[i]) > 3) then
+      Exit;
+    for c in parts[i] do
+      if not (c in ['0'..'9']) then
+        Exit;
+    n := StrToInt(parts[i]);
+    if n > 255 then
+      Exit;
+  end;
+  Result := True;
 end;
 
 function isEmail(const s: string): boolean;
@@ -1987,12 +2173,28 @@ begin
 end;
 
 function GetUserIpAddress: string;
+var
+  s: string;
+  i: integer;
 begin
-  Result := _SERVER['HTTP_CLIENT_IP'];
-  if not Result.IsEmpty then Exit;
-  Result := _SERVER['HTTP_X_FORWARDED_FOR'];
-  if not Result.IsEmpty then Exit;
   Result := _SERVER['REMOTE_ADDR'];
+
+  // X-Forwarded-For / Client-IP are set by the client and trivially spoofed.
+  // Only honour them when the app is declared to sit behind a trusted proxy
+  // (config: systems/trust_proxy = true).
+  if not AppData.trustProxy then
+    Exit;
+
+  s := _SERVER['HTTP_X_FORWARDED_FOR'];
+  if s.IsEmpty then
+    s := _SERVER['HTTP_CLIENT_IP'];
+  // "client, proxy1, proxy2": the first entry is the originating client
+  i := Pos(',', s);
+  if i > 0 then
+    s := Copy(s, 1, i - 1);
+  s := Trim(s);
+  if isIPAddress(s) then
+    Result := s;
 end;
 
 function isVowel(c: char): boolean;
@@ -2011,7 +2213,6 @@ end;
 
 function isVowelExists(AText: string): boolean;
 var
-  i: integer;
   c: char;
 begin
   Result := False;
@@ -2070,9 +2271,8 @@ const
       except
         on e: Exception do
         begin
-          die( e.Message);
           Result := 1;
-          setlength(outputstring, BytesRead);
+          outputstring := e.Message;
         end;
       end;
     finally
@@ -2096,10 +2296,21 @@ end;
 function FastInfo(): string;
 var
   lst: TStringList;
-  s: string;
+  s, key: string;
+  i: integer;
 begin
   lst := TStringList.Create;
   Application.GetEnvironmentList(lst);
+
+  // never echo credentials (e.g. loaded from .env) into a web page
+  for i := 0 to lst.Count - 1 do
+  begin
+    key := UpperCase(lst.Names[i]);
+    if (Pos('PASS', key) > 0) or (Pos('SECRET', key) > 0) or
+      (Pos('TOKEN', key) > 0) or (Pos('KEY', key) > 0) or
+      (Pos('CREDENTIAL', key) > 0) then
+      lst.ValueFromIndex[i] := '***';
+  end;
 
   s := '<pre><b>Your Server Info:</b><br>';
   s := s + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
@@ -2113,10 +2324,18 @@ begin
   lst.Free;
 end;
 
+{$IFDEF UNIX}
+var
+  environ: PPChar; cvar; external; // the libc environment table
+{$ENDIF}
+
 procedure _SetEnv(const Key, Value: string);
 begin
   {$IFDEF UNIX}
   setenv(PChar(Key), PChar(Value), 1);
+  // SysUtils.GetEnvironmentVariable reads System.envp, the block the
+  // program started with; point it at the libc table setenv just updated.
+  envp := environ;
   {$ENDIF}
 
   {$IFDEF MSWINDOWS}

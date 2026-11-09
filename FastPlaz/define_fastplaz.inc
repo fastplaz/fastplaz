@@ -8,7 +8,13 @@
 
 {$ifdef SYNAPSE}
   {disabled $DEFINE XMAILER}
+  // OpenSSL plugin used by xmailer (Synapse); without these the 1.0.x
+  // plugin ssl_openssl is used. Pick the one matching the installed library.
+  {disabled $DEFINE XMAILER_OPENSSL11}
+  {disabled $DEFINE XMAILER_OPENSSL3}
 {$endif}
+// Without XMAILER, TMailer (mailer_lib) sends through smtp_lib, the built-in
+// SMTP client (FPC sockets + OpenSSL for STARTTLS/SSL), no Synapse needed.
 
 { $DEFINE dOPF}
 { $DEFINE zeos}

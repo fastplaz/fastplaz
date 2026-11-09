@@ -7,7 +7,7 @@ unit module_controller;
 interface
 
 uses
-  fpcgi, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
+  fastplaz_app, fpTemplate, fphttp, fpWeb, HTTPDefs, dateutils,
   dynlibs,
   Classes, SysUtils;
 
@@ -94,7 +94,9 @@ var
   function_pointer: pointer;
   module_result: TModuleCallResult;
 begin
+  Result := Default(TModuleCallResult);
   Result.err := -1;
+  module_result := Default(TModuleCallResult);
 
   lib_handle := Load(ModuleName);
   if lib_handle = 0 then
@@ -114,7 +116,7 @@ begin
       Result.message := UnicodeString( format(__(__err_module_call_failed), [ModuleName, e.Message]));
     end;
   end;
-  UnloadLibrary(lib_handle);
+  // UnloadLibrary and FreeLibrary are the same call; once is enough
   FreeLibrary(lib_handle);
 end;
 

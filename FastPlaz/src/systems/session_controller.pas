@@ -5,7 +5,7 @@ unit session_controller;
 interface
 
 uses
-  fpcgi, md5, IniFiles, fpjson, DateUtils,
+  fastplaz_app, md5, IniFiles, fpjson, DateUtils, sqldb, HTTPDefs, Variants,
   Classes, SysUtils;
 
 const
@@ -24,23 +24,29 @@ const
   _SESSION_TIMEOUT_DEFAULT = 3 * 1440; // in minutes (default: 3 days)
   _SESSION_STORAGE_FILE = 1;
   _SESSION_STORAGE_DATABASE = 2;
+  // session files live in "<TEMP>/sessions" (TEMP may point to a custom
+  // directory); this is the fallback when TEMP is not set or not writable
+  _SESSION_DIR_DEFAULT = 'ztemp' + PathDelim + 'sessions';
+  _SESSION_DIR_SUBDIR = 'sessions';
   TDateTimeEpsilon = 2.2204460493e-16;
 
+  // every value is bound as a parameter; nothing from the request is ever
+  // concatenated into the SQL text
+  _SESSION_SQL_FIELDS = '(sessid, ipaddr, lastused, uid, remember, vars)';
+  _SESSION_SQL_VALUES = '(:sessid, :ipaddr, :lastused, :uid, :remember, :vars)';
   _SESSION_SQL_UPDATE =
-    'REPLACE INTO session_info ( sessid, ipaddr, lastused, uid, remember, vars) VALUES( "%s", "%s", UNIX_TIMESTAMP(now()), %d, %d, "%s");';
-
+    'REPLACE INTO session_info ' + _SESSION_SQL_FIELDS + ' VALUES ' + _SESSION_SQL_VALUES;
+  _SESSION_SQL_UPDATE_SQLITE =
+    'INSERT OR REPLACE INTO session_info ' + _SESSION_SQL_FIELDS + ' VALUES ' + _SESSION_SQL_VALUES;
   _SESSION_SQL_UPDATE_PG =
-    'INSERT INTO session_info '+
-    '(sessid, ipaddr, lastused, uid, remember, vars) '+
-    'VALUES ('+
-    ' ''%s'', ''%s'', CAST(EXTRACT(EPOCH FROM now()) AS BIGINT), %d, %d, ''%s'' '+
-    ') '+
-    'ON CONFLICT (sessid) DO UPDATE SET '+
-    ' ipaddr = EXCLUDED.ipaddr,'+
-    ' lastused = EXCLUDED.lastused,'+
-    ' uid = EXCLUDED.uid,'+
-    ' remember = EXCLUDED.remember,'+
-    ' vars = EXCLUDED.vars;';
+    'INSERT INTO session_info ' + _SESSION_SQL_FIELDS + ' VALUES ' + _SESSION_SQL_VALUES +
+    ' ON CONFLICT (sessid) DO UPDATE SET' +
+    ' ipaddr = EXCLUDED.ipaddr,' +
+    ' lastused = EXCLUDED.lastused,' +
+    ' uid = EXCLUDED.uid,' +
+    ' remember = EXCLUDED.remember,' +
+    ' vars = EXCLUDED.vars';
+  _SESSION_SQL_DELETE = 'DELETE FROM session_info WHERE sessid = :sessid';
 
 type
 
@@ -48,20 +54,26 @@ type
 
   TSessionController = class(TObject)
   private
+    FCookiePath: string;
+    FExpired: boolean;
     FForceUniqueID: string;
     FIniFile: TMemInifile;
     FIsNewSession: boolean;
     FLastAccess: TDateTime;
     FSessionTimeout: integer;
-    FSessionStarted, FSessionTerminated, FCached: boolean;
+    FSessionStarted, FSessionTerminated: boolean;
     FSessionPrefix, FSessionSuffix, FSessionExtension, FHttpCookie,
     FCookieID, FSessionID: string;
     FSessionDir: string;
     FSessionVars: TStringList;
+    FSessionTable: TObject; // TSessionModel, created on demand
     FToken: string;
     function GenerateSessionID: string;
+    function SessionFileName: string;
     function CreateIniFile(const FileName: string): TMemIniFile;
     procedure DeleteIniFile;
+    function PrepareSessionDir(const ADir: string): boolean;
+    function DefaultSessionDir: string;
     function GetInterval: double;
     function GetIsExpired: boolean;
     function GetTimeOut: integer;
@@ -72,11 +84,8 @@ type
     procedure UpdateIniFile;
 
     function UpdateDatabase: boolean;
-    function c(SourceString: string): string;
-    function d(SourceString: string): string;
-
-    function StringVarToJson(Source: string): string;
-    function JsonToStringVar(JSON: string): string;
+    function DeleteDatabaseRow(const ASessionID: string): boolean;
+    procedure LoadFromDatabase;
 
     function StartSessionWithFile: boolean;
     function StartSessionWithDatabase: boolean;
@@ -87,13 +96,18 @@ type
     property Values[variable: string]: string read GetValue write SetValue; default;
     property HttpCookie: string read FHttpCookie;
     property CookieID: string read FCookieID;
+    property CookiePath: string read FCookiePath write FCookiePath;
     property Token: string read FToken;
     property SessionID: string read FSessionID write FSessionID;
     property SessionDir: string read FSessionDir write SetSessionDir;
+    // in minutes; 0 (or less) never expires
     property TimeOut: integer read GetTimeOut write SetTimeOut;
     property LastAccess: TDateTime read FLastAccess;
 
+    // seconds since the previous request of this session
     property Interval: double read GetInterval;
+    // True when the session that came in with this request had timed out
+    // (its data was discarded); stays True for the rest of the request
     property IsExpired: boolean read GetIsExpired;
     property IsStarted: boolean read FSessionStarted;
     property IsTerminated: boolean read FSessionTerminated;
@@ -105,6 +119,9 @@ type
 
     function StartSession: boolean;
     function RestartSession: boolean;
+    // issue a fresh cookie/session id and move the data over (call after login)
+    function RegenerateID: boolean;
+    procedure SendCookie;
     procedure Clear;
     procedure DeleteKey(const Key: string);
     procedure EndSession(const Force: boolean = True);
@@ -118,42 +135,52 @@ type
     function GetData(): string;
   end;
 
+// session values are stored one per line (ini file / "vars" column), so line
+// breaks and the escape character itself are encoded
+function EncodeSessionValue(const AValue: string): string;
+function DecodeSessionValue(const AValue: string): string;
+
 implementation
 
 uses logutil_lib, common, session_model;
 
-//uses common; --- failed jk memasukkan common ke unit ini
-
+function EncodeSessionValue(const AValue: string): string;
 var
-  SessionTable: TSessionModel;
-
-function AppendPathDelim(const Path: string): string;
+  i: integer;
 begin
-  if (Path <> '') and not (Path[length(Path)] in AllowDirectorySeparators) then
-    Result := Path + PathDelim
-  else
-    Result := Path;
+  Result := '';
+  for i := 1 to Length(AValue) do
+    case AValue[i] of
+      '\': Result := Result + '\\';
+      #13: Result := Result + '\r';
+      #10: Result := Result + '\n';
+      else
+        Result := Result + AValue[i];
+    end;
 end;
 
-function DirectoryIsWritable(const DirectoryName: string): boolean;
+function DecodeSessionValue(const AValue: string): string;
 var
-  TempFilename: string;
-  s: string;
-  fHandle: THANDLE;
+  i: integer;
 begin
-  Result := False;
-  TempFilename := SysUtils.GetTempFilename(AppendPathDelim(DirectoryName), 'ztstperm');
-  fHandle := FileCreate(TempFilename);
-  if (THandle(fHandle) <> feInvalidHandle) then
+  Result := '';
+  i := 1;
+  while i <= Length(AValue) do
   begin
-    s := 'WriteTest';
-    try
-      if FileWrite(fHandle, S[1], Length(S)) > 0 then
-        Result := True;
-      FileClose(fHandle);
-      DeleteFile(TempFilename);
-    except
-    end;
+    if (AValue[i] = '\') and (i < Length(AValue)) then
+    begin
+      Inc(i);
+      case AValue[i] of
+        'r': Result := Result + #13;
+        'n': Result := Result + #10;
+        '\': Result := Result + '\';
+        else
+          Result := Result + '\' + AValue[i];
+      end;
+    end
+    else
+      Result := Result + AValue[i];
+    Inc(i);
   end;
 end;
 
@@ -162,16 +189,21 @@ end;
 function TSessionController.GenerateSessionID: string;
 begin
   if FForceUniqueID.IsEmpty then
-    Result := FCookieID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT']
-      + '-' + GetUserIpAddress
+    Result := FCookieID
   else
-    Result := FForceUniqueID + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT']
-      + '-' + GetUserIpAddress;
+    Result := FForceUniqueID;
+  Result := Result + '-' + Application.EnvironmentVariable['HTTP_USER_AGENT']
+    + '-' + GetUserIpAddress;
   Result := MD5Print(MD5String(Result));
   if not FSessionPrefix.IsEmpty then
     Result := FSessionPrefix + '-' + Result;
   if not FSessionSuffix.IsEmpty then
     Result := Result + '-' + FSessionSuffix;
+end;
+
+function TSessionController.SessionFileName: string;
+begin
+  Result := FSessionDir + FSessionID + FSessionExtension;
 end;
 
 function TSessionController.CreateIniFile(const FileName: string): TMemIniFile;
@@ -206,32 +238,50 @@ end;
 procedure TSessionController.DeleteIniFile;
 begin
   try
-    if DeleteFile(FSessionDir + FSessionID + FSessionExtension) then
-    begin
-    end;
+    DeleteFile(SessionFileName);
   except
-    on e: Exception do
-    begin
-    end;
   end;
+end;
+
+function TSessionController.PrepareSessionDir(const ADir: string): boolean;
+begin
+  Result := False;
+  try
+    if not DirectoryExists(ADir) then
+      ForceDirectories(ADir);
+    Result := DirectoryIsWritable(ADir);
+  except
+  end;
+end;
+
+// "%TEMP%/sessions", or ztemp/sessions when TEMP is not set
+function TSessionController.DefaultSessionDir: string;
+begin
+  Result := Application.EnvironmentVariable['TEMP'];
+  if Result = '' then
+    Result := _SESSION_DIR_DEFAULT
+  else
+    Result := IncludeTrailingPathDelimiter(Result) + _SESSION_DIR_SUBDIR;
+  Result := IncludeTrailingPathDelimiter(Result);
 end;
 
 function TSessionController.GetInterval: double;
 begin
-  Result := (((Now - LastAccess) + TDateTimeEpsilon) * SecsPerDay);
+  Result := (((Now - FLastAccess) + TDateTimeEpsilon) * SecsPerDay);
   if Result < 0 then
     Result := 0;
 end;
 
-
 function TSessionController.GetIsExpired: boolean;
 begin
-  Result := False;
-  if FSessionTimeout = 0 then
+  Result := FExpired;
+  if Result or (FSessionTimeout <= 0) or (not FSessionStarted) then
     Exit;
-  if (Interval > FSessionTimeout) then
+  // TimeOut is in minutes, Interval in seconds
+  if Interval > (FSessionTimeout * 60.0) then
   begin
-    Clear;
+    FExpired := True;
+    Clear; // resets FLastAccess, so this runs once per request
     Result := True;
   end;
 end;
@@ -256,18 +306,18 @@ begin
 
   if Storage = _SESSION_STORAGE_DATABASE then
     Result := FSessionVars.Values[variable];
+
+  Result := DecodeSessionValue(Result);
 end;
 
 procedure TSessionController.SetSessionDir(AValue: string);
 begin
+  if AValue = '' then
+    Exit;
+  AValue := IncludeTrailingPathDelimiter(AValue);
   if FSessionDir = AValue then
     Exit;
-  //if not DirectoryExists(AValue) then Exit;
-  FSessionDir := IncludeTrailingPathDelimiter(AValue);
-  try
-    ForceDirectories(FSessionDir);
-  except
-  end;
+  FSessionDir := AValue;
 end;
 
 procedure TSessionController.SetTimeOut(AValue: integer);
@@ -279,6 +329,7 @@ procedure TSessionController.SetValue(variable: string; AValue: string);
 begin
   if (not FSessionStarted) or (FSessionTerminated) then
     Exit;
+  AValue := EncodeSessionValue(AValue);
   if Storage = _SESSION_STORAGE_FILE then
   begin
     if (FIniFile = nil) then
@@ -288,10 +339,7 @@ begin
       UpdateIniFile;
     except
       on E: Exception do
-      begin
-        pr('session:' + e.Message);
-        die;
-      end;
+        LogUtil.Add('session write failed: ' + E.Message, 'sessions', True);
     end;
   end;
 
@@ -300,7 +348,6 @@ begin
     FSessionVars.Values[variable] := AValue;
     UpdateDatabase;
   end;
-
 end;
 
 procedure TSessionController.UpdateIniFile;
@@ -308,12 +355,14 @@ var
   Count: integer;
   OK: boolean;
 begin
+  if FIniFile = nil then
+    Exit;
   Count := 0;
   OK := False;
   repeat
     Inc(Count);
     try
-      TMemIniFile(FIniFile).UpdateFile;
+      FIniFile.UpdateFile;
       OK := True;
     except
       On E: EFCreateError do
@@ -336,63 +385,78 @@ end;
 
 function TSessionController.UpdateDatabase: boolean;
 var
-  sql, remoteAddr: string;
-  uid: integer;
+  q: TSQLQuery;
+  sql, connectorType: string;
 begin
-  remoteAddr := GetEnvironmentVariable('HTTP_X_FORWARDED_FOR');
-  if remoteAddr.IsEmpty then
-    remoteAddr := Application.EnvironmentVariable['REMOTE_ADDR'];
-  uid := s2i(FSessionVars.Values[SESSION_FIELD_UID]);
-  if SessionTable.Connector.ConnectorType.ToLower.StartsWith('postgre') then
-  begin
-    sql := Format(_SESSION_SQL_UPDATE_PG, [FSessionID, remoteAddr,
-    uid, 0, c(FSessionVars.Text)]);
-  end else
-  begin
-    sql := Format(_SESSION_SQL_UPDATE, [FSessionID, remoteAddr,
-    uid, 0, c(FSessionVars.Text)]);
+  Result := False;
+  if FSessionTable = nil then
+    Exit;
+  connectorType := LowerCase(TSessionModel(FSessionTable).Connector.ConnectorType);
+  if connectorType.StartsWith('postgre') then
+    sql := _SESSION_SQL_UPDATE_PG
+  else if Pos('sqlite', connectorType) > 0 then
+    sql := _SESSION_SQL_UPDATE_SQLITE
+  else
+    sql := _SESSION_SQL_UPDATE;
+
+  q := TSQLQuery.Create(nil);
+  try
+    try
+      q.DataBase := TSessionModel(FSessionTable).Connector;
+      q.SQL.Text := sql;
+      q.Params.ParamByName('sessid').AsString := FSessionID;
+      q.Params.ParamByName('ipaddr').AsString := GetUserIpAddress;
+      q.Params.ParamByName('lastused').AsLargeInt := DateTimeToUnix(Now, False);
+      q.Params.ParamByName('uid').AsInteger := s2i(FSessionVars.Values[SESSION_FIELD_UID]);
+      q.Params.ParamByName('remember').AsInteger := 0;
+      q.Params.ParamByName('vars').AsString := FSessionVars.Text;
+      q.ExecSQL;
+      TSQLConnection(q.DataBase).Transaction.Commit;
+      Result := True;
+    except
+      on E: Exception do
+        LogUtil.Add('session db write failed: ' + E.Message, 'sessions', True);
+    end;
+  finally
+    q.Free;
   end;
-  Result := SessionTable.Exec(sql);
 end;
 
-// prepare for encode var session
-function TSessionController.c(SourceString: string): string;
-begin
-  Result := SourceString;
-end;
-
-// prepare for decode var session
-function TSessionController.d(SourceString: string): string;
-begin
-  Result := SourceString;
-end;
-
-function TSessionController.StringVarToJson(Source: string): string;
+function TSessionController.DeleteDatabaseRow(const ASessionID: string): boolean;
 var
-  str: TStringList;
-  i: integer;
-  sessObj: TJSONObject;
-  items: TJSONObject;
+  q: TSQLQuery;
 begin
-  sessObj := TJSONObject.Create;
-  items := TJSONObject.Create;
-  str := TStringList.Create;
-  str.Text := Source;
-
-  for i := 0 to str.Count - 1 do
-  begin
-    items.Add(str.Names[i], str.ValueFromIndex[i]);
+  Result := False;
+  if FSessionTable = nil then
+    Exit;
+  q := TSQLQuery.Create(nil);
+  try
+    try
+      q.DataBase := TSessionModel(FSessionTable).Connector;
+      q.SQL.Text := _SESSION_SQL_DELETE;
+      q.Params.ParamByName('sessid').AsString := ASessionID;
+      q.ExecSQL;
+      TSQLConnection(q.DataBase).Transaction.Commit;
+      Result := True;
+    except
+      on E: Exception do
+        LogUtil.Add('session db delete failed: ' + E.Message, 'sessions', True);
+    end;
+  finally
+    q.Free;
   end;
-  sessObj.Add('data', items);
-  Result := (sessObj.AsJSON);
-  FreeAndNil(sessObj);
-  FreeAndNil(str);
 end;
 
-function TSessionController.JsonToStringVar(JSON: string): string;
+procedure TSessionController.LoadFromDatabase;
+var
+  lastUsed: int64;
 begin
-  Result := '';
-
+  FSessionVars.Text := VarToStr(TSessionModel(FSessionTable).Value[SESSION_FIELD_VARS]);
+  lastUsed := StrToInt64Def(VarToStr(TSessionModel(FSessionTable).Value[SESSION_FIELD_LASTUSED]), 0);
+  if lastUsed > 0 then
+    FLastAccess := UnixToDateTime(lastUsed, False)
+  else
+    FLastAccess := Now;
 end;
 
 function TSessionController._DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
@@ -408,18 +472,22 @@ function TSessionController.GetData(): string;
 var
   lst: TStringList;
 begin
+  Result := '';
   if Storage = _SESSION_STORAGE_FILE then
   begin
+    if FIniFile = nil then
+      Exit;
     lst := TStringList.Create;
-    FIniFile.GetStrings(lst);
-    Result := lst.Text;
-    lst.Free;
+    try
+      FIniFile.GetStrings(lst);
+      Result := lst.Text;
+    finally
+      lst.Free;
+    end;
   end;
 
-  if Storage = _SESSION_STORAGE_FILE then
-  begin
+  if Storage = _SESSION_STORAGE_DATABASE then
     Result := FSessionVars.Text;
-  end;
 end;
 
 constructor TSessionController.Create();
@@ -428,154 +496,220 @@ var
 begin
   inherited Create();
   FSessionVars := TStringList.Create;
+  FSessionTable := nil;
   FLastAccess := 0;
   FIsNewSession := False;
+  FExpired := False;
   FHttpCookie := Application.EnvironmentVariable['HTTP_COOKIE'];
-  //FHttpCookie := GetEnvironmentVariable( 'Cookie');
   FHttpCookie := FHttpCookie.Replace(' ', '');
   lstr := Explode(FHttpCookie, ';');
-  //FCookieID := lstr.Values['__cfduid']; // from CF
   FCookieID := lstr.Values[_SESSION_COOKIE_KEY];
   if FCookieID.IsEmpty then
   begin
-    FCookieID := RandomString(41, 'fastplaz');//curl
+    FCookieID := RandomString(41, 'fastplaz');
     FIsNewSession := True;
   end;
   FToken := lstr.Values['token'];
   FreeAndNil(lstr);
+  FCookiePath := '';
   FSessionPrefix := '';
   FSessionSuffix := '';
   FForceUniqueID := '';
   FSessionID := GenerateSessionID();
-  FSessionDir := Application.EnvironmentVariable['TEMP'];
+  FSessionDir := DefaultSessionDir;
   FSessionExtension := '.ses';
   FSessionStarted := False;
   FSessionTerminated := False;
-  FCached := False;
   Storage := _SESSION_STORAGE_FILE;
   FSessionTimeout := _SESSION_TIMEOUT_DEFAULT;
 end;
 
 destructor TSessionController.Destroy;
 begin
-  inherited Destroy;
-  if Assigned(FIniFile) then
-    FreeAndNil(FIniFile);
+  FreeAndNil(FIniFile);
+  FreeAndNil(FSessionTable);
   FreeAndNil(FSessionVars);
+  inherited Destroy;
 end;
 
 function TSessionController.StartSession: boolean;
 begin
-  Result := False;
+  Result := True;
   if FSessionStarted then
     Exit;
+  FExpired := False;
+  FSessionTerminated := False;
   FSessionID := GenerateSessionID();
 
+  Result := False;
   if Storage = _SESSION_STORAGE_FILE then
-    StartSessionWithFile;
+    Result := StartSessionWithFile;
 
   if Storage = _SESSION_STORAGE_DATABASE then
-    StartSessionWithDatabase;
+    Result := StartSessionWithDatabase;
 end;
 
 function TSessionController.RestartSession: boolean;
 begin
   Clear;
   ForceUpdate;
-  if Assigned(FIniFile) then
-    FreeAndNil(FIniFile);
+  FreeAndNil(FIniFile);
   FSessionStarted := False;
   Result := StartSession;
+end;
+
+function TSessionController.RegenerateID: boolean;
+var
+  oldID, oldFile: string;
+  lst: TStringList;
+  newIni: TMemIniFile;
+begin
+  Result := False;
+  if (not FSessionStarted) or FSessionTerminated then
+    Exit;
+  oldID := FSessionID;
+  oldFile := SessionFileName;
+  FCookieID := RandomString(41, 'fastplaz');
+  FSessionID := GenerateSessionID();
+
+  if Storage = _SESSION_STORAGE_FILE then
+  begin
+    if FIniFile = nil then
+      Exit;
+    lst := TStringList.Create;
+    try
+      FIniFile.GetStrings(lst);
+      newIni := CreateIniFile(SessionFileName);
+      newIni.SetStrings(lst);
+    finally
+      lst.Free;
+    end;
+    FreeAndNil(FIniFile);
+    FIniFile := newIni;
+    try
+      UpdateIniFile;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add('session regenerate failed: ' + E.Message, 'sessions', True);
+        Exit;
+      end;
+    end;
+    DeleteFile(oldFile);
+  end;
+
+  if Storage = _SESSION_STORAGE_DATABASE then
+  begin
+    if not UpdateDatabase then
+      Exit;
+    DeleteDatabaseRow(oldID);
+  end;
+
+  FIsNewSession := True;
+  SendCookie;
+  Result := True;
+end;
+
+procedure TSessionController.SendCookie;
+var
+  cookie: TCookie;
+begin
+  try
+    if Application.Response = nil then
+      Exit;
+    cookie := Application.Response.Cookies.Add;
+    cookie.Name := _SESSION_COOKIE_KEY;
+    cookie.Value := FCookieID;
+    cookie.Path := '/';
+    if not FCookiePath.IsEmpty then
+      cookie.Path := FCookiePath;
+    cookie.HttpOnly := True;
+    cookie.SameSite := ssLax;
+    cookie.Secure := (ServerVariable('HTTPS') = 'on');
+  except
+    on E: Exception do
+      LogUtil.Add('session cookie: ' + E.Message, 'sessions', True);
+  end;
 end;
 
 function TSessionController.StartSessionWithFile: boolean;
 begin
   Result := False;
 
-  // check if directory is writeable
-  if FSessionDir <> '' then
-  begin
-    if not DirectoryIsWritable(FSessionDir) then
-      FSessionDir := '';
-  end;
   if FSessionDir = '' then
+    FSessionDir := DefaultSessionDir;
+  FSessionDir := IncludeTrailingPathDelimiter(FSessionDir);
+  if not PrepareSessionDir(FSessionDir) then
   begin
-    FSessionDir := 'ztemp/sessions/';
-    try
-      if not DirectoryExists(FSessionDir) then
-        ForceDirectories(FSessionDir);
-    except
+    LogUtil.Add('session directory is not writable: ' + FSessionDir, 'sessions', True);
+    FSessionDir := IncludeTrailingPathDelimiter(_SESSION_DIR_DEFAULT);
+    if not PrepareSessionDir(FSessionDir) then
+    begin
+      LogUtil.Add('session directory is not writable: ' + FSessionDir, 'sessions', True);
+      Exit;
     end;
   end;
-  FSessionDir := IncludeTrailingPathDelimiter(FSessionDir);
 
   //-- create session file
-  FIniFile := CreateIniFile(FSessionDir + FSessionID + FSessionExtension);
+  FreeAndNil(FIniFile);
+  FIniFile := CreateIniFile(SessionFileName);
   if FIniFile = nil then
     Exit;
-
-  if not DirectoryIsWritable(FSessionDir) then
-  begin
-    LogUtil.Add('Can''t write session', 'sessions', True);
-  end;
 
   // init session file
   if not FIniFile.ReadBool(_SESSION_SESSION, _SESSION_ACTIVE, False) then
   begin
     FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, True);
-    FIniFile.WriteString(_SESSION_SESSION, _SESSION_IPADDRESS,
-      Application.Request.RemoteAddress);
-    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, now);
-    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, now);
+    FIniFile.WriteString(_SESSION_SESSION, _SESSION_IPADDRESS, GetUserIpAddress);
+    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, Now);
+    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, Now);
   end;
 
-  FLastAccess := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, 0);
+  FLastAccess := FIniFile.ReadDateTime(_SESSION_SESSION, _SESSION_KEYLAST, Now);
   FSessionStarted := True;
 
-  // check if expired
-  if GetIsExpired then
+  // an expired session is wiped (GetIsExpired -> Clear) and continues empty
+  if not GetIsExpired then
   begin
-    {
-    DeleteIniFile;
-    FreeAndNil(FIniFile);
-    FSessionTerminated:=True;
-    }
-    Exit;
+    FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, Now);
+    try
+      UpdateIniFile;
+    except
+      on E: Exception do
+      begin
+        LogUtil.Add('session write failed: ' + E.Message, 'sessions', True);
+        Exit;
+      end;
+    end;
   end;
-
-  FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, now);
-
-  if not FCached then
-    UpdateIniFile;
   Result := True;
 end;
 
 function TSessionController.StartSessionWithDatabase: boolean;
-var
-  lastAccessAsInteger: integer;
 begin
   Result := False;
-  SessionTable := TSessionModel.Create();
-  if SessionTable.Find(FSessionID) then
-  begin
-    FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-    lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
-    FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
-    UpdateDatabase;
-  end
-  else
-  begin
-    FSessionVars.Text := '';
-    UpdateDatabase;
-    if SessionTable.Find(FSessionID) then
+  FreeAndNil(FSessionTable);
+  try
+    FSessionTable := TSessionModel.Create();
+    if TSessionModel(FSessionTable).Find(FSessionID) then
+      LoadFromDatabase
+    else
     begin
-      FSessionVars.Text := d(SessionTable.Value[SESSION_FIELD_VARS]);
-      lastAccessAsInteger := SessionTable.Value[SESSION_FIELD_LASTUSED];
-      FLastAccess := UnixToDateTime( lastAccessAsInteger, False);
+      FSessionVars.Clear;
+      FLastAccess := Now;
+    end;
+  except
+    on E: Exception do
+    begin
+      LogUtil.Add('session db: ' + E.Message, 'sessions', True);
+      Exit;
     end;
   end;
   FSessionStarted := True;
-  Result := True;
+  if not GetIsExpired then // GetIsExpired -> Clear already writes the row
+    Result := UpdateDatabase
+  else
+    Result := True;
 end;
 
 procedure TSessionController.Clear;
@@ -583,19 +717,24 @@ begin
   try
     if Storage = _SESSION_STORAGE_FILE then
     begin
+      if FIniFile = nil then
+        Exit;
       FIniFile.EraseSection(_SESSION_DATA);
       FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, True);
-      FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, now);
-      FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, now);
-      ForceUpdate;
+      FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYSTART, Now);
+      FIniFile.WriteDateTime(_SESSION_SESSION, _SESSION_KEYLAST, Now);
+      UpdateIniFile;
     end;
 
     if Storage = _SESSION_STORAGE_DATABASE then
     begin
-      FSessionVars.Text := '';
+      FSessionVars.Clear;
       UpdateDatabase;
     end;
-  except;
+    FLastAccess := Now;
+  except
+    on E: Exception do
+      LogUtil.Add('session clear failed: ' + E.Message, 'sessions', True);
   end;
 end;
 
@@ -603,9 +742,19 @@ procedure TSessionController.DeleteKey(const Key: string);
 var
   i: integer;
 begin
+  if (not FSessionStarted) or FSessionTerminated then
+    Exit;
   if Storage = _SESSION_STORAGE_FILE then
   begin
+    if FIniFile = nil then
+      Exit;
     FIniFile.DeleteKey(_SESSION_DATA, Key);
+    try
+      UpdateIniFile;
+    except
+      on E: Exception do
+        LogUtil.Add('session write failed: ' + E.Message, 'sessions', True);
+    end;
   end;
 
   if Storage = _SESSION_STORAGE_DATABASE then
@@ -622,21 +771,38 @@ begin
   try
     if Storage = _SESSION_STORAGE_FILE then
     begin
+      if FIniFile = nil then
+        Exit;
       FIniFile.WriteBool(_SESSION_SESSION, _SESSION_ACTIVE, False);
       FIniFile.EraseSection(_SESSION_DATA);
       if Force then
       begin
-        DeleteIniFile;
         FreeAndNil(FIniFile);
+        DeleteIniFile;
         FSessionTerminated := True;
-      end;
+        // a later StartSession (the next request of a daemon, or a login
+        // after a forced logout) starts afresh instead of staying terminated
+        FSessionStarted := False;
+      end
+      else
+        UpdateIniFile;
     end;
 
     if Storage = _SESSION_STORAGE_DATABASE then
     begin
-      Clear;
+      if Force then
+      begin
+        FSessionVars.Clear;
+        DeleteDatabaseRow(FSessionID);
+        FSessionTerminated := True;
+        FSessionStarted := False;
+      end
+      else
+        Clear;
     end;
   except
+    on E: Exception do
+      LogUtil.Add('session end failed: ' + E.Message, 'sessions', True);
   end;
 end;
 
@@ -647,6 +813,8 @@ end;
 
 procedure TSessionController.ForceUpdate;
 begin
+  if (not FSessionStarted) or FSessionTerminated then
+    Exit;
   if Storage = _SESSION_STORAGE_FILE then
     UpdateIniFile;
   if Storage = _SESSION_STORAGE_DATABASE then
@@ -655,39 +823,12 @@ end;
 
 function TSessionController.ReadDateTime(const variable: string): TDateTime;
 begin
-  Result := 0;
-
-  if Storage = _SESSION_STORAGE_FILE then
-  begin
-    if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
-      Exit;
-    Result := FIniFile.ReadDateTime(_SESSION_DATA, variable, 0);
-  end;
-
-  if Storage = _SESSION_STORAGE_DATABASE then
-  begin
-    try
-      Result := StrToDateTime(FSessionVars.Values[variable]);
-    except
-    end;
-  end;
+  Result := StrToDateTimeDef(GetValue(variable), 0);
 end;
 
 function TSessionController.ReadInteger(const variable: string): integer;
 begin
-  Result := 0;
-
-  if Storage = _SESSION_STORAGE_FILE then
-  begin
-    if (not FSessionStarted) or (FSessionTerminated) or (FIniFile = nil) then
-      Exit;
-    Result := FIniFile.ReadInteger(_SESSION_DATA, variable, 0);
-  end;
-
-  if Storage = _SESSION_STORAGE_DATABASE then
-  begin
-    Result := s2i(FSessionVars.Values[variable]);
-  end;
+  Result := s2i(GetValue(variable));
 end;
 
 end.

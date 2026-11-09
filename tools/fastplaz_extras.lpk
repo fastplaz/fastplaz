@@ -1,59 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <Package Version="4">
-    <PathDelim Value="\"/>
     <Name Value="fastplaz_extras"/>
+    <Type Value="RunTimeOnly"/>
     <Author Value="Luri Darmawan"/>
     <CompilerOptions>
       <Version Value="11"/>
-      <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="src;..\FastPlaz\src\vendor\dcrypt"/>
-        <UnitOutputDirectory Value="lib\extras\$(TargetCPU)-$(TargetOS)"/>
+        <OtherUnitFiles Value="../FastPlaz/src/vendor/dcrypt"/>
+        <UnitOutputDirectory Value="lib/extras/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <Verbosity>
-          <ShowWarn Value="False"/>
           <ShowHints Value="False"/>
         </Verbosity>
       </Other>
     </CompilerOptions>
     <Description Value="FastPlaz Extras Library"/>
+    <Version Major="1"/>
     <Files Count="7">
       <Item1>
-        <Filename Value="src\fastplaz_extras_register.pas"/>
-        <HasRegisterProc Value="True"/>
-        <UnitName Value="fastplaz_extras_register"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/hash_tools.pas"/>
+        <UnitName Value="hash_tools"/>
       </Item1>
       <Item2>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\hash_tools.pas"/>
-        <UnitName Value="hash_tools"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpbase64.pas"/>
+        <UnitName Value="DCPbase64"/>
       </Item2>
       <Item3>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\dcpbase64.pas"/>
-        <UnitName Value="DCPbase64"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpconst.pas"/>
+        <UnitName Value="DCPconst"/>
       </Item3>
       <Item4>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\dcpconst.pas"/>
-        <UnitName Value="DCPconst"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpcrypt2.pas"/>
+        <UnitName Value="DCPcrypt2"/>
       </Item4>
       <Item5>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\dcpcrypt2.pas"/>
-        <UnitName Value="DCPcrypt2"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpsha1.pas"/>
+        <UnitName Value="DCPsha1"/>
       </Item5>
       <Item6>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\dcpsha1.pas"/>
-        <UnitName Value="DCPsha1"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpsha256.pas"/>
+        <UnitName Value="DCPsha256"/>
       </Item6>
       <Item7>
-        <Filename Value="..\FastPlaz\src\vendor\dcrypt\dcpsha256.pas"/>
-        <UnitName Value="DCPsha256"/>
+        <Filename Value="../FastPlaz/src/vendor/dcrypt/dcpsha512.pas"/>
+        <UnitName Value="DCPsha512"/>
       </Item7>
     </Files>
-    <i18n>
-      <EnableI18N Value="True"/>
-      <EnableI18NForLFM Value="True"/>
-    </i18n>
     <RequiredPkgs Count="1">
       <Item1>
         <PackageName Value="FCL"/>

@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: modsimplejson_lib.rs_mod_json_description
+msgctxt "modsimplejson_lib.rs_mod_json_description"
+msgid "Create API Controller (JSON)"
+msgstr "Buat Controller API (JSON)"
+
+#: modsimplejson_lib.rs_mod_json_name
+msgctxt "modsimplejson_lib.rs_mod_json_name"
+msgid "Create API Controller (JSON)"
+msgstr "Buat Controller API (JSON)"

@@ -17,7 +17,7 @@ interface
 
 uses
   common, modvar_model, serialize_lib,
-  Classes, SysUtils;
+  Variants, Classes, SysUtils;
 
 const
   {$include '../../define_cms.inc'}
@@ -58,7 +58,8 @@ begin
     modname:= lst[0];
     varname:= lst[1];
   end;
-  varvalue := GetCustom( modname, varname, '');
+  // a NULL value column must not raise EVariantError
+  varvalue := VarToStr( GetCustom( modname, varname, ''));
   Result := unserialize( varvalue);
   FreeAndNil( lst);
 end;
@@ -83,7 +84,7 @@ end;
 
 constructor TModvarUtil.Create(const DefaultTableName: string);
 begin
-  inherited Create(DefaultTableName); // table name = users
+  inherited Create(DefaultTableName); // table name = module_vars
 end;
 
 destructor TModvarUtil.Destroy;

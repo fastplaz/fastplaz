@@ -23,9 +23,6 @@ unit kamuskemdikbud_integration;
 interface
 
 uses
-  {$IFNDEF Windows}
-  cthreads,
-  {$ENDIF}
   common, http_lib,
   {$if FPC_FULlVERSION >= 30200}
   opensslsockets,
@@ -40,7 +37,7 @@ type
   private
   public
     constructor Create; virtual;
-    destructor Destroy; virtual;
+    destructor Destroy; override;
     function Find(Text: string): string;
   end;
 
@@ -54,8 +51,6 @@ const
   __TAG_END = '\</([\.\$A-Za-z0-9=_ :;\-"]+)\>';
 
 
-var
-  Response: IHTTPResponse;
 
 { TKamusIntegration }
 
@@ -65,13 +60,14 @@ end;
 
 destructor TKamusIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TKamusIntegration.Find(Text: string): string;
 var
   s, return, urlTarget: string;
   httpClient: THTTPLib;
+  Response: IHTTPResponse;
 begin
   Result := '';
   Text := trim(LowerCase(Text));
@@ -80,9 +76,12 @@ begin
 
   urlTarget := _KAMUS_URL + UrlEncode(Text);
   httpClient := THTTPLib.Create;
-  httpClient.URL := urlTarget;
-  Response := httpClient.Get;
-  httpClient.Free;
+  try
+    httpClient.URL := urlTarget;
+    Response := httpClient.Get;
+  finally
+    httpClient.Free;
+  end;
 
   if Response.ResultCode <> 200 then
     Exit;

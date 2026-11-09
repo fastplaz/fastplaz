@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson, jsonparser, jsonscanner, jsonConf,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler;
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler;
 
 type
 
@@ -48,10 +48,9 @@ var
   VJSONData: TJSONData = nil;
   VJSONParser: TLocalJSONParser;
 begin
+  Result := str;
   if str = '' then
     Exit;
-  ;
-  Result := str;
   VJSONParser := TLocalJSONParser.Create(str, [joStrict, joUTF8]);
   try
     //VJSONParser.Strict := True; // deprecated
@@ -78,8 +77,14 @@ end;
 procedure TInitializeModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
+  // Redirect only sends the response, it does not stop this handler;
+  // without the Exit an existing configuration was overwritten
   if FileExists('config/config.json') then
+  begin
     Redirect(BaseURL);
+    Handled := True;
+    Exit;
+  end;
 
   InitializeApp;
 
@@ -102,6 +107,7 @@ begin
     Add('</filesmatch>');
   end;
   ContentFile := TStringList.Create;
+  try
   ContentFile.Text := _APP_URL;
   CreateDirCustom('config', True);
   CreateDirCustom('files', True);
@@ -147,7 +153,7 @@ begin
   Config.SetValue(_SYSTEM_SLOGAN, _APP_SLOGAN);
   Config.SetValue(_SYSTEM_BASEURL, '');
   Config.SetValue(UnicodeString(_SYSTEM_WEBMASTER_EMAIL), 'admin@' +
-    WideString(GetEnvironmentVariable('SERVER_NAME')));
+    WideString(ServerVariable('SERVER_NAME')));
   Config.SetValue(_SYSTEM_ERROR_URL, '/');
   Config.SetValue(_SYSTEM_ERROR_REDIRECT, False);
   Config.SetValue(_SYSTEM_DEBUG, True);
@@ -214,8 +220,10 @@ begin
     Free;
   end;
 
-  FreeAndNil(ContentFile);
-  FreeAndNil(htaccess);
+  finally
+    FreeAndNil(ContentFile);
+    FreeAndNil(htaccess);
+  end;
   Result := True;
 end;
 

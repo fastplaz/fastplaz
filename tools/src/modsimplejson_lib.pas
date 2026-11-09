@@ -5,7 +5,7 @@ unit modsimplejson_lib;
 interface
 
 uses
-  Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
+  Forms, Dialogs, Controls, LazarusPackageIntf, ProjectIntf,
   Classes, SysUtils;
 
 resourcestring
@@ -20,6 +20,8 @@ type
   private
   public
     constructor Create; override;
+    function Init(var NewFilename: string; NewOwner: TObject;
+      var NewSource: string; Quiet: boolean): TModalResult; override;
     function GetInterfaceUsesSection: string; override;
     function GetLocalizedName: string; override;
     function GetLocalizedDescription: string; override;
@@ -28,41 +30,56 @@ type
       override;
     function GetImplementationSource(const Filename, SourceName,
       ResourceName: string): string; override;
-    function GetResourceSource(const ResourceName: string): string; override;
     function CreateSource(const Filename, SourceName, ResourceName: string): string;
       override;
-    procedure UpdateDefaultPascalFileExtension(const DefPasExt: string); override;
   end;
 
 implementation
 
-uses fastplaz_tools_register, modsimple_wzd;
+uses fastplaz_tools_register, tools_lib, modsimple_lib;
 
 { TFileDescJSONModule }
 
 constructor TFileDescJSONModule.Create;
 begin
   inherited Create;
-  //Name:=rs_Mod_JSON_Name;
   DefaultFileExt := '.pas';
   VisibleInNewDialog := True;
+end;
+
+function TFileDescJSONModule.Init(var NewFilename: string; NewOwner: TObject;
+  var NewSource: string; Quiet: boolean): TModalResult;
+begin
+  Result := inherited Init(NewFilename, NewOwner, NewSource, Quiet);
+  if Result <> mrOk then
+    Exit;
+  if bExpert then
+    Exit; // the menu already asked
+  if bCreateProject or Quiet then
+  begin
+    ModulTypeName := 'TMainModule';
+    Permalink := 'main';
+    Exit;
+  end;
+  if not AskModuleName('TJsonModule', 'json') then
+    Exit(mrCancel);
+  if NewFilename = '' then
+    NewFilename := SanitizeIdentifier(Permalink) + '_controller.pas';
 end;
 
 function TFileDescJSONModule.GetInterfaceUsesSection: string;
 begin
   Result := inherited GetInterfaceUsesSection;
-  Result := Result + ', fpcgi, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, dateutils, string_helpers, datetime_helpers, json_helpers, array_helpers';
+  Result := Result + ', fastplaz_app, fpjson, json_lib, HTTPDefs, fastplaz_handler, database_lib, dateutils, string_helpers, datetime_helpers, json_helpers, array_helpers';
 end;
 
 function TFileDescJSONModule.GetLocalizedName: string;
 begin
-  Result := inherited GetLocalizedName;
   Result := rs_Mod_JSON_Name;
 end;
 
 function TFileDescJSONModule.GetLocalizedDescription: string;
 begin
-  Result := inherited GetLocalizedDescription;
   Result := rs_Mod_JSON_Description;
 end;
 
@@ -71,13 +88,11 @@ function TFileDescJSONModule.GetInterfaceSource(
 var
   str: TStringList;
 begin
-  //Result:=inherited GetInterfaceSource(Filename, SourceName, ResourceName);
   str := TStringList.Create;
   with str do
   begin
     Add('type');
     Add('  ' + ModulTypeName + ' = class(TMyCustomController)');
-    //Add('    procedure RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('  private');
     Add('  public');
     Add('    constructor CreateNew(AOwner: TComponent; CreateMode: integer); override;');
@@ -109,7 +124,6 @@ begin
       '.CreateNew(AOwner: TComponent; CreateMode: integer);');
     Add('Begin');
     Add('  inherited CreateNew(AOwner, CreateMode);');
-    //Add('  OnRequest := @RequestHandler;');
     Add('End;');
     Add('');
 
@@ -119,7 +133,6 @@ begin
     Add('End;');
     Add('');
 
-    //Add('procedure ' + ModulTypeName + '.RequestHandler(Sender: TObject; ARequest: TRequest; AResponse: TResponse; var Handled: boolean);');
     Add('// GET Method Handler');
     Add('procedure ' + ModulTypeName + '.Get;');
     Add('var');
@@ -171,54 +184,11 @@ begin
   end;
 end;
 
-
-function TFileDescJSONModule.GetResourceSource(const ResourceName: string): string;
-begin
-  Result := inherited GetResourceSource(ResourceName);
-end;
-
 function TFileDescJSONModule.CreateSource(
   const Filename, SourceName, ResourceName: string): string;
 begin
-  if not bExpert then
-  begin;
-    Permalink := 'json';
-    ModulTypeName := 'TJsonModule';
-    if not bCreateProject then
-    begin
-      with TfModuleSimpleWizard.Create(nil) do
-      begin
-        if ShowModal = mrOk then
-        begin
-          if edt_ModuleName.Text <> '' then
-            ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]) + 'Controller';
-          Permalink := edt_Permalink.Text;
-          if Permalink = '' then
-          begin
-            Permalink := StringReplace(UcWords(edt_ModuleName.Text),
-              ' ', '', [rfReplaceAll]);
-          end;
-        end;
-        Free;
-      end;
-    end
-    else
-    begin
-      ModulTypeName := 'TMainModule';
-      Permalink := 'main';
-    end;
-
-  end;
   Result := inherited CreateSource(Filename, SourceName, Permalink);
   log('module "' + ModulTypeName + '" created', Filename);
 end;
-
-procedure TFileDescJSONModule.UpdateDefaultPascalFileExtension(
-  const DefPasExt: string);
-begin
-  inherited UpdateDefaultPascalFileExtension(DefPasExt);
-end;
-
 
 end.

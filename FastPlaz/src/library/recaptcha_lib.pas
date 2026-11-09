@@ -1,10 +1,21 @@
 unit recaptcha_lib;
 
 {
-This is FORK a PHP library that handles calling reCAPTCHA.
-http://www.google.com/recaptcha
-Get a reCAPTCHA API Key
-  https://www.google.com/recaptcha/admin/create
+  reCAPTCHA v2 verification (https://developers.google.com/recaptcha/docs/verify)
+
+  USAGE
+    with TReCaptcha.Create(SecretKey) do
+    begin
+      if not isValid then
+        ... ErrorCodes ...
+      Free;
+    end;
+
+  isValid reads g-recaptcha-response from the POST data and calls the
+  siteverify endpoint with a form POST (secret, response, remoteip).
+  The legacy v1 API (api/verify, challenge/response fields) was shut down
+  by Google and is no longer supported: it always fails with
+  'unsupported-version'.
 }
 
 {$mode objfpc}{$H+}
@@ -12,16 +23,16 @@ Get a reCAPTCHA API Key
 interface
 
 uses
-  json_lib,
-  fpcgi, fastplaz_handler, common,
-  fphttpclient,
+  json_lib, fpjson,
+  fastplaz_app, fastplaz_handler, common,
+  fphttpclient, opensslsockets,
   Classes, SysUtils;
 
 const
   ReCaptcha_SignupUrl = 'https://www.google.com/recaptcha/admin';
-  ReCaptcha_SiteVerifyUrl_v1 = 'https://www.google.com/recaptcha/api/verify?';
-  ReCaptcha_SiteVerifyUrl_v2 = 'https://www.google.com/recaptcha/api/siteverify?';
-  ReCaptcha_Version = 'php_1.0';
+  ReCaptcha_SiteVerifyUrl_v2 = 'https://www.google.com/recaptcha/api/siteverify';
+  ReCaptcha_Version = 'fastplaz_2.0';
+  ReCaptcha_Timeout = 10000; // ms
 
 type
 
@@ -32,17 +43,23 @@ type
     FSecretKey: string;
     FErrorCodes: string;
     FVersion: string;
-    function _submitHttpGet(SiteURL: string; Data: array of string): string;
-    function _submitHttpPost(SiteURL: string; Data: array of string): string;
+    FTimeout: integer;
+  protected
+    // Sends the verification request; overridable for tests.
+    // Returns the response body, raises on transport errors.
+    function SubmitSiteVerify(Params: TStrings): string; virtual;
   public
     constructor Create(SecretKey: string);
     destructor Destroy; override;
     function isValid(): boolean;
-    function verifyResponse(const RemoteIP, ResponRecaptcha, Challenge: string): boolean;
-
+    function verifyResponse(const RemoteIP, ResponRecaptcha: string;
+      const Challenge: string = ''): boolean;
+    // Interprets a siteverify JSON body; sets ErrorCodes.
+    function ParseSiteVerifyResponse(const AJson: string): boolean;
 
     property ErrorCodes: string read FErrorCodes;
-    property Version: string read FVersion;
+    property Version: string read FVersion write FVersion;
+    property Timeout: integer read FTimeout write FTimeout;
   end;
 
 
@@ -50,38 +67,30 @@ implementation
 
 { TReCaptcha }
 
-function TReCaptcha._submitHttpGet(SiteURL: string; Data: array of string): string;
+function TReCaptcha.SubmitSiteVerify(Params: TStrings): string;
 var
-  parameter: string;
+  client: TFPHTTPClient;
 begin
-  parameter := EncodeQueryString(Data);
-  Result := file_get_contents(SiteURL + parameter);
-end;
-
-function TReCaptcha._submitHttpPost(SiteURL: string; Data: array of string): string;
-var
-  s, parameter: string;
-begin
-  parameter := EncodeQueryString(Data);
-  with TFPHTTPClient.Create(nil) do
-  begin
-    try
-      s := FormPost(SiteURL, parameter);
-      Result := s;
-    except
-      on e: Exception do
-      begin
-        Result := e.Message;
-      end;
-    end;
-    Free;
+  client := TFPHTTPClient.Create(nil);
+  try
+    client.ConnectTimeout := FTimeout;
+    client.IOTimeout := FTimeout;
+    client.AddHeader('User-Agent', 'fastplaz-recaptcha/' + ReCaptcha_Version);
+    // FormPost URL-encodes every field, so a token containing '&' or '='
+    // cannot inject parameters and the secret never appears in a URL
+    Result := client.FormPost(ReCaptcha_SiteVerifyUrl_v2, Params);
+  finally
+    client.Free;
   end;
 end;
 
 constructor TReCaptcha.Create(SecretKey: string);
 begin
+  inherited Create;
   FSecretKey := SecretKey;
   FVersion := 'v2';
+  FTimeout := ReCaptcha_Timeout;
+  FErrorCodes := '';
 end;
 
 destructor TReCaptcha.Destroy;
@@ -94,26 +103,48 @@ var
   response: string;
 begin
   Result := False;
-  FVersion := _POST['recaptcha_version'];
-  if FVersion = '' then
-    FVersion := 'v2';
-  response := _POST['g-recaptcha-response']; // v2
-  if response = '' then
-    response := _POST['recaptcha_response_field'];
-
+  // the version is a server side decision; it used to be taken from the
+  // POST data, which let a client force the dead v1 endpoint
+  response := _POST['g-recaptcha-response'];
   FErrorCodes := 'missing-input';
   if response = '' then
     Exit;
-
-  Result := verifyResponse(Application.EnvironmentVariable['REMOTE_ADDR'],
-    response, _POST['recaptcha_challenge_field']);
+  Result := verifyResponse(Application.EnvironmentVariable['REMOTE_ADDR'], response);
 end;
 
-function TReCaptcha.verifyResponse(
-  const RemoteIP, ResponRecaptcha, Challenge: string): boolean;
+function TReCaptcha.ParseSiteVerifyResponse(const AJson: string): boolean;
 var
-  s: string;
   json: TJSONUtil;
+  d: TJSONData;
+begin
+  Result := False;
+  FErrorCodes := 'invalid-response';
+  json := TJSONUtil.Create;
+  try
+    if not json.LoadFromJsonString(AJson) or not Assigned(json.Data) then
+      Exit;
+    d := json.Data.FindPath('success');
+    if Assigned(d) and (d.JSONType = jtBoolean) and d.AsBoolean then
+    begin
+      FErrorCodes := '0';
+      Result := True;
+      Exit;
+    end;
+    d := json.Data.FindPath('error-codes');
+    if Assigned(d) and (d.JSONType = jtArray) and (d.Count > 0) then
+      FErrorCodes := d.Items[0].AsString
+    else
+      FErrorCodes := 'invalid-response';
+  finally
+    json.Free;
+  end;
+end;
+
+function TReCaptcha.verifyResponse(const RemoteIP, ResponRecaptcha: string;
+  const Challenge: string): boolean;
+var
+  params: TStringList;
+  body: string;
 begin
   Result := False;
   if ((RemoteIP = '') or (ResponRecaptcha = '')) then
@@ -121,47 +152,36 @@ begin
     FErrorCodes := 'missing-input';
     Exit;
   end;
-
-  if Version = 'v1' then
+  if FSecretKey = '' then
   begin
-    if Challenge = '' then
-    begin
-      FErrorCodes := 'incorrect-captcha-sol';
-      Exit;
-    end;
-    s := _submitHttpPost(ReCaptcha_SiteVerifyUrl_v1,
-      ['privatekey=' + FSecretKey, 'remoteip=' + RemoteIP, 'challenge=' +
-      Challenge, 'response=' + ResponRecaptcha]);
-    with Explode(s, #10) do
-    begin
-      try
-        s := trim(ValueFromIndex[0]);
-        if s = 'true' then
-          Result := True;
-        FErrorCodes := ValueFromIndex[1];
-      except
-      end;
-      Free;
-    end;
-  end //-- v1 - end
-  else
-  begin //-- v2
-    s := _submitHttpGet(ReCaptcha_SiteVerifyUrl_v2,
-      ['secret=' + FSecretKey, 'remoteip=' + RemoteIP, 'response=' +
-      ResponRecaptcha, 'v=' + ReCaptcha_Version]);
-    json := TJSONUtil.Create;
-    json.LoadFromJsonString(s);
-    s := json['success'];
-    FErrorCodes := jsonGetData(json.Data,'error-codes[0]');
-    if s = 'True' then
-    begin
-       FErrorCodes := '0';
-       Result := True;
-    end;
-    // TODO: processing v2
+    FErrorCodes := 'missing-input-secret';
+    Exit;
   end;
+  if Version <> 'v2' then
+  begin
+    FErrorCodes := 'unsupported-version';
+    Exit;
+  end;
+
+  params := TStringList.Create;
+  try
+    params.Add('secret=' + FSecretKey);
+    params.Add('response=' + ResponRecaptcha);
+    params.Add('remoteip=' + RemoteIP);
+    try
+      body := SubmitSiteVerify(params);
+    except
+      on E: Exception do
+      begin
+        // a transport failure is not "captcha wrong"; let the caller see it
+        FErrorCodes := 'network-error: ' + E.Message;
+        Exit;
+      end;
+    end;
+  finally
+    params.Free;
+  end;
+  Result := ParseSiteVerifyResponse(body);
 end;
 
 end.
-
-

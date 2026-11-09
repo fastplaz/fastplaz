@@ -91,12 +91,22 @@ begin
 end;
 
 procedure TfDatabaseConnectionEditor.btnOkClick(Sender: TObject);
+
+  function Required(AControl: TWinControl; const AValue, ALabel: string): boolean;
+  begin
+    Result := Trim(AValue) <> '';
+    if not Result then
+    begin
+      MessageDlg(ALabel + ' is required', mtWarning, [mbOK], 0);
+      AControl.SetFocus;
+    end;
+  end;
+
 begin
-  if edtName.Text = '' then Exit;
-  if cbbDriver.Text = '' then Exit;
-  if edtHostname.Text = '' then Exit;
-  //if edtUsername.Text = '' then Exit;
-  if edtDatabaseName.Text = '' then Exit;
+  if not Required(edtName, edtName.Text, 'Connection name') then Exit;
+  if not Required(cbbDriver, cbbDriver.Text, 'Driver') then Exit;
+  if not Required(edtHostname, edtHostname.Text, 'Hostname') then Exit;
+  if not Required(edtDatabaseName, edtDatabaseName.Text, 'Database name') then Exit;
   ModalResult := mrOK;
 end;
 

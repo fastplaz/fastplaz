@@ -20,11 +20,16 @@ unit verbal_expressions_lib;
   varString := 'Replace bird with a duck';
   VE.Find('bird');
   varString := VE.Replace(varString, 'duck');
-  //result: 'Replace bird with a bird'
+  //result: 'Replace duck with a duck'
 
   // or
   varString := VE.Find('red').Replace('We have a red house', 'blue');
   //result: 'We have a blue house'
+
+  Values passed to Has/Find/Maybe/AnyOf/... are escaped, so user input can
+  be used there. AndThen/Has/Have/Find with ASanitize = False and
+  Range(array of string) insert raw regex syntax: never pass user input to
+  those. Replace treats the replacement as literal text.
 
   inspiration from:
     http://verbalexpressions.github.io/
@@ -49,13 +54,13 @@ type
 
   TVerbalExpressions = class
   private
-    FExpressions: TStringList;
     FLastAdded: string;
     FModifiers: string;
     FPrefixes: string;
     FSource: string;
     FSuffixes: string;
     function getExpression: string;
+    function CreateRegExpr: TRegExpr;
   public
     constructor Create;
     destructor Destroy; override;
@@ -93,6 +98,8 @@ type
     property Source: string read FSource;
     property Prefixes: string read FPrefixes write FPrefixes;
     property Suffixes: string read FSuffixes write FSuffixes;
+    // 'm': ^ and $ match at line breaks; 'i': ignore case; 's': . matches
+    // line breaks. Default 'm'.
     property Modifiers: string read FModifiers write FModifiers;
     property LastAdded: string read FLastAdded;
   end;
@@ -107,35 +114,63 @@ const
 
 function TVerbalExpressions.getExpression: string;
 begin
-  //Result := '/' + FPrefixes + FSource + FSuffixes + '/' + FModifiers;
   Result := FPrefixes + FSource + FSuffixes;
+end;
+
+function TVerbalExpressions.CreateRegExpr: TRegExpr;
+begin
+  Result := TRegExpr.Create;
+  Result.ModifierM := Pos('m', FModifiers) > 0;
+  Result.ModifierI := Pos('i', FModifiers) > 0;
+  Result.ModifierS := Pos('s', FModifiers) > 0;
+  Result.Expression := getExpression;
 end;
 
 constructor TVerbalExpressions.Create;
 begin
-  FExpressions := TStringList.Create;
-  FSource := '';
-  FModifiers := 'm';
-  FPrefixes := '';
-  FSuffixes := '';
-  FLastAdded := '';
+  inherited Create;
+  Clean;
 end;
 
 destructor TVerbalExpressions.Destroy;
 begin
-  FExpressions.Free;
   inherited Destroy;
 end;
 
 function TVerbalExpressions.IsMatch(const AText: string): boolean;
+var
+  re: TRegExpr;
 begin
-  Result := preg_match(getExpression, AText);
+  Result := False;
+  re := CreateRegExpr;
+  try
+    try
+      Result := re.Exec(AText);
+    except
+      Result := False;
+    end;
+  finally
+    re.Free;
+  end;
 end;
 
-// Shorthand for preg_replace()
+// Replaces every match with AValue taken literally ($1, \n and the like
+// in AValue are not interpreted).
 function TVerbalExpressions.Replace(const ASourceString, AValue: string): string;
+var
+  re: TRegExpr;
 begin
-  Result := preg_replace(Expression, AValue, ASourceString);
+  Result := ASourceString;
+  re := CreateRegExpr;
+  try
+    try
+      Result := re.Replace(ASourceString, AValue, False);
+    except
+      Result := ASourceString;
+    end;
+  finally
+    re.Free;
+  end;
 end;
 
 // Deletes the current regex for a fresh start
@@ -148,10 +183,12 @@ begin
   FLastAdded := '';
 end;
 
+// Escapes every regex meta character, including '-' and ']' so the result
+// is also safe inside a character class.
 function TVerbalExpressions.Sanitize(AValue: string): string;
 begin
-  //TODO: check with preg_quote
   Result := QuoteRegExprMetaChars(AValue);
+  Result := StringReplace(Result, '-', '\-', [rfReplaceAll]);
   Result := StringReplace(Result, '/', '\/', [rfReplaceAll]);
 end;
 
@@ -159,7 +196,6 @@ function TVerbalExpressions.Add(AValue: string): TVerbalExpressions;
 begin
   FLastAdded := Avalue;
   FSource := FSource + AValue;
-  FExpressions.Text := Trim(FExpressions.Text) + AValue;
   Result := Self;
 end;
 
@@ -167,7 +203,9 @@ end;
 function TVerbalExpressions.StartOfLine(AEnable: boolean): TVerbalExpressions;
 begin
   if AEnable then
-    FPrefixes := '^';
+    FPrefixes := '^'
+  else
+    FPrefixes := '';
   Result := Self;
 end;
 
@@ -175,7 +213,9 @@ end;
 function TVerbalExpressions.EndOfLine(AEnable: boolean): TVerbalExpressions;
 begin
   if AEnable then
-    FSuffixes := '$';
+    FSuffixes := '$'
+  else
+    FSuffixes := '';
   Result := Self;
 end;
 
@@ -224,7 +264,7 @@ end;
 // Anything non-empty except for these chars
 function TVerbalExpressions.SomethingBut(AValue: string): TVerbalExpressions;
 begin
-  Add('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']+b)');
+  Add('(' + REGEX_GROUP_LABEL + '[^' + Sanitize(AValue) + ']+)');
   Result := Self;
 end;
 
@@ -240,7 +280,8 @@ begin
   Result := AnyOf(AValue);
 end;
 
-// Adds a range to our expression
+// Adds a set of literal characters (same as AnyOf); use the array form
+// for real ranges such as 'a-z'.
 function TVerbalExpressions.Range(AValue: string): TVerbalExpressions;
 begin
   Add('[' + Sanitize(AValue) + ']');
@@ -280,27 +321,27 @@ end;
 // Match any digit
 function TVerbalExpressions.Digit: TVerbalExpressions;
 begin
-  Add('\\d');
+  Add('\d');
   Result := Self;
 end;
 
 // Match any alpha numeric
 function TVerbalExpressions.word: TVerbalExpressions;
 begin
-  Add('\\w');
+  Add('\w');
   Result := Self;
 end;
 
 // Match tabs
 function TVerbalExpressions.Tab: TVerbalExpressions;
 begin
-  Add('\\t');
+  Add('\t');
   Result := Self;
 end;
 
 function TVerbalExpressions.LineBreak: TVerbalExpressions;
 begin
-  Add('(' + REGEX_GROUP_LABEL + '\\n|(\\r\\n))');
+  Add('(' + REGEX_GROUP_LABEL + '\n|(\r\n))');
   Result := Self;
 end;
 

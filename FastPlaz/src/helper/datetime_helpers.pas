@@ -34,7 +34,7 @@ type
     function Format( AFormat: String = 'yyyy-mm-dd HH:nn:ss'): String; overload; inline;
     function HumanReadable: String; overload; inline;
     function FromString( ADateTimeString: String; AFormat: String = 'yyyy-mm-dd HH:nn:ss'): TDateTime; overload; inline;
-    function FromUnixTime( AUnixTime: Int64): TDateTime; overload; inline;
+    function FromUnixTime( AUnixTime: Int64; AIsUTC: boolean = False): TDateTime; overload; inline;
 
     function DayOfWeek: Word; overload; inline;
     function YearOf: Word; overload; inline;
@@ -44,13 +44,13 @@ type
     function MinuteOf: Word; overload; inline;
     function SecondOf: Word; overload; inline;
 
-    function YearsDiff( ADateTime: TDateTime): Word; overload; inline;
-    function MonthsDiff( ADateTime: TDateTime): Word; overload; inline;
-    function WeeksDiff( ADateTime: TDateTime): Word; overload; inline;
-    function DaysDiff( ADateTime: TDateTime): Word; overload; inline;
-    function HoursDiff( ADateTime: TDateTime): Word; overload; inline;
-    function MinutesDiff( ADateTime: TDateTime): Word; overload; inline;
-    function SecondsDiff( ADateTime: TDateTime): Word; overload; inline;
+    function YearsDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function MonthsDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function WeeksDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function DaysDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function HoursDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function MinutesDiff( ADateTime: TDateTime): Int64; overload; inline;
+    function SecondsDiff( ADateTime: TDateTime): Int64; overload; inline;
 
     function IncYear( AValue: Integer = 1): TDateTime; overload; inline;
     function IncWeek( AValue: Integer = 1): TDateTime; overload; inline;
@@ -96,24 +96,30 @@ begin
   Result := DateTimeHuman( Self);
 end;
 
+// the whole pattern is honoured (date and time); putting it into
+// ShortDateFormat dropped the time part. Now when the string does not parse
 function TDateTimeSmartHelper.FromString(ADateTimeString: String;
   AFormat: String): TDateTime;
 var
-  FS: TFormatSettings;
+  fs: TFormatSettings;
 begin
+  // '/' and ':' in the pattern stand for the locale separators, which are
+  // not '/' everywhere (FPC on Unix defaults to '-'); read them literally
+  fs := DefaultFormatSettings;
+  fs.DateSeparator := '/';
+  fs.TimeSeparator := ':';
   Self := Now;
   try
-    FS := DefaultFormatSettings;
-    FS.ShortDateFormat := AFormat;
-    Self := StrToDateTime( ADateTimeString, FS);
+    Self := ScanDateTime( AFormat, Trim( ADateTimeString), fs);
   except
   end;
   Result := Self;
 end;
 
-function TDateTimeSmartHelper.FromUnixTime(AUnixTime:Int64):TDateTime;
+// the counterpart of AsUnixTime: both default to local time
+function TDateTimeSmartHelper.FromUnixTime(AUnixTime: Int64; AIsUTC: boolean): TDateTime;
 begin
-  Self := UnixToDateTime(AUnixTime);
+  Self := UnixToDateTime(AUnixTime, AIsUTC);
   Result := Self;
 end;
 
@@ -152,37 +158,37 @@ begin
   Result := dateutils.SecondOf( Self);
 end;
 
-function TDateTimeSmartHelper.YearsDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.YearsDiff(ADateTime: TDateTime): Int64;
 begin
   Result := YearsBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.MonthsDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.MonthsDiff(ADateTime: TDateTime): Int64;
 begin
   Result := MonthsBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.WeeksDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.WeeksDiff(ADateTime: TDateTime): Int64;
 begin
   Result := WeeksBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.DaysDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.DaysDiff(ADateTime: TDateTime): Int64;
 begin
   Result := DaysBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.HoursDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.HoursDiff(ADateTime: TDateTime): Int64;
 begin
   Result := HoursBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.MinutesDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.MinutesDiff(ADateTime: TDateTime): Int64;
 begin
   Result := MinutesBetween( Self, ADateTime);
 end;
 
-function TDateTimeSmartHelper.SecondsDiff(ADateTime: TDateTime): Word;
+function TDateTimeSmartHelper.SecondsDiff(ADateTime: TDateTime): Int64;
 begin
   Result := SecondsBetween( Self, ADateTime);
 end;

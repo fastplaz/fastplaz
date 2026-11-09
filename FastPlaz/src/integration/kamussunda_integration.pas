@@ -40,7 +40,7 @@ type
     function getResult(AHTML: string): string;
   public
     constructor Create; virtual;
-    destructor Destroy; virtual;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -56,16 +56,16 @@ implementation
 const
   _KAMUSSUNDA_URL = 'http://kamus-sunda.com/penerjemah.html';
 
-var
-  Response: IHTTPResponse;
 
 { TKamusSundaIntegration }
 
 function TKamusSundaIntegration.getHTML(AText: string): string;
+var
+  Response: IHTTPResponse;
 begin
   Result := '';
   with THTTPLib.Create(_KAMUSSUNDA_URL) do
-  begin
+  try
     AddHeader('Cache-Control', 'no-cache');
     FormData['text'] := AText;
     FormData['md'] := FStyle;
@@ -76,6 +76,7 @@ begin
     begin
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;
@@ -99,7 +100,7 @@ end;
 
 destructor TKamusSundaIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TKamusSundaIntegration.TranslateIndonesianToSunda(AText: string

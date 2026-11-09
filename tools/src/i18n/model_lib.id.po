@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: model_lib.rs_model_description
+msgid "create unit for model database"
+msgstr "membuat unit model database"
+
+#: model_lib.rs_model_name
+msgid "Database Model Generator"
+msgstr "Generator Model Database"

@@ -48,8 +48,6 @@ const
   _WITAI_SPEECH_URL = 'https://api.wit.ai/speech';
   _WITAI_CONTENTTYPE_MPEG = 'audio/mpeg';
 
-var
-  Response: IHTTPResponse;
 
 { TWitAI }
 
@@ -60,16 +58,19 @@ end;
 
 destructor TWitAiIntegration.Destroy;
 begin
+  inherited Destroy;
 end;
 
 function TWitAiIntegration.Speech(FileName: string): string;
+var
+  Response: IHTTPResponse;
 begin
   Result := '';
   if FToken = '' then
     Exit;
 
   with THTTPLib.Create(_WITAI_SPEECH_URL) do
-  begin
+  try
     //ContentType := 'application/x-www-form-urlencoded';
     //AddHeader('Cache-Control', 'no-cache');
     AddHeader('Authorization', 'Bearer ' + FToken);
@@ -89,6 +90,7 @@ begin
       end;
     end;
 
+  finally
     Free;
   end;
 end;

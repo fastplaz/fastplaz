@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib,
   user_util, group_util, modvar_util,
   database_lib, security_util, user_controller;
 
@@ -50,7 +50,7 @@ type
 
 implementation
 
-uses theme_controller, common, logutil_lib;
+uses theme_controller, common, logutil_lib, Variants;
 
 constructor TGroupAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -86,6 +86,11 @@ begin
   Result := '';
   if not isPost then
     Exit;
+  if not isValidCSRF then
+  begin
+    Result := setOutput(9, MSG_TOKEN_INVALID);
+    Exit;
+  end;
 
   groupName := trim(_POST['name']);
   description := trim(_POST['description']);
@@ -96,7 +101,7 @@ begin
   end;
 
   groupId := Group.Add(groupName, description);
-  if groupId = 0 then
+  if groupId <= 0 then
     Result := setOutput(3, MSG_GROUP_ADD_FAILED)
   else
   begin
@@ -108,13 +113,25 @@ function TGroupAdminModule.Edit: string;
 var
   gid: integer;
 begin
+  Result := '';
   if isPost then
   begin
+    if not isValidCSRF then
+    begin
+      Result := setOutput(9, MSG_TOKEN_INVALID);
+      Exit;
+    end;
     gid := s2i(_POST['id']);
     if gid = 0 then
+    begin
       Result := setOutput(1, MSG_ID_INVALID);
+      Exit;
+    end;
     if not Group.Find(gid) then
+    begin
       Result := setOutput(1, MSG_GROUP_NOTEXISTS);
+      Exit;
+    end;
 
     Group[GROUP_FIELD_NAME] := _POST['name'];
     Group[GROUP_FIELD_DESCRIPTION] := _POST['description'];
@@ -125,19 +142,23 @@ begin
   end
   else
   begin //-- GET
-    Result := '';
     gid := s2i(_GET['id']);
     if gid = 0 then
+    begin
       Redirect(BaseURL + 'admin-group-list');
+      Exit;
+    end;
 
     if not Group.Find(gid) then
+    begin
       Redirect(BaseURL + 'admin-group-list', MSG_GROUP_NOTEXISTS);
+      Exit;
+    end;
 
     ThemeUtil.Assign('id', Group['gid']);
     ThemeUtil.Assign('name', Group['name']);
     ThemeUtil.Assign('description', Group['description']);
   end;
-
 end;
 
 function TGroupAdminModule.Delete: string;
@@ -147,11 +168,16 @@ begin
   Result := '';
   if not isPost then
     Exit;
+  if not isValidCSRF then
+  begin
+    Result := setOutput(9, MSG_TOKEN_INVALID);
+    Exit;
+  end;
 
   gid := s2i(_POST['gid']);
-  if gid = 2 then
+  if (gid = 0) or (gid = 2) then
   begin
-    Result := setOutput(-1, MSG_USER_DELETE_FAILED);
+    Result := setOutput(-1, MSG_GROUP_DELETE_FAILED);
     Exit;
   end;
 
@@ -168,14 +194,20 @@ end;
 procedure TGroupAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
+  // Redirect does not stop the request: leave explicitly, otherwise the
+  // tag handlers would still run Add/Edit/Delete
   if not User.isLoggedIn then
   begin
     Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_GROUP_URL);
+    Handled := True;
+    Exit;
   end;
 
   if not User.checkPermission('group', 'group', ACCESS_ADD) then
   begin
     Redirect(BaseURL + 'admin');
+    Handled := True;
+    Exit;
   end;
 
   if _GET['$3'] = 'data' then
@@ -200,7 +232,7 @@ end;
 function TGroupAdminModule.setOutput(code: integer; message: string;
   url: string): string;
 var
-  o, oData: TJSONObject;
+  o: TJSONObject;
   csrf: string;
 begin
   o := TJSONObject.Create();
@@ -209,13 +241,10 @@ begin
   if url <> '' then
     o.Add('url', url);
   o.Add('loadtime', ThemeUtil.GetDebugInfo('time'));
-  with TSecurityUtil.Create do
-  begin
-    csrf := GenerateCSRF('usertable');
-    o.Add('token', csrf);
-    _SESSION[CSRFTOKEN_KEY] := csrf;
-    Free;
-  end;
+  // the next request must carry this token (checked by isValidCSRF); the old
+  // code wrote its own value over the framework token
+  csrf := HTMLUtil.CSRF('usertable', False);
+  o.Add('token', csrf);
   Result := JsonFormatter(o.AsJSON);
   FreeAndNil(o);
 end;
@@ -254,7 +283,7 @@ function TGroupAdminModule.Tag_GroupList_Handler(const TagName: string;
   Params: TStringList): string;
 begin
   Result := '';
-  if not Group.Find(['isnull(deleted_by)']) then
+  if not Group.Find(['deleted_by IS NULL']) then
     Exit;
 
   Result := HTMLUtil.AddSelectLTE(Params.Values['id'], Params.Values['label'],
@@ -276,14 +305,15 @@ begin
   Result := '';
   if not User.checkPermission('group', 'group', ACCESS_ADD) then
     Exit;
-  if Group.Find(['name LIKE "%' + Keyword + '%"']) then
+  if Group.Find(['name LIKE ' + Group.QuoteValue('%' + Keyword + '%')]) then
   begin
     result_content := TStringList.Create;
     result_content.Add('<ul>');
     repeat
       url := Group['gid'];
       url := BaseURL + 'admin/group/view/' + url;
-      result_content.Add(Format(ADMIN_GROUP_SEARCHRESULT, [url, Group['name']]));
+      result_content.Add(Format(ADMIN_GROUP_SEARCHRESULT,
+        [url, HTMLEncode(VarToStr(Group['name']))]));
       Group.Next;
     until Group.EOF;
     result_content.Add('</ul>');
@@ -299,49 +329,51 @@ var
   o, oData: TJSONObject;
   sql: string;
 
-  index, limit, search, where: string;
+  limit, search, where: string;
   dataCount: integer;
 begin
-  where := '1=1 AND isnull( deleted_by) ';
-  index := _GET['start'];
-  limit := _GET['length'];
+  Result := '';
+  where := '1=1 AND deleted_by IS NULL ';
   search := _GET['search[value]'];
   if search <> '' then
   begin
-    where := where + ' AND (name LIKE "%' + search + '%")';
+    where := where + ' AND (name LIKE ' + Group.QuoteValue('%' + search + '%') + ')';
   end;
-  if limit <> '' then
+  limit := '';
+  if _GET['length'] <> '' then
   begin
-    limit := ' LIMIT ' + index + ', ' + limit;
+    limit := ' LIMIT ' + i2s(s2i(_GET['start'])) + ', ' + i2s(s2i(_GET['length']));
   end;
 
   o := TJSONObject.Create;
   oData := TJSONObject.Create;
+  try
+    o.Add('code', 0);
+    o.Add('draw', 0);
 
-  o.Add('code', 0);
-  o.Add('draw', 0);
+    sql := 'SELECT gid, name, gtype, description, state, nbuser, "" as action_col FROM groups u WHERE '
+      + where + ' ORDER BY name ' + limit;
 
-  sql := 'SELECT gid, name, gtype, description, state, nbuser, "" as action_col FROM groups u WHERE '
-    + where + ' ORDER BY name ' + limit;
+    if QueryOpenToJson(sql, oData, False) then
+    begin
+      dataCount := oData['count'].AsInteger;
+      o.Add('recordsFiltered', dataCount);
+      o.Add('recordsTotal', dataCount);
+      o.Add('data', oData.Extract('data'));
+    end;
+    {$IFDEF DEBUG}
+    if ((AppData.debug) and (AppData.debugLevel <= 2)) then
+    begin
+      o.Add('sql', sql);
+    end;
+    {$ENDIF}
 
-  if QueryOpenToJson(sql, oData, False) then
-  begin
-    dataCount := oData['count'].AsInteger;
-    o.Add('recordsFiltered', dataCount);
-    o.Add('recordsTotal', dataCount);
-    o.Add('data', oData['data']);
+    Result := JsonFormatter(o.AsJSON);
+  finally
+    oData.Free;
+    o.Free;
   end;
-  {$IFDEF DEBUG}
-  if ((AppData.debug) and (AppData.debugLevel <= 2)) then
-  begin
-    o.Add('sql', sql);
-  end;
-  {$ENDIF}
-
-  Result := JsonFormatter(o.AsJSON);
-  FreeAndNil(o);
 end;
-
 
 initialization
   // -> http://yourdomainname/user

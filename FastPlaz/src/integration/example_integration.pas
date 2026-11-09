@@ -28,7 +28,7 @@ type
     FURL: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     function SendExample(FileName: string; Public_Id: string = ''): IHTTPResponse;
   published
     property URL: string read FURL write FURL;
@@ -40,8 +40,6 @@ implementation
 const
   EXAMPLE_BASEURL = 'https://api.example.fastplaz.com/bot%s/';
 
-var
-  Response: IHTTPResponse;
 
 { TExampleIntegration }
 
@@ -53,13 +51,14 @@ end;
 
 destructor TExampleIntegration.Destroy;
 begin
+  inherited Destroy;
 end;
 
 function TExampleIntegration.SendExample(FileName: string; Public_Id: string): IHTTPResponse;
 begin
   FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
-  begin
+  try
     ContentType := 'application/x-www-form-urlencoded';
     //AddHeader('Connection', 'keep-alive');
     //AddHeader('Cache-Control', 'no-cache');
@@ -72,6 +71,7 @@ begin
 
     Result := Post;
     FIsSuccessfull := IsSuccessfull;
+  finally
     Free;
   end;
 end;

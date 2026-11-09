@@ -1,5 +1,8 @@
 unit office365_integration;
 
+{ DEPRECATED: Office 365 connectors retired. The unit stays for existing callers; every request to the
+  old endpoint fails. }
+
 {
   // REF:
   https://dev.outlook.com/Connectors/GetStarted
@@ -29,7 +32,7 @@ unit office365_integration;
 interface
 
 uses
-  http_lib,
+  http_lib, fpjson,
   Classes, SysUtils;
 
 type
@@ -53,7 +56,7 @@ type
     property Text: string read FText write FText;
     property ThemeColor: string read FThemeColor write FThemeColor;
     property IsSuccessfull: boolean read FIsSuccessfull;
-  end;
+  end deprecated 'Office 365 connectors retired';
 
 implementation
 
@@ -70,13 +73,14 @@ function To365GroupIntegration.CustomSend(JsonMessage: string): IHTTPResponse;
 begin
   FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
-  begin
+  try
     ContentType := 'application/json';
 
     RequestBody := TStringStream.Create(JsonMessage);
 
     Result := Post;
     FIsSuccessfull := IsSuccessfull;
+  finally
     Free;
   end;
 end;
@@ -87,14 +91,17 @@ var
 begin
   FIsSuccessfull := False;
   with THTTPLib.Create(URL) do
-  begin
+  try
     ContentType := 'application/json';
 
-    s := '{"title":"' + FTitle + '","text": "' + FText + '", "themeColor":"' + FThemeColor + '"}';
+    s := '{"title":"' + StringToJSONString(FTitle, False) + '","text": "'
+      + StringToJSONString(FText, False) + '", "themeColor":"'
+      + StringToJSONString(FThemeColor, False) + '"}';
     RequestBody := TStringStream.Create(s);
 
     Result := Post;
     FIsSuccessfull := IsSuccessfull;
+  finally
     Free;
   end;
 

@@ -5,14 +5,11 @@ unit remotedataset_component;
 interface
 
 uses
-  {$IFDEF UNIX}
-  cthreads,
-  {$ENDIF}
-  Dialogs, fpjson, fpjsondataset, jsonparser,
-  {$if FPC_FULlVERSION >= 30200}
+  LResources, fpjson, fpjsondataset, jsonparser,
+  {$if FPC_FULLVERSION >= 30200}
   extjsdataset,
   {$endif}
-  fphttpclient, http_lib, json_lib,
+  http_lib, json_lib,
   Classes, SysUtils;
 
 const
@@ -31,7 +28,6 @@ type
   private
     FCount: integer;
     FData: TJSONArray;
-    //FDataset: TExtjsJSONObjectDataset;
     FErrorCode: integer;
     FIsSuccess: boolean;
     FLastErrorMessage: string;
@@ -41,7 +37,6 @@ type
     FSQL: TStringList;
     FToken: string;
     FURL: string;
-    httpClient: TFPHTTPClient;
     httpResponse: IHTTPResponse;
     function isRequirementsComplete: boolean;
     procedure hitQuery;
@@ -49,6 +44,7 @@ type
     procedure onSyncUpdateHandler( AResponse: String);
     function extractData(const AJsonString: string): TJSONObject;
   protected
+    procedure loadRemoteData(const AJsonString: string);
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -66,10 +62,10 @@ type
     property ErrorCode: integer read FErrorCode;
     property ResultAsText: TStringList read FResultAsText;
     property ResultAsJson: TJSONUtil read FResultAsJson;
+    // reference into ResultAsJson, owned by it
     property Data: TJSONArray read FData;
     property Count: integer read FCount;
     property LastErrorMessage: string read FLastErrorMessage;
-    //property Dataset: TExtjsJSONObjectDataset read FDataset;
   end;
 
 procedure Register;
@@ -100,9 +96,6 @@ type
 
 procedure Register;
 begin
-  { $I remotedataset.lrs}
-  { $R remotedataset.res} //ulil
-
   RegisterComponents('FastPlaz', [TRemoteDataset]);
 end;
 
@@ -154,49 +147,46 @@ end;
 
 procedure TRemoteDataset.onGetUpdatesExecuteHandler;
 var
-  D: TJSONObject;
+  http: THTTPLib;
 begin
   FResultAsText.Clear;
   FResultAsJson.Clear;
+  FData := nil;
   FCount := 0;
+  FIsSuccess := False;
   FErrorCode := ERR_CODE_STANDAR_ERROR;
-  with THTTPLib.Create(FURL) do
-  begin
-    AddHeader('Token', FToken);
-    FormData['query'] := FSQL.Text;
-    httpResponse := Post;
-    if httpResponse.ResultCode = 200 then
+  http := THTTPLib.Create(FURL);
+  try
+    http.AddHeader('Token', FToken);
+    http.FormData['query'] := FSQL.Text;
+    httpResponse := http.Post;
+  finally
+    http.Free;
+  end;
+  if httpResponse.ResultCode <> 200 then
+    Exit;
+
+  FErrorCode := 0;
+  FResultAsText.Text := httpResponse.ResultText;
+  try
+    if FResultAsJson.LoadFromJsonString(FResultAsText.Text, False) then
     begin
-      FErrorCode := 0;
-      FResultAsText.Text := httpResponse.ResultText;
-      try
-        if FResultAsJson.LoadFromJsonString(FResultAsText.Text, False) then
-        begin
-          FCount := FResultAsJson['count'];
-          FData := FResultAsJson.ValueArray['data'];
-
-          D := extractData(FResultAsText.Text);
-
-          Rows := D.Arrays['data'];
-          MetaData := D.Objects['metaData'];
-          OwnsData := False;
-          Open;
-
-        end
-        else
-        begin
-          FErrorCode := ERR_CODE_REMOTE_FAILED;
-          FLastErrorMessage := ERR_INVALID_JSON;
-        end;
-      except
-        on E:Exception do
-        begin
-          FErrorCode := ERR_CODE_REMOTE_FAILED;
-          FLastErrorMessage := E.Message;
-        end;
-      end;
+      FCount := FResultAsJson['count'];
+      FData := FResultAsJson.ValueArray['data'];
+      loadRemoteData(FResultAsText.Text);
+      FIsSuccess := True;
+    end
+    else
+    begin
+      FErrorCode := ERR_CODE_REMOTE_FAILED;
+      FLastErrorMessage := ERR_INVALID_JSON;
     end;
-    Free;
+  except
+    on E:Exception do
+    begin
+      FErrorCode := ERR_CODE_REMOTE_FAILED;
+      FLastErrorMessage := E.Message;
+    end;
   end;
 end;
 
@@ -208,54 +198,67 @@ begin
   end;
 end;
 
+// Hand the "data" array and "metaData" object of the response over to the
+// dataset. Both are detached from the parsed document first, so the dataset
+// owns them (OwnsData) and frees them on Close/Destroy.
+procedure TRemoteDataset.loadRemoteData(const AJsonString: string);
+var
+  D: TJSONObject;
+  ARows: TJSONArray;
+  AMeta: TJSONObject;
+begin
+  D := extractData(AJsonString);
+  if D = nil then
+    raise EJSON.Create(ERR_INVALID_JSON);
+  try
+    ARows := D.Arrays['data'];
+    AMeta := D.Objects['metaData'];
+    D.Extract('data');
+    D.Extract('metaData');
+  finally
+    D.Free;
+  end;
+  Close;
+  Rows := ARows;
+  MetaData := AMeta;
+  Open;
+end;
+
 function TRemoteDataset.extractData(const AJsonString: string): TJSONObject;
 var
-  S: TStringStream;
-  P: TJSONParser;
   D: TJSONData;
 begin
   Result := nil;
-  try
-    S := TStringStream.Create(AJsonString);
-    P := TJSONParser.Create(S);
-    D := P.Parse;
-    if (D.JSONType=jtObject) then
-      Result := D as TJSONObject
-    else
-      FreeAndNil(D);
-  finally
-    P.Free;
-    S.Free;
-  end;
+  D := GetJSON(AJsonString, False);
+  if D = nil then
+    Exit;
+  if D.JSONType = jtObject then
+    Result := TJSONObject(D)
+  else
+    D.Free;
 end;
 
 constructor TRemoteDataset.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FSQL := TStringList.Create;
-  //FDataset := TExtjsJSONObjectDataset.Create(Nil);
   FResultAsText := TStringList.Create;
   FResultAsJson := TJSONUtil.Create;
-  //FData := TJSONArray.Create;
   FIsSuccess := False;
   FLastErrorMessage := '';
 end;
 
 destructor TRemoteDataset.Destroy;
 begin
-  if Assigned(httpClient) then
-    httpClient.Free;
-  if Assigned(FData) then
-    FData.Free;
-  ResultAsJson.Free;
+  FResultAsJson.Free;
   FResultAsText.Free;
   FSQL.Free;
-  //FDataset.Free;
   inherited Destroy;
 end;
 
 function TRemoteDataset.OpenX: boolean;
 begin
+  Result := False;
   FIsSuccess := False;
 
   if not isRequirementsComplete then
@@ -264,23 +267,18 @@ begin
   if (pos('select', SQL.Text.ToLower) = 0) then
   begin
     //Result := ExecSQL;
-
   end
   else
-
   begin
     hitQuery;
     Result := True;
-
-
   end;
-
 end;
 
 function TRemoteDataset.ExecSQL(ASQL: string): boolean;
 begin
   FSQL.Text := ASQL;
-  Result := ExecSQL;
+  Result := ExecSQL();
 end;
 
 function TRemoteDataset.ExecSQL: boolean;
@@ -292,5 +290,8 @@ begin
 
   //todo:
 end;
+
+initialization
+  {$I remotedataset_component_icon.lrs}
 
 end.

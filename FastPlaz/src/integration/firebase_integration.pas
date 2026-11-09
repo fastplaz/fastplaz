@@ -82,7 +82,7 @@ type
     function GetResultText: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function Get: Boolean;
     function Put: Boolean;
@@ -110,9 +110,6 @@ implementation
 const
   FIREBASE_BASEURL = 'https://%s.firebaseio.com/';
 
-var
-  Response: IHTTPResponse;
-
 { TFirebaseIntegration }
 
 constructor TFirebaseIntegration.Create;
@@ -126,6 +123,7 @@ destructor TFirebaseIntegration.Destroy;
 begin
   FData.Free;
   FhttpClient.Free;
+  inherited Destroy;
 end;
 
 function TFirebaseIntegration.generateURL: string;
@@ -246,6 +244,8 @@ begin
   if FProjectID = '' then
     Exit;
   FhttpClient.URL := generateURL;
+  // THTTPLib does not free a body that is replaced
+  FhttpClient.RequestBody.Free;
   FhttpClient.RequestBody := TStringStream.Create(FData.AsJSON);
   Result := True;
 end;

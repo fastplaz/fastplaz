@@ -20,6 +20,7 @@ var
   icRevealInFinder: TIDECommand;
   icCopyFilePath: TIDECommand;
   icCopyDirectoryPath: TIDECommand;
+  icOpenTerminalFromHere: TIDECommand;
   icFastCode: TIDECommand;
 
 procedure CreateIDEMenus;
@@ -31,134 +32,96 @@ procedure CopyDirectoryPath_Proc(ASender: TObject);
 
 implementation
 
-uses fastplaz_tools_register, about_fastplaz, webstructure_wzd, themestructure_wzd,
-  modsimple_lib, modsimple_wzd, modsimplejson_lib, model_lib, model_wzd,
-  packageapp_wzd, packageapp_lib,
+uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
+  themestructure_wzd, modsimple_lib, modsimple_wzd, modsimplejson_lib,
+  model_lib, model_wzd, packageapp_wzd, packageapp_lib, project_lib,
   json_tools, regex_tester,
   //Database Explorer
-  de_connector, de_dbbrowser, de_common, fastcode_configuration;
+  de_connector, de_dbbrowser, de_common, fastcode_configuration,
+  //Agent Plane
+  aiplane_ide;
 
-procedure NewAppGenerator_Proc(ASender: TObject);
+const
+  NEW_UNIT_FLAGS = [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc];
+
+// Asks for the module name, then creates "<permalink>_controller.pas".
+procedure GenerateModule(AsAPI: boolean);
+var
+  wizard: TfModuleSimpleWizard;
+  moduleName, link, fileName: string;
 begin
-  // prepare for next features
+  wizard := TfModuleSimpleWizard.Create(nil);
+  try
+    if wizard.ShowModal <> mrOk then
+      Exit;
+    moduleName := wizard.edt_ModuleName.Text;
+    link := wizard.edt_Permalink.Text;
+  finally
+    wizard.Free;
+  end;
+  NewControllerUnit(AsAPI, moduleName, link, '', NEW_UNIT_FLAGS, fileName);
 end;
 
 procedure SimpleModuleGenerator_Proc(ASender: TObject);
 begin
-  with TfModuleSimpleWizard.Create(nil) do
-  begin
-    if ShowModal <> mrOk then
-    begin
-      Free;
-      Exit;
-    end;
-
-    bCreateProject := False;
-    bExpert := True;
-    if edt_ModuleName.Text <> '' then
-      ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]) + 'Controller';
-    Permalink := edt_Permalink.Text;
-    if Permalink = '' then
-    begin
-      Permalink := StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]);
-    end;
-
-    LazarusIDE.DoNewEditorFile(TFileDescDefaultModule.Create,
-      Permalink + '_controller.pas', '',
-      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-
-    Free;
-  end;
-  bExpert := False;
+  GenerateModule(False);
 end;
 
 procedure JsonModuleGenerator_Proc(ASender: TObject);
 begin
-  with TfModuleSimpleWizard.Create(nil) do
-  begin
-    if ShowModal <> mrOk then
-    begin
-      Free;
-      Exit;
-    end;
-
-    bCreateProject := False;
-    bExpert := True;
-    if edt_ModuleName.Text <> '' then
-      ModulTypeName := 'T' + StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]) + 'Controller';
-    Permalink := edt_Permalink.Text;
-    if Permalink = '' then
-    begin
-      Permalink := StringReplace(UcWords(edt_ModuleName.Text),
-        ' ', '', [rfReplaceAll]);
-    end;
-
-    LazarusIDE.DoNewEditorFile(TFileDescJSONModule.Create,
-      Permalink + '_controller.pas', '',
-      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-
-    Free;
-  end;
-  bExpert := False;
+  GenerateModule(True);
 end;
 
 procedure ModelGenerator_Proc(ASender: TObject);
+var
+  wizard: TfModelWizard;
+  modelText, fileName: string;
 begin
-  with TfModelWizard.Create(nil) do
-  begin
-    if ShowModal <> mrOk then
-    begin
-      Free;
+  wizard := TfModelWizard.Create(nil);
+  try
+    if wizard.ShowModal <> mrOk then
       Exit;
-    end;
-
-    bCreateProject := False;
-    bExpert := True;
-    if edt_ModelName.Text <> '' then
-      ModelName := StringReplace(UcWords(edt_ModelName.Text), ' ',
-        '', [rfReplaceAll]);
-
-    LazarusIDE.DoNewEditorFile(TFileDescModel.Create,
-      LowerCase(ModelName) + '_model.pas', '',
-      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-
-    Free;
+    modelText := wizard.edt_ModelName.Text;
+  finally
+    wizard.Free;
   end;
-  bExpert := False;
+  NewModelUnit(modelText, '', '', NEW_UNIT_FLAGS, fileName);
 end;
 
 procedure CreatePackage_Proc(ASender: TObject);
 var
-  projectTitle, projectName, projectFileName, targetDir: string;
+  wizard: TfPackageWizard;
+  projectName, projectFileName, targetDir: string;
+  packageLib: TPackageAppLib;
+  runMode: TAppRunMode;
 begin
-  with TfPackageWizard.Create(nil) do
-  begin
-    if ShowModal <> mrOk then
+  wizard := TfPackageWizard.Create(nil);
+  try
+    if wizard.ShowModal <> mrOk then
+      Exit;
+    projectName := SanitizeProjectName(wizard.edt_ProjectName.Text);
+    targetDir := IncludeTrailingPathDelimiter(wizard.edt_TargetDir.Text);
+    runMode := wizard.RunMode;
+  finally
+    wizard.Free;
+  end;
+
+  packageLib := TPackageAppLib.Create;
+  try
+    if not packageLib.GenerateStructure(targetDir, 'Simple', projectName) then
     begin
-      Free;
+      log('Full Package App: some files could not be copied to ' + targetDir,
+        '', mluError);
       Exit;
     end;
-
-    projectTitle := ucwords(edt_ProjectName.Text);
-    projectName := LowerCase(edt_ProjectName.Text);
-    projectName := StringReplace(projectName, ' ', '', [rfReplaceAll]);
-    projectName := StringReplace(projectName, '.', '', [rfReplaceAll]);
-    targetDir := IncludeTrailingPathDelimiter(edt_TargetDir.Text);
-    Free;
+  finally
+    packageLib.Free;
   end;
+  ApplyRunMode(targetDir + 'public_html', runMode);
 
-  with TPackageAppLib.Create do
-  begin
-    GenerateStructure(targetDir, 'Simple', projectName);
-    Free;
-  end;
-
-  projectName := 'fastplaz'; // force
+  // the template project is always named fastplaz.lpr
   projectFileName := targetDir + 'source' + DirectorySeparator +
-    'app' + DirectorySeparator + projectName + '.lpr';
+    'app' + DirectorySeparator + DEFAULT_PROJECT_NAME + '.lpr';
   log('Full Package App installed on: ' + targetDir, '', mluProgress);
   log('Project File: ' + projectFileName, '', mluImportant);
   LazarusIDE.DoOpenProjectFile(projectFileName, [ofProjectLoading]);
@@ -166,7 +129,7 @@ end;
 
 procedure RevealInFinder_Proc(ASender: TObject);
 var
-  s, pathName: string;
+  s: string;
   srcEdit: TSourceEditorInterface;
 begin
   srcEdit := SourceEditorManagerIntf.ActiveEditor;
@@ -177,14 +140,13 @@ begin
   begin
     try
       {$ifdef WINDOWS}
-      RunCommand('explorer',['/select,' + srcEdit.FileName], s);
+      RunCommand('explorer', ['/select,' + srcEdit.FileName], s);
       {$endif}
       {$ifdef DARWIN}
-      RunCommand('open',['-R', srcEdit.FileName], s);
+      RunCommand('open', ['-R', srcEdit.FileName], s);
       {$endif}
       {$ifdef LINUX}
-      pathName := ExtractFilePath(srcEdit.FileName);
-      RunCommand('xdg-open',[pathName], s);
+      RunCommand('xdg-open', [ExtractFilePath(srcEdit.FileName)], s);
       {$endif}
     except
       on E: Exception do
@@ -193,7 +155,6 @@ begin
       end;
     end;
   end;
-
 end;
 
 procedure CopyFilePath_Proc(ASender: TObject);
@@ -228,45 +189,47 @@ end;
 
 procedure FastCode_Proc(ASender: TObject);
 var
-  currentLine, answer: string;
+  currentLine: string;
 begin
   currentLine := GetCurrentLine().Trim;
-  if currentLine.IsEmpty then Exit;
+  if currentLine.IsEmpty then
+    Exit;
   if not currentLine.StartsWith(RS_FAST_CODE_MARK) then
   begin
-    log('Line must started with // comment');
-    Exit
+    log('Line must start with the // comment mark');
+    Exit;
   end;
-  currentLine:= currentLine.Replace(RS_FAST_CODE_MARK, '', [rfReplaceAll]).Trim;
-  if currentLine.IsEmpty then Exit;
+  currentLine := currentLine.Replace(RS_FAST_CODE_MARK, '', [rfReplaceAll]).Trim;
+  if currentLine.IsEmpty then
+    Exit;
 
-  log('Find something about "'+currentLine+'"');
-  if not Assigned(fFastCodeConfiguration) then
-    fFastCodeConfiguration := TfFastCodeConfiguration.Create(nil);
-  answer := GetFastCodeSuggestion(currentLine);
+  log('Find something about "' + currentLine + '"');
+  GetFastCodeSuggestion(currentLine);
 end;
 
 procedure CreateWebStructure_Proc(ASender: TObject);
+var
+  wizard: TfWebStructure;
 begin
-  with TfWebStructure.Create(nil) do
-  begin
-    if ShowModal = mrOk then
-    begin
-      CreateStructure(edt_TargetDir.Text);
-    end;
-    Free;
+  wizard := TfWebStructure.Create(nil);
+  try
+    if wizard.ShowModal = mrOk then
+      wizard.CreateStructure(wizard.edt_TargetDir.Text);
+  finally
+    wizard.Free;
   end;
 end;
 
 procedure CreateThemeStructure_Proc(ASender: TObject);
+var
+  wizard: TfThemeStructure;
 begin
-  with TfThemeStructure.Create(nil) do
-  begin
-    if ShowModal = mrOk then
-    begin
-      CreateTheme(edt_ThemeName.Text, edt_TargetDir.Text);
-    end;
-    Free;
+  wizard := TfThemeStructure.Create(nil);
+  try
+    if wizard.ShowModal = mrOk then
+      wizard.CreateTheme(wizard.edt_ThemeName.Text, wizard.edt_TargetDir.Text);
+  finally
+    wizard.Free;
   end;
 end;
 
@@ -284,14 +247,122 @@ begin
   fRegex.Show;
 end;
 
+// Directory of the active project; falls back to the active editor file
+// when the project has not been saved yet.
+function ActiveProjectDirectory: string;
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  Result := '';
+  if Assigned(LazarusIDE.ActiveProject) then
+    Result := ExtractFileDir(LazarusIDE.ActiveProject.ProjectInfoFile);
+  if (Result = '') or not DirectoryExists(Result) then
+  begin
+    Result := '';
+    srcEdit := SourceEditorManagerIntf.ActiveEditor;
+    if Assigned(srcEdit) and FileExists(srcEdit.FileName) then
+      Result := ExtractFileDir(srcEdit.FileName);
+  end;
+end;
+
+{$if not defined(WINDOWS) and not defined(DARWIN)}
+// First terminal emulator found: $TERMINAL, then the common ones.
+function FindTerminalExecutable: string;
+const
+  TERMINALS: array[0..8] of string = ('x-terminal-emulator', 'gnome-terminal',
+    'konsole', 'xfce4-terminal', 'mate-terminal', 'lxterminal', 'tilix',
+    'kitty', 'xterm');
+var
+  envPath, terminalName: string;
+begin
+  envPath := GetEnvironmentVariable('PATH');
+  terminalName := GetEnvironmentVariable('TERMINAL');
+  if terminalName <> '' then
+  begin
+    Result := ExeSearch(terminalName, envPath);
+    if Result <> '' then
+      Exit;
+  end;
+  for terminalName in TERMINALS do
+  begin
+    Result := ExeSearch(terminalName, envPath);
+    if Result <> '' then
+      Exit;
+  end;
+  Result := '';
+end;
+{$endif}
+
+// Opens the platform terminal with ADirectory as its working directory:
+// cmd.exe on Windows, Terminal.app on macOS, the default emulator elsewhere.
+procedure OpenTerminalIn(const ADirectory: string);
+var
+  directory: string;
+  terminal: TProcessUTF8;
+begin
+  directory := ADirectory;
+  if (directory = '') or not DirectoryExists(directory) then
+  begin
+    ShowMessage(RS_OPEN_TERMINAL_NO_DIRECTORY);
+    Exit;
+  end;
+
+  terminal := TProcessUTF8.Create(nil);
+  try
+    try
+      terminal.CurrentDirectory := directory;
+      {$if defined(WINDOWS)}
+      terminal.Executable := GetEnvironmentVariable('COMSPEC');
+      if terminal.Executable = '' then
+        terminal.Executable := 'cmd.exe';
+      terminal.Options := [poNewConsole];
+      {$elseif defined(DARWIN)}
+      terminal.Executable := 'open';
+      terminal.Parameters.Add('-a');
+      terminal.Parameters.Add('Terminal');
+      terminal.Parameters.Add(directory);
+      {$else}
+      terminal.Executable := FindTerminalExecutable;
+      if terminal.Executable = '' then
+      begin
+        ShowMessage(RS_OPEN_TERMINAL_NOT_FOUND);
+        Exit;
+      end;
+      {$endif}
+      terminal.Execute;
+    except
+      on E: Exception do
+        ShowMessage(E.Message);
+    end;
+  finally
+    terminal.Free;
+  end;
+end;
+
+procedure OpenTerminal_Proc(ASender: TObject);
+begin
+  OpenTerminalIn(ActiveProjectDirectory);
+end;
+
+procedure OpenTerminalFromHere_Proc(ASender: TObject);
+var
+  srcEdit: TSourceEditorInterface;
+begin
+  srcEdit := SourceEditorManagerIntf.ActiveEditor;
+  if (srcEdit = nil) or not FileExists(srcEdit.FileName) then
+  begin
+    ShowMessage(RS_OPEN_TERMINAL_NO_DIRECTORY);
+    Exit;
+  end;
+  OpenTerminalIn(ExtractFileDir(srcEdit.FileName));
+end;
+
 procedure About_Proc(ASender: TObject);
 begin
   if fAboutFastplaz = nil then
     fAboutFastplaz := TfAboutFastplaz.Create(nil);
   fAboutFastplaz.ShowModal;
 end;
-
-
 
 procedure CreateIDEMenus;
 var
@@ -300,13 +371,6 @@ var
 begin
   oMenuExpert := RegisterIDESubMenu(mnuMain, FASTPLAZ_EXPERT_MAINMENU_NAME,
     FASTPLAZ_EXPERT_MAINMENU_CAPTION);
-
-  // prepare for next features
-  {
-  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_AppCreator',
-    rs_Project_Name, nil, @NewAppGenerator_Proc, nil);
-  CreateIDEMenuSeparator(oMenuExpert);
-  }
 
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModuleCreator',
     rs_Mod_Default_Name, nil, @SimpleModuleGenerator_Proc, nil);
@@ -324,14 +388,18 @@ begin
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_CreateThemeStructure',
     'Create Theme Structure', nil, @CreateThemeStructure_Proc, nil);
 
-  // Database Explorer, JSON Tools
+  // Agent Plane, Database Explorer, JSON Tools
   CreateIDEMenuSeparator(oMenuExpert);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_AIPlane',
+    RS_AIPLANE_MENU, nil, @AIPlaneShowWindow, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_DatabaseExplorer',
     RS_DATABASE_EXPLORER_MENU, nil, @ViewDBConnector, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_JSONTools',
     RS_JSON_TOOLS_MENU, nil, @JSONTools_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_RegexTester',
     RS_REGEX_TESTER_MENU, nil, @RegexTester_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_OpenTerminal',
+    RS_OPEN_TERMINAL_MENU, nil, @OpenTerminal_Proc, nil);
   CreateIDEMenuSeparator(oMenuExpert);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_FastCodeConfiguration',
     RS_FAST_CODE_CONFIGURATION, nil, @FastCodeConfiguration_Proc, nil);
@@ -350,22 +418,28 @@ begin
     nil, '250', '250', '', '');
   IDEWindowCreators.Add(FDE_BROWSER_WINDOW_NAME, @CreateIDEBrowserWindow,
     nil, '250', '250', '', '');
+  AIPlaneRegisterWindow;
 
   // reveal in finder
-  key := IDEShortCut(VK_E,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  key := IDEShortCut(VK_E, [ssAlt, ssShift], VK_UNKNOWN, []);
   cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
   icRevealInFinder := RegisterIDECommand(cat, rsRevealInFinder,
     rsRevealInFinder, key, nil, @RevealInFinder_Proc);
 
   // copy file path
-  copyPathKey := IDEShortCut(VK_F,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  copyPathKey := IDEShortCut(VK_F, [ssAlt, ssShift], VK_UNKNOWN, []);
   icCopyFilePath := RegisterIDECommand(cat, rsCopyFilePath,
     rsCopyFilePath, copyPathKey, nil, @CopyFilePath_Proc);
 
   // copy directory path
-  copyDirectoryKey := IDEShortCut(VK_D,[ssAlt,ssShift],VK_UNKNOWN,[]);
+  copyDirectoryKey := IDEShortCut(VK_D, [ssAlt, ssShift], VK_UNKNOWN, []);
   icCopyDirectoryPath := RegisterIDECommand(cat, rsCopyDirectoryPath,
     rsCopyDirectoryPath, copyDirectoryKey, nil, @CopyDirectoryPath_Proc);
+
+  // open terminal in the directory of the active file (no default shortcut)
+  icOpenTerminalFromHere := RegisterIDECommand(cat, rsOpenTerminalFromHere,
+    rsOpenTerminalFromHere, IDEShortCut(VK_UNKNOWN, [], VK_UNKNOWN, []), nil,
+    @OpenTerminalFromHere_Proc);
 
   // add a menu item in the source editor
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'RevealInFinder',
@@ -374,18 +448,17 @@ begin
     rsCopyFilePath, nil, nil, icCopyFilePath, 'copy_file_path');
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'CopyDirectoryPath',
     rsCopyDirectoryPath, nil, nil, icCopyDirectoryPath, 'copy_directory_path');
+  RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'OpenTerminalFromHere',
+    rsOpenTerminalFromHere, nil, nil, icOpenTerminalFromHere);
 
   // FAST CODE ---
-  key := IDEShortCut(VK_O,[ssCtrl, ssAlt],VK_UNKNOWN,[]);
-  cat := IDECommandList.FindCategoryByName(CommandCategoryTextEditingName);
+  key := IDEShortCut(VK_O, [ssCtrl, ssAlt], VK_UNKNOWN, []);
   icFastCode := RegisterIDECommand(cat, RS_FAST_CODE,
     RS_FAST_CODE, key, nil, @FastCode_Proc);
 
   // add a fast code menu item in the source editor
   RegisterIDEMenuCommand(SrcEditMenuSectionFirstStatic, 'FastCode',
     RS_FAST_CODE, nil, nil, icFastCode, 'fast_code');
-
-
 end;
 
 procedure CreateIDEMenuSeparator(poParent: TIDEMenuSection);

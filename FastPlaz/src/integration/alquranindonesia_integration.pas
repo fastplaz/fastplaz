@@ -42,7 +42,7 @@ type
 
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property Surat: UnicodeString read FSurat;
     property ArabicText: UnicodeString read FArabicText;
@@ -162,7 +162,7 @@ begin
   if AURL = '' then
     Exit;
   with THTTPLib.Create(AURL) do
-  begin
+  try
     try
       _response := Get;
       if _response.ResultCode = 200 then
@@ -174,6 +174,7 @@ begin
       begin
       end;
     end;
+  finally
     Free;
   end;
 
@@ -190,7 +191,7 @@ end;
 
 destructor TAlquranOnline.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TAlquranOnline.Find(ASurat: integer; AAyat: integer): UnicodeString;
@@ -203,7 +204,7 @@ var
   _html: UnicodeString;
 begin
   Result := '';
-  if s2i(ASurat) > 144 then
+  if (s2i(ASurat) > 114) or (s2i(ASurat) = 0) then
     Exit;
 
   _html := getHTML(ASurat, AAyat);
@@ -223,7 +224,7 @@ end;
 function TAlquranOnline.FindTerjemahan(ASurat: string; AAyat: string): UnicodeString;
 begin
   Result := '';
-  if (s2i(ASurat) > 144) or (s2i(ASurat) = 0) then
+  if (s2i(ASurat) > 114) or (s2i(ASurat) = 0) then
     Exit;
   if (s2i(AAyat) = 0) then
     Exit;
@@ -235,7 +236,7 @@ end;
 function TAlquranOnline.FindAudioURL(ASurat: string; AAyat: string): UnicodeString;
 begin
   Result := '';
-  if (s2i(ASurat) > 144) or (s2i(ASurat) = 0) then
+  if (s2i(ASurat) > 114) or (s2i(ASurat) = 0) then
     Exit;
   if (s2i(AAyat) = 0) then
     Exit;

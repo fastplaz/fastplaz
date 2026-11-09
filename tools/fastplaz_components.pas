@@ -8,8 +8,7 @@ unit fastplaz_components;
 interface
 
 uses
-  remotedataset_component, http_lib, json_lib, commonbase_lib,
-  LazarusPackageIntf;
+  remotedataset_component, LazarusPackageIntf;
 
 implementation
 

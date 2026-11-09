@@ -86,8 +86,6 @@ const
   _COGNITIVE_CUSTOMVISION_DEFAULT_URL =
     'https://southcentralus.api.cognitive.microsoft.com/customvision/v1.0/Prediction/';
 
-var
-  Response: IHTTPResponse;
 
 { TCognitiveCustomVision }
 
@@ -116,6 +114,7 @@ destructor TCognitiveCustomVision.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TCognitiveCustomVision.Prediction: string;
@@ -133,10 +132,13 @@ begin
   if Result = '' then
     Exit;
 
+  FreeAndNil(jsonData);
+
   jsonData := GetJSON(Result);
   // get total score
   i := 0;
   score := 0;
+  totalScore := 0;
   repeat
     s := getData('Predictions[' + i2s(i) + '].Tag');
     if s <> '' then
@@ -160,7 +162,8 @@ begin
     begin
       try
         score := jsonData.GetPath('Predictions[' + i2s(i) + '].Probability').AsFloat;
-        score := score * 100 / totalScore;
+        if totalScore > 0 then
+          score := score * 100 / totalScore;
         if score > FLimitScore then
         begin
           Result := Result + #10 + s + ': ';
@@ -178,6 +181,7 @@ end;
 
 function TCognitiveCustomVision.PredictionAsJSON(AImageURL: string): string;
 var
+  Response: IHTTPResponse;
   _body: string;
 begin
   Result := '';
@@ -188,11 +192,11 @@ begin
     Exit;
 
   with THTTPLib.Create(generateURL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Prediction-Key', FKey);
-      _body := '{"url":"' + AImageURL + '"}';
+      _body := '{"url":"' + StringToJSONString(AImageURL, False) + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
       FResultText := Response.ResultText;
@@ -204,6 +208,7 @@ begin
       on E: Exception do
         LogUtil.Add(E.Message, 'CUSTOMVISION');
     end;
+  finally
     Free;
   end;
 

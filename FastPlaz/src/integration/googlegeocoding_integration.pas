@@ -57,7 +57,7 @@ type
     function getLongitude: Double;
   public
     constructor Create; virtual;
-    destructor Destroy; virtual;
+    destructor Destroy; override;
 
     property Key: String read FKey write FKey;
     function Search(Keyword: string): string;
@@ -85,8 +85,6 @@ const
   _GOOGLE_MAPS_PLACEID_URL = 'https://www.google.com/maps/place/?q=place_id:';
 //_GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
-var
-  Response: IHTTPResponse;
 
 { TGoogleGeocodingIntegration }
 
@@ -122,10 +120,12 @@ end;
 
 destructor TGoogleGeocodingIntegration.Destroy;
 begin
+  inherited Destroy;
 end;
 
 function TGoogleGeocodingIntegration.Search(Keyword: string): string;
 var
+  Response: IHTTPResponse;
   _url: string;
 begin
   Result := '';
@@ -135,7 +135,7 @@ begin
 
   _url := format(_GOOGLE_GEOCODING_URL, [FKey, UrlEncode(Keyword)]);
   with THTTPLib.Create(_url) do
-  begin
+  try
     try
       //AddHeader('Cache-Control', 'no-cache');
       Response := Get;
@@ -145,16 +145,19 @@ begin
       if Response.ResultCode <> 200 then
         Exit;
       Result := Response.ResultText;
+      FreeAndNil(FData);
       FData := GetJSON(Response.ResultText);
       FPlaceID := jsonGetData(FData, 'results[0].place_id');;
     except
     end;
+  finally
     Free;
   end;
 end;
 
 function TGoogleGeocodingIntegration.Detail(APlaceID: string): string;
 var
+  Response: IHTTPResponse;
   _url: string;
 begin
   Result := '';
@@ -165,7 +168,7 @@ begin
 
   _url := format(_GOOGLE_PLACE_DETAIL_URL, [FKey, UrlEncode(APlaceID)]);
   with THTTPLib.Create(_url) do
-  begin
+  try
     try
       //AddHeader('Cache-Control', 'no-cache');
       Response := Get;
@@ -175,10 +178,13 @@ begin
       if Response.ResultCode <> 200 then
         Exit;
 
+      FreeAndNil(FData);
+
       FData := GetJSON(Response.ResultText);
       Result := Response.ResultText;
     except
     end;
+  finally
     Free;
   end;
 

@@ -16,7 +16,17 @@ interface
 
 uses
 {$IFDEF OPEN_SSL}
+  // Synapse SSL plugin, selected through a define (see define_fastplaz.inc):
+  //   XMAILER_OPENSSL3  -> ssl_openssl3  (OpenSSL 3.x)
+  //   XMAILER_OPENSSL11 -> ssl_openssl11 (OpenSSL 1.1.x)
+  //   none              -> ssl_openssl   (OpenSSL 1.0.x, ssleay32/libeay32)
+  {$IF DEFINED(XMAILER_OPENSSL3)}
+  ssl_openssl3,
+  {$ELSEIF DEFINED(XMAILER_OPENSSL11)}
+  ssl_openssl11,
+  {$ELSE}
   SSL_OpenSSL,
+  {$ENDIF}
 {$ENDIF}
 {$IFDEF UTF_8_MIME}
   MimeInln,

@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib, user_util,
   database_lib, security_util;
 
 const
@@ -81,8 +81,6 @@ end;
 
 function TSearchModule.Tag_MainContent_Handler(const TagName: string;
   Params: TStringList): string;
-var
-  action: string;
 begin
   Result := 'search......';
 end;
@@ -101,10 +99,11 @@ var
   s, resultType, resultData: string;
   searchResult: TJSONData;
 begin
+  Result := '';
   if KeyWord = '' then
     Exit;
   found := TStringList.Create;
-  found.Add('<section class="content"><h3>Search Result for "' + KeyWord + '"</h3>');
+  found.Add('<section class="content"><h3>Search Result for "' + HTMLEncode(KeyWord) + '"</h3>');
 
   for i := 0 to ModuleLoaded.Count - 1 do
   begin
@@ -117,13 +116,16 @@ begin
         if IsJsonValid(s) then
         begin
           searchResult := GetJSON(s);
-          resultType := jsonGetString(searchResult, 'type');
-          if resultType = 'html' then
-          begin
-            resultData := jsonGetString(searchResult, 'data');
-            found.Add(resultData);
+          try
+            resultType := jsonGetString(searchResult, 'type');
+            if resultType = 'html' then
+            begin
+              resultData := jsonGetString(searchResult, 'data');
+              found.Add(resultData);
+            end;
+          finally
+            searchResult.Free;
           end;
-          searchResult.Free;
         end
         else
         begin

@@ -6,10 +6,9 @@ interface
 
 uses
   security_util, user_model, fpjson,
-  fpcgi, common, Math, Classes, SysUtils;
+  fastplaz_app, common, logutil_lib, Math, Classes, SysUtils;
 
 const
-  PASSWORD_LENGTH_MIN = 5;
   USER_GROUP_DEFAULT_ID = 1;
   USER_GROUP_DEFAULT_NAME = 'Users';
   USER_LOGIN_ATTEMPTS_MAX = 5;
@@ -24,6 +23,7 @@ type
   TUserUtil = class(TUserModel)
   private
     FLoginAttempsMax: integer;
+    FPermission: TObject; // TPermissionUtil, created on first use
     FOnLoginAttemps: TOnLoginAttemps;
     function GetFailedLoginCount: integer;
     function getLoggedInUserID: longint;
@@ -86,7 +86,7 @@ end;
 function TUserUtil.GetPendingCount: integer;
 begin
   Result := 0;
-  if Find(['isnull( activated) OR activated=0']) then
+  if Find(['activated IS NULL OR activated=0']) then
     Result := RecordCount;
 end;
 
@@ -117,6 +117,7 @@ end;
 
 destructor TUserUtil.Destroy;
 begin
+  FPermission.Free;
   inherited Destroy;
 end;
 
@@ -143,10 +144,10 @@ function TUserUtil.Login(const UserEmail: string; const Password: string;
 var
   hashedData: string;
   i: integer;
+  sec: TSecurityUtil;
 begin
   Result := False;
   i := s2i(_SESSION['failedlogin']) + 1;
-  SessionController.Clear;
   _SESSION['failedlogin'] := i;
   if FLoginAttempsMax > 0 then
   begin
@@ -157,22 +158,26 @@ begin
       Exit;
     end;
   end;
-  if FindFirst([USER_FIELDNAME_EMAIL + '="' + UserEmail + '"',
-    USER_FIELDNAME_ACTIVATED + '=1', 'isnull( deleted_by)'],
+  if (UserEmail = '') or (Password = '') then
+    Exit;
+  if FindFirst([USER_FIELDNAME_EMAIL + '=' + QuoteValue(UserEmail),
+    USER_FIELDNAME_ACTIVATED + '=1', 'deleted_by IS NULL'],
     USER_FIELDNAME_ID + ' desc') then
   begin
     hashedData := Data[USER_FIELDNAME_PASSWORD];
-    with TSecurityUtil.Create do
-    begin
-      if CheckSaltedHash(UserEmail + Password, hashedData) then
+    sec := TSecurityUtil.Create;
+    try
+      if sec.CheckSaltedHash(UserEmail + Password, hashedData) then
       begin
         try
           Fullname := Data[USER_FIELDNAME_NAME];
           Username := Data[USER_FIELDNAME_USERNAME];
           Email := Data[USER_FIELDNAME_EMAIL];
-
-          // save session
           i := Data[USER_FIELDNAME_ID];
+
+          // a fresh session id for the authenticated session (fixation),
+          // the pre-login values (redirect url) are kept
+          SessionController.RegenerateID;
           _SESSION['uid'] := i;
           _SESSION['name'] := Fullname;
           _SESSION['uname'] := Username;
@@ -182,21 +187,15 @@ begin
 
           // save last login
           Value[USER_FIELDNAME_LASTLOGIN] := now;
-          if not Save(USER_FIELDNAME_ID + '=' + i2s(i)) then
-          begin
-
-          end;
+          Save(USER_FIELDNAME_ID + '=' + i2s(i));
           Result := True;
-
         except
-          on e:Exception do
-          begin
-            pr( 'login:'+e.Message);
-            die;
-          end;
+          on e: Exception do
+            LogUtil.Add('login: ' + e.Message, 'USER');
         end;
       end;
-      Free;
+    finally
+      sec.Free;
     end;
   end;//--- findFirst
 end;
@@ -205,6 +204,7 @@ function TUserUtil.Logout: boolean;
 begin
   try
     SessionController.Clear;
+    SessionController.RegenerateID;
   except
   end;
   Result := True;
@@ -220,12 +220,11 @@ begin
     Exit;
   end;
 
-  with TPermissionUtil.Create() do
-  begin
-    Result := checkPermission(Component, Instance, Level);
-    Free;
-  end;
-
+  // one permission model per TUserUtil: the admin menu asks several times
+  // per request
+  if not Assigned(FPermission) then
+    FPermission := TPermissionUtil.Create();
+  Result := TPermissionUtil(FPermission).checkPermission(Component, Instance, Level);
 end;
 
 function TUserUtil.AddMenu(Title, Icon, URL: string; RgihtLabel: string;

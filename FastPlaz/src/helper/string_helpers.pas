@@ -60,18 +60,17 @@ type
 
 implementation
 
+// "yyyy-mm-dd hh:nn:ss" or "yyyy-mm-dd"; Now when the string does not parse
 function TStringSmartHelper.AsDateTime: TDateTime;
-var
-  tmpFormatSettings: TFormatSettings;
 begin
-  tmpFormatSettings := FormatSettings;
-  tmpFormatSettings.DateSeparator := '-';
-  tmpFormatSettings.ShortDateFormat := 'yyyy-MM-dd hh:nn:ss';
-
+  Result := Now;
   try
-    Result := Now;
-    Result := StrToDateTime( Self, tmpFormatSettings);
+    Result := ScanDateTime('yyyy-mm-dd hh:nn:ss', SysUtils.Trim(Self));
   except
+    try
+      Result := ScanDateTime('yyyy-mm-dd', SysUtils.Trim(Self));
+    except
+    end;
   end;
 end;
 
@@ -169,14 +168,16 @@ begin
   Result := IsJsonValid(Self);
 end;
 
+// accepts "." as the decimal separator on every locale, plus the local one
 function TStringSmartHelper.IsNumeric: boolean;
+var
+  f: double;
+  fs: TFormatSettings;
 begin
-  Result := False;
-  try
-    StrToFloat( Self);
-    Result := True;
-  except
-  end;
+  fs := DefaultFormatSettings;
+  fs.DecimalSeparator := '.';
+  fs.ThousandSeparator := #0;
+  Result := TryStrToFloat( Self, f, fs) or TryStrToFloat( Self, f);
 end;
 
 function TStringSmartHelper.IsEmail: boolean;
@@ -230,19 +231,24 @@ begin
   Result := StringCut(AStartText, AStopText, Self);
 end;
 
+// writes the string as it is; going through TStringList appended a line
+// ending and rewrote the existing ones
 function TStringSmartHelper.SaveToFile(AFileName: string): boolean;
 var
-  sText: TStringList;
+  fs: TFileStream;
 begin
   Result := False;
-  sText := TStringList.Create;
-  sText.Text := Self;
   try
-    sText.SaveToFile(AFileName);
+    fs := TFileStream.Create(AFileName, fmCreate);
+    try
+      if Self <> '' then
+        fs.WriteBuffer(Self[1], System.Length(Self));
+    finally
+      fs.Free;
+    end;
     Result := True;
   except
   end;
-  sText.Free;
 end;
 
 function TStringSmartHelper.Has(AText: string): boolean;

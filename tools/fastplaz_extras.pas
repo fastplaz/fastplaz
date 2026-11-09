@@ -8,8 +8,7 @@ unit fastplaz_extras;
 interface
 
 uses
-  fastplaz_extras_register, hash_tools, DCPbase64, DCPconst, DCPcrypt2,
-  DCPsha1, DCPsha256;
+  hash_tools, DCPbase64, DCPconst, DCPcrypt2, DCPsha1, DCPsha256, DCPsha512;
 
 implementation
 

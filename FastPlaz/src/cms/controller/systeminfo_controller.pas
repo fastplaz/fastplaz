@@ -5,7 +5,7 @@ unit systeminfo_controller;
 interface
 
 uses
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib,
   database_lib, user_util, user_controller;
 
 const
@@ -19,6 +19,7 @@ type
   TSystemInfoModule = class(TMyCustomWebModule)
   private
     User: TUserUtil;
+    FAllowed: boolean;
     function Tag_ModInfo_Handler(const TagName: string;
       Params: TStringList): string;
     function Tag_MainContent_Handler(const TagName: string;
@@ -39,6 +40,7 @@ uses theme_controller, common;
 constructor TSystemInfoModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
   inherited CreateNew(AOwner, CreateMode);
+  User := TUserUtil.Create();
   BeforeRequest := @BeforeRequestHandler;
   ThemeUtil.Layout := 'admin';
 end;
@@ -51,6 +53,8 @@ end;
 
 procedure TSystemInfoModule.Get;
 begin
+  if not FAllowed then
+    Exit;
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['modinfo'] := @Tag_ModInfo_Handler;
   Response.Content := ThemeUtil.Render();
@@ -81,18 +85,20 @@ end;
 
 procedure TSystemInfoModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
-  User := TUserUtil.Create();
+  // Redirect does not stop the request; Get checks FAllowed
+  FAllowed := False;
   if not User.isLoggedIn then
   begin
-    FreeAndNil(User);
     Redirect(BaseURL + USER_URL_LOGIN + '?url=admin-systeminfo');
+    Exit;
   end;
 
   if not User.checkPermission('admin', 'systeminfo', ACCESS_ADD) then
   begin
-    FreeAndNil(User);
     Redirect(BaseURL + 'admin');
+    Exit;
   end;
+  FAllowed := True;
 end;
 
 

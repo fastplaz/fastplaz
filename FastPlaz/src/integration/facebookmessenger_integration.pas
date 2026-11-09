@@ -69,7 +69,7 @@ type
     function getCount: Integer;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     procedure AddText( ATitle, APayload, AImageURL: string);
     procedure AddLocation;//deprecated
@@ -88,7 +88,7 @@ type
       function getCount: Integer;
     public
       constructor Create;
-      destructor Destroy;
+      destructor Destroy; override;
     published
       property Count: Integer read getCount;
       property Cards: TJSONArray read FCards;
@@ -101,7 +101,7 @@ type
     function getCount: Integer;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
   published
     property Count: Integer read getCount;
     property Element: TFacebookTemplateCardElement read FElement;
@@ -132,6 +132,7 @@ type
     FResultText: string;
     FTemplateCard: TFacebookTemplateCard;
     FToken: string;
+    FPayloadHandlerCallbackMap: TPayloadHandlerCallbackMap;
 
     jsonData: TJSONData;
     function getFullName: String;
@@ -150,7 +151,7 @@ type
     procedure setRequestContent(AValue: string);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property BotName: string read FBotName write FBotName;
     property Token: string read FToken write FToken;
@@ -242,9 +243,6 @@ const
     '{"recipient":{"id":"%id%"},"message":{"attachment":{"type":"template","payload":{"template_type":"button","text":"%text%","buttons":[{"type":"web_url","url":"%url%","title":"%title%","messenger_extensions": true,"webview_share_button":"hide","webview_height_ratio":"full"}]}}}}';
   _FACEBOOK_PAYLOAD_DELIMITER = ':';
 
-var
-  Response: IHTTPResponse;
-  ___PayloadHandlerCallbackMap: TPayloadHandlerCallbackMap;
 
 { TFacebookTemplateCardElement }
 
@@ -261,6 +259,7 @@ end;
 destructor TFacebookTemplateCardElement.Destroy;
 begin
   FCards.Free;
+  inherited Destroy;
 end;
 
 { TFacebookTemplateCard }
@@ -278,6 +277,7 @@ end;
 destructor TFacebookTemplateCard.Destroy;
 begin
   FElement.Free;
+  inherited Destroy;
 end;
 
 { TFacebookQuickReply }
@@ -295,6 +295,7 @@ end;
 destructor TFacebookQuickReply.Destroy;
 begin
   FItem.Free;
+  inherited Destroy;
 end;
 
 procedure TFacebookQuickReply.AddText(ATitle, APayload, AImageURL: string);
@@ -345,7 +346,11 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
-  jsonData := GetJSON(AValue, False);
+  FreeAndNil(jsonData);
+  try
+    jsonData := GetJSON(AValue, False);
+  except
+  end;
 end;
 
 function TFacebookMessengerIntegration.getText: string;
@@ -414,10 +419,16 @@ begin
   end;
 end;
 
+// nil when no handler was registered for TagName
 function TFacebookMessengerIntegration.getPayloadHandler(
   const TagName: string): TPayloadHandlerCallback;
+var
+  i: integer;
 begin
-  Result := ___PayloadHandlerCallbackMap[TagName];
+  Result := nil;
+  i := FPayloadHandlerCallbackMap.IndexOf(TagName);
+  if i <> -1 then
+    Result := FPayloadHandlerCallbackMap.Data[i];
 end;
 
 function TFacebookMessengerIntegration.getPayloadTitle: string;
@@ -456,12 +467,12 @@ end;
 procedure TFacebookMessengerIntegration.setPayloadHandler(const TagName: string;
   AValue: TPayloadHandlerCallback);
 begin
-  ___PayloadHandlerCallbackMap[TagName] := AValue;
+  FPayloadHandlerCallbackMap[TagName] := AValue;
 end;
 
 constructor TFacebookMessengerIntegration.Create;
 begin
-  ___PayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
+  FPayloadHandlerCallbackMap := TPayloadHandlerCallbackMap.Create;
   FQuickReply := TFacebookQuickReply.Create;
   FQuickReplyPayload := '';
   FTemplateCard := TFacebookTemplateCard.Create;
@@ -471,7 +482,7 @@ destructor TFacebookMessengerIntegration.Destroy;
 begin
   FTemplateCard.Free;
   FQuickReply.Free;
-  ___PayloadHandlerCallbackMap.Free;
+  FPayloadHandlerCallbackMap.Free;
   if Assigned(jsonData) then
     jsonData.Free;
   inherited;
@@ -479,6 +490,7 @@ end;
 
 procedure TFacebookMessengerIntegration.Send(ATo: string; AMessages: string);
 var
+  Response: IHTTPResponse;
   posSplit: integer;
   s: string;
 begin
@@ -498,11 +510,12 @@ begin
   end;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_JSON, [ATo, StringToJSONString(s, False)]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_JSON,
+        [StringToJSONString(ATo, False), StringToJSONString(s, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -523,12 +536,14 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 end;
 
 procedure TFacebookMessengerIntegration.SendAudio(ATo: string; AAudioURL: string);
 var
+  Response: IHTTPResponse;
   s: string;
 begin
   if not isCanSend then
@@ -537,12 +552,12 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       s := Format(_FACEBOOK_MESSENGER_SEND_AUDIO_JSON,
-        [ATo, StringToJSONString(AAudioURL, False)]);
+        [StringToJSONString(ATo, False), StringToJSONString(AAudioURL, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -551,12 +566,14 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 end;
 
 procedure TFacebookMessengerIntegration.SendImage(ATo: string; AImageURL: string);
 var
+  Response: IHTTPResponse;
   s: string;
 begin
   if not isCanSend then
@@ -565,11 +582,12 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
-      s := Format(_FACEBOOK_MESSENGER_SEND_IMAGE_JSON, [ATo, AImageURL]);
+      s := Format(_FACEBOOK_MESSENGER_SEND_IMAGE_JSON,
+        [StringToJSONString(ATo, False), StringToJSONString(AImageURL, False)]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -578,6 +596,7 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 end;
@@ -585,6 +604,7 @@ end;
 procedure TFacebookMessengerIntegration.SendCall(ATo: string;
   APhoneNumber: string; ATitle: string; ADescription: string);
 var
+  Response: IHTTPResponse;
   s: String;
 begin
   if not isCanSend then
@@ -593,16 +613,16 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       //s := Format(_FACEBOOK_MESSENGER_SEND_CALL, [ATo, AImageURL]);
       s := _FACEBOOK_MESSENGER_SEND_CALL;
-      s := s.Replace('%id%', ATo);
-      s := s.Replace('%number%', APhoneNumber);
-      s := s.Replace('%title%', ATitle);
-      s := s.Replace('%text%', ADescription);
+      s := s.Replace('%id%', StringToJSONString(ATo, False));
+      s := s.Replace('%number%', StringToJSONString(APhoneNumber, False));
+      s := s.Replace('%title%', StringToJSONString(ATitle, False));
+      s := s.Replace('%text%', StringToJSONString(ADescription, False));
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -611,6 +631,7 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 
@@ -619,6 +640,7 @@ end;
 procedure TFacebookMessengerIntegration.SendButton(const ATo: string;
   const AText: string; const AData: TJSONArray);
 var
+  Response: IHTTPResponse;
   json: TJSONUtil;
 begin
   if not isCanSend then
@@ -631,10 +653,11 @@ begin
   json['message/attachment/type'] := 'template';
   json['message/attachment/payload/template_type'] := 'button';
   json['message/attachment/payload/text'] := AText;
-  json.ValueArray['message/attachment/payload/buttons'] := AData;
+  // a copy: the caller keeps (and frees) AData
+  json.ValueArray['message/attachment/payload/buttons'] := TJSONArray(AData.Clone);
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -646,15 +669,17 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 
-  //json.Free;
+  json.Free;
 end;
 
 procedure TFacebookMessengerIntegration.SendButtonURL(ATo: string; ATitle,
   AURL: string; ADescription: string);
 var
+  Response: IHTTPResponse;
   s: String;
 begin
   if not isCanSend then
@@ -663,15 +688,15 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       s := _FACEBOOK_MESSENGER_SEND_BUTTON_URL;
-      s := s.Replace('%id%', ATo);
-      s := s.Replace('%url%', AURL);
-      s := s.Replace('%title%', ATitle);
-      s := s.Replace('%text%', ADescription);
+      s := s.Replace('%id%', StringToJSONString(ATo, False));
+      s := s.Replace('%url%', StringToJSONString(AURL, False));
+      s := s.Replace('%title%', StringToJSONString(ATitle, False));
+      s := s.Replace('%text%', StringToJSONString(ADescription, False));
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -680,6 +705,7 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 end;
@@ -687,6 +713,7 @@ end;
 procedure TFacebookMessengerIntegration.SendQuickReply(ATo: string;
   ACaption: string);
 var
+  Response: IHTTPResponse;
   s : string;
   o : TJSONUtil;
 begin
@@ -698,12 +725,13 @@ begin
   o := TJSONUtil.Create;
   o['recipient/id'] := ATo;
   o['message/text'] := ACaption;
-  o.ValueArray['message/quick_replies'] := QuickReply.Data;
+  // a copy: QuickReply keeps its rows
+  o.ValueArray['message/quick_replies'] := TJSONArray(QuickReply.Data.Clone);
 
   s := o.AsJSONFormated;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -715,6 +743,7 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 
@@ -724,6 +753,7 @@ end;
 procedure TFacebookMessengerIntegration.SendTemplateCard(ATo: string;
   AContent: TJSONArray; AButtonTitleDefault: string);
 var
+  Response: IHTTPResponse;
   i, j: Integer;
   buttonListExists: boolean;
   s, actionType, actionData: string;
@@ -756,8 +786,8 @@ begin
     buttonListExists := False;
     try
       aContentButtons := TJSONArray(AContent.Items[i].GetPath('button'));
-      buttonListExists := True;
-      if aContentButtons.Count > 0 then
+      buttonListExists := aContentButtons.JSONType = jtArray;
+      if buttonListExists and (aContentButtons.Count > 0) then
       begin
         for j := 0 to aContentButtons.Count - 1 do
         begin
@@ -778,7 +808,9 @@ begin
           aButtons.Add(oButton);
         end;
         oItem.Add('buttons', aButtons);
-      end;
+      end
+      else
+        buttonListExists := False;
     except
     end;
 
@@ -802,12 +834,13 @@ begin
   o['recipient/id'] := ATo;
   o['message/attachment/type'] := 'template';
   o['message/attachment/payload/template_type'] := 'generic';
+  // o owns aElements from here on
   o.ValueArray['message/attachment/payload/elements'] := aElements;
 
   s := o.AsJSON;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -818,14 +851,16 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
-  aElements.Free;
+  o.Free;
 end;
 
 procedure TFacebookMessengerIntegration.AskLocation(ATo: string);
 var
+  Response: IHTTPResponse;
   s: string;
 begin
   if not isCanSend then
@@ -834,12 +869,12 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_MESSENGER_SEND_URL + FToken) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       s := Format(_FACEBOOK_MESSENGER_ASK_LOCATION,
-        [ATo, _FACEBOOK_MSG_SHARE_LOCATION]);
+        [StringToJSONString(ATo, False), _FACEBOOK_MSG_SHARE_LOCATION]);
       RequestBody := TStringStream.Create(s);
       Response := Post;
       FResultCode := Response.ResultCode;
@@ -847,14 +882,17 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 end;
 
 function TFacebookMessengerIntegration.GetProfile(AUserId: String): boolean;
 var
+  Response: IHTTPResponse;
   json: TJSONUtil;
 begin
+  Result := False;
   FIsSuccessfull := False;
   if not isCanSend then
     Exit;
@@ -862,24 +900,31 @@ begin
     Exit;
 
   with THTTPLib.Create(_FACEBOOK_GRAPH_URL + AUserId + '?access_token=' + FToken) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       Response := Get;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
       if Response.ResultCode = 200 then
       begin
         json := TJSONUtil.Create;
-        json.LoadFromJsonString(Response.ResultText, False);
-        FFirtName := json['first_name'];
-        FLastName := json['last_name'];
-        FProfilePicture := json['profile_pic'];
-        if FFirtName.IsEmpty then
-          FFirtName := json['name'];
-        json.Free;
+        try
+          json.LoadFromJsonString(Response.ResultText, False);
+          FFirtName := json['first_name'];
+          FLastName := json['last_name'];
+          FProfilePicture := json['profile_pic'];
+          if FFirtName.IsEmpty then
+            FFirtName := json['name'];
+        finally
+          json.Free;
+        end;
+        FIsSuccessfull := True;
         Result := True;
       end;
     except
     end;
+  finally
     Free;
   end;
 end;
@@ -957,13 +1002,15 @@ begin
 end;
 
 function TFacebookMessengerIntegration.DownloadVoiceTo(ATargetFile: string): boolean;
+var
+  Response: IHTTPResponse;
 begin
   Result := False;
   if VoiceURL = '' then
     Exit;
 
   with THTTPLib.Create(VoiceURL) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -983,6 +1030,7 @@ begin
         LogUtil.Add('VOICE-DL: ' + E.Message, 'FACEBOOK');
       end;
     end;
+  finally
     Free;
   end;
 
@@ -990,20 +1038,23 @@ end;
 
 function TFacebookMessengerIntegration.PayloadHandling: String;
 var
-  i: Integer;
   headerPayload: string;
   lst: TStrings;
   h: TPayloadHandlerCallback;
 begin
   Result := '';
   lst := Explode(getPayload, _FACEBOOK_PAYLOAD_DELIMITER);
-  headerPayload := lst[0];
-  lst.Free;
+  try
+    if lst.Count = 0 then
+      Exit;
+    headerPayload := lst[0];
+  finally
+    lst.Free;
+  end;
 
-  i := ___PayloadHandlerCallbackMap.IndexOf(headerPayload);
-  if i = -1 then
+  h := getPayloadHandler(headerPayload);
+  if not Assigned(h) then
     Exit;
-  h := ___PayloadHandlerCallbackMap.Data[i];
   Result := h( getPayload, getPayloadTitle);
 end;
 

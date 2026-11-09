@@ -5,7 +5,7 @@ unit logutil_lib;
 interface
 
 uses
-  fpcgi,
+  fastplaz_app,
   common,
   Classes, SysUtils;
 
@@ -16,9 +16,12 @@ type
   TLogUtil = class
   private
     FPrefix: string;
-    log_file: TextFile;
-    procedure SaveStringToPath(theString, filePath: string);
+    FDateStamp: string;
+    FLock: TRTLCriticalSection;
     procedure setPrefix(AValue: string);
+    procedure UpdateFileName;
+    procedure WriteLine(const AFileName, ALine: string);
+    function Sanitize(const S: string): string;
   public
     Dir, FileName, FullName: UnicodeString;
     constructor Create;
@@ -36,41 +39,69 @@ var
 
 implementation
 
-uses config_lib;
-
 
 { TLogUtil }
-
-procedure TLogUtil.SaveStringToPath(theString, filePath: string);
-var
-  textFile: TFileStream = nil;
-  textLength: integer;
-  stringBuffer: ^string;
-begin
-  {$I+}
-  {$T+}
-  textLength := length(theString);
-  try
-    textFile := TFileStream.Create(filePath, fmOpenWrite or fmCreate);
-    { write string to stream while avoiding to write the initial length }
-    stringBuffer := @theString + 1;
-    textFile.WriteBuffer(stringBuffer^, textLength);
-  finally
-    if textFile <> nil then
-      textFile.Free;
-  end;
-end;
 
 procedure TLogUtil.setPrefix(AValue: string);
 begin
   if FPrefix=AValue then Exit;
   FPrefix:=AValue;
-  FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
-  FullName := dir + '/' + UnicodeString(FPrefix) + FileName;
+  FDateStamp := '';
+  UpdateFileName;
+end;
+
+// Recompute the log file name when the day changes, so a long running
+// process does not keep writing to yesterday's file.
+procedure TLogUtil.UpdateFileName;
+var
+  stamp: string;
+begin
+  stamp := FormatDateTime('YYYYMMDD', Now);
+  if stamp = FDateStamp then
+    Exit;
+  FDateStamp := stamp;
+  FileName := 'app-' + UnicodeString(stamp) + '.log';
+  FullName := Dir + '/' + UnicodeString(FPrefix) + FileName;
+end;
+
+// Keep one entry per line; CR/LF inside a message would allow forged entries.
+function TLogUtil.Sanitize(const S: string): string;
+begin
+  Result := StringReplace(S, #13#10, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #13, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, ' ', [rfReplaceAll]);
+end;
+
+// Append one line to AFileName. Logging must never break the request, so
+// every I/O failure is swallowed; the file handle is always released.
+procedure TLogUtil.WriteLine(const AFileName, ALine: string);
+var
+  log_file: TextFile;
+begin
+  EnterCriticalSection(FLock);
+  try
+    try
+      AssignFile(log_file, AFileName);
+      if FileExists(AFileName) then
+        Append(log_file)
+      else
+        Rewrite(log_file);
+      try
+        WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', Now) + ' | ' + ALine);
+      finally
+        CloseFile(log_file);
+      end;
+    except
+    end;
+  finally
+    LeaveCriticalSection(FLock);
+  end;
 end;
 
 constructor TLogUtil.Create;
 begin
+  InitCriticalSection(FLock);
+  Dir := 'ztemp/logs';
   try
     Dir := Config.GetValue('log/dir', 'ztemp/logs');
     if not DirectoryExists(Dir) then
@@ -78,29 +109,22 @@ begin
   except
   end;
   FPrefix := '';
-  FileName := 'app-' + UnicodeString( FormatDateTime('YYYYMMDD', Now)) + '.log';
-  FullName := dir + '/' + FileName;
+  FDateStamp := '';
+  UpdateFileName;
 end;
 
 destructor TLogUtil.Destroy;
 begin
-
+  DoneCriticalSection(FLock);
+  inherited Destroy;
 end;
 
 procedure TLogUtil.RegisterError(MessageString: string; psHttpCode: integer;
   URL: string);
 begin
-  AssignFile(log_file, FullName);
-  { $I+}
-  try
-    //Rewrite(log_file);
-    Append(log_file);
-    WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) +
-      ' | ' + MessageString + ' | ' + i2s(psHttpCode) + ' | ' + URL
-      );
-    CloseFile(log_file);
-  except
-  end;
+  UpdateFileName;
+  WriteLine(string(FullName), Sanitize(MessageString) + ' | ' + i2s(psHttpCode) +
+    ' | ' + Sanitize(URL));
 end;
 
 procedure TLogUtil.Add(const message:string;const ModName:string;const Skip:
@@ -111,28 +135,15 @@ begin
   if Skip then
     Exit;
   if CustomLogFile.IsEmpty then
+  begin
+    UpdateFileName;
     CustomLogFile := string(FullName);
-  try
-    if ModName <> '' then
-      s := ModName + ': ';
-    s := s + message;
-    AssignFile(log_file, CustomLogFile);
-    { $I+}
-    try
-      if not FileExists(CustomLogFile) then
-        Rewrite(log_file)
-      else
-        Append(log_file);
-      WriteLn(log_file, FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + s);
-      CloseFile(log_file);
-    except
-    end;
-  except
-    on E: Exception do
-    begin
-      die('cannot logging: ' + E.Message);
-    end;
   end;
+  s := '';
+  if ModName <> '' then
+    s := ModName + ': ';
+  s := s + message;
+  WriteLine(CustomLogFile, Sanitize(s));
 end;
 
 initialization
@@ -142,4 +153,3 @@ finalization;
   FreeAndNil(LogUtil);
 
 end.
-

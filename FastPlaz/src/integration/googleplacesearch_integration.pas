@@ -47,7 +47,7 @@ type
     FTitle: string;
   public
     constructor Create; virtual;
-    destructor Destroy; virtual;
+    destructor Destroy; override;
 
     property Key: string read FKey write FKey;
     function Search(Keyword: string; ALat: double = 0; ALon: double = 0): string;
@@ -86,8 +86,6 @@ const
   _GOOGLE_MAPS_URL = 'https://www.google.com/maps/search/?api=1&query_place_id=%s&query=%s,%s';
   _GOOGLE_MAPS_PLACEID_URL = 'https://maps.google.com/maps/place/?q=place_id:';
 
-var
-  Response: IHTTPResponse;
 
 { TGooglePlaceIntegration }
 
@@ -101,12 +99,13 @@ end;
 
 destructor TGooglePlaceIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TGooglePlaceIntegration.Search(Keyword: string; ALat: double;
   ALon: double): string;
 var
+  Response: IHTTPResponse;
   _url: string;
 begin
   Result := '';
@@ -120,7 +119,7 @@ begin
     _url := _url + '&location=' + FloatToStr(ALat) + ',' + FloatToStr(ALon);
   end;
   with THTTPLib.Create(_url) do
-  begin
+  try
     try
       //AddHeader('Cache-Control', 'no-cache');
       Response := Get;
@@ -132,6 +131,7 @@ begin
       Result := Response.ResultText;
     except
     end;
+  finally
     Free;
   end;
 end;
@@ -172,6 +172,7 @@ begin
   s := Search(Keyword, ALat, ALon);
   if s = '' then
     Exit;
+  _json := nil;
   try
     _json := GetJSON(s, False);
     FCount := _json.GetPath('results').Count;
@@ -210,9 +211,8 @@ begin
         try
           if Detail(FPlaceID) <> '' then
           begin
-            j := DayOfWeek(Now)-2;
-            if j = -1 then
-              j := 6;
+            // Google periods: 0 = Sunday; DayOfWeek: 1 = Sunday
+            j := DayOfWeek(Now)-1;
             if (jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/open/time') <> '')
               and (jsonGetData(Data, 'result/opening_hours/periods['+i2s(j)+']/close/time') <> '') then
             begin
@@ -249,6 +249,7 @@ begin
     begin
     end;
   end;
+  _json.Free;
 
   s := StringReplace(s, #13, '\n', [rfReplaceAll]);
   s := StringReplace(s, #10, '\n', [rfReplaceAll]);
@@ -271,10 +272,24 @@ begin
   if sJson = '' then
     Exit;
 
-  jSearch := GetJSON(sJson, False);
+  try
+    jSearch := GetJSON(sJson, False);
+  except
+    Exit;
+  end;
+  if not (jSearch is TJSONObject) then
+  begin
+    jSearch.Free;
+    Exit;
+  end;
   oSearch := TJSONObject(jSearch);
 
   aResult := TJSONArray(oSearch.FindPath('results'));
+  if (not Assigned(aResult)) or (aResult.JSONType <> jtArray) then
+  begin
+    jSearch.Free;
+    Exit;
+  end;
   iCount := aResult.Count;
   if iCount > _GOOGLE_PLACE_MAX_COUNT then iCount := _GOOGLE_PLACE_MAX_COUNT;
 
@@ -285,8 +300,13 @@ begin
     FPlaceID := jsonGetData(aResult.Items[i], 'place_id');
 
     //sURL := _GOOGLE_MAPS_PLACEID_URL + FPlaceID;
-    sLat := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lat').AsFloat]);
-    sLon := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lng').AsFloat]);
+    sLat := '';
+    sLon := '';
+    try
+      sLat := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lat').AsFloat]);
+      sLon := Format('%.16f', [aResult.Items[i].FindPath('geometry.location.lng').AsFloat]);
+    except
+    end;
     sURL := format(_GOOGLE_MAPS_URL, [FPlaceID, sLat, sLon]);
 
     oItem.Add('place_id', FPlaceID);
@@ -331,6 +351,7 @@ end;
 
 function TGooglePlaceIntegration.Detail(APlaceID: String): String;
 var
+  Response: IHTTPResponse;
   _url : String;
 begin
   Result := '';
@@ -341,7 +362,7 @@ begin
 
   _url := format(_GOOGLE_PLACE_DETAIL_URL, [FKey, UrlEncode(APlaceID)]);
   with THTTPLib.Create(_url) do
-  begin
+  try
     try
       //AddHeader('Cache-Control', 'no-cache');
       Response := Get;
@@ -351,10 +372,13 @@ begin
       if Response.ResultCode <> 200 then
         Exit;
 
+      FreeAndNil(FData);
+
       FData := GetJSON( Response.ResultText, False);
       Result := Response.ResultText;
     except
     end;
+  finally
     Free;
   end;
 

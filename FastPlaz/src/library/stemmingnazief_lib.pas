@@ -45,7 +45,7 @@ unit stemmingnazief_lib;
 interface
 
 uses
-  common, IniFiles,
+  common, IniFiles, fpjson,
   RegExpr, Classes, SysUtils;
 
 const
@@ -74,6 +74,7 @@ type
     FStandardWordCheck: boolean;
     FNonStandardWord: TIniFile;
     FParseWord_nonstandard: boolean;
+    FDepth: integer; // ParseWord recursion depth
 
     function GetStandardWordCheck: boolean;
     procedure SetStandardWordCheck(AValue: boolean);
@@ -128,21 +129,24 @@ begin
   FIsDictionaryLoaded := False;
   DictionaryFile := STEMMINGNAZIEF_DICTIONARY_FILE;
 
-  FDictionary := TStringList.Create;
+  // hashed lookups: IndexOfName on a plain TStringList is a linear scan
+  // over the 28k dictionary entries, done 10-30 times per word
+  FDictionary := THashedStringList.Create;
   Dictionary.NameValueSeparator := ',';
+  FNonStandardWord := nil;
   FWordType := 0;
   FWordTypeInString := '';
   FStemmedText := '';
   FStandardWordCheck := False;
   FNonStandardWordCount := 0;
+  FDepth := 0;
 end;
 
 destructor TStemmingNazief.Destroy;
 begin
-  inherited Destroy;
   FDictionary.Free;
-  if Assigned(FNonStandardWord) then
-    FNonStandardWord.Free;
+  FNonStandardWord.Free;
+  inherited Destroy;
 end;
 
 
@@ -157,11 +161,12 @@ begin
   if Dictionary.IndexOfName(Text) = -1 then
     Exit;
 
-  try
-    FWordType := StrToInt(Dictionary.Values[Text]);
-    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[FWordType];
-  except
-  end;
+  if TryStrToInt(Trim(Dictionary.Values[Text]), FWordType) and
+    (FWordType >= Low(STEMMINGNAZIEF_WORDTYPE)) and
+    (FWordType <= High(STEMMINGNAZIEF_WORDTYPE)) then
+    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[FWordType]
+  else
+    FWordType := 0;
   Result := True;
 
   {
@@ -198,32 +203,39 @@ end;
 
 function TStemmingNazief.preg_match(const RegexExpression: string;
   SourceString: string): boolean;
+var
+  re: TRegExpr;
 begin
   Result := False;
+  re := TRegExpr.Create;
   try
-    with TRegExpr.Create do
-    begin
-      Expression := RegexExpression;
-      Result := Exec(SourceString);
-      Free;
+    try
+      re.Expression := RegexExpression;
+      Result := re.Exec(SourceString);
+    except
     end;
-  except
+  finally
+    re.Free;
   end;
 end;
 
 function TStemmingNazief.preg_replace(
   const RegexExpression, ReplaceString, SourceString: string;
   UseSubstitution: boolean): string;
+var
+  re: TRegExpr;
 begin
+  Result := SourceString;
+  re := TRegExpr.Create;
   try
-    with TRegExpr.Create do
-    begin
-      Expression := RegexExpression;
-      Result := Replace(SourceString, ReplaceString, UseSubstitution);
-      Free;
+    try
+      re.Expression := RegexExpression;
+      Result := re.Replace(SourceString, ReplaceString, UseSubstitution);
+    except
+      Result := SourceString;
     end;
-  except
-    Result := SourceString;
+  finally
+    re.Free;
   end;
 end;
 
@@ -235,6 +247,11 @@ begin
     begin
       FDictionary.LoadFromFile(FileName);
       FDictionary.NameValueSeparator := ',';
+      // skip the CSV header ("word,type_id"); it is not a word
+      if (FDictionary.Count > 0) and
+        not TryStrToInt(Trim(FDictionary.ValueFromIndex[0]), FWordType) then
+        FDictionary.Delete(0);
+      FWordType := 0;
       FDictionaryFile := FileName;
       FIsDictionaryLoaded := True;
     end;
@@ -352,9 +369,14 @@ begin
       Exit;
 
     // berpelanggan, berpengalaman
-    Result := ParseWord(Result);
-    if _exist(Result) then
-      Exit;
+    // only recurse when a prefix was really removed, otherwise ParseWord
+    // calls back into here with the same word forever (bento, tesla, ...)
+    if Length(Result) < Length(Text) then
+    begin
+      Result := ParseWord(Result);
+      if _exist(Result) then
+        Exit;
+    end;
   end;
 
   // prefix: me- pe-
@@ -514,9 +536,9 @@ end;
 
 
 function TStemmingNazief.ParseWord(Text: string): string;
+const
+  MAX_DEPTH = 16;
 var
-  i: Double;
-  oldDecimalSeparator: char;
   s: string;
 begin
   Text := LowerCase(Text);
@@ -533,10 +555,18 @@ begin
     Exit;
   end;
 
-  FParseWord_nonstandard := False;
-  if FStandardWordCheck then
-  begin
-    try
+  // the prefix/plural rules call ParseWord recursively; a bounded depth
+  // guarantees termination whatever the input
+  if FDepth >= MAX_DEPTH then
+    Exit;
+  Inc(FDepth);
+  try
+    // the non-standard flag belongs to the top level call; nested calls
+    // must not clear what the outer word already set
+    if FDepth = 1 then
+      FParseWord_nonstandard := False;
+    if FStandardWordCheck and Assigned(FNonStandardWord) then
+    begin
       s := FNonStandardWord.ReadString('base', Text, Text);
       if s <> Text then
       begin
@@ -545,100 +575,94 @@ begin
         Inc(FNonStandardWordCount);
         FParseWord_nonstandard := True;
       end;
-    except
     end;
-  end;
 
-  if _exist(Text) then
-    Exit;
+    if _exist(Text) then
+      Exit;
 
-  // if number
-  oldDecimalSeparator := DefaultFormatSettings.DecimalSeparator;
-  try
-    DefaultFormatSettings.DecimalSeparator := ',';
-    i := StrToFloat(Text);
-    FWordType := 6;
-    FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[WordType];
-    DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
-    Exit;
-  except
-  end;
-  DefaultFormatSettings.DecimalSeparator := oldDecimalSeparator;
+    // if number (',' and '.' were stripped above)
+    if preg_match('^-?[0-9]+$', Text) then
+    begin
+      FWordType := 6;
+      FWordTypeInString := STEMMINGNAZIEF_WORDTYPE[6];
+      Exit;
+    end;
 
-  // if pluralWord
-  if preg_match('^(.*)-(.*)$', Text) then
-  begin
-    Result := _pluralWord(Text);
-    Result := ParseWord(Result);
+    // if pluralWord
+    if preg_match('^(.*)-(.*)$', Text) then
+    begin
+      Result := _pluralWord(Text);
+      if Length(Result) < Length(Text) then
+        Result := ParseWord(Result);
+      if _exist(Result) then
+        Exit;
+      Result := Text;
+    end;
+
+    Result := _additionalRule(Result);
+    if not (Result = '') then
+      Exit;
+
+    //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
+    Result := _delInflectionSuffixes(Text);
     if _exist(Result) then
       Exit;
-    Result := Text;
+
+    //#3 - Remove Derivation suffix (-i, -an or -kan)
+    Result := _delDerivationSuffixes(Result);
+    if _exist(Result) then
+      Exit;
+
+    //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
+    Result := _delDerivationPrefix(Result);
+  finally
+    Dec(FDepth);
   end;
-
-
-  Result := _additionalRule(Result);
-  if not (Result = '') then
-    Exit;
-
-
-  //#2 - Remove Infection suffixes (-lah, -kah, -ku, -mu, or -nya)
-  Result := _delInflectionSuffixes(Text);
-  if _exist(Result) then
-    Exit;
-
-  //#3 - Remove Derivation suffix (-i, -an or -kan)
-  Result := _delDerivationSuffixes(Result);
-  if _exist(Result) then
-    Exit;
-
-  //#4 - Remove Derivation prefix (di-, ke-, se-, te-, be-, me-, or pe-)
-  Result := _delDerivationPrefix(Result);
-
 end;
 
 function TStemmingNazief.ParseSentence(Text: string): string;
 var
-  original_word: string;
+  original_word, word: string;
   str: TStrings;
-  return: TStringList;
+  items: TJSONArray;
+  item: TJSONObject;
   i: integer;
 begin
   FStemmedText := '';
-  str := Explode(Text, ' ');
-  FWordCount := str.Count;
+  FWordCount := 0;
   FNonStandardWordCount := 0;
   FUnknownWordCount := 0;
-  return := TStringList.Create;
-
-  return.Add('[');
-  for i := 0 to str.Count - 1 do
-  begin
-    original_word := str[i];
-    str[i] := ParseWord(str[i]);
-    return.Add('{');
-    return.Add('"word":"' + str[i] + '",');
-    return.Add('"wordtype":"' + WordTypeInString + '",');
-    return.Add('"type":"' + IntToStr(WordType) + '",');
-    if FParseWord_nonstandard then
+  str := Explode(Text, ' ');
+  items := TJSONArray.Create;
+  try
+    for i := 0 to str.Count - 1 do
     begin
-      return.Add('"non_standard":"yes",');
-      return.Add('"original_word":"' + original_word + '",');
+      original_word := str[i];
+      if Trim(original_word) = '' then
+        Continue;
+      Inc(FWordCount);
+      word := ParseWord(original_word);
+      item := TJSONObject.Create;
+      items.Add(item);
+      item.Add('word', word);
+      item.Add('wordtype', WordTypeInString);
+      item.Add('type', IntToStr(WordType));
+      if FParseWord_nonstandard then
+      begin
+        item.Add('non_standard', 'yes');
+        item.Add('original_word', original_word);
+      end;
+      if WordType = 0 then
+        Inc(FUnknownWordCount);
+      item.Add('score', '0');
+      FStemmedText := FStemmedText + word + ' ';
     end;
-    if WordType = 0 then
-      Inc(FUnknownWordCount);
-    return.Add('"score":"0"');
-    if i < str.Count - 1 then
-      return.Add('},')
-    else
-      return.Add('}');
-    FStemmedText := FStemmedText + str[i] + ' ';
+    FStemmedText := Trim(FStemmedText);
+    Result := items.AsJSON;
+  finally
+    items.Free;
+    str.Free;
   end;
-  return.Add(']');
-  FStemmedText := trim(FStemmedText);
-  Result := return.Text;
-
-  return.Free;
-  str.Free;
 end;
 
 

@@ -23,7 +23,6 @@ ErrorDocument 500 500.json
 #RewriteRule ^ - [L,R=404]
 
 #environment
-SetEnvIf Authorization "(.*)" Authorization=$1
 
 # other bin template
 #RewriteRule ^(auth)/(.*)$ auth.bin/$2 [QSA,L]

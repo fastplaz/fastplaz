@@ -5,7 +5,7 @@ unit logout_controller;
 interface
 
 uses
-  Classes, SysUtils, html_lib, fpcgi, fpjson, json_lib, HTTPDefs, 
+  Classes, SysUtils, html_lib, fastplaz_app, fpjson, json_lib, HTTPDefs, 
     fastplaz_handler, database_lib, string_helpers, dateutils, datetime_helpers;
 
 type

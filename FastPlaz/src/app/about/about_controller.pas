@@ -61,6 +61,7 @@ begin
   ThemeUtil.TagController(Sender, TagString, TagParams, ReplaceText);
 
   tags := ExplodeTags(TagString);
+  try
   case tags[0] of
     'maincontent':
     begin
@@ -132,6 +133,9 @@ begin
       ReplaceText := ThemeUtil.RenderFromContent(@TagController, ContributorInfo.Text);
       FreeAndNil(ContributorInfo);
     end; //-- maincontent - end
+  end;
+  finally
+    tags.Free; // leaked on every tag of every request
   end;
 end;
 

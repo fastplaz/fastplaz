@@ -38,7 +38,7 @@ type
     FPathName: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     function Find(AText: string): string;
   published
     property PathName: string read FPathName write FPathName;
@@ -63,6 +63,7 @@ destructor TThesaurusIntegration.Destroy;
 begin
   if Assigned(FData) then
     FData.Free;
+  inherited Destroy;
 end;
 
 function TThesaurusIntegration.Find(AText: string): string;

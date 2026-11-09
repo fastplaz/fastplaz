@@ -27,7 +27,7 @@ uses
   IDEWindowIntf, IDEMsgIntf, IDEImagesIntf,
   IDEExternToolIntf,
   // Database Explorer
-  DB, db_controller, model_lib,
+  DB, db_controller, model_lib, tools_lib,
   de_connection_editor, de_common, config_lib;
 
 type
@@ -110,29 +110,25 @@ type
     procedure onQueryAfterOpen(DataSet: TDataSet);
   private
     tableList: TStrings;
-    messageData: TMessageData;
-    FThread: TCustomThread;
     databaseType: string;
     lastActiveNode: TTreeNode;
     databaseAsData: TJSONData;
     // filled by worker thread, read by callback in main thread
     FConnectError: string;
     FViewDatabaseName: string;
+    FUpdateFile: string;
+    FUpdateMessage: string;
     function isMainThread: boolean;
-    procedure ShowTables;
-    procedure ShowViews(ADatabaseName: string);
 
-    procedure showTableAsync(Data: PtrInt);
     procedure showTableProc(Sender: TObject);
     procedure showTableCallbackProc(Sender: TObject);
     procedure showViewProc(Sender: TObject);
     procedure showViewCallbackProc(Sender: TObject);
 
+    // (re)loads databaseAsData from the configuration
+    function loadDatabaseConfig: boolean;
+    procedure saveDatabaseConfig;
     function getConfigValue(AIndex: integer; AFieldName: string): string;
-    procedure callbackTest(const AStatus: integer; const AMessage: string;
-      var AQuery: TSQLQuery);
-    procedure OnExecuteProc(Sender: TObject);
-    procedure OnSuccessProc(Sender: TObject);
     procedure disableControl;
     procedure enableControl;
     procedure disconnectDatabase(Sender: TObject);
@@ -140,7 +136,9 @@ type
 
     procedure saveFormState;
     procedure restoreFormState;
-    procedure versionCheck;
+    // runs in a worker thread, result in FUpdateMessage
+    procedure versionCheckProc(Sender: TObject);
+    procedure versionCheckCallbackProc(Sender: TObject);
   public
     ConfigurationPath, ConfigurationFileName: string;
     constructor Create(AOwner: TComponent); override;
@@ -164,7 +162,7 @@ procedure CreateIDEConnectorWindow(Sender: TObject; aFormName: string;
 
 implementation
 
-uses de_dbbrowser;
+uses de_dbbrowser, fastplaz_tools_register;
 
 procedure CreateIDEConnectorWindow(Sender: TObject; aFormName: string;
   var AForm: TCustomForm; DoDisableAutoSizing: boolean);
@@ -204,11 +202,12 @@ destructor TIDEFDEWindow.Destroy;
 begin
   if Assigned(Config) then
   begin
-    Config['cache/checkout'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+    Config.SetString('cache/checkout', FormatDateTime('yyyy-mm-dd HH:nn:ss', Now));
     Config.Flush;
   end;
 
   tableList.Free;
+  FreeAndNil(databaseAsData);
   if Assigned(IDEFDEBrowserWindow) then
     FreeAndNil(IDEFDEBrowserWindow);
   FreeAndNil(Config);
@@ -271,8 +270,6 @@ begin
 end;
 
 procedure TIDEFDEWindow.LoadConfiguration;
-var
-  s: string;
 begin
   ConfigurationPath := GetUserDir + FDE_CONFIG_PATH;
   ConfigurationFileName := ConfigurationPath + DirectorySeparator + FDE_CONFIG_FILE_NAME;
@@ -296,11 +293,11 @@ begin
       'username', 'root', 'password', '', 'database_name', 'test',
       'charset', '', 'prefix', '', 'library', ''])
       );
-    Config.SetDataValue('databases', databaseAsData);
+    saveDatabaseConfig;
     FreeAndNil(databaseAsData);
   end;
 
-  Config['cache/checkin'] := FormatDateTime('yyyy-mm-dd HH:nn:ss', Now);
+  Config.SetString('cache/checkin', FormatDateTime('yyyy-mm-dd HH:nn:ss', Now));
   Config.Flush;
 
   log('Load configuration done.', 'FDE', mluNote);
@@ -319,6 +316,8 @@ begin
     UserName := getConfigValue(AIndex, 'username');
     Password := getConfigValue(AIndex, 'password');
     DatabaseName := getConfigValue(AIndex, 'database_name');
+    // an empty value removes the parameter
+    Params.Values['Port'] := Trim(getConfigValue(AIndex, 'port'));
 
     //Custom Library
     libraryFileName := getConfigValue(AIndex, 'library');
@@ -339,18 +338,13 @@ end;
 procedure TIDEFDEWindow.BuildTreeView;
 var
   i: integer;
-  s: string;
-  dbName, dbType, dbDriver, dbHostname, dbPort, dbUsername, dbPassword,
-  dbDatabaseName, dbChartset, dbPrefix, dbLibrary: string;
+  dbName, dbType: string;
   mainNode, dbNode: TTreeNode;
 begin
   tvConnectionList.Items.Clear;
-  s := Config['databases'];
-  if s.IsEmpty then
+  lastActiveNode := nil;
+  if not loadDatabaseConfig then
     Exit;
-  ;
-
-  databaseAsData := GetJSON(s);
 
   mainNode := tvConnectionList.Items.Add(nil, 'Database');
   mainNode.ImageIndex := 0;
@@ -375,98 +369,36 @@ begin
 
   end;
   mainNode.Expand(False);
+end;
 
+function TIDEFDEWindow.loadDatabaseConfig: boolean;
+var
+  s: string;
+begin
+  Result := False;
   FreeAndNil(databaseAsData);
-end;
-
-procedure TIDEFDEWindow.ShowTables;
-var
-  i: integer;
-  s, fieldTableName: string;
-  tableNode, itemNode: TTreeNode;
-begin
+  s := Config.GetString('databases');
+  if s.IsEmpty then
+    Exit;
   try
-    OpenConnection(DatabaseController.SQLConnector);
+    databaseAsData := GetJSON(s);
   except
     on E: Exception do
     begin
-      log(E.Message, 'FDE', mluError);
+      log('Invalid connection list in ' + ConfigurationFileName + ': ' +
+        E.Message, 'FDE', mluError);
       Exit;
     end;
   end;
-
-  if not DatabaseController.SQLConnector.Connected then
-  begin
-    //TODO: display error
-    Exit;
-  end;
-
-  tableNode := tvConnectionList.Items.AddChild(tvConnectionList.Selected, 'Tables');
-  tableNode.ImageIndex := ICO_TABLE;
-  tableNode.SelectedIndex := ICO_TABLE;
-
-  DatabaseController.SQLConnector.GetTableNames(tableList, False);
-  for i := 0 to tableList.Count - 1 do
-  begin
-    itemNode := tvConnectionList.Items.AddChild(tableNode, tableList[i]);
-  end;
-  tvConnectionList.Selected.Expand(True);
+  Result := databaseAsData is TJSONArray;
+  if not Result then
+    FreeAndNil(databaseAsData);
 end;
 
-procedure TIDEFDEWindow.ShowViews(ADatabaseName: string);
-var
-  i: integer;
-  s, fieldName: string;
-  tableNode, itemNode: TTreeNode;
+procedure TIDEFDEWindow.saveDatabaseConfig;
 begin
-  try
-    OpenConnection(DatabaseController.SQLConnector);
-  except
-    on E: Exception do
-    begin
-      log(E.Message, 'FDE', mluError);
-      Exit;
-    end;
-  end;
-
-  if not DatabaseController.SQLConnector.Connected then
-  begin
-    //TODO: display error
-    Exit;
-  end;
-
-  tableNode := tvConnectionList.Items.AddChild(tvConnectionList.Selected, 'Views');
-  tableNode.ImageIndex := ICO_VIEW;
-  tableNode.SelectedIndex := ICO_VIEW;
-
-  s := Format(SQL_SHOW_VIEWS_MYSQL, [ADatabaseName]);
-  if databaseType = 'postgres' then
-    s := SQL_SHOW_VIEWS_POSTGRES;
-  DatabaseController.SQL.Text := s;
-  DatabaseController.Query.Prepare;
-  DatabaseController.Query.Open;
-  if DatabaseController.Query.RecordCount = 0 then
-    Exit;
-  if DatabaseController.Query.Active then
-  begin
-
-    fieldName := DatabaseController.Query.Fields[0].FieldName;
-    repeat
-      s := DatabaseController.Query.FieldByName(fieldName).AsString;
-      itemNode := tvConnectionList.Items.AddChild(tableNode, s);
-
-      DatabaseController.Query.Next;
-    until DatabaseController.Query.EOF;
-
-    tvConnectionList.Selected.Expand(True);
-  end;
-end;
-
-procedure TIDEFDEWindow.showTableAsync(Data: PtrInt);
-begin
-  ShowTables;
-  ShowViews(getConfigValue(tvConnectionList.Selected.Index, 'database_name'));
-  enableControl;
+  Config.SetDataValue('databases', databaseAsData);
+  Config.Flush;
 end;
 
 // running in worker thread: no log, no LCL access
@@ -490,7 +422,7 @@ end;
 procedure TIDEFDEWindow.showTableCallbackProc(Sender: TObject);
 var
   i: integer;
-  tableNode, itemNode: TTreeNode;
+  tableNode: TTreeNode;
 begin
   enableControl;
   if not FConnectError.IsEmpty then
@@ -510,7 +442,7 @@ begin
 
   for i := 0 to tableList.Count - 1 do
   begin
-    itemNode := tvConnectionList.Items.AddChild(tableNode, tableList[i]);
+    tvConnectionList.Items.AddChild(tableNode, tableList[i]);
   end;
   tvConnectionList.Selected.Expand(True);
 
@@ -544,9 +476,8 @@ end;
 
 procedure TIDEFDEWindow.showViewCallbackProc(Sender: TObject);
 var
-  i: integer;
   s, fieldName: string;
-  viewNode, itemNode: TTreeNode;
+  viewNode: TTreeNode;
 begin
   log(tvConnectionList.Selected.Text + ' connected', 'FDE');
   enableControl;
@@ -567,7 +498,7 @@ begin
   fieldName := DatabaseController.Query.Fields[0].FieldName;
   repeat
     s := DatabaseController.Query.FieldByName(fieldName).AsString;
-    itemNode := tvConnectionList.Items.AddChild(viewNode, s);
+    tvConnectionList.Items.AddChild(viewNode, s);
 
     DatabaseController.Query.Next;
   until DatabaseController.Query.EOF;
@@ -577,14 +508,16 @@ end;
 
 function TIDEFDEWindow.GetFieldNames(ATableName: string): string;
 var
-  s: string;
   fieldList: TStrings;
 begin
   Result := '';
   fieldList := TStringList.Create;
-  DatabaseController.SQLConnector.GetFieldNames(ATableName, fieldList);
-  Result := fieldList.Text.Trim.Replace(#10, ', ', [rfReplaceAll]);
-  fieldList.Free;
+  try
+    DatabaseController.SQLConnector.GetFieldNames(ATableName, fieldList);
+    Result := fieldList.Text.Trim.Replace(#13, '').Replace(#10, ', ', [rfReplaceAll]);
+  finally
+    fieldList.Free;
+  end;
 end;
 
 
@@ -650,8 +583,15 @@ end;
 procedure TIDEFDEWindow.tmrVersionCheckTimer(Sender: TObject);
 begin
   tmrVersionCheck.Enabled := False;
-  //log('version checking ...', 'FastPlaz', mluDebug);
-  versionCheck;
+  FUpdateFile := PackageDirectory(FASTPLAZ_TOOLS_PACKAGE);
+  if FUpdateFile = '' then
+    Exit;
+  FUpdateFile := FUpdateFile + '..' + DirectorySeparator + LASTUPDATE_FILENAME;
+  if not FileExists(FUpdateFile) then
+    Exit;
+  FUpdateMessage := '';
+  // the request must not block the IDE
+  Call(@versionCheckProc, @versionCheckCallbackProc);
 end;
 
 procedure TIDEFDEWindow.tvConnectionListClick(Sender: TObject);
@@ -660,9 +600,6 @@ begin
 end;
 
 procedure TIDEFDEWindow.tvConnectionListDblClick(Sender: TObject);
-var
-  i: integer;
-  s: string;
 begin
   if tvConnectionList.Selected = nil then
     Exit;
@@ -787,50 +724,17 @@ end;
 
 function TIDEFDEWindow.getConfigValue(AIndex: integer; AFieldName: string): string;
 var
-  s: string;
+  item: TJSONData;
 begin
-  try
-    Result := '';
-    if not Assigned(databaseAsData) then
-    begin
-      s := Config['databases'];
-      if s.IsEmpty then
-        Exit;
-      databaseAsData := GetJSON(s);
-    end;
-    Result := databaseAsData.Items[AIndex].FindPath(AFieldName).AsString;
-  except
-    on E: Exception do
-    begin
-      ShowMessage(e.Message);
-    end;
-  end;
-end;
-
-// FOR TESTING ONLY
-procedure TIDEFDEWindow.callbackTest(const AStatus: integer;
-  const AMessage: string; var AQuery: TSQLQuery);
-var
-  prefix: string;
-begin
-  {
-  prefix := '';
-  if AStatus <> 0 then
-    prefix := 'Error:';
-
-  enableControl;
-  log(prefix + AMessage, 'Callback: ' + AQuery.RecordCount.ToString);
-  }
-end;
-
-procedure TIDEFDEWindow.OnExecuteProc(Sender: TObject);
-begin
-  TCustomThread(Sender).StatusText := 'welcome OnExecuteProc ...';
-end;
-
-procedure TIDEFDEWindow.OnSuccessProc(Sender: TObject);
-begin
-  Caption := TCustomThread(Sender).StatusText;
+  Result := '';
+  if not Assigned(databaseAsData) then
+    if not loadDatabaseConfig then
+      Exit;
+  if (AIndex < 0) or (AIndex >= databaseAsData.Count) then
+    Exit;
+  item := databaseAsData.Items[AIndex].FindPath(AFieldName);
+  if (item <> nil) and not (item.JSONType in [jtNull, jtArray, jtObject]) then
+    Result := item.AsString;
 end;
 
 procedure TIDEFDEWindow.disableControl;
@@ -883,41 +787,39 @@ begin
     Top := i;
 end;
 
-procedure TIDEFDEWindow.versionCheck;
+// running in worker thread: no log, no LCL access
+procedure TIDEFDEWindow.versionCheckProc(Sender: TObject);
 var
-  s, currentUpdateFile: string;
   http: THTTPLib;
   response: IHTTPResponse;
-  Pkg: TIDEPackage;
   lst: TStringList;
 begin
+  FUpdateMessage := '';
+  http := THTTPLib.Create();
+  lst := TStringList.Create;
   try
-    http := THTTPLib.Create();
-    http.URL := LASTUPDATE_URL;
-    response := http.Get();
-    if response.ResultCode = 200 then
-    begin
-      Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
-      currentUpdateFile := Pkg.DirectoryExpanded + '..' + DirectorySeparator + LASTUPDATE_FILENAME;
-      if FileExists(currentUpdateFile) then
-      begin
-        lst := TStringList.Create;
-        lst.LoadFromFile( currentUpdateFile);
-        if Trim(lst.Text) <> response.ResultText then
-        begin
-          log(RS_THERE_ARE_DEVELOPMENT_UPDATE + response.ResultText, 'FastPlaz', mluImportant);
-          //log('current: ' + Trim(lst.Text), 'Version', mluImportant);
-        end;
-        lst.Free;
-      end;
+    try
+      http.URL := LASTUPDATE_URL;
+      response := http.Get();
+      if response.ResultCode <> 200 then
+        Exit;
+      lst.LoadFromFile(FUpdateFile);
+      if Trim(lst.Text) <> Trim(response.ResultText) then
+        FUpdateMessage := RS_THERE_ARE_DEVELOPMENT_UPDATE + Trim(response.ResultText);
+    except
+      on E: Exception do
+        FUpdateMessage := '';
     end;
-  except
-    on E: Exception do
-    begin
-      //
-    end;
+  finally
+    lst.Free;
+    http.Free;
   end;
-  http.Free;
+end;
+
+procedure TIDEFDEWindow.versionCheckCallbackProc(Sender: TObject);
+begin
+  if not FUpdateMessage.IsEmpty then
+    log(FUpdateMessage, 'FastPlaz', mluImportant);
 end;
 
 
@@ -943,21 +845,19 @@ end;
 
 procedure TIDEFDEWindow.actCreateORMModelExecute(Sender: TObject);
 begin
-  if tvConnectionList.Selected.Level <> 3 then
+  if (tvConnectionList.Selected = nil) or (tvConnectionList.Selected.Level <> 3) then
     Exit;
-  CustomTableName := '';
-  ModelName := tvConnectionList.Selected.Text;
-  if ModelName[modelName.Length] <> 's' then
-    CustomTableName := ModelName
-  else
-    ModelName := ModelName.Substring(0, ModelName.Length - 1);
+  ModelNameFromTable(tvConnectionList.Selected.Text, ModelName, CustomTableName);
 
   {$ifndef FDE_DESKTOP}
   GenerateFromFDE := True;
-  LazarusIDE.DoNewEditorFile(TFileDescModel.Create,
-    ModelName + '_model.pas', '',
-    [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
-  //GenerateFromFDE := False;
+  try
+    LazarusIDE.DoNewEditorFile(TFileDescModel.Create,
+      LowerCase(SanitizeIdentifier(ModelName)) + '_model.pas', '',
+      [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
+  finally
+    GenerateFromFDE := False;
+  end;
   {$endif}
 end;
 
@@ -982,67 +882,62 @@ end;
 
 procedure TIDEFDEWindow.actAddConnectionExecute(Sender: TObject);
 var
-  s, dataType: string;
+  dataType: string;
 begin
   fDatabaseConnectionEditor := TfDatabaseConnectionEditor.Create(Application);
-  if fDatabaseConnectionEditor.ShowModal = mrOk then
-  begin
-    s := Config['databases'];
-    databaseAsData := GetJSON(s);
+  try
+    if fDatabaseConnectionEditor.ShowModal = mrOk then
+    begin
+      if not loadDatabaseConfig then
+        databaseAsData := TJSONArray.Create;
 
-    dataType := fDatabaseConnectionEditor.DatabaseType;
+      dataType := fDatabaseConnectionEditor.DatabaseType;
 
-    TJSONArray(databaseAsData).Add(
-      TJSONObject.Create(['name', fDatabaseConnectionEditor.edtName.Text,
-      'type', dataType, 'driver', fDatabaseConnectionEditor.cbbDriver.Text,
-      'hostname', fDatabaseConnectionEditor.edtHostname.Text,
-      'port', fDatabaseConnectionEditor.edtPort.Text, 'username',
-      fDatabaseConnectionEditor.edtUsername.Text, 'password',
-      fDatabaseConnectionEditor.edtPassword.Text, 'database_name',
-      fDatabaseConnectionEditor.edtDatabaseName.Text, 'charset',
-      '', 'prefix', fDatabaseConnectionEditor.edtTablePrefix.Text,
-      'library', fDatabaseConnectionEditor.edtLibrary.Text])
-      );
-    Config.SetDataValue('databases', databaseAsData);
-    Config.Flush;
-    FreeAndNil(databaseAsData);
+      TJSONArray(databaseAsData).Add(
+        TJSONObject.Create(['name', fDatabaseConnectionEditor.edtName.Text,
+        'type', dataType, 'driver', fDatabaseConnectionEditor.cbbDriver.Text,
+        'hostname', fDatabaseConnectionEditor.edtHostname.Text,
+        'port', fDatabaseConnectionEditor.edtPort.Text, 'username',
+        fDatabaseConnectionEditor.edtUsername.Text, 'password',
+        fDatabaseConnectionEditor.edtPassword.Text, 'database_name',
+        fDatabaseConnectionEditor.edtDatabaseName.Text, 'charset',
+        '', 'prefix', fDatabaseConnectionEditor.edtTablePrefix.Text,
+        'library', fDatabaseConnectionEditor.edtLibrary.Text])
+        );
+      saveDatabaseConfig;
+      BuildTreeView;
 
-    BuildTreeView;
-
-    log('New connection added');
+      log('New connection added');
+    end;
+  finally
+    FreeAndNil(fDatabaseConnectionEditor);
   end;
-  fDatabaseConnectionEditor.Free;
 end;
 
 procedure TIDEFDEWindow.actDeleteConnectionExecute(Sender: TObject);
 var
   i: integer;
-  s, dbName: string;
+  dbName: string;
 begin
-  if ((tvConnectionList.Selected.Level <> 1) or
-    (tvConnectionList.Selected.Index = -1)) then
+  if (tvConnectionList.Selected = nil) or (tvConnectionList.Selected.Level <> 1) then
     Exit;
-
-  if MessageDlg(rsConfirmation, rsAskCancelOperation, mtConfirmation,
-    [mbYes, mbNo], 0) = mrYes then
-  begin
-    Exit;
-  end;
-
-  s := Config['databases'];
-  if s.IsEmpty then
-    Exit;
-  databaseAsData := GetJSON(s);
-
   i := tvConnectionList.Selected.Index;
-  dbName := databaseAsData.Items[i].FindPath('name').AsString;
+  dbName := getConfigValue(i, 'name');
+
+  // Yes (the default) cancels, see rsAskCancelOperation
+  if MessageDlg(rsConfirmation, Format(rsAskCancelOperation, [dbName]),
+    mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    Exit;
+
+  if not loadDatabaseConfig then
+    Exit;
+  if i >= databaseAsData.Count then
+    Exit;
+  if tvConnectionList.Selected = lastActiveNode then
+    actDisconnect.Execute;
 
   TJSONArray(databaseAsData).Delete(i);
-
-  Config.SetDataValue('databases', databaseAsData);
-  Config.Flush;
-  FreeAndNil(databaseAsData);
-
+  saveDatabaseConfig;
   BuildTreeView;
 
   log('Delete "' + dbName + '" connection');
@@ -1051,68 +946,65 @@ end;
 procedure TIDEFDEWindow.actEditConnectionExecute(Sender: TObject);
 var
   i: integer;
-  s: string;
-  dbName, dbType, dbDriver, dbHostname, dbPort, dbUsername, dbPassword,
-  dbDatabaseName, dbChartset, dbPrefix, dbLibrary: string;
+  dbType: string;
+  item: TJSONObject;
 begin
-  s := Config['databases'];
-  if s.IsEmpty then
+  if (tvConnectionList.Selected = nil) or (tvConnectionList.Selected.Level <> 1) then
     Exit;
-  databaseAsData := GetJSON(s);
-
+  if not loadDatabaseConfig then
+    Exit;
   i := tvConnectionList.Selected.Index;
-  dbName := databaseAsData.Items[i].FindPath('name').AsString;
-  dbType := databaseAsData.Items[i].FindPath('type').AsString;
-  dbDatabaseName := databaseAsData.Items[i].FindPath('database_name').AsString;
+  if (i >= databaseAsData.Count) or not (databaseAsData.Items[i] is TJSONObject) then
+    Exit;
+  item := TJSONObject(databaseAsData.Items[i]);
 
   fDatabaseConnectionEditor := TfDatabaseConnectionEditor.Create(Application);
-  fDatabaseConnectionEditor.edtName.Text := getConfigValue(i, 'name');
-  fDatabaseConnectionEditor.cbbDriver.Text := getConfigValue(i, 'driver').Trim;
+  try
+    fDatabaseConnectionEditor.edtName.Text := getConfigValue(i, 'name');
+    fDatabaseConnectionEditor.cbbDriver.Text := getConfigValue(i, 'driver').Trim;
 
-  fDatabaseConnectionEditor.edtHostname.Text := getConfigValue(i, 'hostname');
-  fDatabaseConnectionEditor.edtUsername.Text := getConfigValue(i, 'username');
-  fDatabaseConnectionEditor.edtPassword.Text := getConfigValue(i, 'password');
-  fDatabaseConnectionEditor.edtPort.Text := getConfigValue(i, 'port');
-  fDatabaseConnectionEditor.edtDatabaseName.Text := getConfigValue(i, 'database_name');
-  fDatabaseConnectionEditor.edtTablePrefix.Text := getConfigValue(i, 'prefix');
-  fDatabaseConnectionEditor.edtLibrary.Text := getConfigValue(i, 'library');
+    fDatabaseConnectionEditor.edtHostname.Text := getConfigValue(i, 'hostname');
+    fDatabaseConnectionEditor.edtUsername.Text := getConfigValue(i, 'username');
+    fDatabaseConnectionEditor.edtPassword.Text := getConfigValue(i, 'password');
+    fDatabaseConnectionEditor.edtPort.Text := getConfigValue(i, 'port');
+    fDatabaseConnectionEditor.edtDatabaseName.Text := getConfigValue(i, 'database_name');
+    fDatabaseConnectionEditor.edtTablePrefix.Text := getConfigValue(i, 'prefix');
+    fDatabaseConnectionEditor.edtLibrary.Text := getConfigValue(i, 'library');
 
-  if fDatabaseConnectionEditor.ShowModal = mrOk then
-  begin
-    dbType := fDatabaseConnectionEditor.DatabaseType;
-
-    with fDatabaseConnectionEditor do
+    if fDatabaseConnectionEditor.ShowModal = mrOk then
     begin
-      databaseAsData.Items[i].FindPath('name').Value := edtName.Text;
-      databaseAsData.Items[i].FindPath('type').Value := dbType;
-      databaseAsData.Items[i].FindPath('driver').Value := cbbDriver.Text;
-      databaseAsData.Items[i].FindPath('hostname').Value := edtHostname.Text;
-      databaseAsData.Items[i].FindPath('port').Value := edtPort.Text;
-      databaseAsData.Items[i].FindPath('username').Value := edtUsername.Text;
-      databaseAsData.Items[i].FindPath('password').Value := edtPassword.Text;
-      databaseAsData.Items[i].FindPath('database_name').Value := edtDatabaseName.Text;
-      databaseAsData.Items[i].FindPath('charset').Value := '';
-      databaseAsData.Items[i].FindPath('prefix').Value := '';
-      databaseAsData.Items[i].FindPath('library').Value := edtLibrary.Text;
+      dbType := fDatabaseConnectionEditor.DatabaseType;
+
+      with fDatabaseConnectionEditor do
+      begin
+        // Strings replaces the value or adds the missing key
+        item.Strings['name'] := edtName.Text;
+        item.Strings['type'] := dbType;
+        item.Strings['driver'] := cbbDriver.Text;
+        item.Strings['hostname'] := edtHostname.Text;
+        item.Strings['port'] := edtPort.Text;
+        item.Strings['username'] := edtUsername.Text;
+        item.Strings['password'] := edtPassword.Text;
+        item.Strings['database_name'] := edtDatabaseName.Text;
+        item.Strings['charset'] := '';
+        item.Strings['prefix'] := edtTablePrefix.Text;
+        item.Strings['library'] := edtLibrary.Text;
+      end;
+
+      saveDatabaseConfig;
+      BuildTreeView;
+      log('Connection "' + item.Strings['name'] + '" updated');
     end;
-
-    Config.SetDataValue('databases', databaseAsData);
-    Config.Flush;
-    FreeAndNil(databaseAsData);
-
-    BuildTreeView;
-    log('OK');
+  finally
+    FreeAndNil(fDatabaseConnectionEditor);
   end;
-  fDatabaseConnectionEditor.Free;
-
-  FreeAndNil(databaseAsData);
 end;
 
 procedure TIDEFDEWindow.actCopyFieldNamesExecute(Sender: TObject);
 var
   s: string;
 begin
-  if tvConnectionList.Selected.Level <> 3 then
+  if (tvConnectionList.Selected = nil) or (tvConnectionList.Selected.Level <> 3) then
     exit;
 
   s := GetFieldNames(tvConnectionList.Selected.Text);
@@ -1132,14 +1024,13 @@ end;
 
 procedure TIDEFDEWindow.actTableOpenExecute(Sender: TObject);
 begin
-  if tvConnectionList.Selected.Level = 3 then
+  if (tvConnectionList.Selected <> nil) and (tvConnectionList.Selected.Level = 3) then
     tvConnectionListDblClick(Sender);
 end;
 
-// FOR TESTING ONLY
 procedure TIDEFDEWindow.actTestExecute(Sender: TObject);
 begin
-  //Call(@OnExecuteProc, @OnSuccessProc);
+  // hidden action, kept for the designer
 end;
 
 

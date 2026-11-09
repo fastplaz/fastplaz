@@ -2,7 +2,7 @@ unit datetime_lib;
 
 {
   Format datetimes in a more Human Readable form
-  (like tomorow, yesterday, 4 days from now, 6 hours ago, more 3 years ago)
+  (like tomorrow, yesterday, 4 days from now, 6 hours ago, 3 years ago)
 
   example:
 
@@ -10,141 +10,166 @@ unit datetime_lib;
   var := DateTimeHuman( theDate, 7);
   var := DateTimeHuman( theDate, 7, 'ddd d mmm yyyy');
   var := DateTimeHuman( '2015/12/30');
+  var := DateTimeHuman( '2015-12-30 10:20:30');
+  var := DateTimeHuman( '1451445630');          // unix timestamp (local time)
 
+  Rules (relative to Now):
+  - less than 24 hours      : "%d seconds|minutes|hours ago" / "from now"
+  - calendar day +/- 1      : "yesterday" / "tomorrow"
+  - up to MaxIntervalDate   : "%d days ago" / "from now"
+  - beyond MaxIntervalDate  : FormatDate when given, otherwise
+                              "%d months ago" or "%d years ago"
+
+  DateTimeHumanAt() does the same, but relative to an explicit reference
+  time instead of Now (useful for testing and for batch processing).
+
+  An input string that can not be parsed is returned unchanged.
 }
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  dateutils, common, language_lib, Classes, SysUtils;
+  dateutils, language_lib, Classes, SysUtils;
 
 function DateTimeHuman(TheDate: string; MaxIntervalDate: integer = 30;
   FormatDate: string = ''): string;
 function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer = 30;
   FormatDate: string = ''): string;
 
+function DateTimeHumanAt(TheDate: string; ANow: TDateTime;
+  MaxIntervalDate: integer = 30; FormatDate: string = ''): string;
+function DateTimeHumanAt(TheDate, ANow: TDateTime; MaxIntervalDate: integer = 30;
+  FormatDate: string = ''): string;
+
+// Parse the string forms accepted by DateTimeHuman:
+//   yyyy/mm/dd, yyyy-mm-dd, with optional time ("hh:nn" or "hh:nn:ss",
+//   separated by a space or "T"), or a unix timestamp (local time).
+function TryParseHumanDate(const S: string; out ADateTime: TDateTime): boolean;
+
 implementation
 
-uses datetime_helpers;
+const
+  // A plain integer with at least this many digits is treated as a
+  // unix timestamp; shorter numbers (e.g. "20151230") are not.
+  MIN_UNIX_TIMESTAMP_DIGITS = 9;
 
-function _DateTimeDiff(const ANow, AThen: TDateTime): TDateTime;
+function TryParseHumanDate(const S: string; out ADateTime: TDateTime): boolean;
+var
+  s1: string;
+  unixTime: int64;
+  fs: TFormatSettings;
 begin
-  Result := ANow - AThen;
-  if (ANow > 0) and (AThen < 0) then
-    Result := Result - 0.5
-  else if (ANow < -1.0) and (AThen > -1.0) then
-    Result := Result + 0.5;
+  Result := False;
+  ADateTime := 0;
+  s1 := Trim(S);
+  if s1 = '' then
+    Exit;
+
+  // unix timestamp, compared against local Now so convert to local time
+  if TryStrToInt64(s1, unixTime) and
+    (Length(s1) - Ord(s1[1] = '-') >= MIN_UNIX_TIMESTAMP_DIGITS) then
+  begin
+    ADateTime := UnixToDateTime(unixTime, False);
+    Exit(True);
+  end;
+
+  // fixed format, independent of the locale settings of the host
+  fs := DefaultFormatSettings;
+  fs.DateSeparator := '/';
+  fs.TimeSeparator := ':';
+  fs.ShortDateFormat := 'yyyy/mm/dd';
+  fs.LongDateFormat := 'yyyy/mm/dd';
+  fs.ShortTimeFormat := 'hh:nn';
+  fs.LongTimeFormat := 'hh:nn:ss';
+  fs.TimeAMString := '';
+  fs.TimePMString := '';
+
+  s1 := StringReplace(s1, '-', '/', [rfReplaceAll]);
+  // ISO 8601 "yyyy-mm-ddThh:nn:ss"
+  if (Length(s1) > 10) and (s1[11] = 'T') then
+    s1[11] := ' ';
+
+  Result := TryStrToDateTime(s1, ADateTime, fs);
+end;
+
+function DateTimeHumanAt(TheDate, ANow: TDateTime; MaxIntervalDate: integer;
+  FormatDate: string): string;
+var
+  suffix: string;
+  seconds: int64;
+  calendarDays, months, years: integer;
+begin
+  if MaxIntervalDate = 0 then
+    MaxIntervalDate := 30;
+
+  if TheDate <= ANow then
+    suffix := 'ago'
+  else
+    suffix := 'from now';
+
+  seconds := SecondsBetween(ANow, TheDate);
+  if seconds < SecsPerDay then
+  begin
+    if seconds < SecsPerMin then
+      Result := Format(__('%d seconds ' + suffix), [seconds])
+    else if seconds < SecsPerHour then
+      Result := Format(__('%d minutes ' + suffix), [seconds div SecsPerMin])
+    else
+      Result := Format(__('%d hours ' + suffix), [seconds div SecsPerHour]);
+    Exit;
+  end;
+
+  calendarDays := DaysBetween(DateOf(ANow), DateOf(TheDate));
+  if calendarDays = 1 then
+  begin
+    if TheDate <= ANow then
+      Result := __('yesterday')
+    else
+      Result := __('tomorrow');
+    Exit;
+  end;
+
+  if calendarDays <= MaxIntervalDate then
+    Exit(Format(__('%d days ' + suffix), [calendarDays]));
+
+  if FormatDate <> '' then
+  begin
+    DateTimeToString(Result, FormatDate, TheDate);
+    Exit;
+  end;
+
+  years := YearsBetween(ANow, TheDate);
+  months := MonthsBetween(ANow, TheDate);
+  if years >= 1 then
+    Result := Format(__('%d years ' + suffix), [years])
+  else if months >= 1 then
+    Result := Format(__('%d months ' + suffix), [months])
+  else
+    Result := Format(__('%d days ' + suffix), [calendarDays]);
+end;
+
+function DateTimeHumanAt(TheDate: string; ANow: TDateTime;
+  MaxIntervalDate: integer; FormatDate: string): string;
+var
+  dateTmp: TDateTime;
+begin
+  if TryParseHumanDate(TheDate, dateTmp) then
+    Result := DateTimeHumanAt(dateTmp, ANow, MaxIntervalDate, FormatDate)
+  else
+    Result := TheDate;
 end;
 
 function DateTimeHuman(TheDate: string; MaxIntervalDate: integer;
   FormatDate: string): string;
-var
-  dateTmp: TDateTime;
-  fs: TFormatSettings;
 begin
-  //{$WARN SYMBOL_PLATFORM OFF}
-  //GetLocaleFormatSettings(0, ts);
-  //{$WARN SYMBOL_PLATFORM ON}
-
-  try
-    if StrToInt64(TheDate) <> 0 then
-    begin
-      dateTmp := UnixToDateTime(StrtoInt64(TheDate));
-      TheDate := dateTmp.AsString;
-    end;
-  except
-  end;
-
-  fs := DefaultFormatSettings;
-  fs.ShortDateFormat := 'yyyy/MM/dd hh:nn';
-  TheDate := TheDate.Replace('-','/');
-  try
-    dateTmp := StrToDateTime(TheDate, fs);
-    Result := DateTimeHuman(dateTmp, MaxIntervalDate, FormatDate);
-  except
-    on e: Exception do
-    begin
-      Result := e.Message + ': "' + TheDate + '"';
-    end;
-  end;
-end;
-
-function _SayDate(TheDate: TDateTime; MaxIntervalDate: integer;
-  FormatDate: string; Suffix: string = 'ago'; Prefix: string = ''): string;
-var
-  diff, i: integer;
-begin
-  diff := DaysBetween(Now, TheDate);
-  if diff <= MaxIntervalDate then
-  begin
-    i := HoursBetween(Now, TheDate);
-    if i >= 1 then
-    begin
-      if i > 24 then
-        Result := Format(__('%d days ' + Suffix), [diff])
-      else
-        Result := Format(__('%d hours ' + Suffix), [i]);
-    end
-    else
-    begin
-      i := MinutesBetween(Now, TheDate);
-      if i = 0 then
-        Result := Format(__('%d secondss ' + Suffix), [SecondsBetween(Now, TheDate)])
-      else
-        Result := Format(__('%d minutes ' + Suffix), [i]);
-    end;
-  end
-  else
-  begin
-    if FormatDate = '' then
-    begin
-      if diff < 31 then
-        Result := Format(__('%d days  ' + Suffix), [DaysBetween(Now, TheDate)]);
-      if diff > 30 then
-        Result := Format(__(Prefix + ' %d months ' + Suffix),
-          [MonthsBetween(Now, TheDate)]);
-      if diff > 360 then
-        Result := Format(__(Prefix + ' %d years ' + Suffix),
-          [YearsBetween(Now, TheDate)]);
-    end
-    else
-    begin
-      DateTimeToString(Result, FormatDate, TheDate);
-    end;
-  end;
+  Result := DateTimeHumanAt(TheDate, Now, MaxIntervalDate, FormatDate);
 end;
 
 function DateTimeHuman(TheDate: TDateTime; MaxIntervalDate: integer;
   FormatDate: string): string;
-var
-  diff: integer;
-  diffDate: TDateTime;
 begin
-  Result := '';
-  try
-    if MaxIntervalDate = 0 then
-      MaxIntervalDate := 30;
-
-    diffDate := _DateTimeDiff(TheDate, Now);
-    diff := DaysBetween(Now, TheDate);
-
-    if diffDate <= 0 then
-    begin
-      if diff = 1 then
-        Result := __('yesterday')
-      else
-        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'ago', 'more');
-    end
-    else
-    begin // present
-      if diff = 1 then
-        Result := __('tomorrow')
-      else
-        Result := _SayDate(TheDate, MaxIntervalDate, FormatDate, 'from now');
-    end;
-  except
-  end;
+  Result := DateTimeHumanAt(TheDate, Now, MaxIntervalDate, FormatDate);
 end;
 
 end.

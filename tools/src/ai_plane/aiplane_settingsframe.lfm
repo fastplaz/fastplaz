@@ -1,0 +1,207 @@
+object AIPlaneSettingsFrame: TAIPlaneSettingsFrame
+  Left = 0
+  Height = 360
+  Top = 0
+  Width = 580
+  ClientHeight = 360
+  ClientWidth = 580
+  ParentShowHint = False
+  ShowHint = True
+  TabOrder = 0
+  DesignLeft = 300
+  DesignTop = 200
+  object lblRuntime: TLabel
+    Left = 8
+    Height = 15
+    Top = 12
+    Width = 52
+    Caption = 'Runtime :'
+    ParentColor = False
+  end
+  object cbbRuntime: TComboBox
+    Left = 98
+    Height = 23
+    Top = 8
+    Width = 474
+    Anchors = [akTop, akLeft, akRight]
+    ItemHeight = 15
+    Style = csDropDownList
+    TabOrder = 0
+    OnSelect = cbbRuntimeSelect
+  end
+  object lblCommand: TLabel
+    Left = 8
+    Height = 15
+    Top = 44
+    Width = 62
+    Caption = 'Command :'
+    ParentColor = False
+  end
+  object edt_Command: TEdit
+    Left = 98
+    Height = 23
+    Hint = 'Executable (empty = preset default)'
+    Top = 40
+    Width = 474
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 1
+    OnChange = ValueChange
+  end
+  object lblArguments: TLabel
+    Left = 8
+    Height = 15
+    Top = 76
+    Width = 66
+    Caption = 'Arguments :'
+    ParentColor = False
+  end
+  object edt_Arguments: TEdit
+    Left = 98
+    Height = 23
+    Hint = 'Space separated (empty = preset default)'
+    Top = 72
+    Width = 474
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 2
+    OnChange = ValueChange
+  end
+  object lblModel: TLabel
+    Left = 8
+    Height = 15
+    Top = 108
+    Width = 44
+    Caption = 'Model :'
+    ParentColor = False
+  end
+  object cbbModel: TComboBox
+    Left = 98
+    Height = 23
+    Top = 104
+    Width = 386
+    Anchors = [akTop, akLeft, akRight]
+    ItemHeight = 15
+    TabOrder = 3
+    OnChange = cbbModelChange
+  end
+  object btnDetect: TButton
+    Cursor = crHandPoint
+    Left = 492
+    Height = 23
+    Hint = 'Start the runtime and read its model list'
+    Top = 104
+    Width = 80
+    Anchors = [akTop, akRight]
+    Caption = 'Detect'
+    TabOrder = 4
+    OnClick = btnDetectClick
+  end
+  object lblEffort: TLabel
+    Left = 8
+    Height = 15
+    Top = 140
+    Width = 40
+    Caption = 'Effort :'
+    ParentColor = False
+  end
+  object cbbEffort: TComboBox
+    Left = 98
+    Height = 23
+    Hint = 'Thinking effort (ignored when the runtime has no such option)'
+    Top = 136
+    Width = 120
+    ItemHeight = 15
+    Style = csDropDownList
+    TabOrder = 5
+    OnSelect = ValueChange
+  end
+  object chkMcpEnabled: TCheckBox
+    Left = 240
+    Height = 19
+    Hint = 'Let the agent use IDE tools (open files, compile the project, ...) through MCP over HTTP on 127.0.0.1'
+    Top = 138
+    Width = 120
+    Caption = 'IDE tools (MCP)'
+    Checked = True
+    State = cbChecked
+    TabOrder = 8
+    OnChange = McpEnabledChange
+  end
+  object lblMcpPort: TLabel
+    Left = 376
+    Height = 15
+    Top = 140
+    Width = 31
+    Caption = 'Port :'
+    ParentColor = False
+  end
+  object spnMcpPort: TSpinEdit
+    Left = 416
+    Height = 23
+    Hint = 'Port of the MCP server; the next free port is used when it is taken'
+    Top = 136
+    Width = 80
+    MaxValue = 65535
+    MinValue = 1024
+    TabOrder = 9
+    Value = 17826
+    OnChange = ValueChange
+  end
+  object chkAutoReload: TCheckBox
+    Left = 98
+    Height = 19
+    Hint = 'Reload open files the agent changed on disk without asking; files with unsaved changes still ask'
+    Top = 166
+    Width = 220
+    Caption = 'Reload files changed by the agent'
+    Checked = True
+    State = cbChecked
+    TabOrder = 10
+    OnChange = ValueChange
+  end
+  object lblNote: TLabel
+    Left = 98
+    Height = 15
+    Top = 192
+    Width = 1
+    Font.Color = clGrayText
+    ParentColor = False
+    ParentFont = False
+    ShowAccelChar = False
+  end
+  object btnTest: TButton
+    Cursor = crHandPoint
+    Left = 98
+    Height = 28
+    Top = 216
+    Width = 100
+    Caption = 'Run Test'
+    TabOrder = 6
+    OnClick = btnTestClick
+  end
+  object lblStatus: TLabel
+    Left = 206
+    Height = 15
+    Top = 222
+    Width = 1
+    ParentColor = False
+    ShowAccelChar = False
+  end
+  object mem_Output: TMemo
+    Left = 8
+    Height = 100
+    Top = 252
+    Width = 564
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 7
+    WordWrap = False
+  end
+  object tmrProbe: TTimer
+    Enabled = False
+    Interval = 30
+    OnTimer = tmrProbeTimer
+    Left = 520
+    Top = 176
+  end
+end

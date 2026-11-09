@@ -47,9 +47,8 @@ type
     FURL: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
-    function SendExample(FileName: string; Public_Id: string = ''): IHTTPResponse;
     function GetDistance(AOrigins, ADestionations: string): boolean;
   published
     property URL: string read FURL write FURL;
@@ -70,8 +69,6 @@ const
   GOOGLEDISTANCE_URL =
     'https://maps.googleapis.com/maps/api/distancematrix/json?origins=%s&destinations=%s&language=id-ID&key=';
 
-var
-  Response: IHTTPResponse;
 
 { TGoogleDistanceIntegration }
 
@@ -93,31 +90,10 @@ begin
   inherited Destroy;
 end;
 
-function TGoogleDistanceIntegration.SendExample(FileName: string;
-  Public_Id: string): IHTTPResponse;
-begin
-  FIsSuccessfull := False;
-  with THTTPLib.Create(URL) do
-  begin
-    ContentType := 'application/x-www-form-urlencoded';
-    //AddHeader('Connection', 'keep-alive');
-    //AddHeader('Cache-Control', 'no-cache');
-    //AddHeader('Accept', '*/*');
-    if Public_Id = '' then
-      FormData['public_id'] := ChangeFileExt(ExtractFileName(FileName), '');
-    FormData['api_key'] := 'apikey';
-    FormData['api_secret'] := 'apisecret';
-    AddFile(FileName, 'file');
-
-    Result := Post;
-    FIsSuccessfull := IsSuccessfull;
-    Free;
-  end;
-end;
-
 function TGoogleDistanceIntegration.GetDistance(AOrigins, ADestionations:
   string): boolean;
 var
+  Response: IHTTPResponse;
   s, urlTarget: string;
 begin
   Result := False;
@@ -127,35 +103,39 @@ begin
     + FKey;
 
   with THTTPLib.Create(urlTarget) do
-  begin
-    Response := Get;
-    if Response.ResultCode <> 200 then
-    begin
-      Free;
+  try
+    try
+      Response := Get;
+      FIsSuccessfull := IsSuccessfull;
+      if Response.ResultCode <> 200 then
+        Exit;
+      FreeAndNil(jsonData);
+      jsonData := GetJSON(Response.ResultText);
+    except
       Exit;
     end;
-    jsonData := GetJSON(Response.ResultText);
-    s := jsonGetData(jsonData, 'rows[0]/elements[0]/status');
-    if s <> 'OK' then
-    begin
-      Free;
-      Exit;
-    end;
-
-    // Detail
-    FOrigins := jsonGetData(jsonData, 'origin_addresses[0]');
-    FDestinations := jsonGetData(jsonData, 'destination_addresses[0]');
-    FDistanceAsText := jsonGetData(jsonData, 'rows[0]/elements[0]/distance/text');
-    FDurationAsText := jsonGetData(jsonData, 'rows[0]/elements[0]/duration/text');
-
-    FDistance := s2i(jsonGetData(jsonData, 'rows[0]/elements[0]/distance/value'));
-    FDuration := s2i(jsonGetData(jsonData, 'rows[0]/elements[0]/duration/value'));
-
-    // TODO: multiple destinations
-
-    Result := True;
+  finally
     Free;
   end;
+  if not Assigned(jsonData) then
+    Exit;
+
+  s := jsonGetData(jsonData, 'rows[0]/elements[0]/status');
+  if s <> 'OK' then
+    Exit;
+
+  // Detail
+  FOrigins := jsonGetData(jsonData, 'origin_addresses[0]');
+  FDestinations := jsonGetData(jsonData, 'destination_addresses[0]');
+  FDistanceAsText := jsonGetData(jsonData, 'rows[0]/elements[0]/distance/text');
+  FDurationAsText := jsonGetData(jsonData, 'rows[0]/elements[0]/duration/text');
+
+  FDistance := s2i(jsonGetData(jsonData, 'rows[0]/elements[0]/distance/value'));
+  FDuration := s2i(jsonGetData(jsonData, 'rows[0]/elements[0]/duration/value'));
+
+  // TODO: multiple destinations
+
+  Result := True;
 
 end;
 

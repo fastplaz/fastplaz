@@ -23,15 +23,18 @@ unit json_lib;
 interface
 
 uses
-  fpjson, variants, jsonparser, Classes, SysUtils;
+  fpjson, variants, jsonparser, contnrs, Classes, SysUtils;
 
 type
 
   { TJSONUtilItem }
 
+  // A lightweight view on one node of a TJSONUtil document. Items are owned
+  // by the TJSONUtil / parent item that handed them out; do not free them.
   TJSONUtilItem = class
   private
-    FKey, FJSONData: TJSONObject;
+    FJSONData: TJSONData;
+    FChildren: TFPObjectList;
     function GetAsJSON: TJSONStringType;
     function GetAsString: TJSONStringType;
     function GetIsObject: boolean;
@@ -46,10 +49,12 @@ type
       var ParentObject: TJSONObject; var ElementName: UnicodeString): TJSONData;
 
   public
-    constructor Create(JSONData: TJSONObject);
+    constructor Create(JSONData: TJSONData);
     destructor Destroy; override;
+    // nil when the path does not exist
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem; default;
 
+    property Data: TJSONData read FJSONData;
     property IsObject: boolean read GetIsObject;
     property AsString: TJSONStringType read GetAsString;
     property AsJSON: TJSONStringType read GetAsJSON;
@@ -60,11 +65,14 @@ type
   TJSONUtil = class
   private
     FJsonObject: TJSONObject;
-    FKey: TJSONObject;
+    FItems: TFPObjectList;
     FModified: boolean;
+    function GetAsArray: TJSONArray;
     function GetAsJSON: TJSONStringType;
     function GetAsJSONFormated: TJSONStringType;
+    function GetIsArray: boolean;
     function getIsEmpty: boolean;
+    function GetIsObject: boolean;
     function GetItem(PathString: UnicodeString): TJSONUtilItem;
     function GetValue(PathString: UnicodeString): variant;
     function GetValueArray(PathString: UnicodeString): TJSONArray;
@@ -88,7 +96,14 @@ type
     procedure Clear;
     procedure DeletePath(const PathString: UnicodeString);
     property Modified: boolean read FModified;
+    // The root of the document. It is normally a TJSONObject; after loading
+    // a JSON array it is a TJSONArray instance behind this type (check
+    // IsArray, or use AsArray) and the path based accessors are no-ops.
     property Data: TJSONObject read FJsonObject;
+    property IsObject: boolean read GetIsObject;
+    property IsArray: boolean read GetIsArray;
+    // the root as an array; nil when the root is an object
+    property AsArray: TJSONArray read GetAsArray;
     property AsJSON: TJSONStringType read GetAsJSON;
     property AsJSONFormated: TJSONStringType read GetAsJSONFormated;
     property Value[PathString: UnicodeString]: variant read GetValue write SetValue; default;
@@ -97,9 +112,12 @@ type
     property ArrayValue[PathString: UnicodeString]: TJSONArray
       read GetValueArray write SetValueArray;
 
+    // nil when the path does not exist; the item is owned by this object
     property Item[PathString: UnicodeString]: TJSONUtilItem read GetItem write SetItem;
     property IsEmpty: boolean read getIsEmpty;
 
+    // Returns False (and leaves an empty object) when JsonString is not a
+    // JSON object or array.
     function LoadFromJsonString(const JsonString: string; Const UseUTF8 : Boolean = False): boolean;
     function SaveToFile(AFileName: string): boolean;
   end;
@@ -119,26 +137,36 @@ var
   ElName: UnicodeString;
   i: integer;
 begin
+  Result := nil;
+  if not Assigned(FJSONData) then
+    Exit;
   ElName := '';
   o := nil;
   El := FindElement(StripSlash('/' + PathString), False, o, ElName);
   if not Assigned(El) then
   begin
+    // either the path does not exist or it points to an object
+    if not Assigned(o) then
+      Exit;
     i := o.IndexOfName(string(ElName));
-    Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
-    //Result := TJSONUtilItem.Create(TJSONObject(TJSONBoolean.Create(False)));
-    Exit;
+    if i = -1 then
+      Exit;
+    El := o.Items[i];
   end;
-  Result := TJSONUtilItem.Create(TJSONObject(El));
+  Result := TJSONUtilItem.Create(El);
+  FChildren.Add(Result);
 end;
 
 function TJSONUtilItem.GetIsObject: boolean;
 begin
-  Result := (FJSONData.JSONType = jtObject);
+  Result := Assigned(FJSONData) and (FJSONData.JSONType = jtObject);
 end;
 
 function TJSONUtilItem.GetAsString: TJSONStringType;
 begin
+  Result := '';
+  if not Assigned(FJSONData) then
+    Exit;
   try
     Result := FJSONData.AsString;
   except
@@ -151,7 +179,9 @@ end;
 
 function TJSONUtilItem.GetAsJSON: TJSONStringType;
 begin
-  Result := FJSONData.AsJSON;
+  Result := '';
+  if Assigned(FJSONData) then
+    Result := FJSONData.AsJSON;
 end;
 
 {$PUSH}{$HINTS OFF}
@@ -169,10 +199,17 @@ var
 begin
   //  Writeln('Looking for : ', APath);
   S := PathString;
-  if Pos('/', S) = 1 then
-    Result := FJSONData
+  // relative and absolute paths both start at this item; a non-object
+  // item has no children
+  if (FJSONData is TJSONObject) then
+    Result := TJSONObject(FJSONData)
   else
-    Result := FKey;
+    Result := nil;
+  if Result = nil then
+  begin
+    ElementName := S;
+    Exit;
+  end;
   repeat
     P := Pos('/', S);
     if (P <> 0) then
@@ -243,15 +280,17 @@ begin
   end;
 end;
 
-constructor TJSONUtilItem.Create(JSONData: TJSONObject);
+constructor TJSONUtilItem.Create(JSONData: TJSONData);
 begin
+  inherited Create;
   FJSONData := JSONData;
-  FKey := TJSONObject.Create;
+  FChildren := TFPObjectList.Create(True);
 end;
 
 destructor TJSONUtilItem.Destroy;
 begin
-  FreeAndNil(FKey);
+  FreeAndNil(FChildren);
+  inherited Destroy;
 end;
 
 { TJSONUtil }
@@ -281,14 +320,17 @@ begin
   if not Assigned(El) then
     Exit;
   try
-    if El.JSONType = jtString then
-      Result := El.AsString;
-    if El.JSONType = jtBoolean then
-      Result := El.AsBoolean;
-    if (El is TJSONIntegerNumber) then
-      Result := El.AsInteger;
-    if (El is TJSONFloatNumber) then
-      Result := El.AsFloat;
+    case El.JSONType of
+      jtString: Result := El.AsString;
+      jtBoolean: Result := El.AsBoolean;
+      jtNumber:
+        case TJSONNumber(El).NumberType of
+          ntInteger: Result := El.AsInteger;
+          ntInt64: Result := El.AsInt64;
+          ntQWord: Result := El.AsQWord;
+          ntFloat: Result := El.AsFloat;
+        end;
+    end;
   except
   end;
   {$POP}
@@ -300,6 +342,7 @@ var
   El: TJSONData;
   ElName: UnicodeString;
 begin
+  Result := nil;
   ElName := '';
   o := nil;
   if Pos('/', PathString) <> 1 then
@@ -321,6 +364,23 @@ end;
 function TJSONUtil.GetAsJSON: TJSONStringType;
 begin
   Result := FJsonObject.AsJSON;
+end;
+
+function TJSONUtil.GetIsObject: boolean;
+begin
+  Result := Assigned(FJsonObject) and (FJsonObject.JSONType = jtObject);
+end;
+
+function TJSONUtil.GetIsArray: boolean;
+begin
+  Result := Assigned(FJsonObject) and (FJsonObject.JSONType = jtArray);
+end;
+
+function TJSONUtil.GetAsArray: TJSONArray;
+begin
+  Result := nil;
+  if GetIsArray then
+    Result := TJSONArray(TJSONData(FJsonObject));
 end;
 
 function TJSONUtil.GetAsJSONFormated: TJSONStringType;
@@ -346,38 +406,50 @@ begin
   Result := nil;
   ElName := '';
   o := nil;
+  if Pos('/', PathString) <> 1 then
+    PathString := '/' + PathString;
   El := FindElement(StripSlash(PathString), False, o, ElName);
   if not Assigned(El) then
   begin
+    // either the path does not exist or it points to an object
+    if not Assigned(o) then
+      Exit;
     i := o.IndexOfName(string(ElName));
-    Result := TJSONUtilItem.Create(TJSONObject(o.Items[i]));
-    Exit;
+    if i = -1 then
+      Exit;
+    El := o.Items[i];
   end;
-  Result := TJSONUtilItem.Create(TJSONObject(El));
-
+  Result := TJSONUtilItem.Create(El);
+  FItems.Add(Result);
 end;
 
+// Takes ownership of AValue and replaces whatever is at PathString.
 procedure TJSONUtil.SetValueArray(PathString: UnicodeString; AValue: TJSONArray);
 var
   o: TJSONObject;
-  El: TJSONData;
   ElName: UnicodeString;
   i: integer;
 begin
+  if not Assigned(AValue) then
+    Exit;
   o := nil;
   ElName := '';
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
-  El := FindElement(StripSlash(PathString), True, o, ElName);
-
-  if Assigned(El) then
+  FindElement(StripSlash(PathString), True, o, ElName);
+  if (not Assigned(o)) or (ElName = '') then
   begin
-    i := o.IndexOfName(string(elName));
-    if (I <> -1) then
-      o.Delete(i);
+    AValue.Free;
+    Exit;
   end;
 
+  // FindElement returns nil for objects, so look the name up directly
+  i := o.IndexOfName(string(ElName));
+  if (i <> -1) then
+    o.Delete(i);
+
   o.Add(string(ElName), AValue);
+  FModified := True;
 end;
 
 procedure TJSONUtil.SetValue(PathString: UnicodeString; AValue: variant);
@@ -422,84 +494,45 @@ begin
 
   if Pos('/', PathString) <> 1 then
     PathString := '/' + PathString;
-  El := FindElement(StripSlash(PathString), True, o, ElName);
+  FindElement(StripSlash(PathString), True, o, ElName);
+  if (not Assigned(o)) or (ElName = '') then
+    Exit;
+
   case VarType(AValue) of
-
-    varstring:
+    varstring, varustring, varolestr:
     begin
-      if Assigned(El) and (El.JSONType <> jtString) then
-      begin
-        I := O.IndexOfName(string(elName));
-        o.Delete(i);
-        El := nil;
-      end;
-      if not Assigned(El) then
-      begin
-        valueAsString := AValue;
-        El := TJSONString.Create(valueAsString);
-        El.AsString := UTF8String(valueAsString);
-        o.Add(string(ElName), El);
-      end
-      else
-        El.AsString := AVAlue;
-    end;//-- varstring
+      valueAsString := AValue;
+      El := TJSONString.Create(UTF8Encode(valueAsString));
+    end;
 
-    varshortint,
-    varsmallint,
-    varint64,
-    varinteger:
-    begin
-      if Assigned(El) and (not (El is TJSONIntegerNumber)) then
-      begin
-        I := o.IndexOfName(string(elName));
-        if (I <> -1) then // Normally not needed...
-          o.Delete(i);
-        El := nil;
-      end;
-      if not Assigned(El) then
-      begin
-        El := TJSONIntegerNumber.Create(AValue);
-        o.Add(string(ElName), El);
-      end
-      else
-        El.AsInteger := AValue;
-    end; //-- integer
+    varshortint, varsmallint, varinteger,
+    varbyte, varword, varlongword:
+      El := TJSONIntegerNumber.Create(AValue);
 
-    vardouble:
-    begin
-      if Assigned(El) and (not (El is TJSONFloatNumber)) then
-      begin
-        I := o.IndexOfName(string(elName));
-        o.Delete(i);
-        El := nil;
-      end;
-      if not Assigned(El) then
-      begin
-        El := TJSONFloatNumber.Create(AValue);
-        O.Add(string(ElName), El);
-      end
-      else
-        El.AsFloat := AValue;
-    end; //-- double
+    varint64:
+      El := TJSONInt64Number.Create(AValue);
+
+    varqword:
+      El := TJSONQWordNumber.Create(AValue);
+
+    varsingle, vardouble, varcurrency, vardate:
+      El := TJSONFloatNumber.Create(AValue);
 
     varboolean:
-    begin
-      if Assigned(El) and (el.JSONType <> jtBoolean) then
-      begin
-        I := O.IndexOfName(string(elName));
-        o.Delete(i);
-        El := nil;
-      end;
-      if not Assigned(El) then
-      begin
-        El := TJSONBoolean.Create(AValue);
-        O.Add(string(ElName), El);
-      end
-      else
-        El.AsBoolean := AValue;
-    end;
+      El := TJSONBoolean.Create(AValue);
+
+    varnull, varempty:
+      El := TJSONNull.Create;
+
+    else
+      Exit; // unsupported variant type: leave the document untouched
   end;
 
+  // replace whatever is at the path, whatever its type
+  i := o.IndexOfName(string(ElName));
+  if i <> -1 then
+    o.Delete(i);
+  o.Add(string(ElName), El);
 
   FModified := True;
   {$POP}
@@ -523,10 +556,15 @@ var
 begin
   //  Writeln('Looking for : ', APath);
   S := PathString;
-  if Pos('/', S) = 1 then
-    Result := FJsonObject
-  else
-    Result := FKey;
+  // relative and absolute paths both start at the root; an array root has
+  // no named children, so every path misses
+  if not GetIsObject then
+  begin
+    Result := nil;
+    ElementName := S;
+    Exit;
+  end;
+  Result := FJsonObject;
   repeat
     P := Pos('/', S);
     if (P <> 0) then
@@ -613,20 +651,29 @@ begin
   inherited Create;
 
   FJsonObject := TJSONObject.Create;
-  FKey := FJsonObject;
+  FItems := TFPObjectList.Create(True);
   FModified := False;
 end;
 
 destructor TJSONUtil.Destroy;
 begin
-  if Assigned(FJsonObject) then
-    FreeAndNil(FJsonObject);
+  FreeAndNil(FItems);
+  FreeAndNil(FJsonObject);
   inherited Destroy;
 end;
 
+// Empties the document; the root becomes an (empty) object again.
 procedure TJSONUtil.Clear;
 begin
-  Data.Clear;
+  FItems.Clear;
+  if GetIsObject then
+    FJsonObject.Clear
+  else
+  begin
+    FreeAndNil(FJsonObject);
+    FJsonObject := TJSONObject.Create;
+  end;
+  FModified := False;
 end;
 
 procedure TJSONUtil.DeletePath(const PathString: UnicodeString);
@@ -653,15 +700,31 @@ end;
 
 function TJSONUtil.LoadFromJsonString(const JsonString: string;
   const UseUTF8: Boolean): boolean;
+var
+  parsed: TJSONData;
 begin
-  if Assigned(FJsonObject) then
-    FJsonObject.Free;
+  Result := False;
+  // items handed out so far point into the old document
+  FItems.Clear;
+  FreeAndNil(FJsonObject);
+  FModified := False;
   try
-    FJsonObject := TJSONObject(GetJSON(JsonString, UseUTF8));
-    Result := true;
+    parsed := GetJSON(JsonString, UseUTF8);
   except
+    parsed := nil;
+  end;
+  if (parsed is TJSONObject) or (parsed is TJSONArray) then
+  begin
+    // an array root is kept behind the TJSONObject typed field for the
+    // callers that cast Data to TJSONArray; see the Data property
+    FJsonObject := TJSONObject(parsed);
+    Result := True;
+  end
+  else
+  begin
+    // empty input or a scalar: not a document we can address
+    parsed.Free;
     FJsonObject := TJSONObject.Create;
-    Result := false;
   end;
 end;
 
@@ -675,15 +738,18 @@ begin
 
   lst := TStringList.Create;
   try
-    lst.Text := String( FJsonObject.AsJSON).Trim;
-    lst.SaveToFile(AFileName);
-    Result := True;
-  except
-    on e:Exception do
-    begin
+    try
+      lst.Text := String( FJsonObject.AsJSON).Trim;
+      lst.SaveToFile(AFileName);
+      Result := True;
+    except
+      on e:Exception do
+      begin
+      end;
     end;
+  finally
+    lst.Free;
   end;
-  lst.Free;
 end;
 
 end.

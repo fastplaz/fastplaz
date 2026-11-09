@@ -1,5 +1,8 @@
 unit zomato_integration;
 
+{ DEPRECATED: Zomato public API discontinued. The unit stays for existing callers; every request to the
+  old endpoint fails. }
+
 {
 
 
@@ -40,7 +43,7 @@ type
     procedure setMarkDown(AValue: boolean);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -55,7 +58,7 @@ type
       ALon: double = 0; ACount: integer = 5): string;
     function Search(AKeyword: string; ALat: double = 0; ALon: double = 0;
       ACount: integer = 4): string;
-  end;
+  end deprecated 'Zomato public API discontinued';
 
 implementation
 
@@ -64,8 +67,6 @@ const
   //_GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/%s/@%.10f,%.10f';
   _GOOGLE_MAPS_DIRECTION = 'https://www.google.co.id/maps/dir//%.10f,%.10f';
 
-var
-  Response: IHTTPResponse;
 
 { TZomatoIntegration }
 
@@ -111,6 +112,7 @@ destructor TZomatoIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TZomatoIntegration.ConvertJsonToTextInfo(AJson: string): string;
@@ -155,6 +157,7 @@ end;
 function TZomatoIntegration.SearchAsJson(AKeyword: string; ALat: double;
   ALon: double; ACount: integer): string;
 var
+  Response: IHTTPResponse;
   i: integer;
   urlTarget: string;
   lat, lon: double;
@@ -173,7 +176,7 @@ begin
   end;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     AddHeader('Cache-Control', 'no-cache');
     AddHeader('user-key', FKey);
     Response := Post;
@@ -181,6 +184,7 @@ begin
     FResultText := Response.ResultText;
     if FResultCode = 200 then
     begin
+      FreeAndNil(jsonData);
       jsonData := GetJSON(FResultText);
       restaurants := TJSONArray.Create;
       i := s2i(getData('results_shown'));
@@ -227,7 +231,7 @@ begin
         Result := restaurants.AsJSON;
       restaurants.Free;
     end;
-
+  finally
     Free;
   end;
 
@@ -236,8 +240,9 @@ end;
 function TZomatoIntegration.Search(AKeyword: string; ALat: double;
   ALon: double; ACount: integer): string;
 var
+  Response: IHTTPResponse;
   i: integer;
-  urlTarget: string;
+  urlTarget, placeUrl: string;
   lat, lon: double;
 begin
   Result := '';
@@ -251,7 +256,7 @@ begin
   end;
   LogUtil.Add(urlTarget, 'ZOMATO');
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     AddHeader('Cache-Control', 'no-cache');
     AddHeader('user-key', FKey);
     Response := Post;
@@ -259,6 +264,7 @@ begin
     FResultText := Response.ResultText;
     if FResultCode = 200 then
     begin
+      FreeAndNil(jsonData);
       jsonData := GetJSON(FResultText);
       i := s2i(getData('results_shown'));
 
@@ -279,19 +285,20 @@ begin
           ' - ' + getData('restaurants[' + i2s(i) +
           '].restaurant.user_rating.rating_text') + #10;
 
-        url := getData('restaurants[' + i2s(i) + '].restaurant.url');
+        placeUrl := getData('restaurants[' + i2s(i) + '].restaurant.url');
         if (lat <> 0) and (lon <> 0) then
         begin
           try
-            url := format(_GOOGLE_MAPS_DIRECTION, [lat, lon]);
+            placeUrl := format(_GOOGLE_MAPS_DIRECTION, [lat, lon]);
           except
           end;
         end;
-        Result := Result + url + #10;
+        Result := Result + placeUrl + #10;
         Result := Result + #10;
       end;
       Result := Trim(Result);
     end;
+  finally
     Free;
   end;
 

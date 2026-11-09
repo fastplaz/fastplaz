@@ -1,11 +1,11 @@
 object fPackageWizard: TfPackageWizard
   Left = 708
-  Height = 290
+  Height = 338
   Top = 483
   Width = 538
   BorderStyle = bsDialog
   Caption = 'Package App Wizard'
-  ClientHeight = 290
+  ClientHeight = 338
   ClientWidth = 538
   OnCreate = FormCreate
   Position = poScreenCenter
@@ -37,7 +37,7 @@ object fPackageWizard: TfPackageWizard
   object pnl_Button: TButtonPanel
     Left = 6
     Height = 36
-    Top = 248
+    Top = 296
     Width = 526
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -92,14 +92,14 @@ object fPackageWizard: TfPackageWizard
   object mem: TMemo
     Left = 48
     Height = 88
-    Top = 136
+    Top = 184
     Width = 468
     Color = clBtnFace
     Lines.Strings = (
       'This wizard will generate Full Package Fastplaz Project.'
       ''
       'Type your project name,'
-      'and (optional), you can generate fastplaz web directory/files structure too.'
+      'Run Mode is saved in public_html/config/config.json (systems/server/mode).'
     )
     ReadOnly = True
     TabOrder = 5
@@ -125,5 +125,27 @@ object fPackageWizard: TfPackageWizard
     Style = csDropDownList
     TabOrder = 2
     Text = 'Simple'
+  end
+  object rg_Mode: TRadioGroup
+    Left = 152
+    Height = 44
+    Top = 130
+    Width = 364
+    AutoFill = True
+    Caption = 'Run Mode'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 2
+    Columns = 2
+    ItemIndex = 0
+    Items.Strings = (
+      'HTTP (standalone server)'
+      'CGI (web server)'
+    )
+    TabOrder = 6
   end
 end

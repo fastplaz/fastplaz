@@ -27,7 +27,7 @@ type
 
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -47,10 +47,9 @@ implementation
 const
   _BCA_SANDBOX_AUTHORIZATION = '';
   _BCA_SANDBOX_URL = 'https://sandbox.bca.co.id/';
+  _BCA_PRODUCTION_URL = 'https://api.klikbca.com/';
   _BCA_URL_GETTOKEN = 'api/oauth/token';
 
-var
-  Response: IHTTPResponse;
 
 
 { TBCAIntegration }
@@ -58,7 +57,7 @@ var
 function TBCAIntegration.getAuthorization: string;
 begin
   Result := EncodeStringBase64(FClientID + ':' + FClientSecret);
-  if FSandBox then
+  if FSandBox and (FClientID = '') then
     Result := _BCA_SANDBOX_AUTHORIZATION;
 end;
 
@@ -71,11 +70,12 @@ end;
 
 destructor TBCAIntegration.Destroy;
 begin
-
+  inherited Destroy;
 end;
 
 function TBCAIntegration.GetToken: string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := '';
@@ -87,10 +87,13 @@ begin
       Exit;
   end;
 
-  urlTarget := _BCA_SANDBOX_URL;
+  if FSandBox then
+    urlTarget := _BCA_SANDBOX_URL
+  else
+    urlTarget := _BCA_PRODUCTION_URL;
   urlTarget := urlTarget + _BCA_URL_GETTOKEN;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     //ContentType := 'application/x-www-form-urlencoded';
     AddHeader('Authorization', 'Basic ' + Authorization);
     FormData['grant_type'] := 'client_credentials';
@@ -101,6 +104,7 @@ begin
     begin
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;

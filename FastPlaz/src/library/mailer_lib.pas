@@ -11,10 +11,27 @@ uses
   xmailer,
     {$ENDIF}
   {$ENDIF}
+  {$IFNDEF XMAILER}
+  smtp_lib,
+  {$ENDIF}
   Classes, SysUtils;
 
 const
   _MAIL_NOSUPPORT = 'Mailer-Support not exist.';
+
+  { TMailer sends through xmailer (Synapse) when XMAILER is defined, otherwise
+    through smtp_lib, the built-in SMTP client. SSL = implicit TLS (port 465),
+    TLS = STARTTLS (port 587); SSL wins when both are set. }
+
+// Format an address as "Name" <email>, or just email when Name is empty.
+// CR/LF are stripped so a value cannot inject extra mail headers.
+function FormatMailAddress(const Email: string; const Name: string = ''): string;
+// EHLO name for ASender: the domain of the sender address, or 'localhost'
+// when the address has none.
+function HeloNameForSender(const ASender: string): string;
+// Replace CR/LF in a header value (Subject, Sender, ...) with a space so a
+// value cannot inject extra mail headers.
+function SanitizeMailHeader(const S: string): string;
 
 type
 
@@ -29,6 +46,7 @@ type
     FTo, FCc, FBcc: TStringList;
     FEmailFormat: string;
     FLogs: string;
+    FHeloName: string;
     FSSL, FTLS: boolean;
     function getEmailFormat: string;
     function getMailServer: string;
@@ -45,6 +63,8 @@ type
 
     {$IFDEF XMAILER}
     procedure xmailer_OnProgress(const AProgress, AMax: integer; const AStatus: string);
+    {$ELSE}
+    function SendNative: boolean;
     {$ENDIF XMAILER}
   public
     Subject, Sender: string;
@@ -60,6 +80,12 @@ type
     property TLS: boolean read getTLS write setTLS;
     property ErrorMessage: string read FErrorMessage;
     property Logs: string read FLogs;
+    // host name announced in EHLO by the built-in client; empty (default)
+    // uses the domain of Sender, see HeloNameForSender
+    property HeloName: string read FHeloName write FHeloName;
+    property Recipients: TStringList read FTo;
+    property CcList: TStringList read FCc;
+    property BccList: TStringList read FBcc;
     procedure AddTo(Email: string; Name: string = '');
     procedure AddCc(Email: string; Name: string = '');
     procedure AddBcc(Email: string; Name: string = '');
@@ -73,30 +99,68 @@ implementation
 
 uses common, config_lib;
 
+function SanitizeMailHeader(const S: string): string;
+begin
+  Result := StringReplace(S, #13#10, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #13, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, ' ', [rfReplaceAll]);
+end;
+
+function HeloNameForSender(const ASender: string): string;
+var
+  addr: string;
+  p: integer;
+begin
+  Result := 'localhost';
+  addr := Trim(SanitizeMailHeader(ASender));
+  p := Pos('<', addr);
+  if p > 0 then
+  begin
+    addr := Copy(addr, p + 1, MaxInt);
+    p := Pos('>', addr);
+    if p > 0 then
+      addr := Copy(addr, 1, p - 1);
+  end;
+  p := Pos('@', addr);
+  if p = 0 then
+    Exit;
+  addr := Trim(Copy(addr, p + 1, MaxInt));
+  // a host name: letters, digits, '-' and '.', nothing else
+  for p := 1 to Length(addr) do
+    if not (addr[p] in ['a'..'z', 'A'..'Z', '0'..'9', '-', '.']) then
+      Exit;
+  if addr <> '' then
+    Result := addr;
+end;
+
+function FormatMailAddress(const Email: string; const Name: string): string;
+var
+  cleanName: string;
+begin
+  Result := Trim(SanitizeMailHeader(Email));
+  cleanName := Trim(SanitizeMailHeader(Name));
+  if cleanName = '' then
+    Exit;
+  cleanName := StringReplace(cleanName, '\', '\\', [rfReplaceAll]);
+  cleanName := StringReplace(cleanName, '"', '\"', [rfReplaceAll]);
+  Result := '"' + cleanName + '" <' + Result + '>';
+end;
+
 { TMailer }
 
 procedure TMailer.AddTo(Email: string; Name: string);
 begin
-  if Name = '' then
-    FTo.Add(Email)
-  else
-    FTo.Add(Name + '<' + Email + '>');
+  FTo.Add(FormatMailAddress(Email, Name));
 end;
 
 procedure TMailer.AddCc(Email: string; Name: string);
 begin
-  if Name = '' then
-    FCc.Add(Email)
-  else
-    FCc.Add(Name + '<' + Email + '>');
+  FCc.Add(FormatMailAddress(Email, Name));
 end;
 
 procedure TMailer.AddBcc(Email: string; Name: string);
 begin
-  if Name = '' then
-    FBcc.Add(Email)
-  else
-    FBcc.Add(Name + '<' + Email + '>');
+  FBcc.Add(FormatMailAddress(Email, Name));
 end;
 
 procedure TMailer.Clear;
@@ -104,12 +168,10 @@ begin
   FTo.Clear;
   FBcc.Clear;
   FCc.Clear;
-  FLogs := _MAIL_NOSUPPORT;
+  FErrorMessage := '';
+  FLogs := '';
   Subject := '';
   Message.Clear;
-  {$IFDEF XMAILER}
-  FLogs := '';
-  {$ENDIF}
 end;
 
 procedure TMailer.Prepare;
@@ -124,11 +186,12 @@ var
 {$ENDIF XMAILER}
 begin
   Result := False;
+  FErrorMessage := '';
 
   {$IFDEF XMAILER}
+  Mail := TSendMail.Create;
   try
     try
-      Mail := TSendMail.Create;
       Mail.OnProgress := @xmailer_OnProgress;
       Mail.Smtp.Host := FMailServer;
       Mail.Smtp.Port := FPort;
@@ -137,9 +200,11 @@ begin
       Mail.Smtp.SSL := FSSL;
       Mail.Smtp.TLS := FTLS;
 
-      Mail.Sender := Sender;
+      Mail.Sender := Trim(SanitizeMailHeader(Sender));
       Mail.Receivers.Text := FTo.Text;
-      Mail.Subject := Subject;
+      Mail.CC.Text := FCc.Text;
+      Mail.BCC.Text := FBcc.Text;
+      Mail.Subject := Trim(SanitizeMailHeader(Subject));
       Mail.Message.Text := Message.Text;
       if FEmailFormat = 'html' then
         Mail.ContentType := ctTextHTML
@@ -152,12 +217,14 @@ begin
       on e: Exception do
       begin
         FErrorMessage := e.Message;
-        FLogs := e.Message + #13;
+        FLogs := FLogs + e.Message + #13;
       end;
     end;
   finally
     Mail.Free;
   end;
+  {$ELSE}
+  Result := SendNative;
   {$ENDIF XMAILER}
 
 end;
@@ -237,6 +304,63 @@ begin
   FLogs := FLogs + FormatDateTime('YYYY-mm-dd hh:nn:ss', now) + ' | ' + AStatus + #13;
 end;
 
+{$ELSE}
+function TMailer.SendNative: boolean;
+var
+  client: TSMTPClient;
+  rcpt: TStringList;
+  portNo: integer;
+  i: integer;
+  data: string;
+begin
+  Result := False;
+  if not TryStrToInt(Trim(FPort), portNo) or (portNo <= 0) or (portNo > 65535) then
+  begin
+    if FSSL then
+      portNo := 465
+    else if FTLS then
+      portNo := 587
+    else
+      portNo := 25;
+  end;
+  client := TSMTPClient.Create;
+  rcpt := TStringList.Create;
+  try
+    client.Host := Trim(FMailServer);
+    client.Port := portNo;
+    client.UserName := FMailUserName;
+    client.Password := FMailPassword;
+    if Trim(FHeloName) <> '' then
+      client.HeloName := Trim(FHeloName)
+    else
+      client.HeloName := HeloNameForSender(Sender);
+    if FSSL then
+      client.Security := ssSSL
+    else if FTLS then
+      client.Security := ssStartTLS
+    else
+      client.Security := ssNone;
+    for i := 0 to FTo.Count - 1 do
+      rcpt.Add(FTo[i]);
+    for i := 0 to FCc.Count - 1 do
+      rcpt.Add(FCc[i]);
+    for i := 0 to FBcc.Count - 1 do
+      rcpt.Add(FBcc[i]);
+    data := SMTPBuildMessage(Trim(SanitizeMailHeader(Sender)), FTo.CommaText,
+      FCc.CommaText, Trim(SanitizeMailHeader(Subject)), Message.Text,
+      FEmailFormat = 'html');
+    Result := client.Send(Sender, rcpt, data);
+    if not Result then
+      FErrorMessage := client.ErrorMessage;
+    FLogs := FLogs + StringReplace(client.Log.Text, LineEnding, #13, [rfReplaceAll]);
+    if Result then
+      FLogs := FLogs + 'OK';
+  finally
+    rcpt.Free;
+    client.Free;
+  end;
+end;
+
 {$ENDIF XMAILER}
 
 constructor TMailer.Create(Setting: string);
@@ -244,11 +368,13 @@ begin
   FTo := TStringList.Create;
   FCc := TStringList.Create;
   FBcc := TStringList.Create;
-  message := TStringList.Create;
+  Message := TStringList.Create;
   FSSL := False;
   FTLS := False;
   FEmailFormat := 'html';
   FLogs := '';
+  FErrorMessage := '';
+  FHeloName := '';
 
   // read from config.json
   MailServer := Config[UTF8Decode(format(_MAIL_MAILSERVER, [Setting]))];
@@ -262,11 +388,11 @@ end;
 
 destructor TMailer.Destroy;
 begin
-  inherited Destroy;
-  FreeAndNil(message);
+  FreeAndNil(Message);
   FreeAndNil(FTo);
   FreeAndNil(FCc);
   FreeAndNil(FBcc);
+  inherited Destroy;
 end;
 
 end.

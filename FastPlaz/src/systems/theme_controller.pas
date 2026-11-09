@@ -16,10 +16,10 @@ uses
   ghSQL, ghSQLdbLib,
   {$endif}
   fpWeb,
-  fpcgi, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
-  regexpr_lib, db, sqldb,
+  fastplaz_app, fpTemplate, fphttp, fpjson, HTTPDefs, dateutils,
+  regexpr_lib, db, sqldb, StrUtils,
   common, fastplaz_handler, database_lib, datetime_lib, modvar_util, json_lib,
-  Classes, SysUtils;
+  Classes, SysUtils, Variants;
 
 const
   // if use { ... }
@@ -99,6 +99,15 @@ type
     isRendering,
     isRenderingModule : boolean;
     foreachJsonIndex : integer;
+    FIncludeDepth : integer;
+    // per instance; these were unit globals shared (and freed) by every
+    // TThemeUtil, so a second instance corrupted the first
+    assignVarMap : TAssignVarMap;
+    FAssignVarStringMap : TStringList;
+    ForeachTable_Keyname,
+    ForeachTable_Itemname : string;
+    FTagAssign_Variable : TStringList;
+    FOwnsHTMLUtil, FOwnsTagCallbackMap : boolean;
     function GetAssignVar(const TagName: String): Pointer;
     function GetBaseURL: string;
     function GetFlashMessage: string;
@@ -115,6 +124,7 @@ type
     procedure SetThemeName(AValue: string);
     procedure SetTrimForce(AValue: boolean);
     procedure SetTrimWhiteSpace(AValue: boolean);
+    function HitKey( const URL:string): string;
     procedure AddHit( const URL:string);
 
     function wpautop( Content:string; BR:boolean = true):string;
@@ -130,8 +140,6 @@ type
     function GetDebugHeadersData( const DebugType:string = ''):string;
     function GetDebugSessionData( const DebugType:string = ''):string;
 
-    function DoTrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
-
     //- cache
     function getCacheFileName: string;
     function isCacheExpired: boolean;
@@ -140,6 +148,9 @@ type
 
     //-- [if ] processor
     function ConditionalIfProcessor( TagProcessor: TReplaceTagEvent; Content:string):string;
+    function SplitCondition( const AHeader: string): TStringList;
+    function IsKnownVariable( const AName: string): boolean;
+    function EvaluateCondition( const AHeader: string; out AMatched, AKnown: boolean): boolean;
     function conditionIsEqual( Value1, Value2: variant): boolean;
     function conditionIsNotEqual( Value1, Value2: variant): boolean;
     function conditionIsLessThan( Value1, Value2: variant): boolean;
@@ -176,6 +187,8 @@ type
     property RenderType : TRenderType read GetRenderType write SetRenderType;
     function GetVersionInfo():boolean;
     function GetDebugInfo( DebugType:string):string;
+    // template name taken from the request: no path separators, no "..", no #0
+    class function SafeTemplateName( const AName: string): string;
     property CacheTime : integer read FCacheTime write SetCacheTime;// in hours
     property FlashMessages: string read GetFlashMessage write SetFlashMessage;
 
@@ -199,6 +212,7 @@ type
 
     property TrimWhiteSpace:boolean read FTrimWhiteSpace write SetTrimWhiteSpace;
     property TrimForce:boolean read FTrimForce write SetTrimForce;
+    function DoTrimWhiteSpace(const Content:string;ForceTrim:boolean=false):string;
     procedure AddJS( const FileName:string);
     procedure AddCSS( const FileName:string; const Media:string='all');
     procedure AddMeta( const Name:string; const Content:string; const MetaType:string = 'name');
@@ -210,15 +224,27 @@ var
 
 implementation
 
-uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller,
+uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5,
   initialize_controller;
 
+// Template file content, read in shared mode.
+// TFPTemplate.FileName opens the file with plain fmOpenRead, which on Windows
+// is an exclusive open: two requests rendering the same layout at the same
+// moment fail with "Unable to open file ... being used by another process".
+function ReadTemplateFile(const FileName: string): string;
 var
-  assignVarMap : TAssignVarMap;
-  FAssignVarStringMap : TStringList;
-  ForeachTable_Keyname,
-  ForeachTable_Itemname : string;
-  FTagAssign_Variable : TStringList;
+  fs: TFileStream;
+begin
+  Result := '';
+  fs := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(Result, fs.Size);
+    if fs.Size > 0 then
+      fs.ReadBuffer(Result[1], fs.Size);
+  finally
+    fs.Free;
+  end;
+end;
 
 { THTMLHead }
 
@@ -268,12 +294,14 @@ begin
 end;
 
 function TThemeUtil.GetAssignVar(const TagName: String): Pointer;
+var
+  i: integer;
 begin
-  try
-    Result := assignVarMap[TagName];
-  except
-    Result := nil;
-  end;
+  i := assignVarMap.IndexOf(TagName);
+  if i = -1 then
+    Result := nil
+  else
+    Result := assignVarMap.Data[i];
 end;
 
 function TThemeUtil.GetBaseURL: string;
@@ -296,8 +324,7 @@ end;
 
 procedure TThemeUtil.SetCacheTime(AValue: integer);
 begin
-  if FCacheTime=AValue then Exit;
-  FCacheTime:=AValue - 1;
+  FCacheTime:=AValue;
 end;
 
 procedure TThemeUtil.SetFlashMessage(AValue: string);
@@ -387,67 +414,102 @@ var
   fieldname,
   tmpvalue,
   varname : string;
-  vartmp : TStrings;
+  vartmp, assignTmp : TStrings;
   f : double;
+  idx : integer;
+  obj : TObject;
+  jsonItem : TJSONData;
 begin
+  Result := '';
   vartmp := Explode( VariableName, '.');
-  varname := trim(vartmp[0]);
-  tmpvalue := '';
-  if varname = '' then
-  begin
-    Result := 'variable '+varname+' not found.';
-    exit;
-  end;
-
-  // is var1 numeric ?
   try
-    f := StrToFloat( varname);
-    Result := f;
-    Exit;
-  except
-  end;
-
-  // get direct string value
-  if preg_match('(["''])(.*?)(["''])', varname) then
-  begin
-    tmpvalue := varname.Replace('"','').Replace('''','');
-    Result := tmpvalue;
-    Exit;
-  end;
-
-  // check from varstring first
-  if FAssignVarStringMap.IndexOfName( varname) <> -1 then
-  begin
-    Result := FAssignVarStringMap.Values[ varname];
-    Exit;
-  end;
-
-  // check from 'assignto' tag :
-  // ex: [aItem.level assignto="level"]
-  if FTagAssign_Variable.IndexOfName( varname) <> -1 then
-  begin
-    Result := FTagAssign_Variable.Values[ varname];
-    vartmp := Explode( Result, '|');
-    Result := vartmp[1];
-    Exit;
-  end;
-
-  // check from foreach-storage
-  try
-    if assignVarMap[ ForeachTable_Keyname] <> nil then
+    varname := trim(vartmp[0]);
+    tmpvalue := '';
+    if varname = '' then
     begin
-      fieldname:= vartmp[1];
-      tmpvalue := TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(fieldname).AsString;
+      Result := 'variable '+varname+' not found.';
+      Exit;
+    end;
+
+    // is var1 numeric ?
+    if TryStrToFloat( varname, f) then
+    begin
+      Result := f;
+      Exit;
+    end;
+
+    // get direct string value
+    if preg_match('(["''])(.*?)(["''])', varname) then
+    begin
+      tmpvalue := varname.Replace('"','').Replace('''','');
       Result := tmpvalue;
+      Exit;
     end;
-  except
-    on e: Exception do
-    begin
-      die( 'ThemeUtil.VarValue['+VariableName+']: ' + e.Message);
-    end;
-  end;
 
-  FreeAndNil( vartmp);
+    // check from varstring first
+    if FAssignVarStringMap.IndexOfName( varname) <> -1 then
+    begin
+      Result := FAssignVarStringMap.Values[ varname];
+      Exit;
+    end;
+
+    // check from 'assignto' tag :
+    // ex: [aItem.level assignto="level"]
+    if FTagAssign_Variable.IndexOfName( varname) <> -1 then
+    begin
+      // stored as "<type>|<value>", ex: "s|myvalue"
+      assignTmp := Explode( FTagAssign_Variable.Values[ varname], '|');
+      try
+        if assignTmp.Count > 1 then
+          Result := assignTmp[1]
+        else
+          Result := FTagAssign_Variable.Values[ varname];
+      finally
+        FreeAndNil( assignTmp);
+      end;
+      Exit;
+    end;
+
+    // check from foreach-storage
+    if (ForeachTable_Keyname = '') or (vartmp.Count < 2) then
+      Exit;
+    idx := assignVarMap.IndexOf( ForeachTable_Keyname);
+    if idx = -1 then
+      Exit;
+    if assignVarMap.Data[idx] = nil then
+      Exit;
+    try
+      fieldname:= vartmp[1];
+      obj := TObject( assignVarMap.Data[idx]^);
+      if obj is TJSONData then
+      begin
+        // "item.a.b" -> path "a.b" of the current row
+        fieldname := Copy( VariableName, Pos('.', VariableName) + 1, Length( VariableName));
+        jsonItem := TJSONData(obj).Items[foreachJsonIndex].FindPath( fieldname);
+        if jsonItem <> nil then
+          Result := jsonItem.AsString;
+      end
+      else if obj is TDataSet then
+        Result := TDataSet(obj).FieldByName(fieldname).AsString;
+    except
+      on e: Exception do
+      begin
+        if AppData.debug then
+          LogUtil.add( 'ThemeUtil.VarValue['+VariableName+']: ' + e.Message);
+        Result := '';
+      end;
+    end;
+  finally
+    FreeAndNil( vartmp);
+  end;
+end;
+
+// normalize URL into a key for hits.log; must be used by both AddHit and GetHitCount
+function TThemeUtil.HitKey(const URL: string): string;
+begin
+  Result := ReplaceAll( URL, [ 'http://', 'https://'], '');
+  Result := ReplaceAll( Result, ['?', '&', '=', '/', '\', '.'], '-');
+  Result := UrlEncode( Result);
 end;
 
 procedure TThemeUtil.AddHit(const URL: string);
@@ -456,9 +518,7 @@ var
   i : integer;
 begin
   if FHitType = htNone then Exit;
-  s := ReplaceAll( URL, [ 'http://', 'https://'], '');
-  s := ReplaceAll( s, ['?', '&', '=', '/', '\', '.'], '-');
-  s := UrlEncode( s);
+  s := HitKey( URL);
   i := 1;
   case FHitType of
     htFile : begin
@@ -533,6 +593,7 @@ begin
 
     // check : br before p|li|div|dl|dd|dt|th|pre|td|ul|ol
 
+    Result := html;
   end else
   begin
     Result := Content;
@@ -540,7 +601,6 @@ begin
   end;
 
   FreeAndNil( tmp);
-  Result := html;
 end;
 
 function TThemeUtil.MultiFilter(AContent: string): string;
@@ -554,15 +614,15 @@ var
   s : string;
 begin
   Result:=0;
-  s := '';
   if FHitType = htNone then Exit;
+  s := URL;
+  if s = '' then s := Application.Request.URL;
+  s := HitKey( s);
 
   case FHitType of
     htFile : begin
       if FileExists( IncludeTrailingPathDelimiter(AppData.tempDir)+__HITS_FILENAME) then
       begin
-        if s = '' then s := Application.Request.URL;
-        s := ReplaceAll( s, ['?', '&', '=', '/'], ['-', '-', '-', '-']);
         FHits.LoadFromFile(IncludeTrailingPathDelimiter(AppData.tempDir)+__HITS_FILENAME);
         Result := s2i( FHits.Values[s]);
       end;
@@ -587,8 +647,13 @@ begin
   if Filter = '' then
     Exit;
   case Filter of
+    'escape', 'html', 'htmlspecialchars' : begin
+      Result := HTMLEncode( Content);
+    end;
     'nl2br' : begin
-      Result := StringReplace( Content, #13#10, '<br>', [rfReplaceAll]);
+      Result := StringReplace( Content, #13#10, #10, [rfReplaceAll]);
+      Result := StringReplace( Result, #13, #10, [rfReplaceAll]);
+      Result := StringReplace( Result, #10, '<br>', [rfReplaceAll]);
     end;
     'wpautop' : Result := wpautop( Content);
     'uppercase' : begin
@@ -611,7 +676,7 @@ begin
     begin
       try
         i := StrToInt(Content);
-        Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i));
+        Result := FormatDateTime('dd MMM yyyy', UnixToDateTime(i, False));
       except
       end;
     end;
@@ -641,7 +706,7 @@ begin
         fs.DecimalSeparator := ',';
         fs.ThousandSeparator := '.';
         s := '#,###.##';
-        if ATagString.Values['format'] <> '' then
+        if (ATagString <> nil) and (ATagString.Values['format'] <> '') then
           s := ATagString.Values['format'];
         Result := FormatFloat(s, s2f(Content), fs);
       end;
@@ -690,50 +755,75 @@ var
   StringResult : string;
   str : TStringList;
   i : integer;
+  useCache, ownModule : boolean;
 begin
+  Result := '';
+  StringResult := '';
   mi := ModuleFactory.FindModule( ModuleName);
   if mi = nil then begin
     Result := EchoError( __Err_Theme_Modul_NotFond, [ModuleName]);
     Exit;
   end;
-  //i := ModuleFactory.IndexOfModule( ModuleName);
-  mc := mi.ModuleClass;
-  m:=FastPlasAppandler.FindModule(mc);
-  if m = nil then begin
-    m:=mc.CreateNew(nil);
-  end else begin
-  end;
+
+  useCache := (Parameter.Values['cache']='1') or (Parameter.Values['cache']='true');
+  f := '';
 
   // if cache, load from cache
-  if (Parameter.Values['cache']='1') or (Parameter.Values['cache']='true') then begin
+  if useCache then begin
     f := ExtractFileDir( Application.ExeName) + DirectorySeparator + AppData.tempDir + DirectorySeparator + 'cache'+DirectorySeparator + ModuleName + '-' + FunctionName + '.html';
     if FileExists( f) then begin
 
       i := HoursBetween( FileDateToDateTime( FileAge( f)), now);
       if i = 0 then begin  // cache : 1 hour
         str := TStringList.Create;
-        str.LoadFromFile( f);
-        Result := str.Text;
-        FreeAndNil( str);
+        try
+          str.LoadFromFile( f);
+          Result := str.Text;
+        finally
+          FreeAndNil( str);
+        end;
         Exit;
       end;
     end;
   end;
 
-  // OnBlockController
-  if TMyCustomWebModule(m).OnBlockController <> nil then begin
-    TMyCustomWebModule(m).OnBlockController( Self, FunctionName, Parameter, StringResult);
-    Result := StringResult;
+  //i := ModuleFactory.IndexOfModule( ModuleName);
+  mc := mi.ModuleClass;
+  m:=FastPlasAppandler.FindModule(mc);
+  ownModule := (m = nil);
+  if ownModule then begin
+    m:=mc.CreateNew(nil);
+  end;
+
+  try
+    // OnBlockController
+    if (m is TMyCustomWebModule) and (TMyCustomWebModule(m).OnBlockController <> nil) then begin
+      TMyCustomWebModule(m).OnBlockController( Self, FunctionName, Parameter, StringResult);
+      Result := StringResult;
+    end;
+  finally
+    if ownModule then
+      FreeAndNil( m);
   end;
 
   //-- if cache, save to cache
-  if (Parameter.Values['cache']='1') or (Parameter.Values['cache']='true') then begin
-    if not DirectoryExists( ExtractFileDir( f)) then
-      MkDir( ExtractFileDir( f));
-    str := TStringList.Create;
-    str.Text:= StringResult;
-    str.SaveToFile( f);
-    FreeAndNil( str);
+  if useCache then begin
+    try
+      ForceDirectories( ExtractFileDir( f));
+      str := TStringList.Create;
+      try
+        str.Text:= StringResult;
+        str.SaveToFile( f);
+      finally
+        FreeAndNil( str);
+      end;
+    except
+      on E: Exception do
+      begin
+        if AppData.debug then
+          LogUtil.add( 'BlockController cache: ' + E.Message);
+      end;
+    end;
   end;
 end;
 
@@ -812,7 +902,7 @@ begin
   for i := 0 to Application.Request.QueryFields.Count -1 do
   begin
     html  := html + '<tr>';
-    html  := html + '<td>'+Application.Request.QueryFields.Names[i]+'</td><td>:</td><td>' + Application.Request.QueryFields.ValueFromIndex[i] + '</td>';
+    html  := html + '<td>'+HTMLEncode(Application.Request.QueryFields.Names[i])+'</td><td>:</td><td>' + HTMLEncode(Application.Request.QueryFields.ValueFromIndex[i]) + '</td>';
     html  := html + '</tr>';
   end;
   html  := html + '</table>';
@@ -837,7 +927,7 @@ begin
   for i := 0 to Application.Request.ContentFields.Count -1 do
   begin
     html  := html + '<tr>';
-    html  := html + '<td>'+Application.Request.ContentFields.Names[i]+'</td><td>:</td><td>' + Application.Request.ContentFields.ValueFromIndex[i] + '</td>';
+    html  := html + '<td>'+HTMLEncode(Application.Request.ContentFields.Names[i])+'</td><td>:</td><td>' + HTMLEncode(Application.Request.ContentFields.ValueFromIndex[i]) + '</td>';
     html  := html + '</tr>';
   end;
   html  := html + '</table>';
@@ -867,35 +957,35 @@ begin
   html := html + '<fieldset>';
   html := html + '<legend>Header Data</legend>';
   html  := html + '<table>';
-  html := html + '<tr><td>REDIRECT_STATUS</td><td>:</td><td>' + Application.EnvironmentVariable['REDIRECT_STATUS'] + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + Application.Request.Accept + '</td></tr>';
-  html := html + '<tr><td>HTTP_USER_AGENT</td><td>:</td><td>' + Application.Request.UserAgent + '</td></tr>';
-  html := html + '<tr><td>HTTP_CONNECTION</td><td>:</td><td>' + Application.Request. Connection + '</td></tr>';
-  html := html + '<tr><td>HTTP_REFERER</td><td>:</td><td>' + Application.Request.Referer + '</td></tr>';
-  html := html + '<tr><td>SERVER_NAME</td><td>:</td><td>' + Application.EnvironmentVariable['SERVER_NAME'] + '</td></tr>';
-  html := html + '<tr><td>SERVER_ADDR</td><td>:</td><td>' + Application.EnvironmentVariable['SERVER_ADDR'] + '</td></tr>';
-  html := html + '<tr><td>REMOTE_HOST</td><td>:</td><td>' + Application.Request.RemoteHost + '</td></tr>';
-  html := html + '<tr><td>REMOTE_ADDR</td><td>:</td><td>' + Application.Request.RemoteAddress + '</td></tr>';
-  html := html + '<tr><td>REMOTE_PORT</td><td>:</td><td>' + Application.EnvironmentVariable['REMOTE_PORT'] + '</td></tr>';
-  html := html + '<tr><td>SCRIPT_NAME</td><td>:</td><td>' + Application.Request.ScriptName + '</td></tr>';
-  html := html + '<tr><td>SCRIPT_FILENAME</td><td>:</td><td>' + Application.EnvironmentVariable['SCRIPT_FILENAME'] + '</td></tr>';
-  html := html + '<tr><td>SCRIPT_URI</td><td>:</td><td>' + Application.Request.ScriptURI + '</td></tr>';
-  html := html + '<tr><td>PATH INFO</td><td>:</td><td>' + Application.Request.PathInfo + '</td></tr>';
-  html := html + '<tr><td>PATH_TRANSLATED</td><td>:</td><td>' + Application.EnvironmentVariable['PATH_TRANSLATED'] + '</td></tr>';
-  html := html + '<tr><td>REQUEST_METHOD</td><td>:</td><td>' + Application.Request.Method + '</td></tr>';
-  html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + Application.Request.ContentType + '</td></tr>';
-  html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + Application.Request.ServerProtocol + '</td></tr>';
-  html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + Application.Request.QueryString + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + Application.Request.AcceptEncoding + '</td></tr>';
-  html := html + '<tr><td>HTTP_ACCEPT_LANGUAGE</td><td>:</td><td>' + Application.Request.AcceptLanguage + '</td></tr>';
-  html := html + '<tr><td>HTTP_COOKIE</td><td>:</td><td>' + Application.EnvironmentVariable['HTTP_COOKIE'] + '</td></tr>';
-  html := html + '<tr><td>Last Modified</td><td>:</td><td>' + Application.Request.LastModified + '</td></tr>';
-  //html := html + '<tr><td>&nbsp;</td><td>:</td><td>' + Application.Request.HTTPXRequestedWith + '</td></tr>';
-  //html := html + '<tr><td>HTTP_DNT</td><td>:</td><td>' + Application.Request. + '</td></tr>';
+  html := html + '<tr><td>REDIRECT_STATUS</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['REDIRECT_STATUS']) + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT</td><td>:</td><td>' + HTMLEncode(Application.Request.Accept) + '</td></tr>';
+  html := html + '<tr><td>HTTP_USER_AGENT</td><td>:</td><td>' + HTMLEncode(Application.Request.UserAgent) + '</td></tr>';
+  html := html + '<tr><td>HTTP_CONNECTION</td><td>:</td><td>' + HTMLEncode(Application.Request. Connection) + '</td></tr>';
+  html := html + '<tr><td>HTTP_REFERER</td><td>:</td><td>' + HTMLEncode(Application.Request.Referer) + '</td></tr>';
+  html := html + '<tr><td>SERVER_NAME</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SERVER_NAME']) + '</td></tr>';
+  html := html + '<tr><td>SERVER_ADDR</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SERVER_ADDR']) + '</td></tr>';
+  html := html + '<tr><td>REMOTE_HOST</td><td>:</td><td>' + HTMLEncode(Application.Request.RemoteHost) + '</td></tr>';
+  html := html + '<tr><td>REMOTE_ADDR</td><td>:</td><td>' + HTMLEncode(Application.Request.RemoteAddress) + '</td></tr>';
+  html := html + '<tr><td>REMOTE_PORT</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['REMOTE_PORT']) + '</td></tr>';
+  html := html + '<tr><td>SCRIPT_NAME</td><td>:</td><td>' + HTMLEncode(Application.Request.ScriptName) + '</td></tr>';
+  html := html + '<tr><td>SCRIPT_FILENAME</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SCRIPT_FILENAME']) + '</td></tr>';
+  html := html + '<tr><td>SCRIPT_URI</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SCRIPT_URI']) + '</td></tr>';
+  html := html + '<tr><td>PATH INFO</td><td>:</td><td>' + HTMLEncode(Application.Request.PathInfo) + '</td></tr>';
+  html := html + '<tr><td>PATH_TRANSLATED</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['PATH_TRANSLATED']) + '</td></tr>';
+  html := html + '<tr><td>REQUEST_METHOD</td><td>:</td><td>' + HTMLEncode(Application.Request.Method) + '</td></tr>';
+  html := html + '<tr><td>CONTENT_TYPE</td><td>:</td><td>' + HTMLEncode(Application.Request.ContentType) + '</td></tr>';
+  html := html + '<tr><td>SERVER_PROTOCOL</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['SERVER_PROTOCOL']) + '</td></tr>';
+  html := html + '<tr><td>QUERY_STRING</td><td>:</td><td>' + HTMLEncode(Application.Request.QueryString) + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT_ENCODING</td><td>:</td><td>' + HTMLEncode(Application.Request.AcceptEncoding) + '</td></tr>';
+  html := html + '<tr><td>HTTP_ACCEPT_LANGUAGE</td><td>:</td><td>' + HTMLEncode(Application.Request.AcceptLanguage) + '</td></tr>';
+  html := html + '<tr><td>HTTP_COOKIE</td><td>:</td><td>' + HTMLEncode(Application.EnvironmentVariable['HTTP_COOKIE']) + '</td></tr>';
+  html := html + '<tr><td>Last Modified</td><td>:</td><td>' + HTMLEncode(Application.Request.LastModified) + '</td></tr>';
+  //html := html + '<tr><td>&nbsp;</td><td>:</td><td>' + HTMLEncode(Application.Request.HTTPXRequestedWith) + '</td></tr>';
+  //html := html + '<tr><td>HTTP_DNT</td><td>:</td><td>' + HTMLEncode(Application.Request.) + '</td></tr>';
   for i := 0 to Application.Request.CustomHeaders.Count - 1 do
   begin
     html  := html + '<tr>';
-    html  := html + '<td>'+Application.Request.CustomHeaders.Names[i]+'</td><td>:</td><td>' + Application.Request.CustomHeaders.ValueFromIndex[i] + '</td>';
+    html  := html + '<td>'+HTMLEncode(Application.Request.CustomHeaders.Names[i])+'</td><td>:</td><td>' + HTMLEncode(Application.Request.CustomHeaders.ValueFromIndex[i]) + '</td>';
     html  := html + '</tr>';
   end;
   html  := html + '</table>';
@@ -922,7 +1012,7 @@ begin
   for i := 0 to lst.Count -1 do
   begin
     html  := html + '<tr>';
-    html  := html + '<td>'+lst.Names[i]+'</td><td>:</td><td>' + lst.ValueFromIndex[i] + '</td>';
+    html  := html + '<td>'+HTMLEncode(lst.Names[i])+'</td><td>:</td><td>' + HTMLEncode(lst.ValueFromIndex[i]) + '</td>';
     html  := html + '</tr>';
   end;
   html  := html + '</table>';
@@ -933,35 +1023,38 @@ begin
 end;
 
 function TThemeUtil.GetVersionInfo(): boolean;
+var
+  vi : TVersionInfo;
 begin
-  if VersionInfo.FullVersion = '' then
-  begin
+  Result := True;
+  if VersionInfo.FullVersion <> '' then
+    Exit;
+
+  try
+    vi := TVersionInfo.Create;
     try
-      with TVersionInfo.Create do
-      begin
-        Load( HINSTANCE);
-        VersionInfo.Major        := FixedInfo.FileVersion[0];
-        VersionInfo.Minor        := FixedInfo.FileVersion[1];
-        VersionInfo.Revision     := FixedInfo.FileVersion[2];
-        VersionInfo.BuldNumber   := FixedInfo.FileVersion[3];
+      vi.Load( HINSTANCE);
+      VersionInfo.Major        := vi.FixedInfo.FileVersion[0];
+      VersionInfo.Minor        := vi.FixedInfo.FileVersion[1];
+      VersionInfo.Revision     := vi.FixedInfo.FileVersion[2];
+      VersionInfo.BuldNumber   := vi.FixedInfo.FileVersion[3];
 
-        VersionInfo.Version  :=
-          i2s( VersionInfo.Major) + '.' +
-          i2s( VersionInfo.Minor) + '.' +
-          i2s( VersionInfo.Revision);
+      VersionInfo.Version  :=
+        i2s( VersionInfo.Major) + '.' +
+        i2s( VersionInfo.Minor) + '.' +
+        i2s( VersionInfo.Revision);
 
-        VersionInfo.FullVersion  :=
-          i2s( VersionInfo.Major) + '.' +
-          i2s( VersionInfo.Minor) + '.' +
-          i2s( VersionInfo.Revision) + ' (build ' +
-          i2s( VersionInfo.BuldNumber) + ')';
-        Free;
-      end;
-      Result:=True;
-    except
-      VersionInfo.FullVersion := '-';
-      Result:= False;
+      VersionInfo.FullVersion  :=
+        i2s( VersionInfo.Major) + '.' +
+        i2s( VersionInfo.Minor) + '.' +
+        i2s( VersionInfo.Revision) + ' (build ' +
+        i2s( VersionInfo.BuldNumber) + ')';
+    finally
+      vi.Free;
     end;
+  except
+    VersionInfo.FullVersion := '-';
+    Result:= False;
   end;
 end;
 
@@ -969,14 +1062,23 @@ function TThemeUtil.getCacheFileName: string;
 var
   pathinfo: string;
 begin
-  pathinfo := copy(Application.Request.PathInfo, 1,
-    length(Application.Request.PathInfo) - 1);
-  if pathinfo = '' then
-    pathinfo := Application.Request.QueryString;
+  pathinfo := Application.Request.PathInfo;
+  // strip trailing slash only when present; blindly dropping the last char
+  // made "/page/1" and "/page/2" share one cache file
+  if (pathinfo <> '') and (pathinfo[length(pathinfo)] = '/') then
+    pathinfo := copy(pathinfo, 1, length(pathinfo) - 1);
+  if Application.Request.QueryString <> '' then
+    pathinfo := pathinfo + '-' + Application.Request.QueryString;
   if pathinfo = '' then
     pathinfo := 'home';
-  if pathinfo[1] = DirectorySeparator then
+  if (pathinfo[1] = '/') or (pathinfo[1] = DirectorySeparator) then
     pathinfo := copy(pathinfo, 2, length(pathinfo) - 1);
+  if pathinfo = '' then
+    pathinfo := 'home';
+  // a visitor with session data (logged in, a form token, ...) gets a page
+  // cache of their own; the shared file is only for stateless visitors
+  if SessionController.IsStarted and (SessionController.GetData <> '') then
+    pathinfo := pathinfo + '-' + Copy(MD5Print(MD5String(SessionController.SessionID)), 1, 16);
   Result := ExtractFileDir(Application.ExeName) + DirectorySeparator + AppData.tempDir +
     DirectorySeparator + 'cache' + DirectorySeparator + GetActiveModuleName(Application.Request) +
     DirectorySeparator + SafeText( pathinfo) + '-' + LANG + '.html';
@@ -984,10 +1086,7 @@ end;
 
 function TThemeUtil.isCacheExpired: boolean;
 begin
-  if HoursBetween(FileDateToDateTime(FileAge(getCacheFileName)), now) > FCacheTime then
-    Result := True
-  else
-    Result := False;
+  Result := HoursBetween(FileDateToDateTime(FileAge(getCacheFileName)), now) >= FCacheTime;
 end;
 
 function TThemeUtil.LoadCache: string;
@@ -1021,8 +1120,7 @@ begin
   begin
     f := getCacheFileName;
     try
-      if not DirectoryExists(ExtractFileDir(f)) then
-        MkDir(ExtractFileDir(f));
+      ForceDirectories(ExtractFileDir(f));
       with TStringList.Create do
       begin
         Text := Content;
@@ -1042,236 +1140,387 @@ begin
   end;//- if AppData.cache_type = 'file' then
 end;
 
-function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
-
-  function DoConditioning(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
-  var
-    s, condition: String;
-    parameter: TStrings;
-    value1, value2: variant;
-  begin
-    Result := False;
-    parameter := Explode(string(ARegex.Match[1]), ' ');
-    if (parameter.Count < 4) then
-    begin
-      Exit;
-    end;
-
-    if FAssignVarStringMap.IndexOfName( parameter[1]) = -1 then
-    begin
-      AContent := StringReplace( AContent, string(ARegex.Match[0]), '', [rfReplaceAll]);
-      Result := True;
-      Exit;
-    end;
-
-    value1 := VarValue[ parameter[1]];
-    value2 := '';
-    if not ((parameter[3] = '''''') or (parameter[3] = '""')) then
-    begin
-      value2 := VarValue[ parameter[3]];
-    end;
-    condition := parameter[2];
-    if condition = '=' then condition := 'eq';
-    if condition = '<' then condition := 'lt';
-    if condition = '>' then condition := 'gt';
-    case condition of
-      'eq':
-        begin
-          if conditionIsEqual( value1, value2) then
-            s := string(ARegex.Match[2])
-          else
-            s := string(ARegex.Match[4]);
-          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
-        end;
-
-      'neq':
-        begin
-          if conditionIsNotEqual( value1, value2) then
-            s := string(ARegex.Match[2])
-          else
-            s := string(ARegex.Match[4]);
-          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
-        end;
-
-      'lt':
-        begin
-          if conditionIsLessThan( value1, value2) then
-            s := string(ARegex.Match[2])
-          else
-            s := string(ARegex.Match[4]);
-          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
-        end;
-
-      'gt':
-        begin
-          if conditionIsGreaterThan( value1, value2) then
-            s := string(ARegex.Match[2])
-          else
-            s := string(ARegex.Match[4]);
-          AContent := StringReplace( AContent, string(ARegex.Match[0]), s, [rfReplaceAll]);
-        end;
-
-    end;
-
-    Result := True;
-  end;
-
-const
-  __CONDITIONAL_IF_VALUE = '([\.\$\?#@&A-Za-z0-9!,;:=<"''\''>_\|\(\)\\\/\-\n\r \[\]]+?)(\[else\]+)?([\.\$A-Za-z0-9=_ ]+)';
-
+class function TThemeUtil.SafeTemplateName(const AName: string): string;
 var
-  parameter : TStrings;
-  condition,
-  s : string;
-  value1, value2 : variant;
-  regex : TRegExpr;
+  i: integer;
 begin
-  s := '';
-  Result := Content;
-  regex := TRegExpr.Create;
-  with regex do
-  begin
-    //Expression := Format('%s(.*?)%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]);
-    // \[if([\.\$A-Za-z_0-9=\ ]+)\]([a-z]+)(\[else\])?([a-z]+)\[/if\]
-    Expression := RegExprString(Format('%s'+__CONDITIONAL_IF_VALUE+'%s', [ __CONDITIONAL_IF_START, __CONDITIONAL_IF_END]));
-    if Exec( RegExprString(Content)) then
-    begin
-      if not DoConditioning(regex, Result) then
-      begin
-        Free;
-        Exit;
-      end;
-      while ExecNext do
-      begin
-        DoConditioning(regex, Result, True)
-      end;
-    end;
+  Result := AName;
+  i := Pos(#0, Result);
+  if i > 0 then
+    Result := Copy(Result, 1, i - 1);
+  Result := Trim(Result);
+  if (Pos('/', Result) > 0) or (Pos('\', Result) > 0) or (Pos(':', Result) > 0)
+    or (Pos('..', Result) > 0) then
+    Result := '';
+end;
 
-    Free;
+// "var op value" -> three tokens; a quoted value may contain spaces
+function TThemeUtil.SplitCondition(const AHeader: string): TStringList;
+var
+  i: integer;
+  token: string;
+  quote: char;
+begin
+  Result := TStringList.Create;
+  token := '';
+  quote := #0;
+  for i := 1 to Length(AHeader) do
+  begin
+    if quote <> #0 then
+    begin
+      token := token + AHeader[i];
+      if AHeader[i] = quote then
+        quote := #0;
+    end
+    else if AHeader[i] in ['"', ''''] then
+    begin
+      quote := AHeader[i];
+      token := token + AHeader[i];
+    end
+    else if AHeader[i] in [' ', #9, #13, #10] then
+    begin
+      if token <> '' then
+        Result.Add(token);
+      token := '';
+    end
+    else
+      token := token + AHeader[i];
+  end;
+  if token <> '' then
+    Result.Add(token);
+end;
+
+// a literal, an assigned variable, an "assignto" variable or a foreach field
+function TThemeUtil.IsKnownVariable(const AName: string): boolean;
+var
+  f: double;
+begin
+  Result := True;
+  if AName = '' then
+    Exit(False);
+  if TryStrToFloat(AName, f) then
+    Exit;
+  if AName[1] in ['"', ''''] then
+    Exit;
+  if FAssignVarStringMap.IndexOfName(AName) <> -1 then
+    Exit;
+  if FTagAssign_Variable.IndexOfName(AName) <> -1 then
+    Exit;
+  if (ForeachTable_Keyname <> '') and (Pos('.', AName) > 0) then
+    Exit;
+  Result := False;
+end;
+
+// False when the header is not "variable operator value".
+// AKnown is False when the variable does not exist: the whole block is dropped.
+function TThemeUtil.EvaluateCondition(const AHeader: string; out AMatched, AKnown: boolean): boolean;
+var
+  parameter: TStringList;
+  value1, value2: variant;
+  condition: string;
+begin
+  Result := False;
+  AMatched := False;
+  AKnown := True;
+  parameter := SplitCondition(AHeader);
+  try
+    if parameter.Count <> 3 then
+      Exit;
+    if not IsKnownVariable(parameter[0]) then
+    begin
+      AKnown := False;
+      Exit(True);
+    end;
+    value1 := VarValue[parameter[0]];
+    value2 := '';
+    if not ((parameter[2] = '''''') or (parameter[2] = '""')) then
+      value2 := VarValue[parameter[2]];
+    condition := LowerCase(parameter[1]);
+    case condition of
+      '=', '==': condition := 'eq';
+      '!=', '<>': condition := 'neq';
+      '<': condition := 'lt';
+      '>': condition := 'gt';
+      '<=': condition := 'lte';
+      '>=': condition := 'gte';
+    end;
+    case condition of
+      'eq': AMatched := conditionIsEqual(value1, value2);
+      'neq': AMatched := conditionIsNotEqual(value1, value2);
+      'lt': AMatched := conditionIsLessThan(value1, value2);
+      'gt': AMatched := conditionIsGreaterThan(value1, value2);
+      'lte': AMatched := not conditionIsGreaterThan(value1, value2);
+      'gte': AMatched := not conditionIsLessThan(value1, value2);
+      else
+        Exit;
+    end;
+    Result := True;
+  finally
+    parameter.Free;
   end;
 end;
 
+// [if var op value] ... [else] ... [/if]
+// Scanned by position instead of a regular expression: the old pattern only
+// matched when whitespace preceded [/if], could not take an [else] branch
+// spanning lines, failed on "%", "{" or non-ASCII content (the raw tag then
+// leaked into the page) and returned the tail of the true branch as the
+// false branch. Blocks may be nested; an unclosed [if] is left untouched.
+function TThemeUtil.ConditionalIfProcessor(TagProcessor: TReplaceTagEvent; Content: string): string;
+const
+  IF_OPEN = '[if ';
+  ELSE_TAG = '[else]';
+  IF_CLOSE = '[/if]';
+var
+  p, headerEnd, scan, depth, nextIf, nextElse, nextClose, nearest,
+  elsePos, closePos: integer;
+  header, trueBranch, falseBranch, replacement: string;
+  matched, known: boolean;
+begin
+  Result := Content;
+  p := 1;
+  while True do
+  begin
+    p := PosEx(IF_OPEN, Result, p);
+    if p = 0 then
+      Break;
+    headerEnd := PosEx(']', Result, p);
+    if headerEnd = 0 then
+      Break;
+    header := Copy(Result, p + Length(IF_OPEN), headerEnd - p - Length(IF_OPEN));
+
+    // find the [/if] of this block and its own [else]
+    depth := 1;
+    elsePos := 0;
+    closePos := 0;
+    scan := headerEnd + 1;
+    while depth > 0 do
+    begin
+      nextIf := PosEx(IF_OPEN, Result, scan);
+      nextElse := PosEx(ELSE_TAG, Result, scan);
+      nextClose := PosEx(IF_CLOSE, Result, scan);
+      if nextClose = 0 then
+        Break;
+      nearest := nextClose;
+      if (nextIf > 0) and (nextIf < nearest) then
+        nearest := nextIf;
+      if (nextElse > 0) and (nextElse < nearest) then
+        nearest := nextElse;
+      if nearest = nextIf then
+      begin
+        Inc(depth);
+        scan := nearest + Length(IF_OPEN);
+      end
+      else if nearest = nextElse then
+      begin
+        if (depth = 1) and (elsePos = 0) then
+          elsePos := nearest;
+        scan := nearest + Length(ELSE_TAG);
+      end
+      else
+      begin
+        Dec(depth);
+        if depth = 0 then
+          closePos := nearest
+        else
+          scan := nearest + Length(IF_CLOSE);
+      end;
+    end;
+    if closePos = 0 then
+    begin
+      p := headerEnd + 1;
+      Continue;
+    end;
+
+    if elsePos > 0 then
+    begin
+      trueBranch := Copy(Result, headerEnd + 1, elsePos - headerEnd - 1);
+      falseBranch := Copy(Result, elsePos + Length(ELSE_TAG), closePos - elsePos - Length(ELSE_TAG));
+    end
+    else
+    begin
+      trueBranch := Copy(Result, headerEnd + 1, closePos - headerEnd - 1);
+      falseBranch := '';
+    end;
+
+    if not EvaluateCondition(header, matched, known) then
+    begin
+      // not a condition we understand: keep the tag, continue inside it
+      p := headerEnd + 1;
+      Continue;
+    end;
+    if not known then
+      replacement := ''
+    else if matched then
+      replacement := ConditionalIfProcessor(TagProcessor, trueBranch)
+    else
+      replacement := ConditionalIfProcessor(TagProcessor, falseBranch);
+    Result := Copy(Result, 1, p - 1) + replacement + Copy(Result, closePos + Length(IF_CLOSE), MaxInt);
+    p := p + Length(replacement);
+  end;
+end;
+
+// Variant comparison raises EVariantError when one side is numeric and the
+// other is a non-numeric string (ex: [if $count gt 0] with $count = '').
+// Fall back to a plain string comparison instead of killing the render.
 function TThemeUtil.conditionIsEqual(Value1, Value2: variant): boolean;
 begin
-  Result := False;
-  if Value1 = Value2 then
-    Result := True;
+  try
+    Result := Value1 = Value2;
+  except
+    Result := VarToStr(Value1) = VarToStr(Value2);
+  end;
 end;
 
 function TThemeUtil.conditionIsNotEqual(Value1, Value2: variant): boolean;
 begin
-  Result := False;
-  if Value1 <> Value2 then
-    Result := True;
+  try
+    Result := Value1 <> Value2;
+  except
+    Result := VarToStr(Value1) <> VarToStr(Value2);
+  end;
 end;
 
 function TThemeUtil.conditionIsLessThan(Value1, Value2: variant): boolean;
 begin
-  Result := False;
-  if Value1 < Value2 then
-    Result := True;
+  try
+    Result := Value1 < Value2;
+  except
+    Result := VarToStr(Value1) < VarToStr(Value2);
+  end;
 end;
 
 function TThemeUtil.conditionIsGreaterThan(Value1, Value2: variant): boolean;
 begin
-  Result := False;
-  if Value1 > Value2 then
-    Result := True;
+  try
+    Result := Value1 > Value2;
+  except
+    Result := VarToStr(Value1) > VarToStr(Value2);
+  end;
 end;
 
+// Expands every [foreach ...] ... [/foreach ...] block. Blocks are matched
+// by nesting depth, so a foreach inside a foreach body is left to the row
+// rendering (table/dataset rows go through RenderFromContent) or to the
+// next pass over the expanded output (json rows).
 function TThemeUtil.ForeachProcessor(TagProcessor: TReplaceTagEvent;
   Content: string): string;
+const
+  OPEN_TAG = '[foreach ';
+  CLOSE_TAG = '[/foreach';
 
-  function DoForeach(var ARegex: TRegExpr; var AContent: String; IsNext: Boolean = False): Boolean;
+  function RunForeach(const AHeader, ABody: string): string;
   var
     parameter: TStrings;
-    html : string;
+    savedKey, savedItem: string;
+    savedIndex: integer;
   begin
-    Result := False;
-    parameter := Explode(string(ARegex.Match[1]), ' ');
-    ForeachTable_Keyname  := parameter.Values['from'];
-    ForeachTable_Itemname := parameter.Values['item'];
+    Result := '';
+    // an inner loop (run while rendering a table/dataset row) must hand the
+    // outer loop its state back
+    savedKey := ForeachTable_Keyname;
+    savedItem := ForeachTable_Itemname;
+    savedIndex := foreachJsonIndex;
+    parameter := Explode(AHeader, ' ');
+    try
+      ForeachTable_Keyname  := parameter.Values['from'];
+      ForeachTable_Itemname := parameter.Values['item'];
 
-    case parameter.Values['type'] of
-      '' : begin
-        DisplayError( 'field "type" is not define in "foreach ' + string(ARegex.Match[1]) + '"');
-        //FastPlasAppandler.DieRaise('field "type" is not define in "foreach ' + Match[1] + '"',[]);
+      case parameter.Values['type'] of
+        '' : begin
+          DisplayError( 'field "type" is not define in "foreach ' + AHeader + '"');
+        end;
+        'table' : begin
+          Result := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], ABody);
+        end;
+        'dataset' : begin
+          Result := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], ABody);
+        end;
+        'json', 'jsondata' : begin
+          Result := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], ABody);
+        end;
+        {$ifdef GREYHOUND}
+        'ghtable' : begin
+          Result := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], ABody);
+        end;
+        {$endif GREYHOUND}
+        'array' : begin
+          DisplayError( __( __Err_Theme_ForeachNotImplemented));
+        end;
       end;
-      'table' : begin
-        html := ForeachProcessor_Table(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
-      end;
-      'dataset' : begin
-        html := ForeachProcessor_Dataset(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
-      end;
-      'json' : begin
-        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
-      end;
-      'jsondata' : begin
-        html := ForeachProcessor_Json(TagProcessor, parameter.Values['from'], string(ARegex.Match[2]));
-      end;
-      {$ifdef GREYHOUND}
-      'ghtable' : begin
-        html := ForeachProcessor_GreyhoundTable(TagProcessor, parameter.Values['from'], Match[2]);
-      end;
-      {$endif GREYHOUND}
-      'array' : begin
-        DisplayError( __( __Err_Theme_ForeachNotImplemented));
-        //FastPlasAppandler.DieRaise(__( __Err_Theme_ForeachNotImplemented),[]);
-      end;
+    finally
+      ForeachTable_Keyname := savedKey;
+      ForeachTable_Itemname := savedItem;
+      foreachJsonIndex := savedIndex;
+      FreeAndNil( parameter);
     end;
-
-    //-- proccess conditional if
-    //html := ConditionalIfProcessor( TagProcessor, html);
-
-    ForeachTable_Keyname := '';
-    ForeachTable_Itemname := '';
-
-    html := StringReplace( AContent, string(ARegex.Match[0]), html, [rfReplaceAll]);
-
-    //** call parent tag-controller
-
-    ForeachTable_Keyname := '';
-    ForeachTable_Itemname:= '';
-    FreeAndNil( parameter);
-
-    AContent := html;
-    Result := true;
   end;
 
 var
-  parameter : TStrings;
-  html : string;
-  regex : TRegExpr;
+  startPos, headEnd, p, depth, closeStart, closeEnd, nextOpen, nextClose: integer;
+  header, body: string;
 begin
   Result := Content;
-  regex := TRegExpr.Create;
-  with regex do
-  begin
-    Expression := RegExprString(Format('%s(.*?)%s', [ __FOREACH_START, __FOREACH_END]));
-    if Exec( RegExprString(Result)) then
+  startPos := 1;
+  repeat
+    startPos := PosEx(OPEN_TAG, Result, startPos);
+    if startPos = 0 then
+      Break;
+    headEnd := PosEx(FEndDelimiter, Result, startPos);
+    if headEnd = 0 then
+      Break;
+    header := Copy(Result, startPos + Length(OPEN_TAG), headEnd - startPos - Length(OPEN_TAG));
+
+    // the matching close: same depth
+    depth := 1;
+    p := headEnd + 1;
+    closeStart := 0;
+    while depth > 0 do
     begin
-      if not DoForeach(regex, Result) then
+      nextOpen := PosEx(OPEN_TAG, Result, p);
+      nextClose := PosEx(CLOSE_TAG, Result, p);
+      if nextClose = 0 then
+        Break;
+      if (nextOpen > 0) and (nextOpen < nextClose) then
       begin
-        Free;
-        Exit;
-      end;
-      while ExecNext do
+        Inc(depth);
+        p := nextOpen + Length(OPEN_TAG);
+      end
+      else
       begin
-        //die(result);
-        DoForeach(regex, Result, True)
+        Dec(depth);
+        if depth = 0 then
+          closeStart := nextClose
+        else
+          p := nextClose + Length(CLOSE_TAG);
       end;
     end;
-    Free;
-  end;
+    if closeStart = 0 then
+    begin
+      // unclosed: leave the tag as it is and look further
+      startPos := headEnd + 1;
+      Continue;
+    end;
+    closeEnd := PosEx(FEndDelimiter, Result, closeStart);
+    if closeEnd = 0 then
+      Break;
+
+    body := Copy(Result, headEnd + 1, closeStart - headEnd - 1);
+    Result := Copy(Result, 1, startPos - 1) + RunForeach(header, body)
+      + Copy(Result, closeEnd + 1, Length(Result));
+    // the next search starts inside the expanded block: a nested foreach
+    // that survived the row rendering is expanded now
+  until False;
 end;
 
 function TThemeUtil.ForeachProcessor_Table(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
-  html : string;
+  html, row : string;
   templateEngine : TFPTemplate;
   i : integer;
 begin
+  Result := '';
   if ( AssignVar[KeyName] = nil) then
   begin
     Exit;
@@ -1279,6 +1528,9 @@ begin
 
   html := '';
   i := 1;
+  // a cursor left on a later row (or at EOF) rendered nothing
+  if TSQLQuery( assignVarMap[KeyName]^).Active then
+    TSQLQuery( assignVarMap[KeyName]^).First;
   while not TSQLQuery( assignVarMap[KeyName]^).EOF do
   begin
     ThemeUtil.Assign('$index', i.ToString);
@@ -1288,22 +1540,26 @@ begin
     else
       ThemeUtil.Assign('foreach_odd', 'even');
 
-    //tmp := RenderFromContent(@TagController, Content);
-
     templateEngine := TFPTemplate.Create;
-    templateEngine.Template := Content; // tmp
-    templateEngine.AllowTagParams := True;
-    templateEngine.StartDelimiter := FStartDelimiter;
-    templateEngine.EndDelimiter := FEndDelimiter;
-    templateEngine.ParamValueSeparator := '=';
-    templateEngine.OnReplaceTag := @ForeachProcessor_Table_TagController;
-    html := html + templateEngine.GetContent;
-    FreeAndNil(templateEngine);
+    try
+      templateEngine.Template := Content;
+      templateEngine.AllowTagParams := True;
+      templateEngine.StartDelimiter := FStartDelimiter;
+      templateEngine.EndDelimiter := FEndDelimiter;
+      templateEngine.ParamValueSeparator := '=';
+      templateEngine.OnReplaceTag := @ForeachProcessor_Table_TagController;
+      row := templateEngine.GetContent;
+    finally
+      FreeAndNil(templateEngine);
+    end;
 
-    html := RenderFromContent(@TagController, html);
+    // render only the current row; rendering the accumulated html made
+    // every previous row go through the tag processor again (O(n^2))
+    row := RenderFromContent(@TagController, row);
 
     //-- proccess conditional if
-    html := ConditionalIfProcessor( TagProcessor, html);
+    row := ConditionalIfProcessor( TagProcessor, row);
+    html := html + row;
 
     TSQLQuery( assignVarMap[KeyName]^).Next;
     i := i + 1;
@@ -1315,9 +1571,10 @@ function TThemeUtil.ForeachProcessor_Dataset(TagProcessor: TReplaceTagEvent;
   KeyName, Content: string): string;
 var
   i: integer;
-  html : string;
+  html, row : string;
   templateEngine : TFPTemplate;
 begin
+  Result := '';
   if ( AssignVar[KeyName] = nil) then
   begin
     Exit;
@@ -1325,23 +1582,29 @@ begin
 
   html := '';
   i := 1;
+  if TDataSet( assignVarMap[KeyName]^).Active then
+    TDataSet( assignVarMap[KeyName]^).First;
   while not TDataSet( assignVarMap[KeyName]^).EOF do
   begin
     ThemeUtil.Assign('$index', i.ToString);
     templateEngine := TFPTemplate.Create;
-    templateEngine.Template := Content; // tmp
-    templateEngine.AllowTagParams := True;
-    templateEngine.StartDelimiter := FStartDelimiter;
-    templateEngine.EndDelimiter := FEndDelimiter;
-    templateEngine.ParamValueSeparator := '=';
-    templateEngine.OnReplaceTag := @ForeachProcessor_Dataset_TagController;
-    html := html + templateEngine.GetContent;
-    FreeAndNil(templateEngine);
+    try
+      templateEngine.Template := Content;
+      templateEngine.AllowTagParams := True;
+      templateEngine.StartDelimiter := FStartDelimiter;
+      templateEngine.EndDelimiter := FEndDelimiter;
+      templateEngine.ParamValueSeparator := '=';
+      templateEngine.OnReplaceTag := @ForeachProcessor_Dataset_TagController;
+      row := templateEngine.GetContent;
+    finally
+      FreeAndNil(templateEngine);
+    end;
 
-    html := RenderFromContent(@TagController, html);
+    row := RenderFromContent(@TagController, row);
 
     //-- proccess conditional if
-    html := ConditionalIfProcessor( TagProcessor, html);
+    row := ConditionalIfProcessor( TagProcessor, row);
+    html := html + row;
 
     TDataSet( assignVarMap[KeyName]^).Next;
     i := i + 1;
@@ -1355,6 +1618,7 @@ var
   templateEngine : TFPTemplate;
   i : integer;
 begin
+  Result := '';
   if ForeachTable_Keyname = '' then
     Exit;
   if ( AssignVar[KeyName] = nil) then
@@ -1381,8 +1645,8 @@ begin
     tmp := templateEngine.GetContent;
     FreeAndNil(templateEngine);
 
-    //-- proccess conditional if
-    //html := ConditionalIfProcessor( TagProcessor, html);
+    //-- proccess conditional if while this row is still current
+    tmp := ConditionalIfProcessor( TagProcessor, tmp);
 
     html := html + tmp;
     inc( foreachJsonIndex);
@@ -1457,10 +1721,15 @@ begin
   else begin
     tag_with_filter := Explode( TagString, '|');
     tagstring_custom := ExplodeTags( tag_with_filter[0]);
-    filter := tag_with_filter[1];
+    filter := '';
+    if tag_with_filter.Count > 1 then
+      filter := trim( tag_with_filter[1]);
     lst := Explode( filter, ' ');
-    filter := lst[0];
-    lst.Delete(0);
+    if lst.Count > 0 then
+    begin
+      filter := lst[0];
+      lst.Delete(0);
+    end;
     tagstring_custom.Add( 'filter=' + filter);
     tagstring_custom.Add( lst.Text);
     FreeAndNil( lst);
@@ -1525,6 +1794,7 @@ begin
       + TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
     FAssignVarStringMap.Values[tagstring_custom.Values['assignto']]:=
       TSQLQuery( assignVarMap[ForeachTable_Keyname]^).FieldByName(tagstring_custom.Values['index']).AsString;
+    FreeAndNil( tagstring_custom);
     Exit;
   end;
   if tagstring_custom.Values['addassignto'] <> '' then
@@ -1600,6 +1870,14 @@ begin
   end;
   if ForeachTable_Keyname = '' then
     Exit;
+  // conditionals and nested loops are evaluated after the row is rendered;
+  // keep them intact
+  if (Pos( 'if ', TagString) = 1) or (TagString = 'else') or (TagString = '/if')
+    or (Pos( 'foreach ', TagString) = 1) or (Pos( '/foreach', TagString) = 1) then
+  begin
+    ReplaceText := FStartDelimiter + TagString + FEndDelimiter;
+    Exit;
+  end;
 
   if Pos( '|', TagString) = 0 then
   begin
@@ -1609,16 +1887,31 @@ begin
   else begin
     tag_with_filter := Explode( TagString, '|');
     tagstring_custom := ExplodeTags( tag_with_filter[0]);
-    filter := tag_with_filter[1];
+    filter := '';
+    if tag_with_filter.Count > 1 then
+      filter := trim( tag_with_filter[1]);
     lst := Explode( filter, ' ');
-    filter := lst[0];
-    lst.Delete(0);
+    if lst.Count > 0 then
+    begin
+      filter := lst[0];
+      lst.Delete(0);
+    end;
     tagstring_custom.Add( 'filter=' + filter);
     tagstring_custom.Add( lst.Text);
     FreeAndNil( lst);
     FreeAndNil( tag_with_filter);
   end;
   fieldName := tagstring_custom.Values['index'];
+  // a field tag of another loop's item (a nested foreach) is left for
+  // that loop
+  if (fieldName <> '') and (tagstring_custom.Count > 0)
+    and (tagstring_custom[0] <> ForeachTable_Itemname)
+    and (tagstring_custom[0] <> ForeachTable_Keyname) then
+  begin
+    ReplaceText := FStartDelimiter + TagString + FEndDelimiter;
+    FreeAndNil( tagstring_custom);
+    Exit;
+  end;
 
   try
     ReplaceText := TDataSet( assignVarMap[ForeachTable_Keyname]^).FieldByName( fieldName).AsString;
@@ -1660,6 +1953,14 @@ begin
   end;
   if ForeachTable_Keyname = '' then
     Exit;
+  // conditionals and nested loops are evaluated after the row is rendered;
+  // keep them intact
+  if (Pos( 'if ', TagString) = 1) or (TagString = 'else') or (TagString = '/if')
+    or (Pos( 'foreach ', TagString) = 1) or (Pos( '/foreach', TagString) = 1) then
+  begin
+    ReplaceText := FStartDelimiter + TagString + FEndDelimiter;
+    Exit;
+  end;
 
   if Pos( '|', TagString) = 0 then
   begin
@@ -1669,21 +1970,41 @@ begin
   else begin
     tag_with_filter := Explode( TagString, '|');
     tagstring_custom := ExplodeTags( tag_with_filter[0]);
-    filter := tag_with_filter[1];
+    filter := '';
+    if tag_with_filter.Count > 1 then
+      filter := trim( tag_with_filter[1]);
     lst := Explode( filter, ' ');
-    filter := lst[0];
-    lst.Delete(0);
+    if lst.Count > 0 then
+    begin
+      filter := lst[0];
+      lst.Delete(0);
+    end;
     tagstring_custom.Add( 'filter=' + filter);
     tagstring_custom.Add( lst.Text);
     FreeAndNil( lst);
     FreeAndNil( tag_with_filter);
   end;
   fieldName := tagstring_custom.Values['index'];
+  // a field tag of another loop's item (a nested foreach) is left for
+  // that loop
+  if (fieldName <> '') and (tagstring_custom.Count > 0)
+    and (tagstring_custom[0] <> ForeachTable_Itemname)
+    and (tagstring_custom[0] <> ForeachTable_Keyname) then
+  begin
+    ReplaceText := FStartDelimiter + TagString + FEndDelimiter;
+    FreeAndNil( tagstring_custom);
+    Exit;
+  end;
 
   if tagstring_custom.Values['assignto'] <> '' then
   begin
-    FAssignVarStringMap.Values[tagstring_custom.Values['assignto']] :=
-      TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+    try
+      FAssignVarStringMap.Values[tagstring_custom.Values['assignto']] :=
+        TJSONData( assignVarMap[ForeachTable_Keyname]^).Items[ foreachJsonIndex].FindPath( fieldName).AsString;
+    except
+      FAssignVarStringMap.Values[tagstring_custom.Values['assignto']] := '';
+    end;
+    FreeAndNil( tagstring_custom);
     Exit;
   end;
 
@@ -1744,15 +2065,24 @@ begin
   FHits := TStringList.Create;
   FHitType := htNone;
   CacheTime := AppData.cacheTime; // default: 3 hours
-  HTMLUtil := THTMLUtil.Create;
+  // do not overwrite instances that already exist (would leak and drop
+  // callbacks registered before ThemeUtil was created); only free what
+  // this instance created
+  FOwnsHTMLUtil := not Assigned(HTMLUtil);
+  if FOwnsHTMLUtil then
+    HTMLUtil := THTMLUtil.Create;
   RenderType:= rtSmarty;
-  ___TagCallbackMap := TTagCallbackMap.Create;
+  FOwnsTagCallbackMap := not Assigned(___TagCallbackMap);
+  if FOwnsTagCallbackMap then
+    ___TagCallbackMap := TTagCallbackMap.Create;
 end;
 
 destructor TThemeUtil.Destroy;
 begin
-  FreeAndNil(___TagCallbackMap);
-  FreeAndNil(HTMLUtil);
+  if FOwnsTagCallbackMap then
+    FreeAndNil(___TagCallbackMap);
+  if FOwnsHTMLUtil then
+    FreeAndNil(HTMLUtil);
   FreeAndNil(FHits);
   FreeAndNil(FHTMLHead);
   FreeAndNil(FTagAssign_Variable);
@@ -1779,6 +2109,12 @@ begin
     ReplaceText := '<!--'+TagString+'-->';
     Exit;
   end;
+  // tag diawali "!" diabaikan, contoh: [!include file=includes/header.html]
+  if Pos( '!', TagString) = 1 then
+  begin
+    ReplaceText := '';
+    Exit;
+  end;
   if Pos( '|', TagString) = 0 then
   begin
     tagstring_custom := ExplodeTags( TagString);
@@ -1789,7 +2125,9 @@ begin
     tag_with_filter := Explode( TagString, '|');
     tagstring_custom.Text := tag_with_filter.Text;
     FreeAndNil( tag_with_filter);
-    filter := tagstring_custom[1];
+    filter := '';
+    if tagstring_custom.Count > 1 then
+      filter := trim( tagstring_custom[1]);
   end;
   //ReplaceText := tagstring_custom[0];
   //ReplaceText := '';
@@ -1843,7 +2181,12 @@ begin
   end;
   // check from AssignVar - end
 
-  if tagstring_custom.Count = 0 then Begin ReplaceText := '[]'; Exit; End;
+  if tagstring_custom.Count = 0 then
+  begin
+    ReplaceText := '[]';
+    FreeAndNil( tagstring_custom);
+    Exit;
+  end;
   tagname := tagstring_custom[0];
   case tagname of
     'sitename' : begin
@@ -1874,7 +2217,8 @@ begin
       begin
         ReplaceText := BaseURL + ReplaceText;
         ReplaceText := StringReplace( ReplaceText, '//', '/', [rfReplaceAll]);
-        ReplaceText := StringReplace( ReplaceText, 'https:/', 'https://', [rfReplaceAll]);
+        // restore the scheme separator for both http:// and https://
+        ReplaceText := StringReplace( ReplaceText, ':/', '://', []);
       end;
     end;
     '$theme'  : begin
@@ -1962,7 +2306,17 @@ begin
       ReplaceText :=Copy(ReplaceText,3,Length(ReplaceText)-2);
     end;
     'include' : begin
-      ReplaceText := ThemeUtil.Render( @TagController, tagstring_custom.Values['file'], false, true);;
+      if FIncludeDepth >= 32 then
+        ReplaceText := EchoError( 'include too deep: %s', [tagstring_custom.Values['file']])
+      else
+      begin
+        Inc( FIncludeDepth);
+        try
+          ReplaceText := ThemeUtil.Render( @TagController, tagstring_custom.Values['file'], false, true);
+        finally
+          Dec( FIncludeDepth);
+        end;
+      end;
       end;
     'block' : begin
       ReplaceText := BlockController( tagstring_custom.Values['mod'], tagstring_custom.Values['func'], tagstring_custom);
@@ -1990,17 +2344,27 @@ begin
       ReplaceText := GetDebugInfo( 'time');
     end;
     'flashmessages' : begin
+      // usage: [flashmessages class="..."] ; [flashmessages html=1] keeps
+      // markup in the messages (they are HTML encoded otherwise)
       s := FlashMessages;
       ReplaceText := '';
       if s <> '' then
       begin
         str := Explode( s, '|');
-        ReplaceText := '<div id="flashmessages" class="alert alert-warning alert-dismissable '+tagstring_custom.Values['class']+'"><h4><i class="icon fa fa-ban"></i> Warning!</h4><ul>';
-        for i:=0 to str.Count-1 do
-        begin
-          ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>';
+        try
+          ReplaceText := '<div id="flashmessages" class="alert alert-warning alert-dismissable '+HTMLEncode(tagstring_custom.Values['class'])+'"><h4><i class="icon fa fa-ban"></i> Warning!</h4><ul>';
+          for i:=0 to str.Count-1 do
+          begin
+            if str[i] = '' then Continue;
+            if (tagstring_custom.Values['html'] = '1') or (tagstring_custom.Values['html'] = 'true') then
+              ReplaceText:= ReplaceText + '<li>'+str[i]+'</li>'
+            else
+              ReplaceText:= ReplaceText + '<li>'+HTMLEncode(str[i])+'</li>';
+          end;
+          ReplaceText:= ReplaceText + '</ul></div>';
+        finally
+          FreeAndNil( str);
         end;
-        ReplaceText:= ReplaceText + '</ul></div>';
         FlashMessages:='';
       end;
       end;
@@ -2085,11 +2449,16 @@ end;
 function TThemeUtil.Render(TagProcessorAddress: TReplaceTagEvent; const LayoutTemplateFile: string; Cache: boolean;
   SubModule: boolean): string;
 var
-  templateFilename, _ext, moduleActive: string;
+  templateFilename, _ext, moduleActive, relativeFile, layoutFile: string;
   templateEngine: TFPTemplate;
   response_json : TJSONObject;
 begin
-  if (not AppData.themeEnable) and (not Assigned(ThemeUtil)) then
+  Result := '';
+  // a #0 would cut the name at the OS level and drop the extension check
+  layoutFile := LayoutTemplateFile;
+  if Pos(#0, layoutFile) > 0 then
+    layoutFile := Copy(layoutFile, 1, Pos(#0, layoutFile) - 1);
+  if not AppData.themeEnable then
   begin
     FastPlasAppandler.DieRaise(__( __ERR_THEME_NOT_ENABLED),[]);
   end;
@@ -2106,13 +2475,13 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Result + Format( __(__Err_App_Init), [
-      'http://' + GetEnvironmentVariable('SERVER_NAME') + (GetEnvironmentVariable('SCRIPT_NAME'))
+    Result := Format( __(__Err_App_Init), [
+      'http://' + ServerVariable('SERVER_NAME') + (ServerVariable('SCRIPT_NAME'))
       + '/initialize/']);
     Exit;
   end;
 
-  templateFilename := LayoutTemplateFile;
+  templateFilename := layoutFile;
   if not SubModule then
     if FLayout <> '' then templateFilename := trim(FLayout);
   if templateFilename <> '' then
@@ -2130,7 +2499,19 @@ begin
 
     if not FileExists(templateFilename) then
     begin
-      templateFilename := GetCurrentDir + LayoutTemplateFile;
+      // fallback: path relative to the web root (current dir).
+      // A leading "/" means "from the web root", not from the drive/fs root,
+      // ex: [include file="/modules/inbox/includes/thread.html"]
+      relativeFile := SetDirSeparators( trim( layoutFile));
+      relativeFile := StringReplace( relativeFile, '"', '', [rfReplaceAll]);
+      relativeFile := StringReplace( relativeFile, '''', '', [rfReplaceAll]);
+      while (relativeFile <> '') and (relativeFile[1] = DirectorySeparator) do
+        Delete( relativeFile, 1, 1);
+      templateFilename := IncludeTrailingPathDelimiter( GetCurrentDir) + relativeFile;
+      // last resort: a real absolute path (ex: "D:\..." on Windows)
+      if (not FileExists(templateFilename)) and (ExtractFileDrive( layoutFile) <> '')
+        and FileExists( layoutFile) then
+        templateFilename := layoutFile;
       if not FileExists(templateFilename) then
       begin
         Result := EchoError( __(__Err_Theme_Not_Exists), [ templateFilename, ThemeName]);
@@ -2140,8 +2521,9 @@ begin
   end
   else
   begin
-    moduleActive := GetActiveModuleName(Application.Request);
-    templateFilename := Application.Request.QueryFields.Values['act'];
+    // both come from the request: "act=../../x" must not leave the theme
+    moduleActive := SafeTemplateName( GetActiveModuleName(Application.Request));
+    templateFilename := SafeTemplateName( Application.Request.QueryFields.Values['act']);
     if templateFilename = '' then
       templateFilename := 'master';
     templateFilename := GetCurrentDir + DirectorySeparator + 'themes'
@@ -2175,17 +2557,21 @@ begin
 
   try
     templateEngine := TFPTemplate.Create;
-    templateEngine.FileName := templateFilename;
-    templateEngine.AllowTagParams := True;
-    templateEngine.StartDelimiter := FStartDelimiter;
-    templateEngine.EndDelimiter := FEndDelimiter;
-    templateEngine.ParamValueSeparator := FParamValueSeparator;
-    if TagProcessorAddress = nil then
-      templateEngine.OnReplaceTag := @TagController
-    else
-      templateEngine.OnReplaceTag := TagProcessorAddress;
+    try
+      templateEngine.Template := ReadTemplateFile(templateFilename);
+      templateEngine.AllowTagParams := True;
+      templateEngine.StartDelimiter := FStartDelimiter;
+      templateEngine.EndDelimiter := FEndDelimiter;
+      templateEngine.ParamValueSeparator := FParamValueSeparator;
+      if TagProcessorAddress = nil then
+        templateEngine.OnReplaceTag := @TagController
+      else
+        templateEngine.OnReplaceTag := TagProcessorAddress;
 
-    Result := templateEngine.GetContent;
+      Result := templateEngine.GetContent;
+    finally
+      FreeAndNil(templateEngine);
+    end;
 
     // clean tag
     if isCleanTag then
@@ -2210,12 +2596,13 @@ begin
 
   if not SubModule then
   begin
-    if FHTMLHead.JS.Count>0 then
-      Result:=StringReplace(Result,'</head>',FHTMLHead.JS.Text+'</head>',[rfReplaceAll]);
-    if FHTMLHead.CSS.Count>0 then
-      Result:=StringReplace(Result,'</head>',FHTMLHead.CSS.Text+'</head>',[rfReplaceAll]);
+    // meta first, then stylesheets, then scripts
     if FHTMLHead.Meta.Count>0 then
       Result:=StringReplace(Result,'</head>',FHTMLHead.Meta.Text+'</head>',[rfReplaceAll]);
+    if FHTMLHead.CSS.Count>0 then
+      Result:=StringReplace(Result,'</head>',FHTMLHead.CSS.Text+'</head>',[rfReplaceAll]);
+    if FHTMLHead.JS.Count>0 then
+      Result:=StringReplace(Result,'</head>',FHTMLHead.JS.Text+'</head>',[rfReplaceAll]);
     AddHit( Application.Request.URL);
   end;
   Result := AdjustLineBreaks(Result);
@@ -2224,7 +2611,9 @@ begin
   if Cache then
     SaveCache(Result);
 
-  Result := Result + '<!-- '+getDebugInfo('time')+' -->';
+  // only on the final page: not inside every [include], not in JSON data
+  if not (SubModule or FIsJSON) then
+    Result := Result + '<!-- '+getDebugInfo('time')+' -->';
 
   if FIsJSON then
   begin
@@ -2234,7 +2623,6 @@ begin
     Result := response_json.AsJSON;
     FreeAndNil( response_json);
   end;
-  FreeAndNil(templateEngine);
 end;
 
 function TThemeUtil.RenderFromContent(TagProcessorAddress: TReplaceTagEvent; const Content: string; TemplateFile: string
@@ -2309,8 +2697,19 @@ var
   skip:boolean;
   templateEngine : TFPTemplate;
 begin
+  // remove comments first, so the line they were on is dropped as well
+  templateEngine := TFPTemplate.Create;
+  templateEngine.Template := Content;
+  templateEngine.AllowTagParams := True;
+  templateEngine.StartDelimiter := '<!--';
+  templateEngine.EndDelimiter := '-->';
+  templateEngine.ParamValueSeparator := '=';
+  templateEngine.OnReplaceTag := nil;
   html := TStringList.Create;
-  html.Text:=Content;
+  html.Text := templateEngine.GetContent;
+  FreeAndNil(templateEngine);
+
+  // scanning backwards: a closing tag starts a block to keep as it is
   skip:=false;
   for i:=html.Count-1 downto 0 do
   begin
@@ -2318,25 +2717,18 @@ begin
     if Pos('<script',html[i])>0 then skip:=false;
     if Pos('</code',html[i])>0 then skip:=true;
     if Pos('<code',html[i])>0 then skip:=false;
+    if Pos('</pre',html[i])>0 then skip:=true;
+    if Pos('<pre',html[i])>0 then skip:=false;
+    if Pos('</textarea',html[i])>0 then skip:=true;
+    if Pos('<textarea',html[i])>0 then skip:=false;
     if (not skip) or ForceTrim then
     begin
       html[i]:=trim(html[i]);
+      if html[i]='' then
+        html.Delete(i);
     end;
-    if html[i]='' then
-      html.Delete(i);
   end;
-
-  // remove comment
-  templateEngine := TFPTemplate.Create;
-  templateEngine.Template := html.Text;
-  templateEngine.AllowTagParams := True;
-  templateEngine.StartDelimiter := '<!--';
-  templateEngine.EndDelimiter := '-->';
-  templateEngine.ParamValueSeparator := '=';
-  templateEngine.OnReplaceTag := nil;
-  Result := templateEngine.GetContent;
-  FreeAndNil(templateEngine);
-
+  Result := html.Text;
   FreeAndNil(html);
 end;
 

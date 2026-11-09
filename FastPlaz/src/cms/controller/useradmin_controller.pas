@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson, logutil_lib, datetime_lib, security_util, mailer_lib,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib,
   database_lib, user_util, user_model;
 
 const
@@ -61,7 +61,7 @@ type
 implementation
 
 uses groupadmin_controller, permissionadmin_controller, theme_controller,
-  common, modvar_util;
+  common, modvar_util, Variants;
 
 constructor TUserAdminModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -73,7 +73,7 @@ begin
   QueryExec('SET CHARACTER SET utf8;');
 
   // is demo ?
-  demo := ModVar['system/demo'];
+  demo := s2b(VarToStr(ModVar['system/demo']));
 
   User := TUserUtil.Create();
   OnRequest := @RequestHandler;
@@ -93,31 +93,42 @@ end;
 function TUserAdminModule.Add: string;
 var
   code: integer;
-  token, email, pass1, pass2, group: string;
+  email, pass1, pass2, group: string;
   active: boolean;
   params: TStringList;
 begin
   Result := '';
   if not isPost then
     Exit;
+  if not isValidCSRF then
+  begin
+    Result := setOutput(9, MSG_TOKEN_INVALID);
+    Exit;
+  end;
 
   //--
-  code := -1;
   email := trim(_POST['email']);
   pass1 := trim(_POST['password']);
   pass2 := trim(_POST['password2']);
   group := trim(_POST['group']);
-  if _POST['active'] = 'on' then
-    active := True
-  else
-    active := False;
+  active := _POST['active'] = 'on';
 
   if (email = '') or (pass1 = '') or (pass2 = '') then
   begin
     Result := setOutput(1, MSG_VALUE_INVALID);
     Exit;
   end;
+  if not TSecurityUtil.IsValidEmail(email) then
+  begin
+    Result := setOutput(1, MSG_VALUE_INVALID);
+    Exit;
+  end;
   if pass1 <> pass2 then
+  begin
+    Result := setOutput(3, MSG_PASSWORD_INVALID);
+    Exit;
+  end;
+  if not TSecurityUtil.IsPasswordAcceptable(pass1) then
   begin
     Result := setOutput(3, MSG_PASSWORD_INVALID);
     Exit;
@@ -130,9 +141,13 @@ begin
   end;
 
   params := TStringList.Create;
-  if active then
-    params.Add(USER_FIELDNAME_ACTIVATED + '=1');
-  code := User.Add(email, pass1, params);
+  try
+    if active then
+      params.Add(USER_FIELDNAME_ACTIVATED + '=1');
+    code := User.Add(email, pass1, params);
+  finally
+    params.Free;
+  end;
   if code = 0 then
     Result := setOutput(3, MSG_USER_ADD_FAILED)
   else
@@ -140,33 +155,26 @@ begin
     Result := setOutput(0, OK);
     if s2i(group) > 0 then
       User.AssignToGroup(code, s2i(group));
-
     //-- TODO: send welcome email
-    with TMailer.Create() do
-    begin
-      AddTo(email);
-      Subject := 'Welcome Email - ' + AppData.sitename;
-
-      //---
-
-      Free;
-    end;
-
   end;
-  FreeAndNil(params);
-
 end;
 
 function TUserAdminModule.Delete: string;
 var
   uid: integer;
-  email: string;
 begin
-  Result := defaultPostCheck(ACCESS_ADD);
+  Result := defaultPostCheck(ACCESS_DELETE);
   if Result <> '' then
     Exit;
 
   uid := s2i(_POST['uid']);
+
+  // never the super admin, never yourself
+  if (uid = 1) or (uid = User.UserIdLoggedIn) then
+  begin
+    Result := setOutput(-1, MSG_USER_DELETE_FAILED);
+    Exit;
+  end;
 
   //-- for demo only
   if demo then
@@ -177,7 +185,6 @@ begin
       exit;
     end;
   end;
-
 
   if User.SafeDelete(uid, User.UserIdLoggedIn) then
   begin
@@ -195,44 +202,52 @@ begin
 
   if isPost then
   begin
+    Result := defaultPostCheck(ACCESS_EDIT);
+    if Result <> '' then
+      Exit;
     uid := s2i(_POST['uid']);
+    if demo and (uid = 2) then
+    begin
+      Result := setOutput(-1, MSG_DEMO_NORESETPASSWORD);
+      Exit;
+    end;
+    if not TSecurityUtil.IsPasswordAcceptable(_POST['password']) then
+    begin
+      Result := setOutput(-1, MSG_PASSWORD_INVALID);
+      Exit;
+    end;
     if User.ChangePassword(uid, _POST['password']) then
       Result := setOutput(0, 'OK', BaseURL + ADMIN_USER_URL)
     else
       Result := setOutput(-1, MSG_USER_RESETPASSWORD_FAILED);
 
-    if _POST['sendemail'] = 'on' then
-    begin
-      // -- TODO: send reset password email
-      with TMailer.Create() do
-      begin
-        AddTo(_POST['email']);
-        Subject := 'Password Change - ' + AppData.sitename;
-
-        // ....
-
-        //Send;
-        Free;
-      end;
-    end;
+    //-- TODO: send reset password email when _POST['sendemail'] = 'on'
   end
   else
   begin // _GET
     uid := s2i(_GET['id']);
 
     if uid < 2 then
+    begin
       Redirect(BaseURL + 'admin-user-list');
+      Exit;
+    end;
 
     //-- for demo only
     if demo then
     begin
       if uid = 2 then
+      begin
         Redirect(BaseURL + 'admin-user-list', MSG_DEMO_NORESETPASSWORD);
+        Exit;
+      end;
     end;
 
-
     if not User.Find(uid) then
+    begin
       Redirect(BaseURL + 'admin-user-list', MSG_USER_NOTEXISTS);
+      Exit;
+    end;
 
     ThemeUtil.Assign('uid', User['uid']);
     ThemeUtil.Assign('email', User['email']);
@@ -241,92 +256,82 @@ end;
 
 function TUserAdminModule.Edit: string;
 begin
-
+  Result := '';
 end;
 
 function TUserAdminModule.Data: string;
 var
-  o, oData, oTmp: TJSONObject;
+  o, oData: TJSONObject;
   sql: string;
 
-  index, limit, search, where: string;
+  limit, search, where: string;
   recordsFiltered, recordsTotal: integer;
 
 begin
   Result := '';
   if not isAjax then
     Exit;
-  where := 'uid<>1 AND isnull( deleted_by)';
-  index := _GET['start'];
-  limit := _GET['length'];
+  where := 'uid<>1 AND deleted_by IS NULL';
   search := _GET['search[value]'];
   if search <> '' then
   begin
-    where := where + ' AND (email LIKE "%' + search + '%")';
+    where := where + ' AND (email LIKE ' + User.QuoteValue('%' + search + '%') + ')';
   end;
-  if limit <> '' then
+  limit := '';
+  if _GET['length'] <> '' then
   begin
-    limit := ' LIMIT ' + index + ', ' + limit;
+    // numbers only
+    limit := ' LIMIT ' + i2s(s2i(_GET['start'])) + ', ' + i2s(s2i(_GET['length']));
   end;
 
   o := TJSONObject.Create;
   oData := TJSONObject.Create;
+  try
+    o.Add('code', 0);
+    o.Add('draw', 0);
 
-  o.Add('code', 0);
-  o.Add('draw', 0);
+    sql := 'SELECT uid, name, uname, email, user_regdate, lastlogin, activated, "" as action_col FROM users u WHERE ' + where + limit;
+    if QueryOpenToJson(sql, oData, False) then
+    begin
 
-  sql := 'SELECT uid, name, uname, email, user_regdate, lastlogin, activated, "" as action_col FROM users u WHERE ' + where + limit;
-  if QueryOpenToJson(sql, oData, False) then
-  begin
+      sql := 'SELECT count( uid) as recordstotal FROM users u WHERE uid<>1 AND deleted_by IS NULL';
+      recordsTotal := User.RecordsTotalFiltered(sql);
+      recordsFiltered := oData['count'].AsInteger;
 
-    sql := 'SELECT count( uid) as recordstotal FROM users u WHERE uid<>1 AND isnull( deleted_by)';
-    recordsTotal := User.RecordsTotalFiltered(sql);
-    recordsFiltered := oData['count'].AsInteger;
+      o.Add('recordsFiltered', recordsFiltered);
+      o.Add('recordsTotal', recordsTotal);
+      // moved, not shared: oData is freed below
+      o.Add('data', oData.Extract('data'));
+      o.Add('loadtime', ThemeUtil.GetDebugInfo('time'));
+    end;
+    {$IFDEF DEBUG}
+    if ((AppData.debug) and (AppData.debugLevel <= 2)) then
+    begin
+      o.Add('sql', sql);
+    end;
+    {$ENDIF}
 
-    o.Add('recordsFiltered', recordsFiltered);
-    o.Add('recordsTotal', recordsTotal);
-    o.Add('data', oData['data']);
-    o.Add('loadtime', ThemeUtil.GetDebugInfo('time'));
+    Result := JsonFormatter(o.AsJSON);
+  finally
+    oData.Free;
+    o.Free;
   end;
-  {$IFDEF DEBUG}
-  if ((AppData.debug) and (AppData.debugLevel <= 2)) then
-  begin
-    o.Add('sql', sql);
-  end;
-  {$ENDIF}
-
-  Result := JsonFormatter(o.AsJSON);
-  FreeAndNil(o);
 end;
 
 function TUserAdminModule.Activate: string;
 var
   uid: integer;
-  email: string;
 begin
   Result := defaultPostCheck(ACCESS_ADD);
   if Result <> '' then
     Exit;
 
   uid := s2i(_POST['uid']);
-  email := User.UserInfo[USER_FIELDNAME_EMAIL];
 
   if User.Activate(uid) then
   begin
     Result := setOutput(0, 'OK');
-
-    // -- TODO: send activation email
-    with TMailer.Create() do
-    begin
-      AddTo(email);
-      Subject := 'Activation Email - ' + AppData.sitename;
-
-      // ....
-
-      //Send;
-      Free;
-    end;
-
+    //-- TODO: send activation email to User[USER_FIELDNAME_EMAIL]
   end
   else
     Result := setOutput(-1, MSG_USER_ACTIVATE_FAILED);
@@ -382,24 +387,33 @@ end;
 procedure TUserAdminModule.RequestHandler(Sender: TObject; ARequest: TRequest;
   AResponse: TResponse; var Handled: boolean);
 begin
+  // Redirect and Die do not stop the request: leave explicitly
   if not User.isLoggedIn then
   begin
-    FreeAndNil(User);
-    if not isAjax then
-      Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
     FlashMessages := MSG_NOLOGIN_OR_SESSIONEXPIRED;
-    Response.Content := setOutput(ERR_REDIRECT, MSG_NOLOGIN_OR_SESSIONEXPIRED,
-      BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
-    Die;
+    if isAjax then
+    begin
+      Response.ContentType := 'application/json';
+      Response.Content := setOutput(ERR_REDIRECT, MSG_NOLOGIN_OR_SESSIONEXPIRED,
+        BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
+    end
+    else
+      Redirect(BaseURL + USER_URL_LOGIN + '?url=' + ADMIN_USER_URL);
+    Handled := True;
+    Exit;
   end;
 
   if not User.checkPermission('user', 'user', ACCESS_ADD) then
   begin
-    FreeAndNil(User);
-    if not isAjax then
+    if isAjax then
+    begin
+      Response.ContentType := 'application/json';
+      Response.Content := setOutput(ERR_REDIRECT, MSG_NOPERMISSION, BaseURL + 'admin');
+    end
+    else
       Redirect(BaseURL + 'admin');
-    Response.Content := setOutput(ERR_REDIRECT, MSG_NOPERMISSION, BaseURL + 'admin');
-    Die;
+    Handled := True;
+    Exit;
   end;
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
@@ -424,6 +438,7 @@ begin
     begin
       Response.ContentType := 'application/json';
       Die(Data);
+      Exit;
     end;
   end;
 
@@ -452,7 +467,7 @@ end;
 function TUserAdminModule.setOutput(code: integer; message: string;
   url: string): string;
 var
-  o, oData: TJSONObject;
+  o: TJSONObject;
   csrf: string;
 begin
   o := TJSONObject.Create();
@@ -461,13 +476,10 @@ begin
   if url <> '' then
     o.Add('url', url);
   o.Add('loadtime', ThemeUtil.GetDebugInfo('time'));
-  with TSecurityUtil.Create do
-  begin
-    csrf := GenerateCSRF('usertable');
-    o.Add('token', csrf);
-    _SESSION[CSRFTOKEN_KEY] := csrf;
-    Free;
-  end;
+  // the next request must carry this token (checked by isValidCSRF); the old
+  // code wrote its own value over the framework token
+  csrf := HTMLUtil.CSRF('usertable', False);
+  o.Add('token', csrf);
   Result := JsonFormatter(o.AsJSON);
   FreeAndNil(o);
 end;
@@ -477,7 +489,6 @@ var
   uid: integer;
 begin
   Result := setOutput(1, 'Failed.');
-  ;
   if (not isAjax) or (not isPost) then
     Exit;
 
@@ -487,7 +498,11 @@ begin
     Exit;
   end;
 
-  //-- TODO: check token first
+  if not isValidCSRF then
+  begin
+    Result := setOutput(9, MSG_TOKEN_INVALID);
+    Exit;
+  end;
 
   //-- check post uid
   uid := s2i(_POST['uid']);
@@ -577,27 +592,26 @@ const
 var
   result_content: TStringList;
   url: string;
-  regDate, loginDate: string;
+  loginDate: string;
 begin
   Result := '';
   if not User.checkPermission('user', 'user', ACCESS_ADD) then
     Exit;
 
-  if User.Find(['email LIKE "%' + Keyword + '%"']) then
+  if User.Find(['email LIKE ' + User.QuoteValue('%' + Keyword + '%')]) then
   begin
     result_content := TStringList.Create;
     result_content.Add('<ul>');
     repeat
       url := User['uid'];
       url := BaseURL + 'admin/user/view/' + url;
-      regDate := DateTimeHuman(User[USER_FIELDNAME_REGDATE]);
       loginDate := UNKNOWN;
       try
         loginDate := DateTimeHuman(User[USER_FIELDNAME_LASTLOGIN]);
       except
       end;
       result_content.Add(Format(ADMIN_USER_SEARCHRESULT,
-        [url, User[USER_FIELDNAME_EMAIL], loginDate]));
+        [url, HTMLEncode(VarToStr(User[USER_FIELDNAME_EMAIL])), HTMLEncode(loginDate)]));
       User.Next;
     until User.EOF;
     result_content.Add('</ul>');

@@ -47,7 +47,7 @@ type
     function getData(APath: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property Token: string read FToken write FToken;
     property Features: string read FFeatures write FFeatures;
@@ -70,8 +70,6 @@ const
   _COGNITIVE_ANALYZE_URL =
     'https://%s.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=%s&details=%s&language=en';
 
-var
-  Response: IHTTPResponse;
 
 { TCognitiveAnalyze }
 
@@ -102,6 +100,7 @@ destructor TCognitiveAnalyze.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TCognitiveAnalyze.Analyze: string;
@@ -118,12 +117,15 @@ begin
   if Result = '' then
     Exit;
 
+  FreeAndNil(jsonData);
+
   jsonData := GetJSON(Result);
   Result := getData('categories[0].detail.celebrities[0].name');
   if Result <> '' then
     Result := '*' + Result + '*'#10;
 
-  if getData('adult.isAdultContent') = 'true' then
+  // AsString of a JSON boolean is 'True'
+  if LowerCase(getData('adult.isAdultContent')) = 'true' then
     Result := Result + 'sepertinya gambar dewasa.'#10;
 
   // get tags
@@ -155,6 +157,7 @@ end;
 
 function TCognitiveAnalyze.AnalyzeAsJSON(AImageURL: string): string;
 var
+  Response: IHTTPResponse;
   _body: string;
 begin
   Result := '';
@@ -165,11 +168,11 @@ begin
     Exit;
 
   with THTTPLib.Create(generateURL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Ocp-Apim-Subscription-Key', FToken);
-      _body := '{"url":"' + AImageURL + '"}';
+      _body := '{"url":"' + StringToJSONString(AImageURL, False) + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
       FResultText := Response.ResultText;
@@ -181,6 +184,7 @@ begin
       on E: Exception do
         LogUtil.Add(E.Message, 'OCRANA');
     end;
+  finally
     Free;
   end;
 end;

@@ -48,6 +48,7 @@ type
     FAccountType: TRajaOngkirAccountType;
     FIsSuccessfull: boolean;
     FKey: string;
+    FResultText: string;
     FURL: string;
     function getAccountType: TRajaOngkirAccountType;
     function getResultText: string;
@@ -55,7 +56,7 @@ type
     function TrackAsJson(CourierName, WayBillNumber: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     function Track(CourierName, WayBillNumber: string): string;
   published
     property AccountType: TRajaOngkirAccountType
@@ -89,29 +90,35 @@ const
   PATH_RECEIVER_NAME = 'rajaongkir/result/summary/receiver_name';
   PATH_MANIFEST = 'rajaongkir/result/manifest';
 
-var
-  Response: IHTTPResponse;
 
 
 { TRajaOngkirIntegration }
 
 function TRajaOngkirIntegration.TrackAsJson(CourierName, WayBillNumber: string): string;
 var
-  s, return, urlTarget: string;
+  Response: IHTTPResponse;
+  urlTarget: string;
   httpClient: THTTPLib;
 begin
   Result := '';
   if ((FKey = '') or (CourierName = '') or (WayBillNumber = '')) then
     Exit;
 
+  FResultText := '';
+  FIsSuccessfull := False;
   urlTarget := FURL + 'waybill';
   httpClient := THTTPLib.Create(urlTarget);
-  httpClient.ContentType := 'application/x-www-form-urlencoded';
-  httpClient.AddHeader('key', FKey);
-  httpClient.FormData['waybill'] := WayBillNumber;
-  httpClient.FormData['courier'] := CourierName;
-  Response := httpClient.Post;
-  httpClient.Free;
+  try
+    httpClient.ContentType := 'application/x-www-form-urlencoded';
+    httpClient.AddHeader('key', FKey);
+    httpClient.FormData['waybill'] := WayBillNumber;
+    httpClient.FormData['courier'] := CourierName;
+    Response := httpClient.Post;
+    FResultText := Response.ResultText;
+    FIsSuccessfull := httpClient.IsSuccessfull;
+  finally
+    httpClient.Free;
+  end;
 
   if Response.ResultCode = 200 then
     Result := Response.ResultText;
@@ -124,7 +131,7 @@ end;
 
 function TRajaOngkirIntegration.getResultText: string;
 begin
-  Result := Response.ResultText;
+  Result := FResultText;
 end;
 
 procedure TRajaOngkirIntegration.setAccountType(AValue: TRajaOngkirAccountType);
@@ -162,6 +169,7 @@ begin
 
   if not IsJsonValid(Result) then
     Exit;
+  FreeAndNil(jsonData);
   jsonData := GetJSON(Result);
 
   Result := jsonGetData(jsonData, PATH_STATUS_CODE);

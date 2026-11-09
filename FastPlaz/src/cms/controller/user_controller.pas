@@ -6,7 +6,7 @@ interface
 
 uses
   fpjson,
-  Classes, SysUtils, fpcgi, HTTPDefs, fastplaz_handler, html_lib, user_util, user_model,
+  Classes, SysUtils, fastplaz_app, HTTPDefs, fastplaz_handler, html_lib, user_util, user_model,
   database_lib, security_util, language_lib, mailer_lib;
 
 const
@@ -48,7 +48,17 @@ type
 
 implementation
 
-uses theme_controller, common, logutil_lib, modvar_util;
+uses theme_controller, common, logutil_lib, modvar_util, Variants;
+
+// only a path inside this site may follow BaseURL after login
+function safeRedirectPath(const APath: string): string;
+begin
+  Result := Trim(APath);
+  while (Result <> '') and (Result[1] in ['/', '\']) do
+    Delete(Result, 1, 1);
+  if (Pos('://', Result) > 0) or (Pos(#10, Result) > 0) or (Pos(#13, Result) > 0) then
+    Result := '';
+end;
 
 constructor TUserModule.CreateNew(AOwner: TComponent; CreateMode: integer);
 begin
@@ -87,10 +97,13 @@ begin
   end;
 
   if User.isLoggedIn then
+  begin
     Redirect(BaseURL + USER_URL_DASHBOARD);
+    Exit;
+  end;
 
   if isPost then
-    doLogin
+    Result := doLogin
   else
   begin
     _SESSION['url_redirect'] := _GET['url'];
@@ -100,10 +113,12 @@ begin
   end;
 end;
 
+// Redirect does not stop the request, so every failure path exits
 function TUserModule.DoLogin: string;
 var
   urlRedirect: string;
 begin
+  Result := '';
   if not isPost then
     Exit;
 
@@ -111,19 +126,20 @@ begin
   begin
     ThemeUtil.FlashMessages := MSG_TOKEN_INVALID;
     Redirect(BaseURL);
+    Exit;
   end;
+
+  urlRedirect := safeRedirectPath(_SESSION['url_redirect']);
+  if urlRedirect = '' then
+    urlRedirect := safeRedirectPath(_GET['url']);
 
   if not User.Login(_POST['data[username]'], _POST['data[password]']) then
   begin
     ThemeUtil.FlashMessages := Format(MSG_LOGIN_INVALID, [User.FailedLoginCount]);
     Redirect(BaseURL + USER_URL_LOGIN);
+    Exit;
   end;
-
-  urlRedirect := '';
-  if _SESSION['url'] <> '' then
-    urlRedirect := _SESSION['url']
-  else
-    urlRedirect := _GET['url'];
+  SessionController.DeleteKey('url_redirect');
 
   if urlRedirect = '' then
     Redirect(BaseURL + USER_URL_DASHBOARD)
@@ -139,9 +155,12 @@ end;
 
 function TUserModule.Dashboard: string;
 begin
+  Result := '';
   if not User.isLoggedIn or Session.IsExpired then
+  begin
     Redirect(BaseURL + USER_URL_LOGIN);
-
+    Exit;
+  end;
 
   Result := ThemeUtil.RenderFromContent(@TagController, '',
     'modules/users/view/dashboard.html');
@@ -151,21 +170,37 @@ function TUserModule.ChangePassword: string;
 var
   userId: integer;
   email, hashedPassword: string;
+  sec: TSecurityUtil;
 begin
   Result := '';
   if not User.isLoggedIn then
+  begin
     Redirect(BaseURL + USER_URL_LOGIN);
+    Exit;
+  end;
   if isPost then
   begin
+    if not isValidCSRF then
+    begin
+      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_TOKEN_INVALID);
+      Exit;
+    end;
     if (_POST['data[oldpassword]'] = '') or (_POST['data[password]'] = '') or
       (_POST['data[password2]'] = '') then
     begin
       Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_FIELD_INCORRECT);
+      Exit;
     end;
 
     if _POST['data[password]'] <> _POST['data[password2]'] then
     begin
       Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORDNEW_INVALID);
+      Exit;
+    end;
+    if not TSecurityUtil.IsPasswordAcceptable(_POST['data[password]']) then
+    begin
+      Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORDNEW_INVALID);
+      Exit;
     end;
 
     userId := User.UserIdLoggedIn;
@@ -174,24 +209,22 @@ begin
     begin
       hashedPassword := User[USER_FIELDNAME_PASSWORD];
       email := User[USER_FIELDNAME_EMAIL];
-      with TSecurityUtil.Create do
-      begin
-        if not CheckSaltedHash(email + _POST['data[oldpassword]'], hashedPassword) then
+      sec := TSecurityUtil.Create;
+      try
+        if not sec.CheckSaltedHash(email + _POST['data[oldpassword]'], hashedPassword) then
         begin
           Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_INVALID);
+          Exit;
         end;
-
-        if User.ChangePassword(userId, _POST['data[password]']) then
-        begin
-          Redirect(BaseURL + USER_URL_DASHBOARD, MSG_PASSWORD_UPDATED);
-        end
-        else
-        begin
-          Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_FAILED);
-        end;
-
-        Free;
+      finally
+        sec.Free;
       end;
+
+      if User.ChangePassword(userId, _POST['data[password]']) then
+        Redirect(BaseURL + USER_URL_DASHBOARD, MSG_PASSWORD_UPDATED)
+      else
+        Redirect(BaseURL + USER_URL_CHANGEPASSWORD, MSG_PASSWORD_FAILED);
+      Exit;
     end;
 
   end;
@@ -207,7 +240,8 @@ begin
   begin
     if not isValidCSRF then
     begin
-      Redirect(BaseURL + USER_URL_LOSTPASSWORD);
+      Redirect(BaseURL + USER_URL_LOSTPASSWORD, MSG_TOKEN_INVALID);
+      Exit;
     end;
     if not User.isEmailExists(_POST['data[email]']) then
     begin
@@ -231,9 +265,16 @@ begin
   if isPost and isAjax then
   begin
     Result := DoRegister;
+    Response.ContentType := 'application/json';
     die(Result);
+    Exit;
   end;
-  User.Logout;
+  // opening the form used to log the visitor out
+  if User.isLoggedIn then
+  begin
+    Redirect(BaseURL + USER_URL_DASHBOARD);
+    Exit;
+  end;
   Result := ThemeUtil.RenderFromContent(@TagController, Result,
     'modules/users/view/register.html');
 end;
@@ -241,38 +282,39 @@ end;
 function TUserModule.DoRegister: string;
 var
   code: integer;
-  token, email, pass1, pass2: string;
+  email, pass1, pass2: string;
 
   function setOutput(code: integer; message: string; url: string = ''): string;
   var
-    o, oData: TJSONObject;
+    o: TJSONObject;
   begin
     o := TJSONObject.Create();
     o.Add('code', code);
     o.Add('msg', message);
     if url <> '' then
       o.Add('url', url);
-    o.Add('token', HTMLUtil.CSRF('registerform'));
+    o.Add('token', HTMLUtil.CSRF('registerform', False));
     Result := JsonFormatter(o.AsJSON);
     FreeAndNil(o);
   end;
 
 begin
-  token := _SESSION[__HTML_CSRF_TOKEN_KEY];
   if not isValidCSRF then
   begin
-    //HTMLUtil.ResetCSRF;
-    //Result := setOutput(9, 'Security: Invalid CSRF Token: ' + _POST['csrftoken'] + '--' + token);
-    //Exit;
+    Result := setOutput(9, MSG_TOKEN_INVALID);
+    Exit;
   end;
 
-  //HTMLUtil.ResetCSRF;
-  code := -1;
   email := trim(_POST['data[email]']);
   pass1 := trim(_POST['data[password]']);
   pass2 := trim(_POST['data[password2]']);
 
   if (email = '') or (pass1 = '') or (pass2 = '') then
+  begin
+    Result := setOutput(1, MSG_VALUE_INVALID);
+    Exit;
+  end;
+  if not TSecurityUtil.IsValidEmail(email) then
   begin
     Result := setOutput(1, MSG_VALUE_INVALID);
     Exit;
@@ -289,6 +331,11 @@ begin
     Result := setOutput(3, MSG_PASSWORD_INVALID);
     Exit;
   end;
+  if not TSecurityUtil.IsPasswordAcceptable(pass1) then
+  begin
+    Result := setOutput(3, MSG_PASSWORD_INVALID);
+    Exit;
+  end;
 
   code := User.Add(email, pass1, nil);
   if code = 0 then
@@ -296,17 +343,7 @@ begin
   else
   begin
     Result := setOutput(0, 'OK', BaseURL + USER_URL_REGISTER_THANKYOU);
-
     //-- TODO: send welcome email
-    Mail := TMailer.Create();
-    Mail.AddTo(email);
-    Mail.Subject := 'Welcome Email - ' + AppData.sitename;
-
-
-    // .....
-
-    FreeAndNil(Mail);
-
   end;
 end;
 
@@ -378,14 +415,14 @@ end;
 
 function TUserModule.Tag_UserInfo(const TagName: string; Params: TStringList): string;
 begin
-  Result := User.UserInfo[Params.Values['type']];
+  Result := HTMLEncode(VarToStr(User.UserInfo[Params.Values['type']]));
 end;
 
 procedure TUserModule.BeforeRequestHandler(Sender: TObject; ARequest: TRequest);
 begin
   action := _GET['$2'];
   ThemeUtil.Layout := 'user';
-  ThemeUtil.Assign('demo', b2is( ModVar['system/demo']));  //<<--- demo parsing variable to 'view'
+  ThemeUtil.Assign('demo', b2is( s2b( VarToStr( ModVar['system/demo']))));  //<<--- demo parsing variable to 'view'
 
   Tags['maincontent'] := @Tag_MainContent_Handler; //<<-- tag maincontent handler
   Tags['usermenu'] := @Tag_UserMenu;

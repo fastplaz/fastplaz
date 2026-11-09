@@ -96,8 +96,6 @@ implementation
 const
   SPROUTVIDEO_BASEURL = 'https://api.sproutvideo.com/v1/';
 
-var
-  Response: IHTTPResponse;
 
 { TSproutVideoIntegration }
 
@@ -115,6 +113,7 @@ end;
 
 function TSproutVideoIntegration.ListVideos: string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   FIsSuccessfull := False;
@@ -122,7 +121,7 @@ begin
 
   urlTarget := SPROUTVIDEO_BASEURL + 'videos';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('SproutVideo-Api-Key', FKey);
       Response := Get;
@@ -133,6 +132,7 @@ begin
       Result := FResultText;
     except
     end;
+  finally
     Free;
   end;
 
@@ -146,6 +146,7 @@ end;
 function TSproutVideoIntegration.UploadVideoCustom(FileName: string;
   Title, Description, Options: string): boolean;
 var
+  Response: IHTTPResponse;
   j: TJSONData;
   i: integer;
   urlTarget: string;
@@ -155,7 +156,7 @@ begin
 
   urlTarget := SPROUTVIDEO_BASEURL + 'videos';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       //ContentType := 'application/x-www-form-urlencoded';
       {
@@ -171,18 +172,26 @@ begin
       FormData['description'] := Description;
       AddFile(FileName, 'file');
       Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
       if IsSuccessfull then
       begin
-        FResultCode := Response.ResultCode;
-        FResultText := Response.ResultText;
-
         j := GetJSON(FResultText);
-        i := TJSONObject(j).IndexOfName('id');
-        FID := j.Items[i].AsString;
+        try
+          if j is TJSONObject then
+          begin
+            i := TJSONObject(j).IndexOfName('id');
+            if i <> -1 then
+              FID := j.Items[i].AsString;
+          end;
+        finally
+          j.Free;
+        end;
         FIsSuccessfull := True;
       end;
     except
     end;
+  finally
     Free;
   end;
   Result := FIsSuccessfull;
@@ -190,22 +199,23 @@ end;
 
 function TSproutVideoIntegration.Delete(VideoID: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   FIsSuccessfull := False;
 
   urlTarget := SPROUTVIDEO_BASEURL + 'videos/' + VideoID;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('SproutVideo-Api-Key', FKey);
       Response := Delete;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      // TODO: check result
-      FIsSuccessfull := True;
+      FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 

@@ -62,8 +62,6 @@ const
   _COGNITIVE_OCR_URL =
     'https://%s.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=%s&details=%s&language=en';
 
-var
-  Response: IHTTPResponse;
 
 { TCognitiveDomainSpecific }
 
@@ -83,6 +81,7 @@ destructor TCognitiveDomainSpecific.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TCognitiveDomainSpecific.Scan: string;
@@ -96,6 +95,8 @@ begin
   if Result = '' then
     Exit;
 
+  FreeAndNil(jsonData);
+
   jsonData := GetJSON(Result, False);
   Result := jsonGetData(jsonData, 'result.celebrities[0].name') + ' ' + jsonGetData(jsonData, 'result.celebrities[1].name');
   Result := Trim( Result);
@@ -103,6 +104,7 @@ end;
 
 function TCognitiveDomainSpecific.ScanAsJSON(AImageURL: string): string;
 var
+  Response: IHTTPResponse;
   _body: string;
 begin
   Result := '';
@@ -113,11 +115,11 @@ begin
     Exit;
 
   with THTTPLib.Create(generateURL) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Ocp-Apim-Subscription-Key', FToken);
-      _body := '{"url":"' + AImageURL + '"}';
+      _body := '{"url":"' + StringToJSONString(AImageURL, False) + '"}';
       RequestBody := TStringStream.Create(_body);
       Response := Post;
       FResultText := Response.ResultText;
@@ -129,6 +131,7 @@ begin
       on E: Exception do
         LogUtil.Add(E.Message, 'OCRDOM');
     end;
+  finally
     Free;
   end;
 

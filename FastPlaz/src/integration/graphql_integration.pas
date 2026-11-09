@@ -47,7 +47,6 @@ unit graphql_integration;
 interface
 
 uses
-  Dialogs,
   http_lib, json_lib,
   {$if FPC_FULlVERSION >= 30200}
   opensslsockets,
@@ -68,9 +67,11 @@ type
     FURL: string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     function Query(const AQuery: string; const Variables: TJSONUtil = nil): string; overload;
     function Query(const AQuery: string; const Variables: string): string; overload;
+    // {"query": "...", "variables": {...}} with the query escaped
+    class function BuildRequestBody(const AQuery, Variables: string): string;
   published
     property URL: string read FURL write FURL;
     property Authorization: string read FAuthorization write FAuthorization;
@@ -90,6 +91,17 @@ end;
 
 destructor TGraphQLIntegration.Destroy;
 begin
+  inherited Destroy;
+end;
+
+class function TGraphQLIntegration.BuildRequestBody(const AQuery,
+  Variables: string): string;
+begin
+  if Variables.IsEmpty then
+    Result := '{"query": "' + StringToJSONString(AQuery, False) + '" }'
+  else
+    Result := '{"query": "' + StringToJSONString(AQuery, False) + '",'
+      + '"variables": ' + Variables + ' }';
 end;
 
 function TGraphQLIntegration.Query(const AQuery: string;
@@ -106,19 +118,15 @@ function TGraphQLIntegration.Query(const AQuery: string;
 var
   request: string;
   httpResult: IHTTPResponse;
-  requestBody: TStream;
 begin
   Result := '{}';
   FIsSuccessfull := False;
   if FURL.IsEmpty then
     Exit;
-  if Variables.IsEmpty then
-    request := '{"query": "' + AQuery + '" }'
-  else
-    request := '{"query": "' + AQuery + '",' + '"variables": ' + Variables + ' }';
+  request := BuildRequestBody(AQuery, Variables);
 
   with THTTPLib.Create(FURL) do
-  begin
+  try
     ContentType := 'application/json';
     RequestBody := TStringStream.Create(request);
     if not FAuthorization.IsEmpty then
@@ -128,6 +136,7 @@ begin
     if httpResult.ResultCode = 200 then
       FIsSuccessfull := True;;
     Result := httpResult.ResultText;
+  finally
     Free;
   end;
 

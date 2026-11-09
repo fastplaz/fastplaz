@@ -68,8 +68,6 @@ implementation
 const
   PORTALPULSA_API_URL = 'https://portalpulsa.com/api/connect/';
 
-var
-  Response: IHTTPResponse;
 
 { TPortalPulsaIntegration }
 
@@ -106,6 +104,7 @@ begin
     FResultCode := http.ResponseStatusCode;
     if FResultCode = 200 then
     begin
+      FreeAndNil(jsonData);
       jsonData := GetJSON(FResultText);
       FMessage := jsonGetData(jsonData, 'message');
       Result := True;

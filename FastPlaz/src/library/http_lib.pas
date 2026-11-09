@@ -54,12 +54,16 @@ unit http_lib;
   with THTTPLib.Create do
   begin
     URL:= 'http://address';
-    RequestBody := TStringStream.Create(s);
+    RequestBody := TStringStream.Create(s);  // freed by THTTPLib.Destroy
     Response := Post();
     ...
 
     Free;
   end;
+
+  Note: THTTPLib frees the stream currently assigned to RequestBody in
+  Destroy and Clear. Assigning another stream only replaces the reference.
+  Set RequestBody := nil before Free if the caller frees the stream itself.
 
   [x] SIMPLE UPLOAD FILE
   Response := UploadFile( [ 'fullpath/filename', 'otherfile', 'otherfiletoo' ] );
@@ -72,11 +76,6 @@ unit http_lib;
 interface
 
 uses
-  fpcgi,
-  {$ifndef win32}
-  //cthreads,
-  {$endif}
-  //cmem,
   fphttpclient,
   {$if fpc_fullversion >= 20701}
   //ghashmap,
@@ -87,10 +86,16 @@ uses
   {$if FPC_FULlVERSION >= 30200}
   opensslsockets, fpopenssl,
   {$endif}
-  strutils, Classes, SysUtils;
+  Classes, SysUtils;
 
 const
   FASTPLAZ_USERAGENT = 'fastplaz;fpc/'+{$i %FPCVERSION%}+';'+{$i %FPCTARGETOS%}+'/'+{$i %FPCTARGET%};
+
+// Build a multipart/form-data body. FormData holds "name=value" lines,
+// FileList holds "name=path" lines. The caller owns the returned stream.
+function HTTPMultipartEncode(FormData, FileList: TStrings;
+  const Boundary: string): TStream;
+function HTTPMultipartBoundary: string;
 
 type
 
@@ -133,6 +138,8 @@ type
     FIsSuccesfull: boolean;
     FMethod: string;
     FURL: string;
+    FOwnedBody: TStream;       // multipart body built by prepareRequestBody
+    FMultipartHeader: boolean; // Content-Type was set by prepareRequestBody
     HTTPClient: TFPHTTPClient;
     function GetRequestHeaders: string;
     function getResponseHeaders: string;
@@ -140,6 +147,7 @@ type
     function getURL: string;
     procedure setURL(AValue: string);
     procedure prepareRequestBody;
+    procedure cleanupRequestBody;
   protected
     procedure Execute;
   public
@@ -147,7 +155,7 @@ type
     FailedMessage: string;
     PostFormData: TStrings;
     FileList: TStrings;
-    constructor Create(CreateSuspended: boolean);
+    constructor Create;
     destructor Destroy; override;
     procedure AddFile(FileName: string; VarName: string = 'files[]');
   published
@@ -168,22 +176,25 @@ type
     FRequestBody: TStream;
     FWorker: TWorkerHTTP;
     FResponseTime: Dword;
-    FStopProcessing: boolean;
     function GetAllowRedirect: boolean;
     function getConnectTimeout: Integer;
+    function getIOTimeout: Integer;
     function GetCookies: TStrings;
     function GetPostFormData(variable: string): string;
+    function GetFormDataList: TStrings;
+    function GetFormFiles: TStrings;
     function getIsSuccessfull: boolean;
     function GetRequestHeaders: string;
     function getStreamSize: int64;
     function getURL: string;
     procedure SetAllowRedirect(AValue: boolean);
     procedure setConnectTimeout(AValue: Integer);
+    procedure setIOTimeout(AValue: Integer);
     procedure SetCookies(AValue: TStrings);
     procedure SetPostFormData(variable: string; AValue: string);
+    procedure setRequestBody(AValue: TStream);
     procedure setURL(AValue: string);
     function CustomSubmit(MethodSubmit: string): IHTTPResponse;
-    procedure ThreadTerminated(Sender: TObject);
     procedure SyncStatus;
     procedure Prepare;
     function __GetTickCount: DWord;
@@ -204,17 +215,21 @@ type
     procedure AddHeader(const HeaderKey, HeaderValue: string);
     property FormData[variable: string]: string
       read GetPostFormData write SetPostFormData; default;
+    // "name=value" / "name=path" lines sent as multipart parts (read only)
+    property FormDataList: TStrings read GetFormDataList;
+    property FormFiles: TStrings read GetFormFiles;
   published
     property URL: string read getURL write setURL;
     property AllowRedirect: boolean read GetAllowRedirect write SetAllowRedirect;
     property ContentType: string read FContentType write FContentType;
-    property RequestBody: TStream read FRequestBody write FRequestBody;
+    property RequestBody: TStream read FRequestBody write setRequestBody;
     property Cookies: TStrings read GetCookies write SetCookies;
     property Size: int64 read getStreamSize;
     property IsSuccessfull: boolean read getIsSuccessfull;
     property OnSyncStatus: TNotifyEvent read FOnSyncStatus write FOnSyncStatus;
     property RequestHeaders: string read GetRequestHeaders;
     property ConnectTimeout: Integer read getConnectTimeout write setConnectTimeout;
+    property IOTimeout: Integer read getIOTimeout write setIOTimeout;
   end;
 
 
@@ -222,6 +237,80 @@ implementation
 
 const
   CRLF = #13#10;
+
+var
+  BoundarySeeded: boolean = False;
+
+function HTTPMultipartBoundary: string;
+begin
+  if not BoundarySeeded then
+  begin
+    Randomize;
+    BoundarySeeded := True;
+  end;
+  Result := Format('----fastplaz%.8x%.8x', [Random($7fffffff), Random($7fffffff)]);
+end;
+
+// Quote a header parameter value; double quotes have no escape in
+// multipart headers, so they are percent-encoded like browsers do.
+function MultipartQuote(const AValue: string): string;
+begin
+  Result := StringReplace(AValue, '"', '%22', [rfReplaceAll]);
+  Result := StringReplace(Result, #13, '%0D', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, '%0A', [rfReplaceAll]);
+end;
+
+procedure StreamWriteString(AStream: TStream; const S: string);
+begin
+  if S <> '' then
+    AStream.WriteBuffer(S[1], Length(S));
+end;
+
+function HTTPMultipartEncode(FormData, FileList: TStrings;
+  const Boundary: string): TStream;
+var
+  i: integer;
+  F: TFileStream;
+  fileName: string;
+begin
+  Result := TMemoryStream.Create;
+  try
+    if Assigned(FormData) then
+      for i := 0 to FormData.Count - 1 do
+      begin
+        StreamWriteString(Result, '--' + Boundary + CRLF);
+        StreamWriteString(Result, 'Content-Disposition: form-data; name="' +
+          MultipartQuote(FormData.Names[i]) + '"' + CRLF + CRLF);
+        StreamWriteString(Result, FormData.ValueFromIndex[i] + CRLF);
+      end;
+
+    if Assigned(FileList) then
+      for i := 0 to FileList.Count - 1 do
+      begin
+        fileName := FileList.ValueFromIndex[i];
+        StreamWriteString(Result, '--' + Boundary + CRLF);
+        StreamWriteString(Result, Format(
+          'Content-Disposition: form-data; name="%s"; filename="%s"' + CRLF,
+          [MultipartQuote(FileList.Names[i]),
+          MultipartQuote(ExtractFileName(fileName))]));
+        StreamWriteString(Result, 'Content-Type: application/octet-stream' +
+          CRLF + CRLF);
+        F := TFileStream.Create(fileName, fmOpenRead or fmShareDenyWrite);
+        try
+          Result.CopyFrom(F, 0);
+        finally
+          F.Free;
+        end;
+        StreamWriteString(Result, CRLF);
+      end;
+
+    StreamWriteString(Result, '--' + Boundary + '--' + CRLF);
+    Result.Position := 0;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
 
 { TWorkerHTTP }
 
@@ -252,83 +341,51 @@ end;
 
 procedure TWorkerHTTP.prepareRequestBody;
 var
-  S, Sep, postFormDataVar, fileVar: string;
-  SS: TStringStream;
-  F: TFileStream;
-  i: integer;
+  Sep: string;
 begin
-  s := '';
-  Sep := Format('%.8x_multipart_boundary', [Random($ffffff)]);
-  //HTTPClient.AddHeader('Content-Type','application/x-www-form-urlencoded');
+  cleanupRequestBody;
+  Sep := HTTPMultipartBoundary;
+  FOwnedBody := HTTPMultipartEncode(PostFormData, FileList, Sep);
   HTTPClient.AddHeader('Content-Type', 'multipart/form-data; boundary=' + Sep);
-  //HTTPClient.AddHeader('Content-Type', 'multipart/form-data');
-  if PostFormData.Count > 0 then
-  begin
-    for i := 1 to PostFormData.Count do
-    begin
-      postFormDataVar := ExtractDelimited(1, PostFormData[i - 1], ['=']);
-      s := s + '--' + Sep + CRLF;
-      s := s + 'Content-Disposition: form-data; name=' + AnsiQuotedStr(
-        postFormDataVar, '"') + CRLF + 'Content-Type: text/plain' +
-        CRLF + CRLF + ExtractDelimited(2, PostFormData[i - 1], ['=']) + CRLF;
-    end;
-  end;
-
-  SS := TStringStream.Create(s);
-  try
-
-    // file upload
-    SS.Seek(0, soFromEnd);
-    if FileList.Count > 0 then
-    begin
-      for i := 1 to FileList.Count do
-      begin
-        fileVar := ExtractDelimited(1, FileList[i - 1], ['=']);
-        s := '--' + Sep + CRLF;
-        s := s + Format('Content-Disposition: form-data; name="%s"; filename="%s"' +
-          CRLF, [fileVar, ExtractFileName(ExtractDelimited(
-          2, FileList[i - 1], ['=']))]);
-        s := s + 'Content-Type: application/octet-string' + CRLF + CRLF;
-        SS.WriteBuffer(S[1], Length(S));
-
-        //SS.Seek(0,soFromEnd);
-        F := TFileStream.Create(ExtractDelimited(2, FileList[i - 1], ['=']),
-          fmOpenRead or fmShareDenyWrite);
-        try
-          SS.CopyFrom(F, F.Size);
-        finally
-          F.Free;
-        end;
-
-        S := CRLF + '--' + Sep + '--' + CRLF;
-        SS.WriteBuffer(S[1], Length(S));
-      end;
-    end;
-    // file upload - end
-
-    SS.Position := 0;
-    HTTPClient.RequestBody := SS;
-  except
-    on e: Exception do
-    begin
-      ResultStream.WriteString(e.Message);
-    end;
-  end;
-  exit;
-
+  FMultipartHeader := True;
+  HTTPClient.RequestBody := FOwnedBody;
 end;
 
-constructor TWorkerHTTP.Create(CreateSuspended: boolean);
+procedure TWorkerHTTP.cleanupRequestBody;
+var
+  i: integer;
 begin
+  if Assigned(FOwnedBody) then
+  begin
+    if HTTPClient.RequestBody = FOwnedBody then
+      HTTPClient.RequestBody := nil;
+    FreeAndNil(FOwnedBody);
+  end;
+  if FMultipartHeader then
+  begin
+    i := HTTPClient.IndexOfHeader('Content-Type');
+    if i >= 0 then
+      HTTPClient.RequestHeaders.Delete(i);
+    FMultipartHeader := False;
+  end;
+end;
+
+constructor TWorkerHTTP.Create;
+begin
+  inherited Create;
   FIsSuccesfull := False;
+  FOwnedBody := nil;
+  FMultipartHeader := False;
+  ResultStream := nil;
   PostFormData := TStringList.Create;
   FileList := TStringList.Create;
   HTTPClient := TFPHTTPClient.Create(nil);
-  inherited Create;
 end;
 
 destructor TWorkerHTTP.Destroy;
 begin
+  cleanupRequestBody;
+  ResultStream.Free;
   FileList.Free;
   PostFormData.Free;
   HTTPClient.Free;
@@ -346,52 +403,53 @@ procedure TWorkerHTTP.Execute;
 begin
   FailedMessage := '';
   FIsSuccesfull := False;
+  FreeAndNil(ResultStream);
+  ResultStream := TStringStream.Create('');
   try
-    ResultStream := TStringStream.Create('');
-    case FMethod of
-      'GET': HTTPClient.Get(FURL, ResultStream);
-      'FORMPOST':
-      begin
-        if not Assigned( HTTPClient.RequestBody) then
-           prepareRequestBody;
-        HTTPClient.Post(FURL, ResultStream);
+    try
+      // TFPHTTPClient.Get only accepts 200 and raises before the body is
+      // read; use HTTPMethod with no code filter so 4xx/5xx bodies survive.
+      case FMethod of
+        'GET': HTTPClient.HTTPMethod('GET', FURL, ResultStream, []);
+        'FORMPOST':
+        begin
+          if not Assigned(HTTPClient.RequestBody) then
+            prepareRequestBody;
+          HTTPClient.Post(FURL, ResultStream);
+        end;
+        'DELETE':
+        begin
+          if not Assigned(HTTPClient.RequestBody) then
+            prepareRequestBody;
+          HTTPClient.Delete(FURL, ResultStream);
+        end;
+        'PUT':
+        begin
+          if not Assigned(HTTPClient.RequestBody) then
+            prepareRequestBody;
+          HTTPClient.Put(FURL, ResultStream);
+        end;
+        'PATCH':
+        begin
+          if not Assigned(HTTPClient.RequestBody) then
+            prepareRequestBody;
+          HTTPClient.HTTPMethod('PATCH', FURL, ResultStream, []);
+        end;
       end;
-      'DELETE':
+      FIsSuccesfull := True;
+    except
+      on e: Exception do
       begin
-        if not Assigned( HTTPClient.RequestBody) then
-           prepareRequestBody;
-        HTTPClient.Delete(FURL, ResultStream);
-      end;
-      'PUT':
-      begin
-        if not Assigned( HTTPClient.RequestBody) then
-           prepareRequestBody;
-        HTTPClient.Put(FURL, ResultStream);
-      end;
-      'PATCH':
-      begin
-        if not Assigned( HTTPClient.RequestBody) then
-           prepareRequestBody;
-        //HTTPClient.Options(FURL, ResultStream);
-        HTTPClient.HTTPMethod('PATCH', FURL, ResultStream, []);
-      end;
-      'POST':
-      begin
-        ResultStream.WriteString(
-          HTTPClient.Post(FURL)
-          );
+        ResultStream.WriteString(e.Message);
+        FailedMessage := e.Message;
       end;
     end;
-    FIsSuccesfull := True;
-    HTTPClient.RequestHeaders.Clear;
-  except
-    on e: Exception do
-    begin
-      ResultStream.WriteString(e.Message);
-      FailedMessage := e.Message;
-    end;
+  finally
+    // the multipart body is per request; a caller supplied RequestBody is
+    // detached here and re-attached by THTTPLib.Prepare on the next call.
+    cleanupRequestBody;
+    HTTPClient.RequestBody := nil;
   end;
-
 end;
 
 
@@ -418,7 +476,7 @@ end;
 constructor THTTPResponse.Create(ResultCode: integer;
   const ResultHeader, ResultText: string);
 begin
-  Create(ResultCode, ResultHeader, ResultText);
+  Create(ResultCode, ResultHeader, ResultText, nil, 0);
 end;
 
 destructor THTTPResponse.Destroy;
@@ -469,6 +527,17 @@ begin
   FWorker.HTTPClient.ConnectTimeout := AValue;
 end;
 
+procedure THTTPLib.setIOTimeout(AValue: Integer);
+begin
+  FWorker.HTTPClient.IOTimeout := AValue;
+end;
+
+procedure THTTPLib.setRequestBody(AValue: TStream);
+begin
+  // only a reference; the stream assigned at Destroy/Clear time is freed there
+  FRequestBody := AValue;
+end;
+
 procedure THTTPLib.SetCookies(AValue: TStrings);
 begin
   if getCookies = AValue then
@@ -477,17 +546,25 @@ begin
 end;
 
 procedure THTTPLib.SetPostFormData(variable: string; AValue: string);
+var
+  i: integer;
 begin
-  if trim(variable) <> '' then
-    FWorker.PostFormData.Values[variable] := AValue;
+  if trim(variable) = '' then
+    Exit;
+  // TStrings.Values[] deletes the entry when the value is empty;
+  // an empty field must still be sent.
+  i := FWorker.PostFormData.IndexOfName(variable);
+  if i < 0 then
+    FWorker.PostFormData.Add(variable + '=' + AValue)
+  else
+    FWorker.PostFormData[i] := variable + '=' + AValue;
 end;
 
 function THTTPLib.getStreamSize: int64;
 begin
-  try
+  Result := 0;
+  if Assigned(FWorker.ResultStream) then
     Result := FWorker.ResultStream.Size;
-  except
-  end;
 end;
 
 function THTTPLib.GetCookies: TStrings;
@@ -505,6 +582,11 @@ begin
   Result := FWorker.HTTPClient.ConnectTimeout;
 end;
 
+function THTTPLib.getIOTimeout: Integer;
+begin
+  Result := FWorker.HTTPClient.IOTimeout;
+end;
+
 function THTTPLib.GetPostFormData(variable: string): string;
 begin
   try
@@ -512,6 +594,16 @@ begin
   except
     Result := '';
   end;
+end;
+
+function THTTPLib.GetFormDataList: TStrings;
+begin
+  Result := FWorker.PostFormData;
+end;
+
+function THTTPLib.GetFormFiles: TStrings;
+begin
+  Result := FWorker.FileList;
 end;
 
 function THTTPLib.getIsSuccessfull: boolean;
@@ -529,13 +621,6 @@ begin
   FWorker.URL := AValue;
 end;
 
-procedure THTTPLib.ThreadTerminated(Sender: TObject);
-begin
-  //(Sender as TMyThread).
-
-  FStopProcessing := True;
-end;
-
 procedure THTTPLib.SyncStatus;
 begin
   if assigned(OnSyncStatus) then
@@ -545,14 +630,17 @@ end;
 procedure THTTPLib.Prepare;
 begin
   if FContentType <> '' then
-    FWorker.HTTPClient.RequestHeaders.Add('Content-Type: ' + FContentType);
+    FWorker.HTTPClient.AddHeader('Content-Type', FContentType);
   if assigned(FRequestBody) then
+  begin
+    FRequestBody.Position := 0;
     FWorker.HTTPClient.RequestBody := FRequestBody;
+  end;
 end;
 
 function THTTPLib.__GetTickCount: DWord;
 begin
-  Result := DWord(Trunc(Now * 24 * 60 * 60 * 1000));
+  Result := DWord(GetTickCount64);
 end;
 
 function THTTPLib.UrlEncode(const DecodedStr: string; Pluses: boolean): string;
@@ -579,12 +667,11 @@ end;
 
 constructor THTTPLib.Create(URL: string);
 begin
+  inherited Create;
   FRequestBody := nil;
-  FWorker := TWorkerHTTP.Create(True);
+  FWorker := TWorkerHTTP.Create;
   FWorker.HTTPClient.AddHeader('User-Agent', FASTPLAZ_USERAGENT);
-  //FWorker.OnTerminate := @ThreadTerminated; -- prepare for threading
   setURL(URL);
-  FStopProcessing := False;
 end;
 
 constructor THTTPLib.Create;
@@ -594,13 +681,18 @@ end;
 
 destructor THTTPLib.Destroy;
 begin
+  FRequestBody.Free;
+  FWorker.Free;
   inherited Destroy;
 end;
 
 procedure THTTPLib.Clear;
 begin
   FWorker.HTTPClient.RequestHeaders.Clear;
+  FWorker.HTTPClient.AddHeader('User-Agent', FASTPLAZ_USERAGENT);
   FWorker.PostFormData.Clear;
+  FWorker.FileList.Clear;
+  FreeAndNil(FRequestBody);
   FContentType := '';
 end;
 
@@ -621,8 +713,6 @@ end;
 
 function THTTPLib.Post: IHTTPResponse;
 begin
-  //HTTPClient.RequestBody := TStringStream.Create(PostFormData.Text);
-
   Result := CustomSubmit('FORMPOST');
 end;
 
@@ -665,27 +755,7 @@ begin
   Result := THTTPResponse.Create(FWorker.ResponseStatusCode,
     FWorker.ResponseHeaders, FWorker.ResultStream.DataString,
     FWorker.ResultStream, FResponseTime);
-
-{
-  Prepare;
-  FResponseTime := __GetTickCount();
-  FWorker.Method := MethodSubmit;
-  FWorker.Start;
-  while not FStopProcessing do
-  begin
-    SyncStatus;
-
-    //Application.ProcessMessages;
-  end;
-  SyncStatus;
-  FResponseTime := __GetTickCount - FResponseTime;
-
-  Result := THTTPResponse.Create(FWorker.ResponseStatusCode,
-    FWorker.ResponseHeaders, FWorker.ResultStream.DataString,
-    FWorker.ResultStream, FResponseTime);
-}
 end;
 
 
 end.
-

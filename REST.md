@@ -1,5 +1,12 @@
-# REST Understanding**REST (Representational State Transfer)** was introduced and defined in 2000 by Roy Fielding in his [doctoral dissertation](https://www.ics.uci.edu/%7Efielding/pubs/dissertation/top.htm). REST is an architectural style for designing distributed systems. It is not a standard but a set of constraints, such as being stateless, having a client/server relationship, and a uniform interface. REST is not strictly related to HTTP, but it is most commonly associated with it.
-## Principles of REST- **Resources** expose easily understood directory structure URIs.
+
+# REST Understanding
+
+
+**REST (Representational State Transfer)** was introduced and defined in 2000 by Roy Fielding in his [doctoral dissertation](https://www.ics.uci.edu/%7Efielding/pubs/dissertation/top.htm). REST is an architectural style for designing distributed systems. It is not a standard but a set of constraints, such as being stateless, having a client/server relationship, and a uniform interface. REST is not strictly related to HTTP, but it is most commonly associated with it.
+
+## Principles of REST
+
+- **Resources** expose easily understood directory structure URIs.
 - **Representations** transfer JSON or XML to represent data objects and attributes.
 - **Messages** use HTTP methods explicitly (for example, GET, POST, PUT, and DELETE).
 - **Stateless** interactions store no client context on the server between requests. State dependencies limit and restrict scalability. The client holds session state.
@@ -67,7 +74,8 @@ DELETE /customer/1
 ```
 
 
-## HTTP status codes
+
+## HTTP status codes
 
 Status codes indicate the result of the HTTP request.
 
@@ -76,7 +84,10 @@ Status codes indicate the result of the HTTP request.
 - 3XX - redirection
 - 4XX - client error
 - 5XX - server error
-## Media types
+
+## Media types
 
 The `Accept` and `Content-Type` HTTP headers can be used to describe the content being sent or requested within an HTTP request. The client may set `Accept` to `application/json` if it is requesting a response in JSON. Conversely, when sending data, setting the `Content-Type` to `application/xml` tells the client that the data being sent in the request is XML.
-
+
+
+

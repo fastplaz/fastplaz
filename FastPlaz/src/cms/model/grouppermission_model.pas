@@ -15,10 +15,12 @@ type
   { TGroupPermissionModel }
 
   TGroupPermissionModel = class(TSimpleModel)
-  private
-    function fixSecurityString(Security: string): string;
   public
     constructor Create(const DefaultTableName: string = '');
+
+    // a stored component/instance pattern as a full regex body:
+    // '' -> '.*', ':x' -> '.*:x', 'a::b' -> 'a:.*:b', 'a:' -> 'a:.*'
+    class function FixSecurityString(Security: string): string;
 
     function Add(GroupID: integer; Compnent, Instance: string;
       Level: integer = 0): boolean;
@@ -45,15 +47,16 @@ const
   PERMISSION_FIELD_BOND = 'bond';
 
 
-function TGroupPermissionModel.fixSecurityString(Security: string): string;
+class function TGroupPermissionModel.FixSecurityString(Security: string): string;
 begin
   if Security = '' then
     Security := '.*';
-  if Pos(Security, ':') = 1 then
+  // Pos had its arguments reversed, so the leading ':' was never handled
+  if Security[1] = ':' then
     Security := '.*' + Security;
   Security := StringReplace(Security, '::', ':.*:', [rfReplaceAll]);
-  if (pos(Security, ':') = (Length(Security) - 1)) then
-    Security := '.*';
+  if Security[Length(Security)] = ':' then
+    Security := Security + '.*';
   Result := Security;
 end;
 
@@ -72,7 +75,8 @@ begin
   sequence := 0;
   if Data.Active then
     Data.Close;
-  Data.SQL.Text := 'SELECT MAX( sequence)+1 AS sequence FROM ' + PERMISSION_TABLENAME;
+  // COALESCE: an empty table gave NULL and an EVariantError
+  Data.SQL.Text := 'SELECT COALESCE(MAX( sequence), 0)+1 AS sequence FROM ' + PERMISSION_TABLENAME;
   Data.Open;
   if RecordCount > 0 then
     sequence := Value[PERMISSION_FIELD_SEQUENCE];
@@ -155,7 +159,7 @@ begin
     while not EOF do
     begin
       c := Value[PERMISSION_FIELD_COMPONENT];
-      c := '^' + fixSecurityString(c) + '$';
+      c := '^' + FixSecurityString(c) + '$';
       if not preg_match(c, Component) then
       begin
         Next;
@@ -167,11 +171,12 @@ begin
         level := i;
 
       c := Value[PERMISSION_FIELD_INSTANCE];
-      c := '^' + fixSecurityString(c) + '$';
+      c := '^' + FixSecurityString(c) + '$';
       if (preg_match(c, '::') and preg_match(c, '')) then
       begin
         break;
       end;
+      Next; // was missing: a non-matching instance looped forever
     end;//while not EOF
     Result := level;
     Exit;
@@ -183,7 +188,7 @@ begin
     while not EOF do
     begin
       c := Value[PERMISSION_FIELD_COMPONENT];
-      c := '^' + fixSecurityString(c) + '$';
+      c := '^' + FixSecurityString(c) + '$';
       if not preg_match(c, Component) then
       begin
         Next;
@@ -191,7 +196,7 @@ begin
       end;
 
       c := Value[PERMISSION_FIELD_INSTANCE];
-      c := '^' + fixSecurityString(c) + '$';
+      c := '^' + FixSecurityString(c) + '$';
       if not (preg_match(c, '::') and preg_match(c, '')) then
       begin
         Next;
@@ -210,7 +215,7 @@ begin
   while not EOF do
   begin
     c := Value[PERMISSION_FIELD_COMPONENT];
-    c := '^' + fixSecurityString(c) + '$';
+    c := '^' + FixSecurityString(c) + '$';
     if ((Component <> '') and (not preg_match(c, Component))) then
     begin
       Next;
@@ -218,7 +223,7 @@ begin
     end;
 
     c := Value[PERMISSION_FIELD_INSTANCE];
-    c := '^' + fixSecurityString(c) + '$';
+    c := '^' + FixSecurityString(c) + '$';
     if (not preg_match(c, Instance)) then
     begin
       Next;

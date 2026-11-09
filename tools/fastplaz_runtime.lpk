@@ -8,7 +8,7 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../FastPlaz"/>
-        <OtherUnitFiles Value="src;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper"/>
+        <OtherUnitFiles Value="runtime;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper"/>
         <UnitOutputDirectory Value="lib/runtime/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -24,8 +24,8 @@
     </CompilerOptions>
     <Description Value="FastPlaz RunTime
 "/>
-    <Version Minor="24" Release="11" Build="14"/>
-    <Files Count="48">
+    <Version Major="1" Release="11" Build="14"/>
+    <Files Count="50">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -115,7 +115,7 @@
         <UnitName Value="recaptcha_lib"/>
       </Item22>
       <Item23>
-        <Filename Value="../FastPlaz/src/library/regexpr_compilers.inc"/>
+        <Filename Value="../FastPlaz/src/library/regexpr_compilers_lib.inc"/>
         <Type Value="Include"/>
       </Item23>
       <Item24>
@@ -203,7 +203,7 @@
         <UnitName Value="modvar_util"/>
       </Item44>
       <Item45>
-        <Filename Value="src/fastplaz_runtime_register.pas"/>
+        <Filename Value="runtime/fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
       </Item45>
@@ -219,6 +219,14 @@
         <Filename Value="../FastPlaz/src/library/commonbase_lib.pas"/>
         <UnitName Value="commonbase_lib"/>
       </Item48>
+      <Item49>
+        <Filename Value="../FastPlaz/src/library/smtp_lib.pas"/>
+        <UnitName Value="smtp_lib"/>
+      </Item49>
+      <Item50>
+        <Filename Value="../FastPlaz/src/systems/fastplaz_app.pas"/>
+        <UnitName Value="fastplaz_app"/>
+      </Item50>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

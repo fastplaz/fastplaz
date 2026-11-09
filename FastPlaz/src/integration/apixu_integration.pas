@@ -41,7 +41,7 @@ type
     function getValue(AVariable: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -59,8 +59,6 @@ implementation
 const
   _APIXU_API_URL = 'http://api.weatherstack.com/current?units=m&access_key=%s&query=%s';
 
-var
-  Response: IHTTPResponse;
 
 { TApixuIntegration }
 
@@ -83,6 +81,7 @@ destructor TApixuIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TApixuIntegration.GetDataFloat(AVariable: string): double;
@@ -96,6 +95,7 @@ end;
 
 function TApixuIntegration.WeatherAsJson(ACityName: string): string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := '';
@@ -104,16 +104,18 @@ begin
 
   urlTarget := Format(_APIXU_API_URL, [FKey, UrlEncode(ACityName)]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     //AddHeader('Cache-Control', 'no-cache');
     Response := Get;
     FResultCode := Response.ResultCode;
     FResultText := Response.ResultText;
     if FResultCode = 200 then
     begin
+      FreeAndNil(jsonData);
       jsonData := GetJSON(FResultText, False);
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;

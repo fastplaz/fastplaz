@@ -85,12 +85,17 @@ type
     contentResult: String;
     FOnExecuteHandler: TExecuteHandlerEvent;
     FOnShowStatus: TShowStatusEvent;
+    FSynchronizeStatus: boolean;
     procedure syncUpdate;
   protected
     procedure Execute; override;
   public
     property OnExecuteHandler: TExecuteHandlerEvent read FOnExecuteHandler write FOnExecuteHandler;
     property OnShowStatus: TShowStatusEvent read FOnShowStatus write FOnShowStatus;
+    // True: OnShowStatus runs on the main thread through Synchronize, which
+    // needs CheckSynchronize there (GUI applications). False: it runs on
+    // this thread.
+    property SynchronizeStatus: boolean read FSynchronizeStatus write FSynchronizeStatus;
   end;
 
   { TTelegramSimpleSendThread }
@@ -148,6 +153,14 @@ type
     FURL: string;
     FGetUpdatesInProcess: Boolean;
     FGetUpdatesContent: string;
+    FCallbackParsed: boolean;
+    FIsCallbackQuery: boolean;
+    FUpdatesSynchronize: boolean;
+    function sendMediaFile(const ACommand, AFieldName, AChatID, AFilePath,
+      ACaption, AReplyToMessageID, AThreadId: string): boolean;
+    function getCallbackData: TStrings;
+    function getCallbackInlineKeyboard: TJSONUtil;
+    function getCallbackInstance: string;
     function getChatID: string;
     function getChatType: string;
     function getFullName: string;
@@ -192,9 +205,14 @@ type
     procedure onGetUpdatesHandler( ATelegramResponse: String);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function getUpdates(const UpdateID: integer = 0): string;
+
+    // sendMessage/editMessageText body with the keyboard rows of AData
+    // (an array document); '' when there are none. AData is only read.
+    function KeyboardPayload(const AChatId, AText, AMarkupPath: string;
+      const AData: TJSONUtil; const AThreadId: string; const AMessageID: string = ''): string;
 
     function getUpdatesDynamic(const UpdateID: integer = 0): Boolean;
 
@@ -339,10 +357,14 @@ type
 
     property WebHook: string write SetWebHook;
     property GetUpdatesContent: string read FGetUpdatesContent;
+    // getUpdatesDynamic: deliver OnMessage on the main thread (needs
+    // CheckSynchronize there); default False, delivered on the worker thread
+    property UpdatesSynchronize: boolean read FUpdatesSynchronize write FUpdatesSynchronize;
 
-    property CallbackInstance: string read FCallbackInstance;
-    property CallbackData: TStrings read FCallbackData;
-    property CallbackInlineKeyboard: TJSONUtil read FCallbackInlineKeyboard;
+    // parsed on first use for the current RequestContent
+    property CallbackInstance: string read getCallbackInstance;
+    property CallbackData: TStrings read getCallbackData;
+    property CallbackInlineKeyboard: TJSONUtil read getCallbackInlineKeyboard;
   end;
 
 implementation
@@ -355,15 +377,15 @@ const
     'sendMessage?chat_id=%s&reply_to_message_id=%s&parse_mode=%s&disable_web_page_preview=false&text=%s';
   TELEGRAM_COMMAND_DELETEMESSAGE = 'deleteMessage?chat_id=%s&message_id=%s';
   TELEGRAM_COMMAND_SENDPHOTO = 'sendPhoto?chat_id=%s&caption=%s&parse_mode=%s';
-  TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo?chat_id=%s&caption=%s&parse_mode=%s';
-  //TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio?chat_id=%s&caption=%s&audio=%s';
+  // uploads: every parameter travels in the multipart body
+  TELEGRAM_COMMAND_SENDPHOTO_UPLOAD = 'sendPhoto';
+  TELEGRAM_COMMAND_SENDVIDEO = 'sendVideo';
   TELEGRAM_COMMAND_SENDAUDIO = 'sendAudio';
   TELEGRAM_COMMAND_SENDVOICE = 'sendVoice';
-  TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument?chat_id=%s&caption=%s&parse_mode=%s';
-  //https://api.telegram.org/bot307478661:AAF9DGtgoASYsVF6KwHm7qhimXq8cHGIxTk/sendVenue?chat_id=2222647&latitude=-6.228018&longitude=106.82453&title=suatu%20tempat&address=alamatnya
-  TELEGRAM_COMMAND_SENDVENUE = 'sendVenue?chat_id=%s&title=%s&address=%s&latitude=%f&longitude=%f&parse_mode=%s';
+  TELEGRAM_COMMAND_SENDDOCUMENT = 'sendDocument';
+  TELEGRAM_COMMAND_SENDVENUE = 'sendVenue?chat_id=%s&title=%s&address=%s&latitude=%s&longitude=%s&parse_mode=%s';
   TELEGRAM_COMMAND_SENDCONTACT =
-    'sendContact?chat_id=%d&phone_number=%s&first_name=%s&last_name=%s';
+    'sendContact?chat_id=%s&phone_number=%s&first_name=%s&last_name=%s';
   TELEGRAM_COMMAND_GETFILE = 'getFile?file_id=';
   TELEGRAM_COMMAND_GETGROUPADMINISTRATOR = 'getChatAdministrators?chat_id=';
   TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT = 'getChatMembersCount?chat_id=';
@@ -374,8 +396,6 @@ const
     + '&can_send_messages=%s&can_send_media_messages=%s'
     + '&can_send_other_messages=%s&can_add_web_page_previews=%s';
 
-var
-  Response: IHTTPResponse;
 
 { TTelegramSimpleSendThread }
 
@@ -403,11 +423,122 @@ begin
   begin
     FOnExecuteHandler();
   end;
-  Synchronize(@syncUpdate);
+  // Synchronize never returns without CheckSynchronize on the main thread
+  // (a CGI or daemon has none), which left GetUpdatesInProcess stuck
+  if FSynchronizeStatus then
+    Synchronize(@syncUpdate)
+  else
+    syncUpdate;
 end;
 
 
+// coordinates for a query string: always a dot, whatever the locale
+function floatToDot(AValue: double): string;
+var
+  fs: TFormatSettings;
+begin
+  fs := DefaultFormatSettings;
+  fs.DecimalSeparator := '.';
+  fs.ThousandSeparator := #0;
+  Result := FormatFloat('0.######', AValue, fs);
+end;
+
 { TTelegramIntegration }
+
+// chat_id, caption, parse_mode, reply and thread go in the multipart body
+// together with the file; the old code put some of them in the URL
+// (unencoded, and after a path without "?")
+function TTelegramIntegration.sendMediaFile(const ACommand, AFieldName,
+  AChatID, AFilePath, ACaption, AReplyToMessageID, AThreadId: string): boolean;
+var
+  Response: IHTTPResponse;
+  json: TJSONUtil;
+begin
+  Result := False;
+  FResultCode := 0;
+  FResultText := '';
+  FResultMessageID := '';
+  FIsSuccessfull := False;
+  if (AChatID = '') or (AChatID = '0') or (AFilePath = '') or (FURL = '') then
+    Exit;
+  if not FileExists(AFilePath) then
+    Exit;
+
+  with THTTPLib.Create(URL + ACommand) do
+  try
+    try
+      AddHeader('Cache-Control', 'no-cache');
+      FormData['chat_id'] := AChatID;
+      if ACaption <> '' then
+      begin
+        FormData['caption'] := ACaption;
+        FormData['parse_mode'] := FParseMode;
+      end;
+      if (AReplyToMessageID <> '') and (AReplyToMessageID <> '0') then
+        FormData['reply_to_message_id'] := AReplyToMessageID;
+      if (AThreadId <> '') and (AThreadId <> '0') then
+        FormData['message_thread_id'] := AThreadId;
+      AddFile(AFilePath, AFieldName);
+      Response := Post;
+      FResultCode := Response.ResultCode;
+      FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
+      if FIsSuccessfull then
+      begin
+        json := TJSONUtil.Create;
+        try
+          json.LoadFromJsonString(FResultText, False);
+          FResultMessageID := json['result/message_id'];
+        finally
+          json.Free;
+        end;
+      end
+      else if FDebug then
+        LogUtil.Add(ACommand + ': ' + FResultText, 'TELEGRAM');
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+  finally
+    Free;
+  end;
+
+  Result := FIsSuccessfull;
+end;
+
+// sendMessage/editMessageText body with a keyboard; the rows are copied so
+// the caller keeps ownership of AData. '' when AData holds no array.
+function TTelegramIntegration.KeyboardPayload(const AChatId, AText,
+  AMarkupPath: string; const AData: TJSONUtil; const AThreadId: string;
+  const AMessageID: string): string;
+var
+  json: TJSONUtil;
+  rows: TJSONArray;
+begin
+  Result := '';
+  if not Assigned(AData) then
+    Exit;
+  rows := AData.AsArray;
+  if (not Assigned(rows)) or (rows.Count = 0) then
+    Exit;
+  json := TJSONUtil.Create;
+  try
+    json['chat_id'] := AChatId;
+    if AMessageID <> '' then
+      json['message_id'] := AMessageID;
+    json['text'] := AText;
+    json['parse_mode'] := FParseMode;
+    if ((AThreadId <> '') AND (AThreadId <> '0')) then
+      json['message_thread_id'] := AThreadId;
+    json.ValueArray[AMarkupPath] := TJSONArray(rows.Clone);
+    Result := json.AsJSON;
+  finally
+    json.Free;
+  end;
+end;
 
 procedure TTelegramIntegration.setToken(AValue: string);
 begin
@@ -422,7 +553,7 @@ var
   urlTarget: string;
 begin
   if FURL.IsEmpty then Exit;
-  urlTarget := FURL + 'setWebhook?url=' + AValue;
+  urlTarget := FURL + 'setWebhook?url=' + UrlEncode(AValue);
   file_get_contents(urlTarget);
 end;
 
@@ -432,9 +563,8 @@ var
 begin
   Result := False;
   if FURL.IsEmpty then Exit;
-  urlTarget := FURL + 'setWebhook?url=';
-  file_get_contents(urlTarget);
-  //TODO: check if successfull
+  urlTarget := FURL + 'deleteWebhook';
+  Result := Pos('"ok":true', file_get_contents(urlTarget)) > 0;
 end;
 
 procedure TTelegramIntegration.setRequestContent(AValue: string);
@@ -442,10 +572,31 @@ begin
   if FRequestContent = AValue then
     Exit;
   FRequestContent := AValue;
+  FCallbackParsed := False;
+  FIsCallbackQuery := False;
+  FreeAndNil(jsonData);
   try
     jsonData := GetJSON(AValue, False);
   except
   end;
+end;
+
+function TTelegramIntegration.getCallbackData: TStrings;
+begin
+  getIsCallbackQuery;
+  Result := FCallbackData;
+end;
+
+function TTelegramIntegration.getCallbackInlineKeyboard: TJSONUtil;
+begin
+  getIsCallbackQuery;
+  Result := FCallbackInlineKeyboard;
+end;
+
+function TTelegramIntegration.getCallbackInstance: string;
+begin
+  getIsCallbackQuery;
+  Result := FCallbackInstance;
 end;
 
 function TTelegramIntegration.getText: string;
@@ -565,7 +716,7 @@ begin
       + ' ' + jsonGetData(jsonData, 'message/from/last_name');
     Result := Result.Trim;
     if Result = '' then
-      UserName;
+      Result := UserName;
   except
   end;
   if IsCallbackQuery then
@@ -630,11 +781,24 @@ end;
   if IsCallbackQuery then
     stringValue = CallbackData.Values['key'];
 }
+// parsed once per RequestContent: the callback data and keyboard objects
+// stay valid for the whole request
 function TTelegramIntegration.getIsCallbackQuery: boolean;
 var
   s: string;
 begin
+  if FCallbackParsed then
+  begin
+    Result := FIsCallbackQuery;
+    Exit;
+  end;
+  FCallbackParsed := True;
+  FIsCallbackQuery := False;
+  FreeAndNil(FCallbackData);
+  FreeAndNil(FCallbackInlineKeyboard);
   Result := False;
+  if not Assigned(jsonData) then
+    Exit;
   try
     s := jsonData.GetPath('callback_query').AsJSON;
     if not s.IsEmpty then
@@ -644,15 +808,18 @@ begin
       FCallbackData := Explode(s, '&');
 
       // get inline keyboard data
-      s := jsonData.GetPath('callback_query.message.reply_markup.inline_keyboard').AsJSON;
       FCallbackInlineKeyboard := TJSONUtil.Create;
-      FCallbackInlineKeyboard.LoadFromJsonString(s, False);
+      try
+        s := jsonData.GetPath('callback_query.message.reply_markup.inline_keyboard').AsJSON;
+        FCallbackInlineKeyboard.LoadFromJsonString(s, False);
+      except
+      end;
 
       Result := True;
     end;
   except
   end;
-
+  FIsCallbackQuery := Result;
 end;
 
 function TTelegramIntegration.getIsDocument: boolean;
@@ -816,7 +983,8 @@ begin
     except
       on e: Exception do
       begin
-        die('x:'+e.Message);
+        if FDebug then
+          LogUtil.Add('entities: ' + e.Message, 'TELEGRAM');
       end;
     end;
   end;//IsCallbackQuery
@@ -1003,14 +1171,14 @@ begin
     FAdminListAsJson.Free;
   if Assigned(FChatInfo) then
     FChatInfo.Free;
+  inherited Destroy;
 end;
 
 function TTelegramIntegration.getUpdates(const UpdateID: integer): string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
-  j: TJSONData;
-  a: TJSONArray;
-  i: integer;
+  j, a: TJSONData;
 begin
   FIsSuccessfull := False;
   Result := '{"ok":false}';
@@ -1018,39 +1186,37 @@ begin
   if FURL = '' then
     Exit;
 
-  //-- todo: manual get update from telegram
   urlTarget := URL + TELEGRAM_COMMAND_GETUPDATES + '?offset=' + IntToStr(UpdateID);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
       Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       Result := FResultText;
       FIsSuccessfull := IsSuccessfull;
-
-      j := GetJSON(FResultText, False);
-      i := TJSONObject(j).IndexOfName('result');
-      if i <> -1 then
-      begin
-        a := TJSONArray(j.Items[i]);
-        if a.Count>1 then a := TJSONArray(a.Items[0]);
-        if a.Count>1 then
-        begin
-          a := TJSONArray(a.Items[0]);
-          FLastUpdateID := s2i(a.AsJSON) + 1;
-        end;
-      end;
-
     except
       on E:Exception do
       begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
+
+  // the next offset is the last update id + 1
+  j := nil;
+  try
+    j := GetJSON(FResultText, False);
+    a := j.FindPath('result');
+    if Assigned(a) and (a.JSONType = jtArray) and (a.Count > 0) then
+      FLastUpdateID := a.Items[a.Count - 1].GetPath('update_id').AsInteger + 1;
+  except
+  end;
+  j.Free;
 end;
 
 function TTelegramIntegration.getUpdatesDynamic(const UpdateID: integer
@@ -1063,6 +1229,7 @@ begin
   with TTelegramSimpleThread.Create(True) do
   begin
     FreeOnTerminate := True;
+    SynchronizeStatus := FUpdatesSynchronize;
     OnExecuteHandler := @onGetUpdatesExecuteHandler;
     OnShowStatus := @onGetUpdatesHandler;
     Start;
@@ -1078,43 +1245,46 @@ end;
 procedure TTelegramIntegration.onGetUpdatesHandler(ATelegramResponse: String
   );
 var
-  i, indexResult: integer;
-  s: string;
-  jData: TJSONData;
-  aData, item: TJSONArray;
+  i: integer;
+  jData, aData: TJSONData;
   aReply: string;
   aHandled: boolean;
 begin
   // get result from FGetUpdatesContent
   if not Assigned(FOnMessage) then
+  begin
+    FGetUpdatesInProcess := False;
     Exit;
+  end;
 
+  jData := nil;
   try
-    jData := GetJSON(FGetUpdatesContent, False);
-    if jData.GetPath('ok').AsBoolean then
-    begin
-      indexResult := TJSONObject(jData).IndexOfName('result');
-      if indexResult <> -1 then
+    try
+      jData := GetJSON(FGetUpdatesContent, False);
+      if jData.GetPath('ok').AsBoolean then
       begin
-        aData := TJSONArray(jData.Items[indexResult]);
-        i := aData.Count;
-        for i:= 0 to aData.count - 1 do
+        aData := jData.FindPath('result');
+        if Assigned(aData) and (aData.JSONType = jtArray) then
         begin
-          s := jData.GetPath('result['+i2s(i)+']').AsJSON;
-          RequestContent := s;
-          FLastUpdateID := UpdateID+1;
-
-          aReply := '';
-          aHandled := false;
-          FOnMessage(Text, aReply, aHandled);
-          if aHandled then
+          for i := 0 to aData.Count - 1 do
           begin
-            SendMessageAsThread(ChatID, aReply);
+            RequestContent := aData.Items[i].AsJSON;
+            FLastUpdateID := UpdateID+1;
+
+            aReply := '';
+            aHandled := false;
+            FOnMessage(Text, aReply, aHandled);
+            if aHandled then
+            begin
+              SendMessageAsThread(ChatID, aReply);
+            end;
           end;
         end;
       end;
+    except
     end;
-  except
+  finally
+    jData.Free;
   end;
 
   FGetUpdatesInProcess := False;
@@ -1122,6 +1292,7 @@ end;
 
 function TTelegramIntegration.GetMe: string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   FResultCode := 0;
@@ -1133,7 +1304,7 @@ begin
   urlTarget := URL + TELEGRAM_COMMAND_GETME;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -1144,6 +1315,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1153,6 +1325,7 @@ function TTelegramIntegration.SendMessage(const ChatID: string;
   const Text: string; const ReplyToMessageID: string; const AThreadId: string
   ): boolean;
 var
+  Response: IHTTPResponse;
   s, urlTarget, payloadAsString: string;
   json: TJSONUtil;
 begin
@@ -1170,7 +1343,8 @@ begin
   json['chat_id'] := ChatId;
   json['text'] := s;
   json['parse_mode'] := FParseMode;
-  json['reply_to_message_id'] := ReplyToMessageID;
+  if (ReplyToMessageID <> '') and (ReplyToMessageID <> '0') then
+    json['reply_to_message_id'] := ReplyToMessageID;
   json['disable_web_page_preview'] := 'false';
   json['reply_markup/remove_keyboard'] := True;
   if ((AThreadId <> '') AND (AThreadId <> '0')) then
@@ -1182,14 +1356,12 @@ begin
 
   urlTarget := URL + 'sendMessage';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
       RequestBody := TStringStream.Create(payloadAsString);
       Response := Post;
-      RequestBody.Free;
-      RequestBody := nil;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       if IsSuccessfull then
@@ -1211,6 +1383,7 @@ begin
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
 
@@ -1221,10 +1394,7 @@ function TTelegramIntegration.SendMessage(const ChatID: integer;
   const Text: string; const ReplyToMessageID: integer; const AThreadId: integer
   ): boolean;
 begin
-  try
-    SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID), i2s(AThreadId));
-  except
-  end;
+  Result := SendMessage(i2s(ChatID), Text, i2s(ReplyToMessageID), i2s(AThreadId));
 end;
 
 function TTelegramIntegration.SendMessageAsThread(const ChatID: string;
@@ -1252,6 +1422,7 @@ end;
 function TTelegramIntegration.EditMessage(const ChatID: string;
   MessageID: string; Text: string): boolean;
 var
+  Response: IHTTPResponse;
   s, urlTarget, payloadAsString: string;
   json: TJSONUtil;
 begin
@@ -1275,7 +1446,7 @@ begin
 
   urlTarget := URL + 'editMessageText';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -1291,6 +1462,7 @@ begin
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
 
@@ -1300,27 +1472,20 @@ end;
 function TTelegramIntegration.EditMessage(const AChatID: string;
   AMessageID: string; AText: string; AData: TJSONUtil): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget, payloadAsString: string;
-  json: TJSONUtil;
 begin
   Result := False;
-  if (AChatId = '') or (AChatId = '0') or (AText = '') or (FURL = '')
-    or (AData.Data.Count = 0) then
+  if (AChatId = '') or (AChatId = '0') or (AText = '') or (FURL = '') then
     Exit;
-
-  json := TJSONUtil.Create;
-  json['chat_id'] := AChatId;
-  json['message_id'] := AMessageID;
-  json['text'] := AText;
-  json['parse_mode'] := FParseMode;
-  json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
-
-  payloadAsString := json.AsJSON;
-  json.Free;
+  payloadAsString := KeyboardPayload(AChatId, AText, 'reply_markup/inline_keyboard',
+    AData, '', AMessageID);
+  if payloadAsString = '' then
+    Exit;
 
   urlTarget := URL + 'editMessageText';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -1328,10 +1493,16 @@ begin
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
-      if Response.ResultCode = 200 then
-        Result := True;
+      FIsSuccessfull := IsSuccessfull;
+      Result := FIsSuccessfull;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
+  finally
     Free;
   end;
 end;
@@ -1339,6 +1510,7 @@ end;
 function TTelegramIntegration.DeleteMessage(const AChatID: string;
   AMessageID: string): boolean;
 var
+  Response: IHTTPResponse;
   s, urlTarget: string;
 begin
   Result := False;
@@ -1349,7 +1521,7 @@ begin
   urlTarget := URL + format(TELEGRAM_COMMAND_DELETEMESSAGE,
     [AChatID, AMessageID]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       Response := Get;
@@ -1364,6 +1536,7 @@ begin
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
   Result := FIsSuccessfull;
@@ -1372,179 +1545,40 @@ end;
 function TTelegramIntegration.SendAudio(const ChatID:string;const AAudioPath:
   string;const ACaption:string;const ReplyToMessageID:string;const AThreadId:
   string):boolean;
-var
-  urlTarget: string;
-  json: TJSONUtil;
-  errorCode: integer;
 begin
-  Result := False;
-  FResultCode := 0;
-  FResultText := '';
-  FIsSuccessfull := False;
-  if (ChatID = '') or (AAudioPath = '') then
-    Exit;
-
-  if not FileExists(AAudioPath) then Exit;
-
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDAUDIO,
-    [ChatID, ACaption, AAudioPath]);
-  if ReplyToMessageID <> '' then
-    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
-
-  //TODO: change to post method and add
-  if ((AThreadId <> '') AND (AThreadId <> '0')) then
-  begin
-    //json['message_thread_id'] := AThreadId;
-    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
-  end;
-
-  with THTTPLib.Create(urlTarget) do
-  begin
-    try
-      ContentType := 'application/x-www-form-urlencoded';
-      AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      FormData[ 'chat_id'] := ChatID;
-      FormData[ 'caption'] := ACaption;
-      AddFile( AAudioPath, 'audio');
-      Response := Post;
-      FResultCode := Response.ResultCode;
-      FResultText := Response.ResultText;
-
-      json := TJSONUtil.Create;
-      json.LoadFromJsonString(FResultText, False);
-      errorCode := s2i(json['error_code']);
-      json.Free;
-
-      if errorCode <> 0 then
-      begin
-        LogUtil.Add(urlTarget, 'TAUDIO');
-      end;
-
-      FIsSuccessfull := IsSuccessfull;
-    except
-    end;
-    Free;
-  end;
-
-  Result := FIsSuccessfull;
+  Result := sendMediaFile(TELEGRAM_COMMAND_SENDAUDIO, 'audio', ChatID,
+    AAudioPath, ACaption, ReplyToMessageID, AThreadId);
 end;
 
 function TTelegramIntegration.SendVoice(const ChatID:string;const AAudioPath:
   string;const ACaption:string;const ReplyToMessageID:string;const AThreadId:
   string):boolean;
-var
-  urlTarget: string;
-  json: TJSONUtil;
-  errorCode: integer;
 begin
-  Result := False;
-  FResultCode := 0;
-  FResultText := '';
-  FIsSuccessfull := False;
-  if (ChatID = '') or (AAudioPath = '') then
-    Exit;
-
-  if not FileExists(AAudioPath) then Exit;
-
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDVOICE,
-    [ChatID, ACaption, AAudioPath]);
-  if ReplyToMessageID <> '' then
-    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
-
-  //TODO: change to post method and add
-  if ((AThreadId <> '') AND (AThreadId <> '0')) then
-  begin
-    //json['message_thread_id'] := AThreadId;
-    urlTarget := urlTarget + '&message_thread_id=' + AThreadId;
-  end;
-
-  with THTTPLib.Create(urlTarget) do
-  begin
-    try
-      ContentType := 'application/x-www-form-urlencoded';
-      AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      FormData[ 'chat_id'] := ChatID;
-      FormData[ 'caption'] := ACaption;
-      AddFile( AAudioPath, 'voice');
-      Response := Post;
-      FResultCode := Response.ResultCode;
-      FResultText := Response.ResultText;
-
-      json := TJSONUtil.Create;
-      json.LoadFromJsonString(FResultText, False);
-      errorCode := s2i(json['error_code']);
-      json.Free;
-
-      if errorCode <> 0 then
-      begin
-        LogUtil.Add(urlTarget, 'TVOICE');
-      end;
-
-      FIsSuccessfull := IsSuccessfull;
-    except
-    end;
-    Free;
-  end;
-
-  Result := FIsSuccessfull;
+  Result := sendMediaFile(TELEGRAM_COMMAND_SENDVOICE, 'voice', ChatID,
+    AAudioPath, ACaption, ReplyToMessageID, AThreadId);
 end;
 
+// the string overload is the real one: supergroup ids do not fit an integer
 function TTelegramIntegration.SendPhoto(const ChatID: string;
   const FileName: string; const Caption: string;
   const ReplyToMessageID: integer): boolean;
 begin
-  try
-    SendPhoto(StrToInt(ChatID), FileName, Caption, ReplyToMessageID);
-  except
-  end;
+  Result := sendMediaFile(TELEGRAM_COMMAND_SENDPHOTO_UPLOAD, 'photo', ChatID,
+    FileName, Caption, i2s(ReplyToMessageID), '');
 end;
 
 function TTelegramIntegration.SendPhoto(const ChatID: integer;
   const FileName: string; const Caption: string;
   const ReplyToMessageID: integer): boolean;
-var
-  urlTarget: string;
 begin
-  FResultCode := 0;
-  FResultText := '';
-  FIsSuccessfull := False;
-  Result := False;
-  if (ChatID = 0) or (FileName = '') or (FURL = '') then
-    Exit;
-  if not FileExists(FileName) then
-    Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDPHOTO, [i2s(ChatID), UrlEncode(Caption), FParseMode]);
-  if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
-
-  with THTTPLib.Create(urlTarget) do
-  begin
-    try
-      ContentType := 'application/x-www-form-urlencoded';
-      AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      FormData['chat_id'] := IntToStr(ChatID);
-      //FormData['caption'] := Caption;
-      AddFile(FileName, 'photo');
-      Response := Post;
-      FResultCode := Response.ResultCode;
-      FResultText := Response.ResultText;
-
-      FIsSuccessfull := IsSuccessfull;
-    except
-    end;
-    Free;
-  end;
-
-  Result := FIsSuccessfull;
+  Result := SendPhoto(i2s(ChatID), FileName, Caption, ReplyToMessageID);
 end;
 
 function TTelegramIntegration.SendPhotoFromURL(const ChatID: string;
   const AImageURL: string; const Caption: string;
   const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   FResultCode := 0;
@@ -1569,7 +1603,7 @@ begin
   end;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
@@ -1581,6 +1615,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1590,49 +1625,16 @@ end;
 function TTelegramIntegration.SendVideo(const ChatID: string;
   const FileName: string; const Caption: string;
   const ReplyToMessageID: integer): boolean;
-var
-  urlTarget: string;
 begin
-  FResultCode := 0;
-  FResultText := '';
-  FIsSuccessfull := False;
-  Result := False;
-  if (ChatID = '') or (FileName = '') or (FURL = '') then
-    Exit;
-  if not FileExists(FileName) then
-    Exit;
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDVIDEO, [ChatID, Caption, FParseMode]);
-  if ReplyToMessageID <> 0 then
-    urlTarget := urlTarget + '&reply_to_message_id=' + IntToStr(ReplyToMessageID);
-
-  with THTTPLib.Create(urlTarget) do
-  begin
-    try
-      ContentType := 'application/x-www-form-urlencoded';
-      AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      FormData['chat_id'] := ChatID;
-      FormData['caption'] := Caption;
-      FormData['parse_mode'] := FParseMode;
-      AddFile(FileName, 'video');
-      Response := Post;
-      FResultCode := Response.ResultCode;
-      FResultText := Response.ResultText;
-
-      FIsSuccessfull := IsSuccessfull;
-    except
-    end;
-    Free;
-  end;
-
-  Result := FIsSuccessfull;
-
+  Result := sendMediaFile(TELEGRAM_COMMAND_SENDVIDEO, 'video', ChatID,
+    FileName, Caption, i2s(ReplyToMessageID), '');
 end;
 
 function TTelegramIntegration.SendVenue(const ChatID: string;
   const AName: string; const AAddress: string; ALatitude, ALongitude: double;
   const ReplyToMessageID: string; const AThreadId: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
@@ -1644,7 +1646,8 @@ begin
     Exit;
 
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDVENUE,
-    [ChatID, UrlEncode(AName), UrlEncode(AAddress), ALatitude, ALongitude, FParseMode]);
+    [ChatID, UrlEncode(AName), UrlEncode(AAddress), floatToDot(ALatitude),
+    floatToDot(ALongitude), FParseMode]);
 
   if ReplyToMessageID <> '' then
     urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
@@ -1657,7 +1660,7 @@ begin
   end;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/x-www-form-urlencoded';
       AddHeader('Cache-Control', 'no-cache');
@@ -1670,6 +1673,7 @@ begin
         FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1679,111 +1683,73 @@ end;
 
 function TTelegramIntegration.SendContact(const ChatID: integer;
   FirstName, LastName, PhoneNumber: string): boolean;
+begin
+  Result := SendContact(i2s(ChatID), FirstName, LastName, PhoneNumber);
+end;
+
+function TTelegramIntegration.SendContact(const ChatID: string;
+  FirstName, LastName, PhoneNumber: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   FResultCode := 0;
   FResultText := '';
   FIsSuccessfull := False;
   Result := False;
-  if (ChatID = 0) or (PhoneNumber = '') or (FURL = '') then
+  if (ChatID = '') or (ChatID = '0') or (PhoneNumber = '') or (FURL = '') then
     Exit;
   urlTarget := URL + format(TELEGRAM_COMMAND_SENDCONTACT,
-    [ChatID, PhoneNumber, FirstName, LastName]);
+    [ChatID, UrlEncode(PhoneNumber), UrlEncode(FirstName), UrlEncode(LastName)]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
       Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
+  finally
     Free;
   end;
 
   Result := FIsSuccessfull;
-
-end;
-
-function TTelegramIntegration.SendContact(const ChatID: string;
-  FirstName, LastName, PhoneNumber: string): boolean;
-begin
-  try
-    SendContact(StrToInt(ChatID), FirstName, LastName, PhoneNumber);
-  except
-  end;
 end;
 
 function TTelegramIntegration.SendDocument(const ChatID: string;
   const AFile: string; const ACaption: string; const ReplyToMessageID: string): boolean;
-var
-  urlTarget: string;
 begin
-  Result := False;
-  FResultCode := 0;
-  FResultText := '';
-  FIsSuccessfull := False;
-  if (ChatID = '') or (AFile = '') then
-    Exit;
-
-  urlTarget := URL + format(TELEGRAM_COMMAND_SENDDOCUMENT,
-    [ChatID, ACaption, FParseMode]);
-  if ReplyToMessageID <> '' then
-    urlTarget := urlTarget + '&reply_to_message_id=' + ReplyToMessageID;
-
-  with THTTPLib.Create(urlTarget) do
-  begin
-    try
-      ContentType := 'application/x-www-form-urlencoded';
-      AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
-      //FormData['caption'] := Caption;
-      AddFile(AFile, 'document');
-      Response := Post;
-      FResultCode := Response.ResultCode;
-      FResultText := Response.ResultText;
-
-      FIsSuccessfull := IsSuccessfull;
-    except
-    end;
-    Free;
-  end;
-
-  Result := FIsSuccessfull;
+  Result := sendMediaFile(TELEGRAM_COMMAND_SENDDOCUMENT, 'document', ChatID,
+    AFile, ACaption, ReplyToMessageID, '');
 end;
 
 function TTelegramIntegration.SendInlineKeyboard(const ChatId: string;
   const AText: string; const AData: TJSONUtil; const AThreadId: string
   ): boolean;
 var
+  Response: IHTTPResponse;
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
 begin
   Result := False;
   FResultMessageID := '0';
-  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
-    or (AData.Data.Count = 0) then
+  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '') then
+    Exit;
+  payloadAsString := KeyboardPayload(ChatId, AText, 'reply_markup/inline_keyboard',
+    AData, AThreadId);
+  if payloadAsString = '' then
     Exit;
 
-  json := TJSONUtil.Create;
-  json['chat_id'] := ChatId;
-  json['text'] := AText;
-  json['parse_mode'] := FParseMode;
-  if ((AThreadId <> '') AND (AThreadId <> '0')) then
-  begin
-    json['message_thread_id'] := AThreadId;
-  end;
-  json.ValueArray['reply_markup/inline_keyboard'] := TJSONArray(AData.Data);
-
-  payloadAsString := json.AsJSON;
-  json.Free;
-
-  urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
+  urlTarget := URL + 'sendMessage';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -1791,6 +1757,7 @@ begin
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
       if Response.ResultCode = 200 then
       begin
         Result := True;
@@ -1800,7 +1767,13 @@ begin
         json.Free;
       end;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
+  finally
     Free;
   end;
 end;
@@ -1809,30 +1782,20 @@ function TTelegramIntegration.SendKeyboard(const ChatId: string;
   const AText: string; const AData: TJSONUtil; const AThreadId: string
   ): boolean;
 var
+  Response: IHTTPResponse;
   payloadAsString, urlTarget: string;
-  json: TJSONUtil;
 begin
   Result := False;
-  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '')
-    or (AData.Data.Count = 0) then
+  if (ChatID = '') or (ChatID = '0') or (AText = '') or (FURL = '') then
+    Exit;
+  payloadAsString := KeyboardPayload(ChatId, AText, 'reply_markup/keyboard',
+    AData, AThreadId);
+  if payloadAsString = '' then
     Exit;
 
-  json := TJSONUtil.Create;
-  json['chat_id'] := ChatId;
-  json['text'] := AText;
-  json['parse_mode'] := FParseMode;
-  if ((AThreadId <> '') AND (AThreadId <> '0')) then
-  begin
-    json['message_thread_id'] := AThreadId;
-  end;
-  json.ValueArray['reply_markup/keyboard'] := TJSONArray(AData.Data);
-
-  payloadAsString := json.AsJSON;
-  json.Free;
-
-  urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
+  urlTarget := URL + 'sendMessage';
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -1840,10 +1803,17 @@ begin
       Response := Post;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
+      FIsSuccessfull := IsSuccessfull;
       if Response.ResultCode = 200 then
         Result := True;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
+  finally
     Free;
   end;
 end;
@@ -1851,6 +1821,7 @@ end;
 function TTelegramIntegration.RemoveKeyboard(const ChatId: string;
   const AText: string): boolean;
 var
+  Response: IHTTPResponse;
   payloadAsString, urlTarget: string;
   json: TJSONUtil;
 begin
@@ -1869,7 +1840,7 @@ begin
 
   urlTarget := URL + 'sendMessage?parse_mode=' + FParseMode;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Cache-Control', 'no-cache');
@@ -1881,6 +1852,7 @@ begin
         Result := True;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1889,13 +1861,14 @@ end;
 // example result: "photo/file_2"
 function TTelegramIntegration.GetFilePath(FileID: string): string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
   json: TJSONUtil;
 begin
   Result := '';
   urlTarget := URL + TELEGRAM_COMMAND_GETFILE + FileID;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -1907,6 +1880,7 @@ begin
         Exit;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1928,12 +1902,13 @@ end;
 function TTelegramIntegration.DownloadFile(FilePath: string;
   TargetFile: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
   urlTarget := format(TELEGRAM_FILEURL, [FToken]) + FilePath;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -1953,19 +1928,21 @@ begin
         LogUtil.Add('download: ' + E.Message, 'telegram');
       end;
     end;
+  finally
     Free;
   end;
 end;
 
 function TTelegramIntegration.GroupMemberCount(AGroupID: string): integer;
 var
+  Response: IHTTPResponse;
   s, urlTarget: string;
   jsonMember: TJSONData;
 begin
   Result := 0;
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPMEMBERCOUNT + AGroupID;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -1975,6 +1952,7 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
@@ -1987,78 +1965,92 @@ begin
   Result := s2i(s);
 end;
 
+// markdown mentions of the administrators; the list is cached in
+// AdminListAsJson for IsAdmin. A failed request clears the cache so a stale
+// list of another group is never consulted.
 function TTelegramIntegration.GroupAdminList(AGroupID: string; Formated: boolean
   ): string;
 var
+  Response: IHTTPResponse;
   i: integer;
   s, firstName, lastName, urlTarget: string;
+  jsonAdmin, adminList, item: TJSONData;
 begin
   Result := '';
   FResultCode := -1;
+  FreeAndNil(FAdminListAsJson);
+  if (AGroupID = '') or (FURL = '') then
+    Exit;
   urlTarget := URL + TELEGRAM_COMMAND_GETGROUPADMINISTRATOR + AGroupID;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
-      //AddHeader('Accept', '*/*');
       Response := Get;
       FResultCode := Response.ResultCode;
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
     except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
     end;
+  finally
     Free;
   end;
 
   if FResultCode <> 200 then
     Exit;
 
+  jsonAdmin := nil;
   try
-    FAdminListAsJson := GetJSON(FResultText, False);
-    i := 0;
-    s := jsonGetData(FAdminListAsJson, 'result[0]/user/id');
-    firstName := trim(jsonGetData(FAdminListAsJson, 'result[0]/user/first_name'));
-    lastName := trim(jsonGetData(FAdminListAsJson, 'result[0]/user/last_name'));
-    firstName := firstName+' '+lastName;
-    firstName := trim(SafeText(firstName, ' '));
-    s := '['+firstName+'](tg://user?id='+ s + ')';
-    repeat
-      if s <> '' then
-        Result := Result + s + ', ';
-      i := i + 1;
-      s := jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/id');
-      if not s.IsEmpty then begin
-        firstName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/first_name'));
-        lastName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/last_name'));
-        firstName := firstName+' '+lastName;
-        firstName := trim(SafeText(firstName, ' '));
+    try
+      jsonAdmin := GetJSON(FResultText, False);
+      adminList := jsonAdmin.FindPath('result');
+      if (not Assigned(adminList)) or (adminList.JSONType <> jtArray) then
+        Exit;
+      FAdminListAsJson := adminList.Clone;
+      for i := 0 to adminList.Count - 1 do
+      begin
+        item := adminList.Items[i];
+        s := jsonGetData(item, 'user/id');
+        if s.IsEmpty then
+          Continue;
+        firstName := trim(jsonGetData(item, 'user/first_name'));
+        lastName := trim(jsonGetData(item, 'user/last_name'));
+        firstName := trim(SafeText(trim(firstName + ' ' + lastName), ' '));
         if firstName.IsEmpty then
-          firstName := trim(jsonGetData(FAdminListAsJson, 'result[' + i2s(i) + ']/user/username'));
+          firstName := trim(jsonGetData(item, 'user/username'));
         if firstName.IsEmpty then
           firstName := 'Admin';
-        s := '['+firstName+'](tg://user?id='+ s + ')';
+        if Result <> '' then
+          Result := Result + ', ';
+        Result := Result + '[' + firstName + '](tg://user?id=' + s + ')';
       end;
-    until s = '';
-  except
+    except
+      on E: Exception do
+      begin
+        if FDebug then
+          LogUtil.Add(E.Message, 'TELEGRAM');
+      end;
+    end;
+  finally
+    jsonAdmin.Free;
   end;
-
-  s := FAdminListAsJson.GetPath('result').AsJSON;
-  FAdminListAsJson.Free;
-  FAdminListAsJson := GetJSON(s, False);
-
-  Result := Result.Trim;
-  Result := copy(Result, 0, length(Result) - 1);
 end;
 
 function TTelegramIntegration.GetChatInfo(AChatId: string): string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := '';
   FResultCode := -1;
   urlTarget := URL + TELEGRAM_COMMAND_GETCHATINFO + AChatId;
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -2068,12 +2060,14 @@ begin
       FIsSuccessfull := IsSuccessfull;
     except
     end;
+  finally
     Free;
   end;
 
   if FResultCode <> 200 then
     Exit;
 
+  FreeAndNil(FChatInfo);
   FChatInfo := TJSONUtil.Create;
   FChatInfo.LoadFromJsonString(FResultText);
 
@@ -2098,6 +2092,8 @@ begin
       Exit;
   end;
 
+  if (not Assigned(FAdminListAsJson)) or (FAdminListAsJson.JSONType <> jtArray) then
+    Exit;
   try
     entities := TJSONArray(FAdminListAsJson);
     for i:=0 to entities.Count-1 do
@@ -2133,6 +2129,8 @@ begin
       Exit;
   end;
 
+  if (not Assigned(FAdminListAsJson)) or (FAdminListAsJson.JSONType <> jtArray) then
+    Exit;
   try
     entities := TJSONArray(FAdminListAsJson);
     for i:=0 to entities.Count-1 do
@@ -2189,6 +2187,7 @@ end;
 function TTelegramIntegration.KickUser(AChatID: string; AUserID: string;
   AReason: string; AUntilDate: Integer): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
@@ -2197,20 +2196,21 @@ begin
   if AUserID.IsEmpty then
     Exit;
 
+  // the chat is the parameter, not the chat of the incoming message
   if AUntilDate = 0 then
   begin
     urlTarget := TELEGRAM_COMMAND_KICKUSER;
     urlTarget := urlTarget.Replace('&until_date=%d','');
-    urlTarget := URL + Format(urlTarget, [ChatID,AUserID]);
+    urlTarget := URL + Format(urlTarget, [AChatID, AUserID]);
   end
   else
   begin
-    urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
-      [ChatID, AUserID, AUntilDate]);
+    urlTarget := URL + Format(TELEGRAM_COMMAND_KICKUSER,
+      [AChatID, AUserID, AUntilDate]);
   end;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -2219,7 +2219,7 @@ begin
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      Result := True;
+      Result := FIsSuccessfull;
     except
       on E: Exception do
       begin
@@ -2227,6 +2227,7 @@ begin
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
 
@@ -2236,6 +2237,7 @@ function TTelegramIntegration.RestrictUser(AChatID: string; AUserID: string;
   AUntilDate: integer; ASendMessage: boolean; ASendMedia: boolean;
   ASendOther: boolean; ASendWebPreview: boolean): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := False;
@@ -2245,10 +2247,10 @@ begin
     Exit;
 
   urlTarget := URL + format(TELEGRAM_COMMAND_RESTRICTUSER,
-    [ChatID, AUserID, AUntilDate, b2s(ASendMessage), b2s(ASendMedia), b2s(ASendOther), b2s(ASendWebPreview)]);
+    [AChatID, AUserID, AUntilDate, b2s(ASendMessage), b2s(ASendMedia), b2s(ASendOther), b2s(ASendWebPreview)]);
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       AddHeader('Cache-Control', 'no-cache');
       //AddHeader('Accept', '*/*');
@@ -2257,7 +2259,7 @@ begin
       FResultText := Response.ResultText;
       FIsSuccessfull := IsSuccessfull;
 
-      Result := True;
+      Result := FIsSuccessfull;
     except
       on E: Exception do
       begin
@@ -2265,6 +2267,7 @@ begin
           LogUtil.Add(E.Message, 'TELEGRAM');
       end;
     end;
+  finally
     Free;
   end;
 end;

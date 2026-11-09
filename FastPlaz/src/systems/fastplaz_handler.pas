@@ -13,7 +13,7 @@ uses
   sqldb, gettext, session_controller, module_controller,
   config_lib,
   fphttpclient, opensslsockets, fpopenssl, ssockets, sslsockets, sslbase,
-  fpcgi, httpdefs, fpHTTP, fpWeb,
+  fastplaz_app, httpdefs, fpHTTP, fpWeb,
   //webutil,
   custweb, dateutils, variants,
   SysUtils, Classes;
@@ -76,7 +76,6 @@ type
   //TMyCustomWebModule  = class(TFPWebModule)
   TMyCustomWebModule = class(TCustomFPWebModule)
   private
-    FFiles: TUploadedFiles;
     FisJSON, FCreateSession: boolean;
     FOnBlockController: TOnBlockController;
     FOnMenu: TOnMenu;
@@ -87,6 +86,7 @@ type
     function GetCSRFFailedCount: integer;
     function GetCustomHeader(const KeyName: string): string;
     function GetEnvironment(const KeyName: string): string;
+    function GetFiles: TUploadedFiles;
     function GetHeader(const KeyName: string): string;
     function GetIsActive: boolean;
     function GetIsAjax: boolean;
@@ -125,7 +125,7 @@ type
 
     procedure LanguageInit;
     procedure CloseConnection( const AResponseContent: string = ''; ACode: Integer = 200);
-    procedure EnableCors;
+    procedure EnableCors(const AAllowedOrigin: string = '*');
 
     property URI: string read GetURI;
     property Environment[const KeyName: string]: string read GetEnvironment;
@@ -163,7 +163,8 @@ type
     property TablePrefix: string read GetTablePrefix;
     property TimeUsage: integer read GetTimeUsage;
   published
-    property Files : TUploadedFiles Read FFiles;
+    // the files uploaded with the current request
+    property Files : TUploadedFiles Read GetFiles;
   end;
 
   TMyCustomController = class(TMyCustomWebModule);
@@ -225,7 +226,8 @@ type
       SkipStreaming: boolean = False);
     function FindModule(ModuleClass: TCustomHTTPModuleClass): TCustomHTTPModule;
     procedure AddLog(Message: string);
-    procedure DieRaise(const Fmt: string; const Args: array of const);
+    procedure DieRaise(const Fmt: string; const Args: array of const;
+      ACode: integer = 200);
   end;
 
   { TGET }
@@ -299,6 +301,12 @@ type
 
 procedure InitializeFastPlaz(Sender: TObject = nil);
 
+// header values must not carry a line break: fpweb writes them as they are,
+// so a CR/LF from the request would start a new header or the body
+function SanitizeHeaderValue(const AValue: string): string;
+// "X-Requested-With" -> "HTTP_X_REQUESTED_WITH" (the CGI variable name)
+function HeaderToEnvName(const AHeaderName: string): string;
+
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
@@ -323,14 +331,84 @@ implementation
 
 uses common, language_lib, database_lib, logutil_lib, theme_controller, html_lib;
 
+type
+  // TCustomWebApplication.WebHandler is protected; a descendant declared in
+  // this unit is the standard way to reach it
+  TWebApplicationAccess = class(TCustomWebApplication);
+
 var
   MethodMap: TStringList;
   RouteRegexMap: TStringList;
+
+function SanitizeHeaderValue(const AValue: string): string;
+var
+  i: integer;
+begin
+  Result := '';
+  for i := 1 to Length(AValue) do
+    if not (AValue[i] in [#0, #10, #13]) then
+      Result := Result + AValue[i];
+  Result := Trim(Result);
+end;
+
+function HeaderToEnvName(const AHeaderName: string): string;
+begin
+  Result := UpperCase(StringReplace(Trim(AHeaderName), '-', '_', [rfReplaceAll]));
+  if (Result <> '') and (not Result.StartsWith('HTTP_')) then
+    Result := 'HTTP_' + Result;
+end;
 
 function _CleanVar(const Value: string): string;
 begin
   Result := mysql_real_escape_string(Value);
   Result := Trim(Result);
+end;
+
+// LANG ends up in file names (locale/*.po, theme cache), so only a plain
+// language code such as "en", "id" or "en_US" is accepted, never a path
+function isValidLanguageCode(const ACode: string): boolean;
+var
+  i: integer;
+begin
+  Result := False;
+  if (Length(ACode) < 2) or (Length(ACode) > 5) then
+    Exit;
+  for i := 1 to Length(ACode) do
+    if not (ACode[i] in ['a'..'z', 'A'..'Z', '_', '-']) then
+      Exit;
+  Result := True;
+end;
+
+// TResponse does not derive CodeText from Code, so a bare "Code := 500"
+// would be sent as "500 OK"; returns '' for codes not listed here
+function HttpStatusText(ACode: integer): string;
+begin
+  case ACode of
+    200: Result := 'OK';
+    201: Result := 'Created';
+    202: Result := 'Accepted';
+    204: Result := 'No Content';
+    301: Result := 'Moved Permanently';
+    302: Result := 'Found';
+    303: Result := 'See Other';
+    304: Result := 'Not Modified';
+    307: Result := 'Temporary Redirect';
+    308: Result := 'Permanent Redirect';
+    400: Result := 'Bad Request';
+    401: Result := 'Unauthorized';
+    403: Result := 'Forbidden';
+    404: Result := 'Not Found';
+    405: Result := 'Method Not Allowed';
+    409: Result := 'Conflict';
+    422: Result := 'Unprocessable Entity';
+    429: Result := 'Too Many Requests';
+    500: Result := 'Internal Server Error';
+    501: Result := 'Not Implemented';
+    502: Result := 'Bad Gateway';
+    503: Result := 'Service Unavailable';
+    else
+      Result := '';
+  end;
 end;
 
 
@@ -353,12 +431,16 @@ begin
   if AppData.func = '' then
     AppData.func := 'main';
   try
-    AppData.SessionID := TMyCustomWebModule(Sender).Session.SessionID;
+    AppData.SessionID := SessionController.SessionID;
   except
   end;
 
   if Config.Status = 2 then
+  begin
+    // Die only sends the response and flags termination, it does not halt
     die(Config.Message);
+    Exit;
+  end;
   AppData.sitename := string(Config.GetValue(_SYSTEM_SITENAME, _APP));
   AppData.slogan := string(Config.GetValue(_SYSTEM_SLOGAN, _APP));
   AppData.baseUrl := string(Config.GetValue(_SYSTEM_BASEURL, ''));
@@ -376,36 +458,40 @@ begin
   AppData.tempDir := string(Config.GetValue(_SYSTEM_TEMP_DIR, 'ztemp'));
   AppData.logDir := AppData.tempDir + DirectorySeparator + 'logs' + DirectorySeparator;
   AppData.cookiePath := string(Config.GetValue(_SYSTEM_COOKIE_PATH, ''));
+  AppData.trustProxy := Config.GetValue(_SYSTEM_TRUST_PROXY, False);
+  // same setting for the CGI variables derived in standalone mode
+  SetTrustProxy(AppData.trustProxy);
+  // standalone mode: database connections kept between requests or not
+  DataBasePersistent := Config.GetValue('systems/server/db_persistent', False);
+  DataBaseIdleTimeout := Config.GetValue('systems/server/db_idle_timeout', 300);
 
   if AppData.baseUrl = '' then
   begin
-    _ := GetEnvironmentVariable('HTTPS');
+    _ := ServerVariable('HTTPS');
     if _ = 'on' then _ := 'https://' else _ := 'http://';
-    AppData.baseUrl := _ + GetEnvironmentVariable('SERVER_NAME') +
-      ExtractFilePath(GetEnvironmentVariable('SCRIPT_NAME'));
-  end;
-
-  AppData.hitStorage := string(Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
-  try
-    if AppData.hitStorage <> '' then
-    begin
-      if AppData.hitStorage = 'file' then
-        ThemeUtil.HitType := htFile;
-      if AppData.hitStorage = 'database' then
-        ThemeUtil.HitType := htDatabase;
-      if AppData.hitStorage = 'sqlite' then
-        ThemeUtil.HitType := htSQLite;
-    end;
-  except
-    on e: Exception do
-    begin
-      LogUtil.add(E.Message, 'hitstorage-init');
-    end;
+    if IsStandalone then
+      // no script path, and the Host header carries the port
+      AppData.baseUrl := _ + ServerVariable('HTTP_HOST') + '/'
+    else
+      AppData.baseUrl := _ + ServerVariable('SERVER_NAME') +
+        ExtractFilePath(ServerVariable('SCRIPT_NAME'));
   end;
 
   if AppData.themeEnable then
   begin
     ThemeUtil := TThemeUtil.Create;
+  end;
+
+  // hit storage must be configured after ThemeUtil exists
+  // (TThemeUtil.Create resets HitType to htNone)
+  AppData.hitStorage := string(Config.GetValue(_SYSTEM_HIT_STORAGE, ''));
+  if (AppData.hitStorage <> '') and Assigned(ThemeUtil) then
+  begin
+    case AppData.hitStorage of
+      'file': ThemeUtil.HitType := htFile;
+      'database': ThemeUtil.HitType := htDatabase;
+      'sqlite': ThemeUtil.HitType := htSQLite;
+    end;
   end;
 
   //-- session
@@ -422,19 +508,9 @@ begin
   if SessionController.TimeOut = 0 then
     SessionController.TimeOut := _SESSION_TIMEOUT_DEFAULT;
   // force session with cookie
+  SessionController.CookiePath := AppData.cookiePath;
   if SessionController.IsNewSession then
-  begin
-    with Application.Response.Cookies.Add do
-    begin
-      //CustomHeader['Set-Cookie'] := '_=....; path=/';
-      Name := _SESSION_COOKIE_KEY;
-      Value := SessionController.CookieID;
-      Path := '/';
-      if not AppData.cookiePath.IsEmpty then
-        Path := AppData.cookiePath;
-      //Expires := dateutils.IncMinute(Now, SessionController.TimeOut);
-    end;
-  end;
+    SessionController.SendCookie;
   if AppData.SessionStorage = _SESSION_STORAGE_DATABASE then
   begin
     DataBaseInit;
@@ -469,12 +545,16 @@ begin
   if FlashMessage <> '' then
     ThemeUtil.FlashMessages := FlashMessage;
   Application.Response.Content := '';
-  //Application.Response.SendRedirect(URL);
-  //Application.Response.SendResponse;
   Application.Response.Code := AStatusCode;
-  Application.Response.Location := URL;
-  Application.Response.SendHeaders;
-  Application.Destroy;
+  if HttpStatusText(AStatusCode) <> '' then
+    Application.Response.CodeText := HttpStatusText(AStatusCode);
+  Application.Response.Location := SanitizeHeaderValue(URL);
+  // send the (empty) response now so nothing written afterwards is appended,
+  // then end the process in CGI mode (the application frees itself;
+  // destroying it here caused a double free in the unit finalization).
+  // A standalone server keeps running.
+  Application.Response.SendContent;
+  StopRequest;
 end;
 
 
@@ -483,7 +563,9 @@ begin
   FastPlasAppandler.isDisplayError := True;
   if not AppData.themeEnable then
   begin
+    // ThemeUtil does not exist without a theme; Die does not halt, so stop here
     die(Message);
+    Exit;
   end;
 
   if (not AppData.useDatabase) or (AppData.useDatabase and AppData.databaseActive) then
@@ -501,7 +583,7 @@ begin
   end;
 
   Application.Response.SendContent;
-  Application.Terminate;
+  StopRequest;
 end;
 
 procedure Debug(const Message: integer; const Key: string);
@@ -541,13 +623,6 @@ begin
   //  html := (Sender as String);
   if Sender is TStrings then
     html := html + (Sender as TStrings).Text;
-  if Sender is TSimpleModel then
-  begin
-    with (Sender as TSimpleModel) do
-    begin
-
-    end;
-  end;//- TSimpleModel
 
   echo(prefix + html + suffic);
 end;
@@ -579,10 +654,6 @@ procedure TRoute.Add(const ModuleName: string; ModuleClass: TMyCustomWebModuleCl
 var
   moduleNameReal: string;
 begin
-  if isRegex(ModuleName) then
-  begin
-    // next;
-  end;
   moduleNameReal := CleanUrl(ModuleName);
   moduleNameReal := ReplaceAll(moduleNameReal, ['_'], '');
   moduleNameReal := ReplaceAll(moduleNameReal, ['-', '|'], '_');
@@ -609,7 +680,7 @@ begin
   if not Assigned(RouteRegexMap) then
     RouteRegexMap := TStringList.Create;
 
-  MethodMap.Values[ModuleName] := Method;
+  MethodMap.Values[ModuleName] := UpperCase(Trim(Method));
   RouteRegexMap.Values[ModuleName] := PatternURL;
 
   //RegisterHTTPModule( ModuleName, ModuleClass, SkipStreaming);
@@ -648,10 +719,11 @@ end;
 
 procedure TSESSION.SetValue(variable: string; AValue: variant);
 begin
-  SessionController[variable] := AValue;
   if ((VarType(AValue) = varSmallInt) or (VarType(AValue) = varinteger) or
     (VarType(AValue) = varint64)) then
-    SessionController[variable] := i2s(AValue);
+    SessionController[variable] := i2s(AValue)
+  else
+    SessionController[variable] := AValue;
 end;
 
 function TSESSION.ReadDateTime(const variable: string): TDateTime;
@@ -695,9 +767,18 @@ begin
   Result := Application.EnvironmentVariable[KeyName];
 end;
 
+function TMyCustomWebModule.GetFiles: TUploadedFiles;
+begin
+  Result := Request.Files;
+end;
+
+// accepts the CGI variable name ("HTTP_X_REQUESTED_WITH") as well as the
+// header name ("X-Requested-With")
 function TMyCustomWebModule.GetHeader(const KeyName: string): string;
 begin
-  Result := GetEnvironmentVariable( KeyName);
+  Result := ServerVariable( KeyName);
+  if Result = '' then
+    Result := ServerVariable( HeaderToEnvName( KeyName));
 end;
 
 function TMyCustomWebModule.GetIsActive: boolean;
@@ -767,8 +848,8 @@ begin
   if _POST['csrftoken'] = '' then
     Exit;
 
-  if _POST['csrftoken'] = _SESSION[__HTML_CSRF_TOKEN_KEY] then
-    Result := True;
+  // per form token (or the last issued one), constant time comparison
+  Result := HTMLUtil.IsValidCsrfToken(_POST['csrftoken'], _POST['__formid']);
 
   if Result then
   begin
@@ -812,6 +893,7 @@ end;
 
 function TMyCustomWebModule.GetTag(const TagName: string): TTagCallback;
 begin
+  Result := nil;
   if AppData.themeEnable then
     Result := ___TagCallbackMap[TagName];
 end;
@@ -831,7 +913,7 @@ end;
 procedure TMyCustomWebModule.SetCustomHeader(const KeyName: string;
   AValue: string);
 begin
-  Response.SetCustomHeader( KeyName, AValue);
+  Response.SetCustomHeader( KeyName, SanitizeHeaderValue( AValue));
 end;
 
 procedure TMyCustomWebModule.SetFlashMessage(AValue: string);
@@ -855,6 +937,10 @@ begin
   FOnSearch := nil;
   FOnNotification := nil;
   VisibleModuleName := ClassName;
+  // a long-lived server would otherwise reuse the same module instance
+  // (and its fields) for every request; CGI gets a new one anyway
+  if IsStandalone then
+    Kind := wkOneShot;
   //_Initialize( self);
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
@@ -864,21 +950,30 @@ end;
 
 destructor TMyCustomWebModule.Destroy;
 begin
+  {$if FPC_FULLVERSION < 30300}
+  // FPC 3.2 TCustomHTTPModule creates its CORS support object but has no
+  // destructor to free it: 64 bytes lost per module, i.e. per request in
+  // standalone mode
+  CORS.Free;
+  {$endif}
   inherited Destroy;
 end;
 
 procedure TMyCustomWebModule.HandleRequest(ARequest: TRequest; AResponse: TResponse);
 var
-  moduleName, methodDefault: string;
+  moduleName, methodDefault, requestMethod: string;
 begin
   moduleName := FastPlasAppandler.GetActiveModuleName(ARequest);
-  methodDefault := MethodMap.Values[moduleName];
+  methodDefault := UpperCase(MethodMap.Values[moduleName]);
+  requestMethod := UpperCase(ARequest.Method);
+  if requestMethod = HEAD then
+    requestMethod := METHOD_GET;
   {$ifdef DEBUG}
   if ((AppData.debug) and (AppData.debugLevel <= 1)) then
     LogUtil.Add('handle request: mod=' + moduleName, 'init');
   {$endif}
 
-  // CSRF Security
+  //TODO: CSRF Security.
   if isPost then
   begin
     if not HTMLUtil.CheckCSRF(False) then
@@ -899,7 +994,7 @@ begin
   end
   else
   begin
-    if Application.Request.Method = methodDefault then
+    if requestMethod = methodDefault then
     begin
       AppData.isReady := True;
       inherited HandleRequest(ARequest, AResponse);
@@ -910,7 +1005,9 @@ begin
       if ((AppData.debug) and (AppData.debugLevel <= 1)) then
         LogUtil.Add('handle request: ' + __(__Err_Http_InvalidMethod), 'init');
       {$endif}
-      FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), []);
+      AResponse.SetCustomHeader('Allow', methodDefault);
+      AResponse.CodeText := 'Method Not Allowed';
+      FastPlasAppandler.DieRaise(__(__Err_Http_InvalidMethod), [], 405);
     end;
   end;
 end;
@@ -921,8 +1018,8 @@ begin
   //AResponse.Content:= __Result_Default_Handler;
   AResponse.Content := '';
 
-  case ARequest.Method of
-    'GET':
+  case UpperCase(ARequest.Method) of
+    'GET', 'HEAD':
     begin
       Get;
     end;
@@ -956,7 +1053,7 @@ begin
   // add header TimeUsage
   StopTime:= _GetTickCount;
   ElapsedTime:= StopTime - StartTime;
-  Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));;
+  Application.Response.SetCustomHeader( 'TimeUsage', i2s( ElapsedTime));
 
   Handled := True;
 end;
@@ -992,21 +1089,21 @@ begin
 end;
 
 procedure TMyCustomWebModule.LanguageInit;
+var
+  langCode: string;
 begin
-  if Application.Request.QueryFields.Values['lang'] <> '' then
-    LANG := Application.Request.QueryFields.Values['lang']
-  else
-  begin
-    if _SESSION['lang'] <> '' then
-    begin
-      if Length(_SESSION['lang']) < 5 then
-        LANG := _SESSION['lang'];
-    end
-    else
-      LANG := AppData.language;
-  end;
-  if LANG = 'us' then
-    LANG := 'en';
+  // query string, then session, then the configured default; each one is
+  // validated because LANG is used to build file names
+  langCode := Application.Request.QueryFields.Values['lang'];
+  if not isValidLanguageCode(langCode) then
+    langCode := string(_SESSION['lang']);
+  if not isValidLanguageCode(langCode) then
+    langCode := AppData.language;
+  if not isValidLanguageCode(langCode) then
+    langCode := 'en';
+  if langCode = 'us' then
+    langCode := 'en';
+  LANG := langCode;
   _SESSION['lang'] := LANG;
 end;
 
@@ -1014,15 +1111,25 @@ procedure TMyCustomWebModule.CloseConnection(const AResponseContent: string;
   ACode: Integer);
 begin
   Response.Code := ACode;
+  if HttpStatusText(ACode) <> '' then
+    Response.CodeText := HttpStatusText(ACode);
   Response.Content := AResponseContent;
   CustomHeader['Connection'] := 'close';
   Response.SendContent;
 end;
 
-procedure TMyCustomWebModule.EnableCors;
+procedure TMyCustomWebModule.EnableCors(const AAllowedOrigin: string);
 begin
-  CustomHeader['Access-Control-Allow-Origin'] := '*';
-  CustomHeader['Access-Control-Allow-Credentials'] := 'true';
+  // browsers reject "Allow-Credentials: true" together with a "*" origin,
+  // so credentials are only announced for an explicit origin
+  if (AAllowedOrigin = '') or (AAllowedOrigin = '*') then
+    CustomHeader['Access-Control-Allow-Origin'] := '*'
+  else
+  begin
+    CustomHeader['Access-Control-Allow-Origin'] := AAllowedOrigin;
+    CustomHeader['Access-Control-Allow-Credentials'] := 'true';
+    CustomHeader['Vary'] := 'Origin';
+  end;
   CustomHeader['Access-Control-Allow-Methods'] := 'OPTIONS, GET, POST';
   CustomHeader['Access-Control-Allow-Headers'] := 'Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, If-Modified-Since, X-File-Name, Cache-Control';
 end;
@@ -1046,7 +1153,8 @@ begin
     if Result = '' then
       Result := _GET[variable];
   end;
-  Result := _CleanVar(Result);
+  // _GET/_POST already apply Sanitize/XSSProof; cleaning again here
+  // escaped the value twice.
 end;
 
 { TPOST }
@@ -1057,72 +1165,85 @@ begin
 end;
 
 function TPOST.GetValue(const Variable: string): string;
+
+  function CleanValue(const AValue: string): string;
+  begin
+    if Sanitize then
+    begin
+      Result := _CleanVar(AValue);
+      if XSSProof then
+        Result := StripTags(Result).Trim;
+    end
+    else
+      Result := AValue;
+  end;
+
 var
   i: integer;
   _l: TStringList;
+  reg: TRegExpr;
   s, postType: string;
+  found: boolean;
 begin
   Result := '';
   if Application.Request.Method = 'GET' then
     Exit;
   s := '';
+  postType := '';
+  _l := TStringList.Create;
   try
-    _l := TStringList.Create;
     _l.Delimiter := ';';
     _l.StrictDelimiter := True;
     _l.DelimitedText := Application.Request.ContentType;
-    postType := _l[0];
-  except
-    postType := '';
+    if _l.Count > 0 then
+      postType := LowerCase(Trim(_l[0]));
+  finally
+    _l.Free;
   end;
-  FreeAndNil(_l);
   if postType = 'text/plain' then
   begin
+    // raw request body, returned as-is for the caller to parse
     Result := Application.Request.Content;
     Exit;
-  end;
-  if Application.Request.ContentFields.IndexOfName(Variable) = -1 then
-  begin
-    Result := '';
-    //Exit;
   end;
   try
     case postType of
       'multipart/form-data':
       begin
-        s := Application.Request.ContentFields.Values[Variable];
-        if s.IsEmpty then
-        with TRegExpr.Create() do
-        begin
-          Expression := REGEX_FORMDATA;
-          if Exec(RegExprString(Application.Request.Content)) then
-          begin
-            if string(Match[1]) = Variable then
-            begin
-              Result := string(Match[3]); Free; Exit;
-            end;
-            while ExecNext() do
-            begin
-              if string(Match[1]) = Variable then
-              begin
-                Result := string(Match[3]); Free; Exit;
-              end;
-            end;
-          end;
-          Free;
-        end;
         if StringsExists('\[\]', Variable) then
         begin
-          Result := '';
-          for i:=0 to Application.Request.ContentFields.Count-1 do
+          // name[] : collect every value posted under that name, each one
+          // cleaned on its own so the #13 separator is never escaped
+          for i := 0 to Application.Request.ContentFields.Count - 1 do
           begin
             if Application.Request.ContentFields.Names[i] = Variable then
-            begin
-              Result += Application.Request.ContentFields.ValueFromIndex[i] + #13;
-            end;
+              Result += CleanValue(Application.Request.ContentFields.ValueFromIndex[i]) + #13;
           end;
           Result := Result.Trim;
           Exit;
+        end
+        else
+        begin
+          s := Application.Request.ContentFields.Values[Variable];
+          if s.IsEmpty then
+          begin
+            reg := TRegExpr.Create;
+            try
+              reg.Expression := REGEX_FORMDATA;
+              found := reg.Exec(RegExprString(Application.Request.Content));
+              while found do
+              begin
+                if string(reg.Match[1]) = Variable then
+                begin
+                  s := string(reg.Match[3]);
+                  Break;
+                end;
+                found := reg.ExecNext;
+              end;
+            finally
+              reg.Free;
+            end;
+          end;
         end;
       end;
       'application/x-www-form-urlencoded':
@@ -1132,14 +1253,8 @@ begin
     end;
   except
   end;
-  if Sanitize then
-  begin
-    Result := _CleanVar(s);
-    if XSSProof then
-      Result := StripTags(Result).Trim;
-  end
-  else
-    Result := s;
+  // every single-value field, whichever branch found it, is cleaned here
+  Result := CleanValue(s);
 end;
 
 procedure TPOST.SetValue(const Variable: string; AValue: string);
@@ -1181,7 +1296,7 @@ end;
 
 function TSERVER.GetValue(const variable: string): string;
 begin
-  Result := GetEnvironmentVariable(variable);
+  Result := ServerVariable(variable);
 end;
 
 
@@ -1215,6 +1330,7 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
 
   function GetDefaultModuleName: string;
   begin
+    Result := '';
     if (Application.DefaultModuleName <> '') then
       Result := Application.DefaultModuleName
     else if (ModuleFactory.Count = 1) then
@@ -1319,37 +1435,42 @@ begin
     {$ENDIF}
 
     // check with Regex - redefine variable
+    // note: patterns are matched as-is, anchor them with ^...$ in the route
+    // when a prefix match is not wanted
+    reg := TRegExpr.Create;
     try
-      reg := TRegExpr.Create;
-      for i := 0 to RouteRegexMap.Count - 1 do
-      begin
-        reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
-        if reg.Exec(RegExprString(pathInfo)) then
+      try
+        for i := 0 to RouteRegexMap.Count - 1 do
         begin
-          s := RouteRegexMap.Names[i];
-          if ModuleFactory.FindModule(S) <> nil then
+          reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
+          if reg.Exec(RegExprString(pathInfo)) then
           begin
-            ARequest.QueryFields.Values[Application.ModuleVariable] := s;
-            for j := 1 to reg.SubExprMatchCount do
+            s := RouteRegexMap.Names[i];
+            if ModuleFactory.FindModule(S) <> nil then
             begin
-              ARequest.QueryFields.Values['$' + i2s(j)] := string(reg.Match[j]);
-              if j = 3 then
-                ARequest.QueryFields.Values['act'] := string(reg.Match[j]);
+              ARequest.QueryFields.Values[Application.ModuleVariable] := s;
+              for j := 1 to reg.SubExprMatchCount do
+              begin
+                ARequest.QueryFields.Values['$' + i2s(j)] := string(reg.Match[j]);
+                if j = 3 then
+                  ARequest.QueryFields.Values['act'] := string(reg.Match[j]);
+              end;
+              for j := 1 to reg.GroupCount do
+              begin
+                groupName := string(reg.GroupName[j]);
+                ARequest.QueryFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
+              end;
+              Break;
             end;
-            for j := 1 to reg.GroupCount do
-            begin
-              groupName := string(reg.GroupName[j]);
-              ARequest.QueryFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
-            end;
-            Break;
           end;
         end;
+      except
+        on E: Exception do
+          die('OnGetModule: ' + E.Message);
       end;
-    except
-      on E: Exception do
-        die('OnGetModule: ' + E.Message);
+    finally
+      reg.Free;
     end;
-    reg.Free;
 
 
     //_Redirect( '/?url='+ copy( ARequest.PathInfo, 2, Length(ARequest.PathInfo)-1) + '&' + ARequest.QueryString );
@@ -1389,10 +1510,18 @@ begin
 end;
 
 procedure TFastPlasAppandler.ExceptionHandler(Sender: TObject; E: Exception);
+var
+  senderName, msg: string;
 begin
-  //Application.ShowException(E);
-  //Application.Terminate;
-  LogUtil.Add(Sender.ClassName + ': ' + E.Message, 'exception');
+  if Assigned(Sender) then
+    senderName := Sender.ClassName
+  else
+    senderName := 'nil';
+  if Assigned(E) then
+    msg := E.Message
+  else
+    msg := 'unknown exception';
+  LogUtil.Add(senderName + ': ' + msg, 'exception');
 end;
 
 function TFastPlasAppandler.Tag_InternalContent_Handler(const TagName: string;
@@ -1441,8 +1570,9 @@ begin
       else
         M := MC.Create(Self);
       M.Name := ModuleName;
-      Result := TMyCustomWebModule(M);
     end;
+    if m is TMyCustomWebModule then
+      Result := TMyCustomWebModule(m);
   end;
 end;
 
@@ -1472,17 +1602,31 @@ end;
 
 function TFastPlasAppandler.FindModule(ModuleClass: TCustomHTTPModuleClass):
 TCustomHTTPModule;
-var
-  i: integer;
-begin
-  i := Application.ComponentCount - 1;
-  while (i >= 0) and (not ((Application.Components[i] is ModuleClass) and
-      (TCustomHTTPModule(Application.Components[i]).Kind <> wkOneShot))) do
-    Dec(i);
-  if (i >= 0) then
-    Result := Application.Components[i] as TCustomHTTPModule
-  else
+
+  function FindIn(AOwner: TComponent): TCustomHTTPModule;
+  var
+    i: integer;
+  begin
     Result := nil;
+    if AOwner = nil then
+      Exit;
+    i := AOwner.ComponentCount - 1;
+    while (i >= 0) and (not ((AOwner.Components[i] is ModuleClass) and
+        (TCustomHTTPModule(AOwner.Components[i]).Kind <> wkOneShot))) do
+      Dec(i);
+    if (i >= 0) then
+      Result := AOwner.Components[i] as TCustomHTTPModule;
+  end;
+
+begin
+  // modules created by LoadModule are owned by this handler, the ones created
+  // by fpWeb for the current request are owned by Application.WebHandler;
+  // Application itself never owns a module, so it is only kept as a fallback
+  Result := FindIn(Self);
+  if Result = nil then
+    Result := FindIn(TWebApplicationAccess(TCustomWebApplication(Application)).WebHandler);
+  if Result = nil then
+    Result := FindIn(Application);
 end;
 
 procedure TFastPlasAppandler.AddLog(Message: string);
@@ -1492,9 +1636,51 @@ begin
   LogUtil.Add(Message);
 end;
 
-procedure TFastPlasAppandler.DieRaise(const Fmt: string; const Args: array of const);
+procedure TFastPlasAppandler.DieRaise(const Fmt: string; const Args: array of const;
+  ACode: integer);
 begin
-  Die('<div class="warning">' + Format(Fmt, Args) + '</div>');
+  Die('<div class="warning">' + Format(Fmt, Args) + '</div>', ACode);
+end;
+
+// Called by fastplaz_app around every request. In CGI mode every request
+// has a fresh process, so only the timer is restarted; a standalone server
+// must not carry the state of one request (session, theme, flags) into the
+// next one.
+procedure FastPlazBeginRequest(ARequest: TRequest; AResponse: TResponse);
+begin
+  StartTime := _GetTickCount;
+  if not IsStandalone then
+    Exit;
+  AppData.initialized := False;
+  AppData.isReady := False;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.isDisplayError := False;
+  if Assigned(_DebugInfo) then
+    _DebugInfo.Clear;
+  LANG := 'en';
+  // the session id comes from the cookie of this request
+  FreeAndNil(SessionController);
+  SessionController := TSessionController.Create();
+  DataBaseRequestStarted;
+end;
+
+procedure FastPlazEndRequest(ARequest: TRequest; AResponse: TResponse);
+var
+  i: integer;
+begin
+  if not IsStandalone then
+    Exit;
+  // the theme also owns HTMLUtil (CSRF state) and the tag callbacks, which
+  // point to the module of this request
+  FreeAndNil(ThemeUtil);
+  // modules loaded at start are created again for every request
+  if Assigned(ModuleLoaded) then
+    for i := 0 to ModuleLoaded.Count - 1 do
+      ModuleLoaded[i].ModuleStore := nil;
+  if Assigned(FastPlasAppandler) then
+    FastPlasAppandler.DestroyComponents;
+  // uncommitted work is rolled back as at the end of a CGI process
+  DataBaseRequestFinished;
 end;
 
 initialization
@@ -1503,6 +1689,13 @@ initialization
   XSSProof := False;
   //MemoryAllocated := GetHeapStatus.TotalAllocated;
   MemoryAllocated := SysGetHeapStatus.TotalAllocated;
+  // the request accessors first: TSessionController.Create derives the
+  // session id from _SERVER['REMOTE_ADDR']
+  _REQUEST := TREQUESTVAR.Create;
+  _POST := TPOST.Create;
+  _GET := TGET.Create;
+  _SESSION := TSESSION.Create;
+  _SERVER := TSERVER.Create;
   SessionController := TSessionController.Create();
   FastPlasAppandler := TFastPlasAppandler.Create(nil);
   ModuleLoaded := TModuleLoaded.Create(TModuleLoadedItem);
@@ -1510,12 +1703,10 @@ initialization
   ModUtil := TModUtil.Create;
   DisplayErrorHandler := @DoDisplayError;
   RedirectHandler := @DoRedirect;
-  _REQUEST := TREQUESTVAR.Create;
-  _POST := TPOST.Create;
-  _GET := TGET.Create;
-  _SESSION := TSESSION.Create;
-  _SERVER := TSERVER.Create;
+  OnBeginRequest := @FastPlazBeginRequest;
+  OnEndRequest := @FastPlazEndRequest;
   MethodMap := TStringList.Create;
+  RouteRegexMap := TStringList.Create;
 
 finalization
   FreeAndNil(RouteRegexMap);

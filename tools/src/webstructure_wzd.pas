@@ -35,7 +35,7 @@ implementation
 
 {$R *.lfm}
 
-uses webstructure_lib, fastplaz_tools_register;
+uses webstructure_lib, fastplaz_tools_register, IDEExternToolIntf;
 
 { TfWebStructure }
 
@@ -50,28 +50,36 @@ begin
 end;
 
 function TfWebStructure.CreateStructure(TargetDirectory: string): boolean;
+var
+  structure: TWebStructure;
+  binaryName: string;
 begin
-  Result := False;
-  if not DirectoryExistsUTF8(TargetDirectory) then
-  begin
-    //ShowMessage( 'Directory is not exists.');
-    //Exit;
-  end;
+  binaryName := '';
+  if (LazarusIDE.ActiveProject <> nil) then
+    binaryName := ExtractFileName(LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename);
 
-  with TWebStructure.Create do
-  begin
-    Result := GenerateStructure(TargetDirectory,
-      ExtractFileName(LazarusIDE.ActiveProject.LazCompilerOptions.TargetFilename));
-    Free;
+  structure := TWebStructure.Create;
+  try
+    Result := structure.GenerateStructure(TargetDirectory, binaryName);
+    if Result then
+      ShowMessage('Create structure Done.')
+    else
+    begin
+      log(structure.ErrorMessage, '', mluError);
+      MessageDlg('Create structure failed.' + LineEnding + LineEnding +
+        structure.ErrorMessage, mtError, [mbOK], 0);
+    end;
+  finally
+    structure.Free;
   end;
-  ShowMessage('Create structure Done.');
-  log('web structure: ' + TargetDirectory);
-  Result := True;
 end;
 
 procedure TfWebStructure.FormCreate(Sender: TObject);
 begin
-  edt_TargetDir.Directory := ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename);
+  if (LazarusIDE.ActiveProject <> nil) and (LazarusIDE.ActiveProject.MainFile <> nil) then
+    edt_TargetDir.Directory := ExtractFilePath(LazarusIDE.ActiveProject.MainFile.Filename)
+  else
+    edt_TargetDir.Directory := GetUserDir;
 end;
 
 end.

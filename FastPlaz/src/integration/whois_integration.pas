@@ -29,9 +29,6 @@ unit whois_integration;
 interface
 
 uses
-  {$IFNDEF Windows}
-  cthreads,
-  {$ENDIF}
   logutil_lib,
   Sockets, RegExpr, fpjson, common,
   {$if FPC_FULlVERSION >= 30200}
@@ -40,7 +37,7 @@ uses
   Classes, SysUtils;
 
 const
-  WHOIS_DEFAULT_SERVER = '';
+  WHOIS_DEFAULT_SERVER = 'whois.iana.org';
   WHOIS_DEFAULT_PORT = 43;
   WHOIS_DEFAULT_TIMEOUT = 2500;
 
@@ -96,12 +93,14 @@ type
     function Connect: boolean;
     function sendQuery(DomainName: string): boolean;
     function isDomainID(DomainName: string): boolean;
-    function getExtension(DomainName: string): string;
+    procedure closeConnection;
   public
     constructor Create; virtual;
-    destructor Destroy; virtual;
+    destructor Destroy; override;
     function Find(DomainName: string): boolean;
     function LoadServerList: boolean;
+    // "example.co.id" -> "id"
+    class function ExtensionOf(DomainName: string): string;
 
     property Server: string read FServer write setServerAddress;
     property Port: string read FPort write setPort;
@@ -263,9 +262,17 @@ begin
 
   try
     IpAddress := StrToNetAddr(FServer);
+    if IpAddress.s_addr = 0 then
+    begin
+      FLastMessage := 'no whois server';
+      Exit;
+    end;
     sockInt := fpSocket(AF_INET, SOCK_STREAM, 0);
     if sockInt = -1 then
+    begin
+      FLastMessage := 'socket: ' + IntToStr(SocketError);
       Exit;
+    end;
     sock.sin_family := AF_INET;
     sock.sin_port := htons(FPortInt);
     sock.sin_addr.s_addr := IpAddress.s_addr;
@@ -274,6 +281,11 @@ begin
       FisConnected := True;
       Result := True;
       FLastError := 0;
+    end
+    else
+    begin
+      FLastMessage := 'connect: ' + IntToStr(SocketError);
+      CloseSocket(sockInt);
     end;
   except
     on E: Exception do
@@ -319,7 +331,22 @@ begin
       FLastMessage := E.Message;
     end;
   end;
+  // whois servers answer one query per connection
+  closeConnection;
+end;
 
+procedure TWhoisIntegration.closeConnection;
+begin
+  if not FisConnected then
+    Exit;
+  FisConnected := False;
+  {$I-}
+  CloseFile(SocketIn);
+  CloseFile(SocketOut);
+  {$I+}
+  if InOutRes <> 0 then
+    InOutRes := 0;
+  CloseSocket(sockInt);
 end;
 
 function TWhoisIntegration.isDomainID(DomainName: string): boolean;
@@ -332,14 +359,16 @@ begin
     Result := True;
 end;
 
-function TWhoisIntegration.getExtension(DomainName: string): string;
+class function TWhoisIntegration.ExtensionOf(DomainName: string): string;
 var
   lst: TStrings;
 begin
-  lst := Explode(DomainName, '.');
-  Result := lst.ValueFromIndex[lst.Count - 1];
+  Result := '';
+  lst := Explode(Trim(LowerCase(DomainName)), '.');
+  // ValueFromIndex returned the part after "=", i.e. always ''
+  if lst.Count > 1 then
+    Result := Trim(lst[lst.Count - 1]);
   lst.Free;
-  //Result := Copy(DomainName, pos('.', DomainName) + 1);
 end;
 
 constructor TWhoisIntegration.Create;
@@ -358,22 +387,25 @@ end;
 
 destructor TWhoisIntegration.Destroy;
 begin
+  closeConnection;
   FData.Free;
   regex.Free;
 
   if Assigned(ServerList) then
     ServerList.Free;
+  inherited Destroy;
 end;
 
 function TWhoisIntegration.Find(DomainName: string): boolean;
 var
-  ext, notfound: string;
+  ext: string;
 begin
   Result := False;
-  ext := getExtension(DomainName);
+  ext := ExtensionOf(DomainName);
+  if not Assigned(ServerList) then
+    LoadServerList;
   try
     Server := ServerList.GetPath(ext + '[0]').AsString;
-    notfound := ServerList.GetPath(ext + '[1]').AsString;
   except
     Server := WHOIS_DEFAULT_SERVER;
   end;
@@ -398,15 +430,17 @@ begin
   if not FileExists(_WHOIS_SERVER_LIST_FILENAME) then
     Exit;
   lst := TStringList.Create;
-  lst.LoadFromFile(_WHOIS_SERVER_LIST_FILENAME);
   try
+    lst.LoadFromFile(_WHOIS_SERVER_LIST_FILENAME);
+    FreeAndNil(ServerList);
     ServerList := GetJSON(lst.Text);
-    Result := True;
+    Result := Assigned(ServerList);
   except
     on E: Exception do
     begin
     end;
   end;
+  lst.Free;
 end;
 
 end.

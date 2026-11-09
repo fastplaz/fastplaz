@@ -58,7 +58,7 @@ type
     procedure setRequestContent(AValue: string);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function GetToken: string;
     function GetTokenAsJson: string;
@@ -101,8 +101,6 @@ const
   _BOTFRAMEWORK_URL_TOKEN = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
   _BOTFRAMEWORK_CONVERSATION_URL = 'https://api.botframework.com/v3/conversations';
 
-var
-  Response: IHTTPResponse;
 
 { TMSBotFrameworkIntegration }
 
@@ -125,7 +123,9 @@ end;
 function TMSBotFrameworkIntegration.getServiceURL: string;
 begin
   Result := jsonGetData(jsonData, 'serviceUrl');
-  Result := IncludeTrailingBackslash( Result);
+  // IncludeTrailingBackslash appended "\" on Windows
+  if (Result <> '') and (Result[Length(Result)] <> '/') then
+    Result := Result + '/';
 end;
 
 function TMSBotFrameworkIntegration.getText: string;
@@ -165,6 +165,7 @@ begin
     Exit;
   FRequestContent := trim(AValue);
   try
+    FreeAndNil(jsonData);
     jsonData := GetJSON(FRequestContent, False);
   except
   end;
@@ -184,6 +185,7 @@ destructor TMSBotFrameworkIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
 function TMSBotFrameworkIntegration.GetToken: string;
@@ -205,13 +207,15 @@ begin
 end;
 
 function TMSBotFrameworkIntegration.GetTokenAsJson: string;
+var
+  Response: IHTTPResponse;
 begin
   Result := '';
   if (FClientID = '') or (FClientSecret = '') then
     Exit;
 
   with THTTPLib.Create(_BOTFRAMEWORK_URL_TOKEN) do
-  begin
+  try
     try
       FormData['client_id'] := FClientID;
       FormData['client_secret'] := FClientSecret;
@@ -231,6 +235,7 @@ begin
 
     except
     end;
+  finally
     Free;
   end;
 
@@ -276,6 +281,7 @@ end;
 
 function TMSBotFrameworkIntegration.ReplyMessage(AText: string): boolean;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
   jsonParameter: TJSONUtil;
 begin
@@ -295,7 +301,7 @@ begin
   jsonParameter['replyToId'] := MessageID;
 
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     try
       ContentType := 'application/json';
       AddHeader('Authorization', 'Bearer ' + FToken);
@@ -313,6 +319,7 @@ begin
     except
     end;
 
+  finally
     Free;
   end;
 end;

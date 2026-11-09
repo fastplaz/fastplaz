@@ -42,7 +42,7 @@ type
     function getValue(AVariable: string): string;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     property ResultCode: integer read FResultCode;
     property ResultText: string read FResultText;
@@ -65,8 +65,6 @@ const
   _OPENWEATHERMAP_API_WEATHER =
     'http://api.openweathermap.org/data/2.5/weather?appid=%s&lang=%s&units=%s&mode=%s&q=%s';
 
-var
-  Response: IHTTPResponse;
 
 
 { TOpenWeatherMapIntegration }
@@ -91,24 +89,22 @@ destructor TOpenWeatherMapIntegration.Destroy;
 begin
   if Assigned(jsonData) then
     jsonData.Free;
+  inherited Destroy;
 end;
 
+// the value at AVariable as a variant (string, number or boolean); empty
+// when the path does not exist
 function TOpenWeatherMapIntegration.GetData(AVariable: string): variant;
+var
+  v: TJSONData;
 begin
-  die(VarType(AVariable));
+  Result := '';
+  if not Assigned(jsonData) then
+    Exit;
   try
-    case VarType(AVariable) of
-      varstring:
-      begin
-        Result := '';
-        Result := jsonData.GetPath(AVariable).AsString;
-      end;
-      vardecimal,
-      vardouble:
-      begin
-        Result := jsonData.GetPath(AVariable).AsFloat;
-      end;
-    end;
+    v := jsonData.FindPath(AVariable);
+    if Assigned(v) and not (v.JSONType in [jtNull, jtObject, jtArray]) then
+      Result := v.Value;
   except
   end;
 end;
@@ -124,15 +120,16 @@ end;
 
 function TOpenWeatherMapIntegration.WeatherAsJson(ACityName: string): string;
 var
+  Response: IHTTPResponse;
   urlTarget: string;
 begin
   Result := '';
   if FKey = '' then
     Exit;
   urlTarget := Format(_OPENWEATHERMAP_API_WEATHER, [FKey, FLanguage,
-    FUnits, FMode, ACityName]);
+    FUnits, FMode, UrlEncode(ACityName)]);
   with THTTPLib.Create(urlTarget) do
-  begin
+  try
     //AddHeader('Cache-Control', 'no-cache');
     Response := Get;
     FResultCode := Response.ResultCode;
@@ -140,9 +137,11 @@ begin
     if FResultCode = 200 then
     begin
       if FMode = 'json' then
+        FreeAndNil(jsonData);
         jsonData := GetJSON(FResultText, False);
       Result := FResultText;
     end;
+  finally
     Free;
   end;
 end;

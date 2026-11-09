@@ -7,6 +7,7 @@ interface
 uses
   Classes, SysUtils;
 
+// SHA-256 digest of str as an uppercase hex string (64 characters)
 function SHA256(const str: string): ansistring;
 
 implementation
@@ -18,24 +19,18 @@ var
   Hash: TDCP_sha256;
   Digest: array[0..31] of byte;
   i: integer;
-  s: ansistring;
 begin
-  s := '';
+  Result := '';
   Hash := TDCP_sha256.Create(nil);
-  if hash <> nil then
-  begin
-    try
-      Hash.Init;
-      Hash.UpdateStr(str);
-      Hash.Final(Digest);
-      for i := 0 to length(Digest) - 1 do
-        s := s + IntToHex(Digest[i], 2);
-    except
-    end;
-    hash.Free;
+  try
+    Hash.Init;
+    Hash.UpdateStr(str);
+    Hash.Final(Digest);
+    for i := Low(Digest) to High(Digest) do
+      Result := Result + IntToHex(Digest[i], 2);
+  finally
+    Hash.Free;
   end;
-  Result := s;
 end;
 
 end.
-

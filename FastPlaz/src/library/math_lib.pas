@@ -5,6 +5,9 @@ unit math_lib;
   Factorial:
     n := fact(10);
 
+  Invalid arguments (negative n or k) return NaN for Fact, Factorial and
+  Stirling; Choose returns 0 as the binomial coefficient is defined that way.
+  Power(m, p) with a negative p returns 1 / m^-p, or NaN when m is 0.
 }
 
 {$mode objfpc}{$H+}
@@ -13,8 +16,7 @@ unit math_lib;
 interface
 
 uses
-  Math,
-  strutils, Classes, SysUtils;
+  Math, SysUtils;
 
 function Fact(n: integer): extended;
 function Factorial(n: integer): extended;
@@ -25,62 +27,57 @@ function Stirling(n, k: integer): extended;
 implementation
 
 function Fact(n: integer): extended;
+var
+  i: integer;
 begin
-  if (n = 0) then
-    fact := 1
-  else
-    fact := n * fact(n - 1);
+  if n < 0 then
+    Exit(Math.NaN);
+  Result := 1;
+  for i := 2 to n do
+    Result := Result * i;
 end;
 
 function Factorial(n: integer): extended;
 begin
-  factorial := fact(n);
+  Result := Fact(n);
 end;
 
 function Power(m, p: integer): extended;
 var
-  e: extended; (*result is a reserved word*)
   i: integer;
 begin
-  e := 1;
-  for i := 1 to p do
-    e := e * extended(m);
-  power := e;
+  if (p < 0) and (m = 0) then
+    Exit(Math.NaN);
+  Result := 1;
+  for i := 1 to Abs(p) do
+    Result := Result * extended(m);
+  if p < 0 then
+    Result := 1 / Result;
 end;
 
 function Choose(n, k: integer): extended;
 var
   delta, iMax, i: integer;
-  ans: extended;
 begin
-  if (n < 0) or (k < 0) then
-    exit; (*note that in our form version of this we don't allow the user
-             to enter a negative number, however they could copy and paste one
-             in we should either check and prevent that*)
-  if n < k then
-  begin
-    Choose := 0;
-    exit;
-  end;
-  if n = k then
-  begin
-    Choose := 1;
-    exit;
-  end;
+  Result := 0;
+  if (n < 0) or (k < 0) or (n < k) then
+    Exit;
+  if (k = 0) or (n = k) then
+    Exit(1);
+  // multiply the shorter side: C(n,k) = C(n,n-k)
   if k < (n - k) then
   begin
     delta := n - k;
-    imax := k;
+    iMax := k;
   end
   else
   begin
     delta := k;
-    Imax := n - k;
+    iMax := n - k;
   end;
-  ans := extended(delta) + extended(1);
+  Result := extended(delta) + extended(1);
   for i := 2 to iMax do
-    ans := (ans * (extended(delta + i))) / extended(i);
-  Choose := ans;
+    Result := (Result * extended(delta + i)) / extended(i);
 end;
 
 function Stirling(n, k: integer): extended;
@@ -88,24 +85,17 @@ var
   sum, a, b, c: extended;
   j: integer;
 begin
+  if (n < 0) or (k < 0) then
+    Exit(Math.NaN);
   sum := 0;
   for j := 0 to k do
   begin
-    a := Power(-1, k - j); (*could write a procedure that checks if
-                             k-j is even or odd if even then return 1
-                             if odd -1 but this is way the formula usually
-                             shows it*)
+    a := Power(-1, k - j);
     b := Choose(k, j);
     c := Power(j, n);
     sum := sum + (a * b * c);
   end;
-  Stirling := sum / factorial(k);
+  Result := sum / Factorial(k);
 end;
 
 end.
-
-
-
-
-
-

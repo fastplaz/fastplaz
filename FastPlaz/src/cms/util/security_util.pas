@@ -5,7 +5,7 @@ unit security_util;
 interface
 
 uses
-  fpcgi, common, hash_tools,
+  fastplaz_app, common, hash_tools,
   Math, Classes, SysUtils;
 
 const
@@ -31,9 +31,30 @@ type
       SaltDelimiter: string = SALT_DELIM): string;
 
     function GenerateCSRF(const FormID: string = ''): string;
+
+    // at least PASSWORD_LENGTH_MIN characters
+    class function IsPasswordAcceptable(const APassword: string): boolean;
+    // a plausible e-mail address (no spaces, one @, a dot in the domain)
+    class function IsValidEmail(const AEmail: string): boolean;
   end;
 
+// constant time comparison for hashes and tokens
+function TimingSafeEquals(const A, B: string): boolean;
+
 implementation
+
+function TimingSafeEquals(const A, B: string): boolean;
+var
+  i, diff: integer;
+begin
+  diff := Length(A) xor Length(B);
+  for i := 1 to Length(A) do
+    if i <= Length(B) then
+      diff := diff or (Ord(A[i]) xor Ord(B[i]))
+    else
+      diff := diff or Ord(A[i]);
+  Result := diff = 0;
+end;
 
 { TSecurityUtil }
 
@@ -49,24 +70,30 @@ begin
   if Pos(SALT_DELIM, SaltedHash) = 0 then
     Exit;
   lst := Explode(SaltedHash, SALT_DELIM);
-  if lst.Count < 3 then
-  begin
+  try
+    if lst.Count < 3 then
+      Exit;
+    dataHash := GenerateSaltedHash(UnhasedData, lst[1]);
+    Result := TimingSafeEquals(dataHash, SaltedHash);
+  finally
     lst.Free;
-    Exit;
   end;
+end;
 
-  dataHash := GenerateSaltedHash(UnhasedData, lst[1]);
-  if dataHash = SaltedHash then
-    Result := True;
+class function TSecurityUtil.IsPasswordAcceptable(const APassword: string): boolean;
+begin
+  Result := Length(APassword) >= PASSWORD_LENGTH_MIN;
+end;
 
-  lst.Free;
+class function TSecurityUtil.IsValidEmail(const AEmail: string): boolean;
+begin
+  Result := (Length(AEmail) <= 254) and (Pos(' ', AEmail) = 0) and isEmail(AEmail);
 end;
 
 function TSecurityUtil.GeneratePassword: string;
 var
   min, max: integer;
 begin
-  Randomize;
   min := RandomRange(PASSWORD_LENGTH_MIN, 15);
   max := RandomRange(PASSWORD_LENGTH_MIN + 3, 15);
   Result := RandomString(min, max, False, True, True, False, True, False, False, '');

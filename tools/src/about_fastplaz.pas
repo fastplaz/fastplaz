@@ -5,10 +5,7 @@ unit about_fastplaz;
 interface
 
 uses
-  {$ifdef windows}
-  ShellAPI,
-  {$endif}
-  PackageIntf, LazFileUtils,
+  LCLIntf, LazFileUtils,
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel, StdCtrls, ComCtrls;
 
 const
@@ -50,54 +47,45 @@ implementation
 
 {$R *.lfm}
 
+uses fastplaz_tools_register;
+
 { TfAboutFastplaz }
-
-function i2s(pI: integer): string;
-begin
-  Result := '0';
-  try
-    Result := IntToStr(pI);
-  finally
-  end;
-end;
-
-
 
 procedure TfAboutFastplaz.FormCreate(Sender: TObject);
 var
-  Pkg: TIDEPackage;
-  lsS : string;
-  lst : TStringList;
+  versionFile, version: string;
+  lst: TStringList;
 begin
-  page.Align:= alClient;
-  page.ActivePageIndex:=0;
+  page.Align := alClient;
+  page.ActivePageIndex := 0;
 
-  Pkg := PackageEditingInterface.FindPackageWithName('fastplaz_tools');
-  lsS := Pkg.DirectoryExpanded + DirectorySeparator + 'version.txt';
-  lst := TStringList.Create;
-  if FileExistsUTF8( lsS) then
+  version := '';
+  versionFile := PackageDirectory(FASTPLAZ_TOOLS_PACKAGE);
+  if versionFile <> '' then
   begin
-    lst.LoadFromFile( lsS);
+    versionFile := versionFile + 'version.txt';
+    if FileExistsUTF8(versionFile) then
+    begin
+      lst := TStringList.Create;
+      try
+        lst.LoadFromFile(versionFile);
+        version := Trim(lst.Text);
+      finally
+        lst.Free;
+      end;
+    end;
   end;
 
-  lsS := #13#0'Target ' + {$i %FPCTARGET%};
-  lsS := lsS + #13#10'TargetCPU ' + {$i %FPCTARGETCPU%};
-  lsS := lsS + #13#10'Target OS ' + {$i %FPCTARGETOS%};
-  lsS := lsS + #13#10'FPC Version ' + {$i %FPCVERSION%};
-  lsS := lsS + #13#10'Build Date ' + {$i %DATE%};
-
-  lsS := '';
-//  lsS := lsS + 'Build width:';
-  lsS := lsS + #13#10'Lazarus:';
-  lsS := lsS + #13#10'TargetCPU: ' + {$i %FPCTARGETCPU%};
-  mem_build.Lines.Text:= lsS + #13#10#13#10 + mem_build.Lines.Text;
-  page.ActivePageIndex:=0;
-  lbl_Version.Caption := 'Version: ' + lst.Text;
+  mem_build.Lines.Text :=
+    'Target: ' + {$i %FPCTARGET%} + LineEnding +
+    'Target OS: ' + {$i %FPCTARGETOS%} + LineEnding +
+    'FPC version: ' + {$i %FPCVERSION%} + LineEnding +
+    'Build date: ' + {$i %DATE%} + LineEnding + LineEnding +
+    mem_build.Lines.Text;
+  lbl_Version.Caption := 'Version: ' + version;
   lbl_App.Caption := 'FastPlaz';
   lbl_URL.Caption := 'http://www.fastplaz.com';
-  lbl_CodeName.Caption:= 'codename: ' + css_CodeName;
-
-  lst.Free;
+  lbl_CodeName.Caption := 'codename: ' + css_CodeName;
 end;
 
 procedure TfAboutFastplaz.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -113,15 +101,8 @@ begin
 end;
 
 procedure TfAboutFastplaz.lbl_URLClick(Sender: TObject);
-var
-  lsURL : string;
 begin
-  lsURL := 'http' + '://app.fas' + 'tpl' + 'az' + '.com';
-  {$ifdef windows}
-  ShellExecute(0, PChar('Open'), PChar( lsURL ),
-    nil, PChar( ExtractFileDir( Application.ExeName)), 1);
-  {$else}
-  {$endif}
+  OpenURL(lbl_URL.Caption);
 end;
 
 procedure TfAboutFastplaz.lbl_URLMouseEnter(Sender: TObject);

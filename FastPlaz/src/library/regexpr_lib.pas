@@ -67,7 +67,7 @@ interface
 
 { off $DEFINE DebugSynRegExpr }
 // ======== Determine compiler
-{$I regexpr_compilers.inc}
+{$I regexpr_compilers_lib.inc}
 // ======== Define base compiler options
 {$BOOLEVAL OFF}
 {$EXTENDEDSYNTAX ON}
