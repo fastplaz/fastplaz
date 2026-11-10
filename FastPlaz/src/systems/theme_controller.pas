@@ -2475,9 +2475,9 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Format( __(__Err_App_Init), [
-      'http://' + ServerVariable('SERVER_NAME') + (ServerVariable('SCRIPT_NAME'))
-      + '/initialize/']);
+    // set-up instructions only: the web "initialize" module is not
+    // registered (it wrote files for any visitor), so no link to it
+    Result := __(__Err_App_Init);
     Exit;
   end;
 

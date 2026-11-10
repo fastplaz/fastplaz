@@ -28,7 +28,7 @@ resourcestring
 
   // theme
   __Err_App_Init =
-    '<h3>This is the first time using fastplaz?</h3><a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
+    '<h3>This application is not set up yet</h3>The <code>themes</code> folder was not found in the working directory of the application.<br>Create a project with the FastPlaz wizard in Lazarus, or copy the web structure of a FastPlaz project (<code>config/config.json</code>, <code>themes</code>, <code>ztemp</code>, ...) next to the application, then reload this page.';
   __Err_Theme_Not_Exists = 'file layout "%s" does not exist in theme "%s"';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
@@ -306,6 +306,12 @@ procedure InitializeFastPlaz(Sender: TObject = nil);
 function SanitizeHeaderValue(const AValue: string): string;
 // "X-Requested-With" -> "HTTP_X_REQUESTED_WITH" (the CGI variable name)
 function HeaderToEnvName(const AHeaderName: string): string;
+// scheme and host of the site as the client reached it, without a trailing
+// slash: "http://example.com", "https://example.com:8443". AHost is the Host
+// header, which carries a non-default port; without it the server name and
+// port are used, the port left out when it is the default of the scheme.
+// AHttps is the HTTPS variable ("on" for https).
+function SiteURL(const AHttps, AHost, AServerName, AServerPort: string): string;
 
 // Route lookup by pattern: the first route, in the order the routes were
 // added, whose regular expression matches APathInfo and whose module is
@@ -365,6 +371,43 @@ begin
   Result := UpperCase(StringReplace(Trim(AHeaderName), '-', '_', [rfReplaceAll]));
   if (Result <> '') and (not Result.StartsWith('HTTP_')) then
     Result := 'HTTP_' + Result;
+end;
+
+function SiteURL(const AHttps, AHost, AServerName, AServerPort: string): string;
+var
+  host, port, defaultPort: string;
+  i: integer;
+  valid: boolean;
+begin
+  if SameText(Trim(AHttps), 'on') then
+  begin
+    Result := 'https://';
+    defaultPort := '443';
+  end
+  else
+  begin
+    Result := 'http://';
+    defaultPort := '80';
+  end;
+
+  // the Host header comes from the client: only a host name, an IP address
+  // (IPv6 in brackets) and a port are taken, anything else falls back to the
+  // server name
+  host := Trim(AHost);
+  valid := host <> '';
+  for i := 1 to Length(host) do
+    if not (host[i] in ['A'..'Z', 'a'..'z', '0'..'9', '.', '-', ':', '[', ']']) then
+    begin
+      valid := False;
+      Break;
+    end;
+  if valid then
+    Exit(Result + LowerCase(host));
+
+  Result := Result + LowerCase(Trim(AServerName));
+  port := Trim(AServerPort);
+  if (port <> '') and (port <> defaultPort) and (StrToIntDef(port, 0) > 0) then
+    Result := Result + ':' + port;
 end;
 
 function _CleanVar(const Value: string): string;
@@ -476,14 +519,15 @@ begin
 
   if AppData.baseUrl = '' then
   begin
-    _ := ServerVariable('HTTPS');
-    if _ = 'on' then _ := 'https://' else _ := 'http://';
+    // the host as the client reached it, with a non-default port (CGI used
+    // SERVER_NAME alone, so http://host:8080/ lost its port)
+    _ := SiteURL(ServerVariable('HTTPS'), ServerVariable('HTTP_HOST'),
+      ServerVariable('SERVER_NAME'), ServerVariable('SERVER_PORT'));
     if IsStandalone then
-      // no script path, and the Host header carries the port
-      AppData.baseUrl := _ + ServerVariable('HTTP_HOST') + '/'
+      // no script path
+      AppData.baseUrl := _ + '/'
     else
-      AppData.baseUrl := _ + ServerVariable('SERVER_NAME') +
-        ExtractFilePath(ServerVariable('SCRIPT_NAME'));
+      AppData.baseUrl := _ + ExtractFilePath(ServerVariable('SCRIPT_NAME'));
   end;
 
   if AppData.themeEnable then
