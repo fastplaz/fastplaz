@@ -1,0 +1,8 @@
+lib/
+public_html/app.bin
+public_html/ztemp/cache/*
+public_html/ztemp/logs/*
+public_html/ztemp/sessions/*
+!public_html/ztemp/**/index.html
+public_html/sqlite3.dll
+public_html/ztemp/*.sqlite*
