@@ -502,7 +502,7 @@ initialization
 {
 
   Add this to route.pas
-  Route.Add('admin', TAdminModule);
+  Route.Add('admin', '^/admin(/.*)?$', TAdminModule);
 }
 
 end.

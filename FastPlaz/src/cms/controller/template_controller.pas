@@ -11,7 +11,7 @@ uses
   Classes, SysUtils, fastplaz_app, HTTPDefs;
 
 const
-  TEMPLATE_ROUTE_REGEX = '^(template)/?$';
+  TEMPLATE_ROUTE_REGEX = '^/(template)/?$';
   TEMPLATE_TITLE = 'Template';
   TEMPLATE_DESCRIPTION = 'Template Controller';
   TEMPLATE_URL = 'template';

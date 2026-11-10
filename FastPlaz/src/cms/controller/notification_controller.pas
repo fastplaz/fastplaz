@@ -11,7 +11,7 @@ uses
   Classes, SysUtils, fastplaz_app, HTTPDefs;
 
 const
-  NOTIFICATION_ROUTE_REGEX = '^(notification)/?$';
+  NOTIFICATION_ROUTE_REGEX = '^/(notification)/?$';
   NOTIFICATION_TITLE = 'Notification';
   NOTIFICATION_DESCRIPTION = 'Notification Controller';
   NOTIFICATION_URL = 'notification';

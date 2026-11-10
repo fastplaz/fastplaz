@@ -9,7 +9,8 @@ unit test_fastplaz_handler;
 interface
 
 uses
-  fastplaz_handler, common, Classes, SysUtils, fphttp, fpcunit, testregistry;
+  fastplaz_handler, common, Classes, SysUtils, fphttp, fpjson, jsonparser,
+  custweb, fpcunit, testregistry;
 
 type
 
@@ -40,6 +41,18 @@ type
     procedure TestNoMatchLeavesFields;
     procedure TestUnregisteredModuleIsSkipped;
     procedure TestEmptyModuleVariable;
+    procedure TestPatternChangeIsRecompiled;
+  end;
+
+  { TExceptionPageTest: status and content of the error page }
+
+  TExceptionPageTest = class(TTestCase)
+  published
+    procedure TestStatusOfFpwebNoModule;
+    procedure TestStatusOfOtherExceptions;
+    procedure TestHtmlWithoutDetails;
+    procedure TestHtmlWithDetailsIsEncoded;
+    procedure TestJson;
   end;
 
   TZqModule = class(TMyCustomController);
@@ -171,9 +184,144 @@ begin
   AssertEquals(0, FFields.Count);
 end;
 
+procedure TRouteMatchTest.TestPatternChangeIsRecompiled;
+begin
+  // compiled and cached by the first lookup
+  AssertEquals('zqre', MatchRoute('/zq/re1', FFields, 'mod'));
+  // the same route registered again with another pattern
+  Route.Add('zqre', '^/zq/re2$', TZqModule);
+  try
+    FFields.Clear;
+    AssertEquals('zqre', MatchRoute('/zq/re2', FFields, 'mod'));
+    FFields.Clear;
+    AssertEquals('zqany', MatchRoute('/zq/re1', FFields, 'mod'));
+  finally
+    Route.Add('zqre', '^/zq/re1$', TZqModule);
+  end;
+end;
+
+{ TExceptionPageTest }
+
+function WebError(const AStatusText: string; ACode: integer): EFPWebError;
+begin
+  Result := EFPWebError.Create('Could not determine HTTP module for request "x"');
+  Result.StatusCode := ACode;
+  Result.StatusText := AStatusText;
+end;
+
+procedure TExceptionPageTest.TestStatusOfFpwebNoModule;
+var
+  e: EFPWebError;
+begin
+  // custweb raises 400 "Not found" when no module takes the request
+  e := WebError('Not found', 400);
+  try
+    AssertEquals(404, RequestExceptionStatus(e));
+  finally
+    e.Free;
+  end;
+  // a real bad request stays 400
+  e := WebError('Bad Request', 400);
+  try
+    AssertEquals(400, RequestExceptionStatus(e));
+  finally
+    e.Free;
+  end;
+end;
+
+procedure TExceptionPageTest.TestStatusOfOtherExceptions;
+var
+  e: Exception;
+begin
+  e := WebError('Forbidden', 403);
+  try
+    AssertEquals(403, RequestExceptionStatus(e));
+  finally
+    e.Free;
+  end;
+  e := Exception.Create('plain');
+  try
+    AssertEquals(500, RequestExceptionStatus(e));
+    e.HelpContext := 503;
+    AssertEquals(503, RequestExceptionStatus(e));
+    // a HelpContext that is not an HTTP error status
+    e.HelpContext := 42;
+    AssertEquals(500, RequestExceptionStatus(e));
+  finally
+    e.Free;
+  end;
+  AssertEquals(500, RequestExceptionStatus(nil));
+end;
+
+procedure TExceptionPageTest.TestHtmlWithoutDetails;
+var
+  e: Exception;
+  s: string;
+begin
+  e := Exception.Create('secret: password=abc');
+  try
+    s := RequestExceptionContent(e, 500, False, False, '  $0001 Get, line 9 of x.pas');
+    AssertTrue(Pos('500 Internal Server Error', s) > 0);
+    AssertEquals(0, Pos('secret', s));
+    AssertEquals(0, Pos('x.pas', s));
+    AssertEquals(0, Pos('Exception', s));
+  finally
+    e.Free;
+  end;
+end;
+
+procedure TExceptionPageTest.TestHtmlWithDetailsIsEncoded;
+var
+  e: Exception;
+  s: string;
+begin
+  e := Exception.Create('module "<script>alert(1)</script>"');
+  try
+    s := RequestExceptionContent(e, 404, True, False, 'trace <b>');
+    AssertTrue(Pos('404 Not Found', s) > 0);
+    AssertTrue(Pos('&lt;script&gt;', s) > 0);
+    AssertTrue(Pos('&quot;', s) > 0);
+    AssertEquals(0, Pos('<script>', s));
+    AssertTrue(Pos('trace &lt;b&gt;', s) > 0);
+  finally
+    e.Free;
+  end;
+end;
+
+procedure TExceptionPageTest.TestJson;
+var
+  e: Exception;
+  j: TJSONData;
+begin
+  e := Exception.Create('boom');
+  try
+    j := GetJSON(RequestExceptionContent(e, 500, False, True, 't'));
+    try
+      AssertEquals(500, TJSONObject(j).Get('code', 0));
+      AssertEquals('Internal Server Error', TJSONObject(j).Get('msg', ''));
+      AssertNull(TJSONObject(j).Find('message'));
+      AssertNull(TJSONObject(j).Find('trace'));
+    finally
+      j.Free;
+    end;
+    j := GetJSON(RequestExceptionContent(e, 500, True, True, 't'));
+    try
+      AssertEquals('Exception', TJSONObject(j).Get('exception', ''));
+      AssertEquals('boom', TJSONObject(j).Get('message', ''));
+      AssertEquals('t', TJSONObject(j).Get('trace', ''));
+    finally
+      j.Free;
+    end;
+  finally
+    e.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TFastPlazHandlerTest);
   RegisterTest(TRouteMatchTest);
+  RegisterTest(TExceptionPageTest);
+  Route.Add('zqre', '^/zq/re1$', TZqModule);
   Route.Add('zqhome', '^/zq/?$', TZqModule);
   Route.Add('zqitem', '^/zq/item/([0-9]+)/(?P<slug>[a-z]+)/?$', TZqModule);
   Route.Add('zqact', '^/zq/act/([a-z])/([a-z])/([a-z])$', TZqModule);
