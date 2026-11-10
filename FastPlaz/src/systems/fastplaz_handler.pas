@@ -313,6 +313,15 @@ function HeaderToEnvName(const AHeaderName: string): string;
 // AHttps is the HTTPS variable ("on" for https).
 function SiteURL(const AHttps, AHost, AServerName, AServerPort: string): string;
 
+// Route lookup by pattern: the first route, in the order the routes were
+// added, whose regular expression matches APathInfo and whose module is
+// registered. Writes the module name (as AModuleVariable, skipped when
+// empty), the groups as $1..$n, the third group as "act" and the named
+// groups by name into AFields. Returns the module name, '' (AFields left
+// as they are) when no route matches.
+function MatchRoute(const APathInfo: string; AFields: TStrings;
+  const AModuleVariable: string): string;
+
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
 procedure Debug(const Sender: TObject; const Key: string = '');
@@ -1458,62 +1467,84 @@ begin
 
 end;
 
-procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
-  var ModuleClass: TCustomHTTPModuleClass);
+function MatchRoute(const APathInfo: string; AFields: TStrings;
+  const AModuleVariable: string): string;
 var
   s, pathInfo, groupName: string;
   i, j: integer;
   reg: TRegExpr;
+begin
+  Result := '';
+  if not Assigned(RouteRegexMap) then
+    Exit;
+  // a URL path, so "/" on every platform (IncludeLeadingPathDelimiter
+  // would add "\" on Windows)
+  pathInfo := APathInfo;
+  if (pathInfo = '') or (pathInfo[1] <> '/') then
+    pathInfo := '/' + pathInfo;
+
+  // patterns are matched as-is, anchor them with ^...$ in the route
+  // when a prefix match is not wanted
+  reg := TRegExpr.Create;
+  try
+    for i := 0 to RouteRegexMap.Count - 1 do
+    begin
+      reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
+      if not reg.Exec(RegExprString(pathInfo)) then
+        Continue;
+      s := RouteRegexMap.Names[i];
+      if ModuleFactory.FindModule(s) = nil then
+        Continue;
+      Result := s;
+      if AModuleVariable <> '' then
+        AFields.Values[AModuleVariable] := s;
+      for j := 1 to reg.SubExprMatchCount do
+      begin
+        AFields.Values['$' + i2s(j)] := string(reg.Match[j]);
+        if j = 3 then
+          AFields.Values['act'] := string(reg.Match[j]);
+      end;
+      // named groups only; unnamed ones are $1..$n above (an unnamed group
+      // has an empty name and would add a field without a name)
+      for j := 1 to reg.GroupCount do
+      begin
+        groupName := string(reg.GroupName[j]);
+        if groupName = '' then
+          Continue;
+        AFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
+      end;
+      Break;
+    end;
+  finally
+    reg.Free;
+  end;
+end;
+
+procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
+  var ModuleClass: TCustomHTTPModuleClass);
+var
+  s: string;
+  i: integer;
+  byQuery: boolean;
   //m: TCustomHTTPModule;
   //mi: TModuleItem;
   //mc: TCustomHTTPModuleClass;
 begin
   InitializeFastPlaz(Sender);
   s := GetActiveModuleName(ARequest);
-  if ModuleFactory.FindModule(S) = nil then
+  // a module named in the query (?mod=) is used as given. A name taken
+  // from the path is not: the route patterns are checked first, otherwise
+  // /main or /notfound would reach a module its pattern (^/$ ...) excludes.
+  // When no pattern matches, the old lookup by name still applies.
+  byQuery := (Application.ModuleVariable <> '')
+    and (ARequest.QueryFields.Values[Application.ModuleVariable] <> '');
+  if (not byQuery) or (ModuleFactory.FindModule(S) = nil) then
   begin
-    pathInfo := ARequest.PathInfo;
-    pathInfo := IncludeLeadingPathDelimiter(pathInfo);
-    {$IFDEF Windows}
-    if pathInfo = '\' then pathInfo:= '/';
-    {$ENDIF}
-
-    // check with Regex - redefine variable
-    // note: patterns are matched as-is, anchor them with ^...$ in the route
-    // when a prefix match is not wanted
-    reg := TRegExpr.Create;
     try
-      try
-        for i := 0 to RouteRegexMap.Count - 1 do
-        begin
-          reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
-          if reg.Exec(RegExprString(pathInfo)) then
-          begin
-            s := RouteRegexMap.Names[i];
-            if ModuleFactory.FindModule(S) <> nil then
-            begin
-              ARequest.QueryFields.Values[Application.ModuleVariable] := s;
-              for j := 1 to reg.SubExprMatchCount do
-              begin
-                ARequest.QueryFields.Values['$' + i2s(j)] := string(reg.Match[j]);
-                if j = 3 then
-                  ARequest.QueryFields.Values['act'] := string(reg.Match[j]);
-              end;
-              for j := 1 to reg.GroupCount do
-              begin
-                groupName := string(reg.GroupName[j]);
-                ARequest.QueryFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
-              end;
-              Break;
-            end;
-          end;
-        end;
-      except
-        on E: Exception do
-          die('OnGetModule: ' + E.Message);
-      end;
-    finally
-      reg.Free;
+      MatchRoute(ARequest.PathInfo, ARequest.QueryFields, Application.ModuleVariable);
+    except
+      on E: Exception do
+        die('OnGetModule: ' + E.Message);
     end;
 
 
@@ -1537,10 +1568,7 @@ begin
     ModuleClass:= mc;
     }
 
-  end //-- if ModuleFactory.FindModule(S) = nil
-  else
-  begin
-  end; //-- if ModuleFactory.FindModule(S) = nil
+  end; //-- route patterns
 
   // Load Module @startup
   if ModuleLoaded.Count > 0 then

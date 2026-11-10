@@ -1,0 +1,41 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz Metric",
+    "slogan" : "Lifecycle, dispatcher and concurrency test app",
+    "baseurl" : "",
+    "admin_email" : "webmaster@metric.fastplaz.test",
+    "development" : false,
+    "debug" : false,
+    "module_default" : "main",
+    "language_default" : "en",
+    "theme_enable" : true,
+    "theme" : "default",
+    "cache" : "none",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "session_timeout" : 0,
+    "error_redirect" : false,
+    "server" : {
+      "address" : "127.0.0.1",
+      "port" : 17845,
+      "static" : true,
+      "max_requests" : 0,
+      "db_persistent" : false,
+      "db_idle_timeout" : 300
+    }
+  },
+  "database" : {
+    "default" : {
+      "driver" : "SQLite3",
+      "hostname" : "",
+      "port" : "",
+      "username" : "",
+      "password" : "",
+      "database_name" : "ztemp\/metric.sqlite",
+      "charset" : "",
+      "prefix" : "",
+      "version_check" : false,
+      "library" : ""
+    }
+  }
+}
