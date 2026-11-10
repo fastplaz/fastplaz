@@ -140,6 +140,6 @@ begin
 end;
 
 initialization
-  Route.Add('about', TMyCustomWebModuleClass(TAboutModule), ALL, False);
+  Route.Add('about', '^/about(/.*)?$', TMyCustomWebModuleClass(TAboutModule), ALL, False);
 
 end.

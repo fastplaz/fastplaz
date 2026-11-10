@@ -11,7 +11,7 @@ uses
 
 const
   ADMIN_USER_ROUTE =
-    '^(admin)-(user)-(list|view|add|edit|delete|data|activate|deactivate|suspend|resetpassword)/?$';
+    '^/(admin)-(user)-(list|view|add|edit|delete|data|activate|deactivate|suspend|resetpassword)/?$';
   ADMIN_USER_TITLE = 'User Management';
   ADMIN_USER_DESCRIPTION = '';
   ADMIN_USER_URL = 'admin-user-list';

@@ -10,7 +10,7 @@ uses
 
 const
   ADMIN_PERMISSION_ROUTE =
-    '^(admin)-(permission)-(list|view|add|edit|delete|data|activate|deactivate|suspend|resetpassword)/?$';
+    '^/(admin)-(permission)-(list|view|add|edit|delete|data|activate|deactivate|suspend|resetpassword)/?$';
   PERMISSIONADMIN_TITLE = 'Permission';
   PERMISSIONADMIN_DESCRIPTION = 'Permission Rule List';
 

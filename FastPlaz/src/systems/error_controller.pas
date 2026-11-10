@@ -71,5 +71,5 @@ end;
 initialization
   // -> http://yourdomainname/error
   // is better to move line below to file "route.pas"
-  Route.Add('error', TMyCustomWebModuleClass(TErrorinfoModule));
+  Route.Add('error', '^/error(/.*)?$', TMyCustomWebModuleClass(TErrorinfoModule));
 end.
