@@ -224,8 +224,7 @@ var
 
 implementation
 
-uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5,
-  initialize_controller;
+uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5;
 
 // Template file content, read in shared mode.
 // TFPTemplate.FileName opens the file with plain fmOpenRead, which on Windows
