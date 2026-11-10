@@ -93,7 +93,6 @@ var
   wizard: TfPackageWizard;
   projectName, projectFileName, targetDir: string;
   packageLib: TPackageAppLib;
-  runMode: TAppRunMode;
 begin
   wizard := TfPackageWizard.Create(nil);
   try
@@ -101,7 +100,6 @@ begin
       Exit;
     projectName := SanitizeProjectName(wizard.edt_ProjectName.Text);
     targetDir := IncludeTrailingPathDelimiter(wizard.edt_TargetDir.Text);
-    runMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -117,7 +115,7 @@ begin
   finally
     packageLib.Free;
   end;
-  ApplyRunMode(targetDir + 'public_html', runMode);
+  ApplyServerConfig(targetDir + 'public_html');
 
   // the template project is always named fastplaz.lpr
   projectFileName := targetDir + 'source' + DirectorySeparator +

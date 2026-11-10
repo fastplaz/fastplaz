@@ -1,5 +1,10 @@
 # Development Changes
 
+## 20261110
+
+Behaviour changes:
+- tools: the Simple, API and Full Package Application wizards no longer ask for a Run Mode. A generated app is always dual mode: the wizard writes the standalone HTTP settings (`systems/server/mode`, `address`, `port`) to `config.json`, and CGI is still detected from `GATEWAY_INTERFACE` when a web server runs the binary. The CGI choice only affected a binary started directly, where it printed one response and exited
+
 ## 20261108
 
 Behaviour changes:

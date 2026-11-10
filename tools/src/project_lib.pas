@@ -23,7 +23,6 @@ type
     FTitle: string;
     FTargetExecutable: string;
     FCreateStructure: boolean;
-    FRunMode: TAppRunMode;
   protected
     // the wizard runs here: the IDE only aborts cleanly before InitProject,
     // a cancel from InitProject makes it create a default project instead
@@ -47,10 +46,12 @@ procedure SetupFastPlazProject(AProject: TLazProject;
 // Opens the readme that ships with the runtime package, when it exists.
 procedure OpenRuntimeReadme(const AReadmeName: string);
 
-// Writes the run mode chosen in a wizard to <AWebRootDir>/config/config.json
-// and reports it in the messages window. Nothing is written when the file
-// does not exist (web structure not generated).
-procedure ApplyRunMode(const AWebRootDir: string; AMode: TAppRunMode);
+// Writes the standalone HTTP server settings (systems/server mode, address,
+// port) to <AWebRootDir>/config/config.json and reports the URL in the
+// messages window. No run mode is asked: the application is dual mode, CGI
+// is detected from GATEWAY_INTERFACE when a web server runs it. Nothing is
+// written when the file does not exist (web structure not generated).
+procedure ApplyServerConfig(const AWebRootDir: string);
 
 implementation
 
@@ -147,30 +148,22 @@ begin
     LazarusIDE.DoOpenEditorFile(filename, -1, -1, [ofAddToRecent]);
 end;
 
-procedure ApplyRunMode(const AWebRootDir: string; AMode: TAppRunMode);
+procedure ApplyServerConfig(const AWebRootDir: string);
 var
   configFile: string;
 begin
   configFile := IncludeTrailingPathDelimiter(AWebRootDir) + 'config' +
     DirectorySeparator + 'config.json';
-  // a relative directory would resolve against the IDE's working directory
+  // a relative directory would resolve against the IDE's working directory;
+  // without a config file the application still defaults to HTTP
   if (not FilenameIsAbsolute(AWebRootDir)) or (not FileExists(configFile)) then
-  begin
-    log('Run mode ' + UpperCase(APP_RUN_MODE_NAMES[AMode]) +
-      ': config/config.json not found, set systems/server/mode manually', '',
-      mluHint);
     Exit;
-  end;
-  if SetConfigRunMode(configFile, AMode) then
-  begin
-    if AMode = armHTTP then
-      log(Format('Run mode HTTP: http://%s:%d/ (%s)', [APP_HTTP_ADDRESS_DEFAULT,
-        APP_HTTP_PORT_DEFAULT, configFile]), '', mluProgress)
-    else
-      log('Run mode CGI (' + configFile + ')', '', mluProgress);
-  end
+  if SetConfigRunMode(configFile, armHTTP) then
+    log(Format('Standalone HTTP: http://%s:%d/ (%s); CGI is detected ' +
+      'automatically when a web server runs it', [APP_HTTP_ADDRESS_DEFAULT,
+      APP_HTTP_PORT_DEFAULT, configFile]), '', mluProgress)
   else
-    log('Run mode: cannot update ' + configFile, '', mluError);
+    log('Cannot update ' + configFile, '', mluError);
 end;
 
 { TProjectFastPlazDescriptor }
@@ -209,7 +202,6 @@ begin
       FTargetExecutable := IncludeTrailingPathDelimiter(wizard.edt_WebRootDir.Text) +
         ProjectName + _APP_EXTENSION;
     FCreateStructure := wizard.cbx_GenerateStructure.Checked;
-    FRunMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -237,7 +229,7 @@ begin
       structure.Free;
     end;
   end;
-  ApplyRunMode(ExtractFilePath(FTargetExecutable), FRunMode);
+  ApplyServerConfig(ExtractFilePath(FTargetExecutable));
 
   Result := mrOk;
 end;

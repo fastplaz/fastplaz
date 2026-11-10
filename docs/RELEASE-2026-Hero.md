@@ -27,7 +27,7 @@ Skala perubahan: sekitar 170 commit, 365 file, +51.000 / −11.900 baris. Rincia
 - Graceful shutdown (Ctrl+C / SIGTERM), `max_requests`, koneksi database per request (`db_persistent`, `db_idle_timeout`).
 - Dukungan `X-Forwarded-*` di belakang reverse proxy terpercaya.
 - Startup banner dengan logo FASTPLAZ dan URL lokal (bisa diganti lewat `OnStandaloneBanner`).
-- Wizard project (Simple, API, Full Package) punya pilihan Run Mode HTTP/CGI.
+- Wizard project (Simple, API, Full Package) langsung menyiapkan mode HTTP di `config.json`; CGI tetap terdeteksi otomatis saat dijalankan web server.
 - Contoh: `examples/standalone`. Panduan: [STANDALONE-deployment.md](STANDALONE-deployment.md).
 
 ### AI Agent Plane (FastPlaz > Agent Plane)
