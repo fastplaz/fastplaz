@@ -20,6 +20,7 @@ type
     procedure TestSanitizeHeaderValue;
     procedure TestHeaderToEnvName;
     procedure TestRequestAccessorsExist;
+    procedure TestSiteURL;
   end;
 
 implementation
@@ -54,6 +55,25 @@ begin
   _SetEnv('FASTPLAZ_TEST_VAR', 'value');
   AssertEquals('value', _SERVER['FASTPLAZ_TEST_VAR']);
   _SetEnv('FASTPLAZ_TEST_VAR', '');
+end;
+
+procedure TFastPlazHandlerTest.TestSiteURL;
+begin
+  // the Host header keeps the port the client used
+  AssertEquals('http://example.com', SiteURL('', 'example.com', 'example.com', '80'));
+  AssertEquals('http://example.com:8080', SiteURL('', 'example.com:8080', 'example.com', '8080'));
+  AssertEquals('https://example.com:8443', SiteURL('on', 'Example.COM:8443', '', ''));
+  AssertEquals('http://[::1]:17845', SiteURL('', '[::1]:17845', '', ''));
+  // no Host header (HTTP/1.0): server name, port only when not the default
+  AssertEquals('http://example.com', SiteURL('', '', 'example.com', '80'));
+  AssertEquals('http://example.com:8080', SiteURL('', '', 'example.com', '8080'));
+  AssertEquals('https://example.com', SiteURL('ON', '', 'example.com', '443'));
+  AssertEquals('https://example.com:80', SiteURL('on', '', 'example.com', '80'));
+  AssertEquals('http://example.com', SiteURL('', '', 'example.com', 'abc'));
+  // a Host header with anything but a host and a port is not used
+  AssertEquals('http://example.com', SiteURL('', 'evil.com/x', 'example.com', '80'));
+  AssertEquals('http://example.com', SiteURL('', 'evil.com'#13#10'Set-Cookie: a=b', 'example.com', '80'));
+  AssertEquals('http://example.com', SiteURL('', 'user@evil.com', 'example.com', '80'));
 end;
 
 initialization
