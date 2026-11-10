@@ -11,7 +11,7 @@ uses
   database_lib, security_util, user_controller;
 
 const
-  ADMIN_GROUP_ROUTE_REGEX = '^(admin)-(group)-(list|view|add|edit|data|delete)/?$';
+  ADMIN_GROUP_ROUTE_REGEX = '^/(admin)-(group)-(list|view|add|edit|data|delete)/?$';
   ADMIN_GROUP_URL = 'admin-group-list';
   ADMIN_GROUP_TITLE = 'Groups';
   ADMIN_GROUP_DESCRIPTION = 'Administration';

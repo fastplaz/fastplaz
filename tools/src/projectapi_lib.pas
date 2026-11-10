@@ -24,7 +24,6 @@ type
     FTitle: string;
     FTargetExecutable: string;
     FCreateStructure: boolean;
-    FRunMode: TAppRunMode;
   protected
     // the wizard runs here: the IDE only aborts cleanly before InitProject,
     // a cancel from InitProject makes it create a default project instead
@@ -88,7 +87,6 @@ begin
         ProjectName + _APP_EXTENSION;
     Header.Assign(wizard.mem_Header.Lines);
     FCreateStructure := wizard.cbx_GenerateStructure.Checked;
-    FRunMode := wizard.RunMode;
   finally
     wizard.Free;
   end;
@@ -116,7 +114,7 @@ begin
       structure.Free;
     end;
   end;
-  ApplyRunMode(ExtractFilePath(FTargetExecutable), FRunMode);
+  ApplyServerConfig(ExtractFilePath(FTargetExecutable));
 
   Result := mrOk;
 end;

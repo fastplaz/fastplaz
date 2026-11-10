@@ -1,0 +1,22 @@
+# FastPlaz metric test app (CGI mode)
+# One binary (app.bin) handles every request that is not an existing file
+# or folder, so the dispatcher under test is FastPlaz, not mod_rewrite.
+
+Options +ExecCGI -Indexes
+AddHandler cgi-script .bin
+
+DirectoryIndex app.bin
+
+# Apache 2.4 drops headers with underscores; pass Authorization/Content-Type on
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+SetEnvIfNoCase ^Content-Type "(.+)" CONTENT_TYPE=$1
+
+RewriteEngine On
+
+# existing files and folders (theme assets, 404.html, ...) are served as is
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# everything else goes to the application
+RewriteRule ^(.*)$ app.bin/$1 [QSA,L]

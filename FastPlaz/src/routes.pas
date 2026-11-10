@@ -12,9 +12,9 @@ implementation
 uses about_controller, example_controller, docs_controller, info_controller;
 
 initialization
-  Route.Add('example', TExampleWebModule, ALL, False);
-  Route.Add('docs', TDocsModule, GET);
-  Route.Add('info', TInfoModule);
+  Route.Add('example', '^/example(/.*)?$', TExampleWebModule, ALL, False);
+  Route.Add('docs', '^/docs(/.*)?$', TDocsModule, GET);
+  Route.Add('info', '^/info(/.*)?$', TInfoModule);
 
 end.
 

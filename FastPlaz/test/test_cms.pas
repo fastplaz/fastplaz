@@ -43,6 +43,18 @@ type
     procedure TestFixSecurityString;
   end;
 
+  { TBuiltinRouteTest: route patterns of the cms and app controllers. The cms
+    controllers only document their Route.Add line (an application copies it
+    to its routes unit); they are registered here the same way. }
+
+  TBuiltinRouteTest = class(TTestCase)
+  private
+    function Match(const APath: string; out AAct: string): string;
+  published
+    procedure TestCmsRoutesMatchWithLeadingSlash;
+    procedure TestNameRoutesAreAnchored;
+  end;
+
   { TCmsSQLiteTest }
 
   TCmsSQLiteTest = class(TTestCase)
@@ -501,9 +513,67 @@ begin
   end;
 end;
 
+{ TBuiltinRouteTest }
+
+function TBuiltinRouteTest.Match(const APath: string; out AAct: string): string;
+var
+  f: TStringList;
+begin
+  f := TStringList.Create;
+  try
+    Result := MatchRoute(APath, f, 'mod');
+    AAct := f.Values['act'];
+  finally
+    f.Free;
+  end;
+end;
+
+procedure TBuiltinRouteTest.TestCmsRoutesMatchWithLeadingSlash;
+var
+  act: string;
+begin
+  // the patterns were written for a path without the leading "/", so they
+  // never matched
+  AssertEquals('_notification_', Match('/notification', act));
+  AssertEquals('_search_', Match('/search/', act));
+  AssertEquals('_template_', Match('/template', act));
+  AssertEquals('_admin_systeminfo_', Match('/admin-systeminfo', act));
+  AssertEquals('_admin_user_list_view_add_edit_delete_data_activate_deactivate_suspend_resetpassword_',
+    Match('/admin-user-list', act));
+  AssertEquals('list', act);
+  AssertEquals('_admin_group_list_view_add_edit_data_delete_', Match('/admin-group-edit/', act));
+  AssertEquals('edit', act);
+  AssertEquals('_admin_permission_list_view_add_edit_delete_data_activate_deactivate_suspend_resetpassword_',
+    Match('/admin-permission-view', act));
+  AssertEquals('view', act);
+end;
+
+procedure TBuiltinRouteTest.TestNameRoutesAreAnchored;
+var
+  act: string;
+begin
+  AssertEquals('admin', Match('/admin', act));
+  AssertEquals('admin', Match('/admin/settings', act));
+  AssertEquals('about', Match('/about/', act));
+  // the address itself, not every path that contains the word
+  AssertFalse(Match('/administrator', act) = 'admin');
+  AssertFalse(Match('/aboutus', act) = 'about');
+  AssertFalse(Match('/company/about', act) = 'about');
+  AssertFalse(Match('/user/admin', act) = 'admin');
+end;
+
 initialization
   RegisterTest(TSecurityUtilTest);
   RegisterTest(TPermissionPatternTest);
+  RegisterTest(TBuiltinRouteTest);
+  // as documented in each cms controller
+  Route.Add(NOTIFICATION_ROUTE_REGEX, TNotificationModule);
+  Route.Add(SEARCH_ROUTE_REGEX, TSearchModule);
+  Route.Add(TEMPLATE_ROUTE_REGEX, TTemplateModule);
+  Route.Add(ADMIN_GROUP_ROUTE_REGEX, TGroupAdminModule);
+  Route.Add(ADMIN_PERMISSION_ROUTE, TPermissionAdminModule);
+  Route.Add(ADMIN_USER_ROUTE, TUserAdminModule);
+  Route.Add('admin', '^/admin(/.*)?$', TAdminModule);
   RegisterTest(TCmsSQLiteTest);
 
 end.

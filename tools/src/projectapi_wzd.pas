@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, ButtonPanel, EditBtn, tools_lib;
+  StdCtrls, ButtonPanel, EditBtn;
 
 type
 
@@ -24,14 +24,12 @@ type
     mem_Header: TMemo;
     pnl_Button: TButtonPanel;
     pnl_Top: TPanel;
-    rg_Mode: TRadioGroup;
     procedure CancelButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure OKButtonClick(Sender: TObject);
   private
     { private declarations }
   public
-    function RunMode: TAppRunMode;
   end;
 
 var
@@ -42,14 +40,6 @@ implementation
 {$R *.lfm}
 
 { TfProjectAPIWizard }
-
-function TfProjectAPIWizard.RunMode: TAppRunMode;
-begin
-  if rg_Mode.ItemIndex = 1 then
-    Result := armCGI
-  else
-    Result := armHTTP;
-end;
 
 procedure TfProjectAPIWizard.OKButtonClick(Sender: TObject);
 begin

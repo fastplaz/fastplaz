@@ -10,7 +10,7 @@ uses
   database_lib, security_util;
 
 const
-  SEARCH_ROUTE_REGEX = '^(search)/?$';
+  SEARCH_ROUTE_REGEX = '^/(search)/?$';
   SEARCH_TITLE = 'Search';
   SEARCH_DESCRIPTION = 'Search your keyword';
   SEARCH_URL = 'search';

@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Major="1" Release="11" Build="14"/>
-    <Files Count="50">
+    <Files Count="49">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -183,50 +183,46 @@
         <UnitName Value="info_controller"/>
       </Item39>
       <Item40>
-        <Filename Value="../FastPlaz/src/systems/initialize_controller.pas"/>
-        <UnitName Value="initialize_controller"/>
-      </Item40>
-      <Item41>
         <Filename Value="../FastPlaz/src/systems/module_controller.pas"/>
         <UnitName Value="module_controller"/>
-      </Item41>
-      <Item42>
+      </Item40>
+      <Item41>
         <Filename Value="../FastPlaz/src/systems/session_controller.pas"/>
         <UnitName Value="session_controller"/>
-      </Item42>
-      <Item43>
+      </Item41>
+      <Item42>
         <Filename Value="../FastPlaz/src/systems/theme_controller.pas"/>
         <UnitName Value="theme_controller"/>
-      </Item43>
-      <Item44>
+      </Item42>
+      <Item43>
         <Filename Value="../FastPlaz/src/util/modvar_util.pas"/>
         <UnitName Value="modvar_util"/>
-      </Item44>
-      <Item45>
+      </Item43>
+      <Item44>
         <Filename Value="runtime/fastplaz_runtime_register.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="fastplaz_runtime_register"/>
-      </Item45>
-      <Item46>
+      </Item44>
+      <Item45>
         <Filename Value="../FastPlaz/src/library/redis_lib.pas"/>
         <UnitName Value="redis_lib"/>
-      </Item46>
-      <Item47>
+      </Item45>
+      <Item46>
         <Filename Value="../FastPlaz/src/systems/redis_controller.pas"/>
         <UnitName Value="redis_controller"/>
-      </Item47>
-      <Item48>
+      </Item46>
+      <Item47>
         <Filename Value="../FastPlaz/src/library/commonbase_lib.pas"/>
         <UnitName Value="commonbase_lib"/>
-      </Item48>
-      <Item49>
+      </Item47>
+      <Item48>
         <Filename Value="../FastPlaz/src/library/smtp_lib.pas"/>
         <UnitName Value="smtp_lib"/>
-      </Item49>
-      <Item50>
+      </Item48>
+      <Item49>
         <Filename Value="../FastPlaz/src/systems/fastplaz_app.pas"/>
         <UnitName Value="fastplaz_app"/>
-      </Item50>
+      </Item49>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

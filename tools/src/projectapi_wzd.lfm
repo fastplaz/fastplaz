@@ -1,11 +1,11 @@
 object fProjectAPIWizard: TfProjectAPIWizard
   Left = 230
-  Height = 399
+  Height = 349
   Top = 146
   Width = 546
   BorderStyle = bsDialog
   Caption = 'Project API Wizard'
-  ClientHeight = 399
+  ClientHeight = 349
   ClientWidth = 546
   OnCreate = FormCreate
   Position = poScreenCenter
@@ -39,7 +39,7 @@ object fProjectAPIWizard: TfProjectAPIWizard
   object pnl_Button: TButtonPanel
     Left = 6
     Height = 30
-    Top = 363
+    Top = 313
     Width = 534
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -121,7 +121,7 @@ object fProjectAPIWizard: TfProjectAPIWizard
   object mem: TMemo
     Left = 10
     Height = 88
-    Top = 258
+    Top = 208
     Width = 522
     Color = clBtnFace
     Lines.Strings = (
@@ -129,7 +129,8 @@ object fProjectAPIWizard: TfProjectAPIWizard
       ''
       'Type your project name,'
       'and (optional), you can generate fastplaz api directory/files structure too.'
-      'Run Mode is saved in config/config.json (systems/server/mode).'
+      'HTTP mode (standalone server) is the default when run directly; CGI is'
+      'detected automatically when a web server runs it (config/config.json).'
       ''
       ''
       ''
@@ -142,27 +143,5 @@ object fProjectAPIWizard: TfProjectAPIWizard
     )
     ReadOnly = True
     TabOrder = 6
-  end
-  object rg_Mode: TRadioGroup
-    Left = 168
-    Height = 44
-    Top = 205
-    Width = 364
-    AutoFill = True
-    Caption = 'Run Mode'
-    ChildSizing.LeftRightSpacing = 6
-    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
-    ChildSizing.EnlargeVertical = crsHomogenousChildResize
-    ChildSizing.ShrinkHorizontal = crsScaleChilds
-    ChildSizing.ShrinkVertical = crsScaleChilds
-    ChildSizing.Layout = cclLeftToRightThenTopToBottom
-    ChildSizing.ControlsPerLine = 2
-    Columns = 2
-    ItemIndex = 0
-    Items.Strings = (
-      'HTTP (standalone server)'
-      'CGI (web server)'
-    )
-    TabOrder = 7
   end
 end
