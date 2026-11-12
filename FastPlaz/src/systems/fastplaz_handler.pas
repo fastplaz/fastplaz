@@ -28,7 +28,7 @@ resourcestring
 
   // theme
   __Err_App_Init =
-    '<h3>This is the first time using fastplaz?</h3><a href="%s">click here</a> if you need to initialize your webapp''s structure.<br>Make sure target directory is writeable';
+    '<h3>This application is not set up yet</h3>The <code>themes</code> folder was not found in the working directory of the application.<br>Create a project with the FastPlaz wizard in Lazarus, or copy the web structure of a FastPlaz project (<code>config/config.json</code>, <code>themes</code>, <code>ztemp</code>, ...) next to the application, then reload this page.';
   __Err_Theme_Not_Exists = 'file layout "%s" does not exist in theme "%s"';
   __Err_Theme_Tag_NotImplemented = 'Template tag [%s] does not implemented yet.';
   __Err_Theme_Modul_NotFond = 'Modul "%s" not found';
@@ -306,6 +306,38 @@ procedure InitializeFastPlaz(Sender: TObject = nil);
 function SanitizeHeaderValue(const AValue: string): string;
 // "X-Requested-With" -> "HTTP_X_REQUESTED_WITH" (the CGI variable name)
 function HeaderToEnvName(const AHeaderName: string): string;
+// scheme and host of the site as the client reached it, without a trailing
+// slash: "http://example.com", "https://example.com:8443". AHost is the Host
+// header, which carries a non-default port; without it the server name and
+// port are used, the port left out when it is the default of the scheme.
+// AHttps is the HTTPS variable ("on" for https).
+function SiteURL(const AHttps, AHost, AServerName, AServerPort: string): string;
+
+// Route lookup by pattern: the first route, in the order the routes were
+// added, whose regular expression matches APathInfo and whose module is
+// registered. Writes the module name (as AModuleVariable, skipped when
+// empty), the groups as $1..$n, the third group as "act" and the named
+// groups by name into AFields. Returns the module name, '' (AFields left
+// as they are) when no route matches.
+function MatchRoute(const APathInfo: string; AFields: TStrings;
+  const AModuleVariable: string): string;
+
+// HTTP status for an exception raised while a request is handled: the
+// status of an EHTTP (fpweb errors), else its HelpContext, else 500. fpweb
+// reports a request no module takes as 400 "Not found"; that becomes 404.
+function RequestExceptionStatus(E: Exception): integer;
+// Error page for an exception: a JSON object (AJson) or an HTML page with
+// the status. ADetails adds the exception class, message and ATrace (stack
+// trace); without it nothing of the exception reaches the client. Text from
+// the exception is HTML-encoded (it can carry request data).
+function RequestExceptionContent(E: Exception; ACode: integer;
+  ADetails, AJson: boolean; const ATrace: string = ''): string;
+// Replaces the fpweb error page (which always showed the message, stack
+// trace and e-mail address): logs the details, sends them to the client only
+// when systems/development or systems/debug is on. Installed as
+// Application.OnShowRequestException unless the application set its own.
+procedure FastPlazShowRequestException(AResponse: TResponse;
+  AnException: Exception; var Handled: boolean);
 
 procedure Debug(const Message: integer; const Key: string = '');
 procedure Debug(const Message: string; const Key: string = '');
@@ -329,7 +361,7 @@ var
 
 implementation
 
-uses common, language_lib, database_lib, logutil_lib, theme_controller, html_lib;
+uses common, language_lib, database_lib, logutil_lib, theme_controller, html_lib, fpjson;
 
 type
   // TCustomWebApplication.WebHandler is protected; a descendant declared in
@@ -339,6 +371,8 @@ type
 var
   MethodMap: TStringList;
   RouteRegexMap: TStringList;
+  // compiled route expressions, same index as RouteRegexMap (TRegExpr)
+  RouteRegexCache: TFPList;
 
 function SanitizeHeaderValue(const AValue: string): string;
 var
@@ -356,6 +390,43 @@ begin
   Result := UpperCase(StringReplace(Trim(AHeaderName), '-', '_', [rfReplaceAll]));
   if (Result <> '') and (not Result.StartsWith('HTTP_')) then
     Result := 'HTTP_' + Result;
+end;
+
+function SiteURL(const AHttps, AHost, AServerName, AServerPort: string): string;
+var
+  host, port, defaultPort: string;
+  i: integer;
+  valid: boolean;
+begin
+  if SameText(Trim(AHttps), 'on') then
+  begin
+    Result := 'https://';
+    defaultPort := '443';
+  end
+  else
+  begin
+    Result := 'http://';
+    defaultPort := '80';
+  end;
+
+  // the Host header comes from the client: only a host name, an IP address
+  // (IPv6 in brackets) and a port are taken, anything else falls back to the
+  // server name
+  host := Trim(AHost);
+  valid := host <> '';
+  for i := 1 to Length(host) do
+    if not (host[i] in ['A'..'Z', 'a'..'z', '0'..'9', '.', '-', ':', '[', ']']) then
+    begin
+      valid := False;
+      Break;
+    end;
+  if valid then
+    Exit(Result + LowerCase(host));
+
+  Result := Result + LowerCase(Trim(AServerName));
+  port := Trim(AServerPort);
+  if (port <> '') and (port <> defaultPort) and (StrToIntDef(port, 0) > 0) then
+    Result := Result + ':' + port;
 end;
 
 function _CleanVar(const Value: string): string;
@@ -409,6 +480,148 @@ begin
     else
       Result := '';
   end;
+end;
+
+function RequestExceptionStatus(E: Exception): integer;
+begin
+  Result := 0;
+  if E is EHTTP then
+  begin
+    Result := EHTTP(E).StatusCode;
+    // custweb: DoError(SErrNoModuleForRequest, [...], 400, 'Not found')
+    if (Result = 400) and SameText(EHTTP(E).StatusText, 'Not found') then
+      Result := 404;
+  end
+  else if Assigned(E) then
+    Result := E.HelpContext;
+  if (Result < 400) or (Result > 599) then
+    Result := 500;
+end;
+
+function ErrorHTMLEncode(const S: string): string;
+begin
+  Result := StringReplace(S, '&', '&amp;', [rfReplaceAll]);
+  Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
+  Result := StringReplace(Result, '''', '&#39;', [rfReplaceAll]);
+end;
+
+function RequestExceptionContent(E: Exception; ACode: integer;
+  ADetails, AJson: boolean; const ATrace: string): string;
+var
+  json: TJSONObject;
+  statusText, className, msg: string;
+begin
+  statusText := HttpStatusText(ACode);
+  if statusText = '' then
+    statusText := 'Error';
+  className := '';
+  msg := '';
+  if Assigned(E) then
+  begin
+    className := E.ClassName;
+    msg := E.Message;
+  end;
+
+  if AJson then
+  begin
+    json := TJSONObject.Create;
+    try
+      json.Add('code', ACode);
+      json.Add('msg', statusText);
+      if ADetails then
+      begin
+        json.Add('exception', className);
+        json.Add('message', msg);
+        if ATrace <> '' then
+          json.Add('trace', ATrace);
+      end;
+      Result := json.AsJSON;
+    finally
+      json.Free;
+    end;
+    Exit;
+  end;
+
+  Result := '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'
+    + IntToStr(ACode) + ' ' + ErrorHTMLEncode(statusText) + '</title></head><body>'
+    + '<h1>' + IntToStr(ACode) + ' ' + ErrorHTMLEncode(statusText) + '</h1>';
+  if ADetails then
+  begin
+    Result := Result + '<p><b>' + ErrorHTMLEncode(className) + '</b>: '
+      + ErrorHTMLEncode(msg) + '</p>';
+    if ATrace <> '' then
+      Result := Result + '<pre>' + ErrorHTMLEncode(ATrace) + '</pre>';
+  end;
+  Result := Result + '</body></html>';
+end;
+
+// stack trace of the exception being handled (call inside an except block)
+function CurrentExceptionTrace: string;
+var
+  frames: PPointer;
+  i: integer;
+begin
+  Result := BackTraceStrFunc(ExceptAddr);
+  frames := ExceptFrames;
+  for i := 0 to ExceptFrameCount - 1 do
+    Result := Result + LineEnding + BackTraceStrFunc(frames[i]);
+end;
+
+procedure FastPlazShowRequestException(AResponse: TResponse;
+  AnException: Exception; var Handled: boolean);
+var
+  code: integer;
+  details, wantsJson: boolean;
+  trace, path, accept: string;
+begin
+  if (AResponse = nil) or AResponse.ContentSent then
+    Exit;
+  code := RequestExceptionStatus(AnException);
+  trace := CurrentExceptionTrace;
+  path := '';
+  accept := '';
+  wantsJson := False;
+  if Assigned(AResponse.Request) then
+  begin
+    path := AResponse.Request.PathInfo;
+    accept := LowerCase(AResponse.Request.Accept);
+    wantsJson := (Pos('json', accept) > 0) or SameText(
+      AResponse.Request.GetCustomHeader('X-Requested-With'), 'XMLHttpRequest');
+  end;
+
+  // the details always go to the log
+  try
+    if Assigned(AnException) then
+      LogUtil.Add(Format('%d %s: %s (%s)%s%s', [code, AnException.ClassName,
+        AnException.Message, path, LineEnding, trace]), 'exception')
+    else
+      LogUtil.Add(Format('%d (%s)', [code, path]), 'exception');
+  except
+    // logging must not hide the response
+  end;
+
+  details := False;
+  try
+    details := Config.GetValue('systems/development', False)
+      or Config.GetValue(_SYSTEM_DEBUG, False);
+  except
+  end;
+
+  if not AResponse.HeadersSent then
+  begin
+    AResponse.Code := code;
+    AResponse.CodeText := HttpStatusText(code);
+    if wantsJson then
+      AResponse.ContentType := 'application/json'
+    else
+      AResponse.ContentType := 'text/html; charset=utf-8';
+  end;
+  AResponse.Content := RequestExceptionContent(AnException, code, details,
+    wantsJson, trace);
+  AResponse.SendContent;
+  Handled := True;
 end;
 
 
@@ -467,14 +680,15 @@ begin
 
   if AppData.baseUrl = '' then
   begin
-    _ := ServerVariable('HTTPS');
-    if _ = 'on' then _ := 'https://' else _ := 'http://';
+    // the host as the client reached it, with a non-default port (CGI used
+    // SERVER_NAME alone, so http://host:8080/ lost its port)
+    _ := SiteURL(ServerVariable('HTTPS'), ServerVariable('HTTP_HOST'),
+      ServerVariable('SERVER_NAME'), ServerVariable('SERVER_PORT'));
     if IsStandalone then
-      // no script path, and the Host header carries the port
-      AppData.baseUrl := _ + ServerVariable('HTTP_HOST') + '/'
+      // no script path
+      AppData.baseUrl := _ + '/'
     else
-      AppData.baseUrl := _ + ServerVariable('SERVER_NAME') +
-        ExtractFilePath(ServerVariable('SCRIPT_NAME'));
+      AppData.baseUrl := _ + ExtractFilePath(ServerVariable('SCRIPT_NAME'));
   end;
 
   if AppData.themeEnable then
@@ -1315,6 +1529,9 @@ begin
   inherited Create(AOwner);
   FIsDisplayError := False;
   Application.OnException := @ExceptionHandler;
+  // the fpweb error page shows the exception and stack trace to everyone
+  if not Assigned(Application.OnShowRequestException) then
+    Application.OnShowRequestException := @FastPlazShowRequestException;
 end;
 
 destructor TFastPlasAppandler.Destroy;
@@ -1339,6 +1556,7 @@ function TFastPlasAppandler.GetActiveModuleName(Arequest: TRequest): string;
 
 var
   S: string;
+  noModule: EFPWebError;
   //reg: TRegExpr;
 begin
 {
@@ -1407,69 +1625,122 @@ begin
   begin
     if not Application.AllowDefaultModule then
     begin
-      raise EFPWebError.Create(__(format(__ErrNoModuleNameForRequest,[AppData.module])));
+      noModule := EFPWebError.Create(__(format(__ErrNoModuleNameForRequest,[AppData.module])));
+      // no module for this address: 404, not the 500 of a plain exception
+      noModule.StatusCode := 404;
+      noModule.StatusText := 'Not Found';
+      raise noModule;
     end;
     Result := GetDefaultModuleName;
   end;
 
 end;
 
-procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
-  var ModuleClass: TCustomHTTPModuleClass);
+// compiled expression of route AIndex. TRegExpr compiles on the first Exec
+// after Expression changes, so keeping one object per route compiles each
+// pattern once per process instead of once per request (standalone mode).
+// A route registered again with another pattern is recompiled. Not thread
+// safe: the standalone server handles one request at a time.
+function RouteRegex(AIndex: integer; const APattern: RegExprString): TRegExpr;
+begin
+  if not Assigned(RouteRegexCache) then
+    RouteRegexCache := TFPList.Create;
+  while RouteRegexCache.Count <= AIndex do
+    RouteRegexCache.Add(nil);
+  Result := TRegExpr(RouteRegexCache[AIndex]);
+  if Result = nil then
+  begin
+    Result := TRegExpr.Create;
+    RouteRegexCache[AIndex] := Result;
+  end;
+  if Result.Expression <> APattern then
+    Result.Expression := APattern;
+end;
+
+procedure FreeRouteRegexCache;
+var
+  i: integer;
+begin
+  if not Assigned(RouteRegexCache) then
+    Exit;
+  for i := 0 to RouteRegexCache.Count - 1 do
+    TObject(RouteRegexCache[i]).Free;
+  FreeAndNil(RouteRegexCache);
+end;
+
+function MatchRoute(const APathInfo: string; AFields: TStrings;
+  const AModuleVariable: string): string;
 var
   s, pathInfo, groupName: string;
   i, j: integer;
   reg: TRegExpr;
+begin
+  Result := '';
+  if not Assigned(RouteRegexMap) then
+    Exit;
+  // a URL path, so "/" on every platform (IncludeLeadingPathDelimiter
+  // would add "\" on Windows)
+  pathInfo := APathInfo;
+  if (pathInfo = '') or (pathInfo[1] <> '/') then
+    pathInfo := '/' + pathInfo;
+
+  // patterns are matched as-is, anchor them with ^...$ in the route
+  // when a prefix match is not wanted
+  for i := 0 to RouteRegexMap.Count - 1 do
+  begin
+    reg := RouteRegex(i, RegExprString(RouteRegexMap.ValueFromIndex[i]));
+    if not reg.Exec(RegExprString(pathInfo)) then
+      Continue;
+    s := RouteRegexMap.Names[i];
+    if ModuleFactory.FindModule(s) = nil then
+      Continue;
+    Result := s;
+    if AModuleVariable <> '' then
+      AFields.Values[AModuleVariable] := s;
+    for j := 1 to reg.SubExprMatchCount do
+    begin
+      AFields.Values['$' + i2s(j)] := string(reg.Match[j]);
+      if j = 3 then
+        AFields.Values['act'] := string(reg.Match[j]);
+    end;
+    // named groups only; unnamed ones are $1..$n above (an unnamed group
+    // has an empty name and would add a field without a name)
+    for j := 1 to reg.GroupCount do
+    begin
+      groupName := string(reg.GroupName[j]);
+      if groupName = '' then
+        Continue;
+      AFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
+    end;
+    Break;
+  end;
+end;
+
+procedure TFastPlasAppandler.OnGetModule(Sender: TObject; ARequest: TRequest;
+  var ModuleClass: TCustomHTTPModuleClass);
+var
+  s: string;
+  i: integer;
+  byQuery: boolean;
   //m: TCustomHTTPModule;
   //mi: TModuleItem;
   //mc: TCustomHTTPModuleClass;
 begin
   InitializeFastPlaz(Sender);
   s := GetActiveModuleName(ARequest);
-  if ModuleFactory.FindModule(S) = nil then
+  // a module named in the query (?mod=) is used as given. A name taken
+  // from the path is not: the route patterns are checked first, otherwise
+  // /main or /notfound would reach a module its pattern (^/$ ...) excludes.
+  // When no pattern matches, the old lookup by name still applies.
+  byQuery := (Application.ModuleVariable <> '')
+    and (ARequest.QueryFields.Values[Application.ModuleVariable] <> '');
+  if (not byQuery) or (ModuleFactory.FindModule(S) = nil) then
   begin
-    pathInfo := ARequest.PathInfo;
-    pathInfo := IncludeLeadingPathDelimiter(pathInfo);
-    {$IFDEF Windows}
-    if pathInfo = '\' then pathInfo:= '/';
-    {$ENDIF}
-
-    // check with Regex - redefine variable
-    // note: patterns are matched as-is, anchor them with ^...$ in the route
-    // when a prefix match is not wanted
-    reg := TRegExpr.Create;
     try
-      try
-        for i := 0 to RouteRegexMap.Count - 1 do
-        begin
-          reg.Expression := RegExprString(RouteRegexMap.ValueFromIndex[i]);
-          if reg.Exec(RegExprString(pathInfo)) then
-          begin
-            s := RouteRegexMap.Names[i];
-            if ModuleFactory.FindModule(S) <> nil then
-            begin
-              ARequest.QueryFields.Values[Application.ModuleVariable] := s;
-              for j := 1 to reg.SubExprMatchCount do
-              begin
-                ARequest.QueryFields.Values['$' + i2s(j)] := string(reg.Match[j]);
-                if j = 3 then
-                  ARequest.QueryFields.Values['act'] := string(reg.Match[j]);
-              end;
-              for j := 1 to reg.GroupCount do
-              begin
-                groupName := string(reg.GroupName[j]);
-                ARequest.QueryFields.Values[groupName] := string(reg.MatchFromName(RegExprString(groupName)));
-              end;
-              Break;
-            end;
-          end;
-        end;
-      except
-        on E: Exception do
-          die('OnGetModule: ' + E.Message);
-      end;
-    finally
-      reg.Free;
+      MatchRoute(ARequest.PathInfo, ARequest.QueryFields, Application.ModuleVariable);
+    except
+      on E: Exception do
+        die('OnGetModule: ' + E.Message);
     end;
 
 
@@ -1493,10 +1764,7 @@ begin
     ModuleClass:= mc;
     }
 
-  end //-- if ModuleFactory.FindModule(S) = nil
-  else
-  begin
-  end; //-- if ModuleFactory.FindModule(S) = nil
+  end; //-- route patterns
 
   // Load Module @startup
   if ModuleLoaded.Count > 0 then
@@ -1709,6 +1977,7 @@ initialization
   RouteRegexMap := TStringList.Create;
 
 finalization
+  FreeRouteRegexCache;
   FreeAndNil(RouteRegexMap);
   FreeAndNil(MethodMap);
   FreeAndNil(_SESSION);

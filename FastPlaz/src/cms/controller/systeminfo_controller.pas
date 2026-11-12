@@ -106,6 +106,6 @@ end;
 initialization
   // -> http://yourdomainname/adminuser
   // The following line should be moved to a file "routes.pas"
-  Route.Add('^(admin)-(systeminfo)/?$', TSystemInfoModule);
+  Route.Add('^/(admin)-(systeminfo)/?$', TSystemInfoModule);
 
 end.

@@ -224,8 +224,7 @@ var
 
 implementation
 
-uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5,
-  initialize_controller;
+uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5;
 
 // Template file content, read in shared mode.
 // TFPTemplate.FileName opens the file with plain fmOpenRead, which on Windows
@@ -2475,9 +2474,9 @@ begin
 
   if not DirectoryExists('themes') then
   begin
-    Result := Format( __(__Err_App_Init), [
-      'http://' + ServerVariable('SERVER_NAME') + (ServerVariable('SCRIPT_NAME'))
-      + '/initialize/']);
+    // set-up instructions only: the web "initialize" module is not
+    // registered (it wrote files for any visitor), so no link to it
+    Result := __(__Err_App_Init);
     Exit;
   end;
 

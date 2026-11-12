@@ -1,4 +1,19 @@
-unit initialize_controller;
+unit initialize_controller deprecated 'not part of FastPlaz any more';
+
+{
+  DEPRECATED - not in the fastplaz_runtime package any more.
+
+  This module created the folders of a web application and wrote
+  config/config.json for any visitor of /initialize/. Its route has not been
+  registered since 2019, and the first-run page no longer links to it. To set
+  up an application, use the FastPlaz project wizard in Lazarus or copy the
+  web structure (tools/templates/web) next to the application.
+
+  The file is kept for reference only: compiling it stops with an error, so a
+  project that still uses this unit finds out at build time.
+}
+
+{$Message Fatal 'initialize_controller is deprecated and no longer part of FastPlaz: remove it from the uses clause (set up the application with the project wizard or tools/templates/web)'}
 
 {$mode objfpc}{$H+}
 

@@ -72,7 +72,7 @@ msgstr ""
 
 #: fastplaz_handler.__err_app_init
 msgctxt "fastplaz_handler.__err_app_init"
-msgid "<h3>This is the first time using fastplaz?</h3><a href=\"%s\">click here</a> if you need to initialize your webapp's structure.<br>Make sure target directory is writeable"
+msgid "<h3>This application is not set up yet</h3>The <code>themes</code> folder was not found in the working directory of the application.<br>Create a project with the FastPlaz wizard in Lazarus, or copy the web structure of a FastPlaz project (<code>config/config.json</code>, <code>themes</code>, <code>ztemp</code>, ...) next to the application, then reload this page."
 msgstr ""
 
 #: fastplaz_handler.__err_http_invalidmethod
