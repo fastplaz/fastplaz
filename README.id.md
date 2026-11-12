@@ -184,7 +184,7 @@ git pull
 - [FastPlaz](https://fastplaz.com)
 - [Komunitas Pascal Indonesia](https://pascal-dev.org)
 - [Inisiator FastPlaz di GitHub](https://github.com/luridarmawan/)
-- [Kontributor](README-contributor.md)
+- [Kontributor](CONTRIBUTOR.md)
 
 ## Kontribusi
 
