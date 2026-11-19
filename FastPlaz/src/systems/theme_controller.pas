@@ -224,13 +224,55 @@ var
 
 implementation
 
-uses config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5;
+uses {$IFDEF UNIX}BaseUnix, UnixType,{$ENDIF} config_lib, logutil_lib, language_lib, versioninfo_lib, html_lib, session_controller, md5;
 
-// Template file content, read in shared mode.
-// TFPTemplate.FileName opens the file with plain fmOpenRead, which on Windows
-// is an exclusive open: two requests rendering the same layout at the same
-// moment fail with "Unable to open file ... being used by another process".
+// Template file content, read without taking a lock.
+// TFPTemplate.FileName opens the file with plain fmOpenRead. On Windows that
+// is an exclusive open ("being used by another process"); on Unix the RTL
+// adds a non-blocking flock(LOCK_EX), so a request that hits the same file
+// while another one holds it fails with "Unable to open file ...: Try again"
+// (EAGAIN). Even fmShareDenyNone takes flock(LOCK_SH) on Unix, which still
+// fails against any process holding LOCK_EX, so open it with fpOpen directly.
 function ReadTemplateFile(const FileName: string): string;
+{$IFDEF UNIX}
+var
+  fd: cint;
+  info: Stat;
+  total, n: TSsize;
+begin
+  Result := '';
+  repeat
+    fd := FpOpen(FileName, O_RDONLY);
+  until (fd >= 0) or (fpgeterrno <> ESysEINTR);
+  if fd < 0 then
+    raise EFOpenError.CreateFmt('Unable to open file "%s": %s',
+      [FileName, SysErrorMessage(fpgeterrno)]);
+  try
+    if FpFStat(fd, info) <> 0 then
+      raise EFOpenError.CreateFmt('Unable to read file "%s": %s',
+        [FileName, SysErrorMessage(fpgeterrno)]);
+    SetLength(Result, info.st_size);
+    total := 0;
+    while total < info.st_size do
+    begin
+      n := FpRead(fd, Result[total + 1], info.st_size - total);
+      if n < 0 then
+      begin
+        if fpgeterrno = ESysEINTR then
+          Continue;
+        raise EReadError.CreateFmt('Unable to read file "%s": %s',
+          [FileName, SysErrorMessage(fpgeterrno)]);
+      end;
+      if n = 0 then
+        Break; // file got shorter while reading
+      Inc(total, n);
+    end;
+    SetLength(Result, total);
+  finally
+    FpClose(fd);
+  end;
+end;
+{$ELSE}
 var
   fs: TFileStream;
 begin
@@ -244,6 +286,7 @@ begin
     fs.Free;
   end;
 end;
+{$ENDIF}
 
 { THTMLHead }
 
@@ -2635,7 +2678,7 @@ begin
   //TemplateFile := 'themes/' + ThemeName + '/templates/' + TemplateFile;
   if FileExists(TemplateFile) then
   begin
-    html.LoadFromFile(TemplateFile);
+    html.Text := ReadTemplateFile(TemplateFile);
     html.Text := StringReplace(html.Text, FStartDelimiter + 'content' +
       FEndDelimiter, Content, [rfReplaceAll]);
   end
