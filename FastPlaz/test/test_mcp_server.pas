@@ -1007,6 +1007,7 @@ begin
 
   res := Post('{"jsonrpc":"2.0","method":"notifications/initialized"}');
   AssertEquals('notification', 202, res.Status);
+  AssertEquals('text/plain', res.ContentType);
   AssertEquals('', res.Body);
 
   res := Post('{not json');

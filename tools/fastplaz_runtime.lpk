@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Major="1" Release="11" Build="14"/>
-    <Files Count="50">
+    <Files Count="51">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -227,6 +227,10 @@
         <Filename Value="../FastPlaz/src/mcp/mcp_server.pas"/>
         <UnitName Value="mcp_server"/>
       </Item50>
+      <Item51>
+        <Filename Value="../FastPlaz/src/mcp/mcp_handler.pas"/>
+        <UnitName Value="mcp_handler"/>
+      </Item51>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

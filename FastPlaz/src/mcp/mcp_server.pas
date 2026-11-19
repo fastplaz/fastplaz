@@ -1091,7 +1091,7 @@ begin
     mmkRequest:
       Result := HttpAnswer(200, 'application/json', response);
     mmkNotification:
-      Result := HttpAnswer(202, '', '');
+      Result := HttpAnswer(202, 'text/plain', '');
     else
       Result := HttpAnswer(400, 'application/json', response);
   end;

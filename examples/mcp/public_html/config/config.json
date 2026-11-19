@@ -1,0 +1,28 @@
+{
+  "systems" : {
+    "sitename" : "FastPlaz MCP Example",
+    "baseurl" : "",
+    "admin_email" : "webmaster@localhost",
+    "debug" : false,
+    "module_default" : "mcp",
+    "language_default" : "en",
+    "theme_enable" : false,
+    "cache" : "none",
+    "temp" : "ztemp",
+    "error_url" : "\/",
+    "session_timeout" : 0,
+    "error_redirect" : false,
+    "trust_proxy" : false,
+    "server" : {
+      "mode" : "http",
+      "address" : "127.0.0.1",
+      "port" : 17846,
+      "static" : false
+    }
+  },
+  "mcp" : {
+    "token" : "",
+    "allowed_origins" : "",
+    "exception_details" : false
+  }
+}
