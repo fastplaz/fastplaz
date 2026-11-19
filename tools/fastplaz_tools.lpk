@@ -28,7 +28,7 @@
 for more information visit https://www.fastplaz.com
 "/>
     <Version Major="1" Release="1" Build="145"/>
-    <Files Count="72">
+    <Files Count="75">
       <Item1>
         <Filename Value="..\FastPlaz\src\library\thread_custom.pas"/>
         <UnitName Value="thread_custom"/>
@@ -318,6 +318,18 @@ for more information visit https://www.fastplaz.com
         <Filename Value="src\ai_plane\aiplane_tools_editor.pas"/>
         <UnitName Value="aiplane_tools_editor"/>
       </Item72>
+      <Item73>
+        <Filename Value="src\mcp_lib.pas"/>
+        <UnitName Value="mcp_lib"/>
+      </Item73>
+      <Item74>
+        <Filename Value="src\mcpcontroller_lib.pas"/>
+        <UnitName Value="mcpcontroller_lib"/>
+      </Item74>
+      <Item75>
+        <Filename Value="src\projectmcp_lib.pas"/>
+        <UnitName Value="projectmcp_lib"/>
+      </Item75>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

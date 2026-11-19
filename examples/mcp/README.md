@@ -19,7 +19,7 @@ source/mcp.lpr                  program
 source/routes.pas               Route['/mcp'] := TMcpController
 source/tools/example_tools.pas  tools and resource, registered in initialization
 public_html/config/config.json  server mode/port and the "mcp" section
-public_html/.htaccess           CGI setup, CGIPassAuth for the bearer token
+public_html/.htaccess           CGI setup, passes the bearer token to the program
 ```
 
 ## Build
@@ -82,8 +82,9 @@ With a token, add `--header "Authorization: Bearer <token>"`.
 | `exception_details` | send the text of unexpected exceptions to the client (development only) |
 
 Apache does not pass the `Authorization` header to CGI programs by default;
-`public_html/.htaccess` sets `CGIPassAuth On` (Apache 2.4.13+) and shows the
-rewrite rule for older versions.
+`public_html/.htaccess` passes it on with a rewrite rule (read by the
+controller as `REDIRECT_HTTP_AUTHORIZATION`). `CGIPassAuth On` (Apache
+2.4.13+) does the same but needs `AllowOverride AuthConfig`.
 
 ## Adding a tool
 

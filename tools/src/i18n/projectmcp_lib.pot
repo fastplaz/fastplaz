@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: projectmcp_lib.rs_projectmcp_description
+msgid "create an MCP (Model Context Protocol) server based on FastPlaz"
+msgstr ""
+
+#: projectmcp_lib.rs_projectmcp_name
+msgid "MCP Server Application"
+msgstr ""
+
