@@ -1060,6 +1060,14 @@ begin
 end;
 
 initialization
+  // String = UTF-8 on every platform. On Windows the default is the ANSI code
+  // page (e.g. 1252): UTF-8 fields from the database (code page CP_UTF8) were
+  // converted to it on assignment to a String, and the page (sent as utf-8)
+  // showed U+FFFD for characters such as an em dash.
+  DefaultSystemCodePage := CP_UTF8;
+  DefaultFileSystemCodePage := CP_UTF8;
+  DefaultRTLFileSystemCodePage := CP_UTF8;
+
   // every CGI application, ours or one created by fpcgi, gets a handler that
   // tracks the current request
   CGIWebHandlerClass := TFastPlazCGIHandler;
