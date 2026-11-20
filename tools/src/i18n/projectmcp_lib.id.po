@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: projectmcp_lib.rs_projectmcp_description
+msgctxt "projectmcp_lib.rs_projectmcp_description"
+msgid "create an MCP (Model Context Protocol) server based on FastPlaz"
+msgstr "buat server MCP (Model Context Protocol) berbasis FastPlaz"
+
+#: projectmcp_lib.rs_projectmcp_name
+msgctxt "projectmcp_lib.rs_projectmcp_name"
+msgid "MCP Server Application"
+msgstr "Aplikasi Server MCP"

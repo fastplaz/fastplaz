@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: id\n"
+"Language-Team: Indonesian\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: mcpcontroller_lib.rs_mod_mcp_description
+msgctxt "mcpcontroller_lib.rs_mod_mcp_description"
+msgid "Create an MCP (Model Context Protocol) server controller"
+msgstr "Buat controller server MCP (Model Context Protocol)"
+
+#: mcpcontroller_lib.rs_mod_mcp_name
+msgctxt "mcpcontroller_lib.rs_mod_mcp_name"
+msgid "Create MCP Controller"
+msgstr "Buat Controller MCP"

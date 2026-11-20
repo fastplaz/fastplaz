@@ -37,7 +37,7 @@ var
 implementation
 
 uses modsimple_lib, modsimplejson_lib, model_lib, project_lib, projectapi_lib,
-  menu_experts;
+  mcpcontroller_lib, projectmcp_lib, menu_experts;
 
 function PackageDirectory(const APackageName: string): string;
 var
@@ -65,9 +65,11 @@ begin
   RegisterNewItemCategory(TNewIDEItemCategory.Create(FastPlaz));
   RegisterProjectDescriptor(TProjectFastPlazDescriptor.Create, FastPlaz);
   RegisterProjectDescriptor(TProjectAPIFastPlazDescriptor.Create, FastPlaz);
+  RegisterProjectDescriptor(TProjectMcpFastPlazDescriptor.Create, FastPlaz);
 
   RegisterProjectFileDescriptor(TFileDescDefaultModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescJSONModule.Create, FastPlaz);
+  RegisterProjectFileDescriptor(TFileDescMcpModule.Create, FastPlaz);
   RegisterProjectFileDescriptor(TFileDescModel.Create, FastPlaz);
 end;
 
