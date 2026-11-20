@@ -34,6 +34,7 @@ implementation
 
 uses fastplaz_tools_register, tools_lib, about_fastplaz, webstructure_wzd,
   themestructure_wzd, modsimple_lib, modsimple_wzd, modsimplejson_lib,
+  mcpcontroller_lib,
   model_lib, model_wzd, packageapp_wzd, packageapp_lib, project_lib,
   json_tools, regex_tester,
   //Database Explorer
@@ -70,6 +71,13 @@ end;
 procedure JsonModuleGenerator_Proc(ASender: TObject);
 begin
   GenerateModule(True);
+end;
+
+procedure McpModuleGenerator_Proc(ASender: TObject);
+var
+  fileName: string;
+begin
+  NewMcpControllerUnit(NEW_UNIT_FLAGS, fileName);
 end;
 
 procedure ModelGenerator_Proc(ASender: TObject);
@@ -374,6 +382,8 @@ begin
     rs_Mod_Default_Name, nil, @SimpleModuleGenerator_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModuleJsonCreator',
     rs_Mod_JSON_Name, nil, @JsonModuleGenerator_Proc, nil);
+  RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModuleMcpCreator',
+    rs_Mod_MCP_Name, nil, @McpModuleGenerator_Proc, nil);
   RegisterIDEMenuCommand(oMenuExpert, 'mnu_FastPlaz_ModelCreator',
     rs_Model_Name, nil, @ModelGenerator_Proc, nil);
 

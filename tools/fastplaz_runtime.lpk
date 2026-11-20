@@ -8,7 +8,7 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../FastPlaz"/>
-        <OtherUnitFiles Value="runtime;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper"/>
+        <OtherUnitFiles Value="runtime;../FastPlaz/src/systems;../FastPlaz/src/library;../FastPlaz/src/vendor;../FastPlaz/src/app/about;../FastPlaz/src/model;../FastPlaz/src/util;../FastPlaz/src/helper;../FastPlaz/src/mcp"/>
         <UnitOutputDirectory Value="lib/runtime/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -25,7 +25,7 @@
     <Description Value="FastPlaz RunTime
 "/>
     <Version Major="1" Release="11" Build="14"/>
-    <Files Count="49">
+    <Files Count="51">
       <Item1>
         <Filename Value="../FastPlaz/define_fastplaz.inc"/>
         <Type Value="Include"/>
@@ -223,6 +223,14 @@
         <Filename Value="../FastPlaz/src/systems/fastplaz_app.pas"/>
         <UnitName Value="fastplaz_app"/>
       </Item49>
+      <Item50>
+        <Filename Value="../FastPlaz/src/mcp/mcp_server.pas"/>
+        <UnitName Value="mcp_server"/>
+      </Item50>
+      <Item51>
+        <Filename Value="../FastPlaz/src/mcp/mcp_handler.pas"/>
+        <UnitName Value="mcp_handler"/>
+      </Item51>
     </Files>
     <CompatibilityMode Value="True"/>
     <i18n>

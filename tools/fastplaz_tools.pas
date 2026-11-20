@@ -21,7 +21,8 @@ uses
   aiplane_ide, aiplane_markdown, aiplane_codehighlight, aiplane_pi, 
   aiplane_httpserver, aiplane_mcpserver, aiplane_tools_ide, 
   aiplane_tools_fastplaz, aiplane_questiondlg, aiplane_reference, aiplane_textedit, 
-  aiplane_tools_editor, LazarusPackageIntf;
+  aiplane_tools_editor, mcp_lib, mcpcontroller_lib, projectmcp_lib,
+  LazarusPackageIntf;
 
 implementation
 

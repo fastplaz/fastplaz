@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: mcpcontroller_lib.rs_mod_mcp_description
+msgid "Create an MCP (Model Context Protocol) server controller"
+msgstr ""
+
+#: mcpcontroller_lib.rs_mod_mcp_name
+msgid "Create MCP Controller"
+msgstr ""
+

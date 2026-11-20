@@ -1,4 +1,4 @@
-# FastPlaz MCP Server (AI Agent Plane)
+# FastPlaz MCP Server for IDE Lazarus (AI Agent Plane)
 
 FastPlaz AI Agent Plane runs a small **MCP (Model Context Protocol) server
 inside the Lazarus IDE**. The coding agent started from AI Agent Plane (Claude
